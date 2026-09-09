@@ -1442,4 +1442,370 @@
         calculateTotalFacturas();
     }
     //FIN INGRESO POR ESCANER
+
+    /* =========================================================
+       IZZY | LISTADOS DIV PREMIUM
+       Sin DataTable visible. Mantiene endpoints y acciones.
+       ========================================================= */
+    function izzyListEscape(value) {
+        return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+    }
+
+    function izzyListNumber(value) {
+        if (typeof value === 'string') {
+            value = value.replace(/L\./g,'').replace(/L/g,'').replace(/,/g,'').replace(/<[^>]*>/g,'').trim();
+        }
+        value = parseFloat(value || 0);
+        return isNaN(value) ? 0 : value;
+    }
+
+    function izzyListMoney(value) {
+        return 'L. ' + izzyListNumber(value).toLocaleString('es-HN', {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+        });
+    }
+
+    function izzyListRows(response) {
+        if (typeof response === 'string') {
+            try { response = JSON.parse(response); } catch(e) { return []; }
+        }
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.data)) return response.data;
+        if (response && Array.isArray(response.aaData)) return response.aaData;
+        return [];
+    }
+
+    function izzyListSearchText(row) {
+        try { return JSON.stringify(row || {}).toLowerCase(); }
+        catch(e) { return ''; }
+    }
+
+    function izzyMiniField(label, value) {
+        return '<div class="fm-mini-field">' +
+            '<span class="fm-mini-field-label">'+izzyListEscape(label)+'</span>' +
+            '<span class="fm-mini-field-value">'+value+'</span>' +
+        '</div>';
+    }
+
+    function izzyEmptyList() {
+        return '<div class="fm-empty"><i class="fas fa-inbox"></i><strong>Sin registros</strong><span>No hay información que coincida con los criterios actuales.</span></div>';
+    }
+
+    function izzyProductImageHtml(row) {
+        var fallback = '<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png';
+        var src = row && row.image
+            ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + row.image
+            : fallback;
+        var title = izzyListEscape((row && row.nombre) || 'Producto');
+
+        return '<div class="fm-product-image-wrap">' +
+            '<img class="fm-product-image izzy-select-product-image" src="'+src+'" alt="'+title+'">' +
+            '<button type="button" class="fm-product-zoom iv-trigger" data-iv-src="'+src+'" data-iv-fallback="'+fallback+'" data-iv-title="'+title+'" title="Ver imagen grande">' +
+                '<i class="fas fa-search-plus"></i>' +
+            '</button>' +
+        '</div>';
+    }
+
+    function izzyApplyPermissions() {
+        try {
+            if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+                typeof getPrivilegioTipoUsuario === 'function') {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            }
+        } catch(e) {}
+    }
+
+    function izzyCreateState(cfg) {
+        return $.extend({
+            rows:[],
+            filtered:[],
+            page:1,
+            pageSize:10,
+            view:'detalle',
+            search:'',
+            grid:'1fr',
+            columns:[],
+            renderMini:null,
+            renderDetail:null,
+            onSelect:null
+        }, cfg || {});
+    }
+
+    function izzyFilterState(state) {
+        var q = String(state.search || '').trim().toLowerCase();
+        state.filtered = !q ? state.rows.slice() : state.rows.filter(function(row) {
+            return izzyListSearchText(row).indexOf(q) !== -1;
+        });
+        var pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        if (state.page > pages) state.page = pages;
+        if (state.page < 1) state.page = 1;
+    }
+
+    function izzyRenderPagination(state) {
+        var pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        var html = '';
+        function btn(label,page,disabled,active) {
+            html += '<button type="button" data-page="'+page+'" '+(disabled?'disabled':'')+' class="'+(active?'active':'')+'">'+label+'</button>';
+        }
+        btn('<i class="fas fa-angle-double-left"></i> Inicio',1,state.page===1,false);
+        btn('<i class="fas fa-angle-left"></i> Anterior',state.page-1,state.page===1,false);
+        var from = Math.max(1,state.page-2);
+        var to = Math.min(pages,from+4);
+        from = Math.max(1,to-4);
+        for(var p=from;p<=to;p++) btn(String(p),p,false,p===state.page);
+        btn('Siguiente <i class="fas fa-angle-right"></i>',state.page+1,state.page===pages,false);
+        btn('Final <i class="fas fa-angle-double-right"></i>',pages,state.page===pages,false);
+
+        $(state.pagination).html(html)
+            .off('click.izzyList','button[data-page]')
+            .on('click.izzyList','button[data-page]',function(){
+                if(this.disabled || $(this).hasClass('active')) return;
+                state.page = parseInt($(this).attr('data-page'),10) || 1;
+                izzyRenderState(state);
+            });
+    }
+
+    function izzyRenderState(state) {
+        izzyFilterState(state);
+
+        var start = (state.page-1) * state.pageSize;
+        var pageRows = state.filtered.slice(start,start+state.pageSize);
+        var html = '';
+
+        if (!pageRows.length) {
+            html = izzyEmptyList();
+        } else if (state.view === 'miniatura') {
+            html = pageRows.map(function(row,idx){
+                return state.renderMini(row,start+idx);
+            }).join('');
+        } else {
+            html = '<div class="fm-detail-header" style="grid-template-columns:'+state.grid+'">' +
+                state.columns.map(function(c){return '<div class="fm-cell '+(c.cls||'')+'">'+izzyListEscape(c.label)+'</div>';}).join('') +
+            '</div>' +
+            pageRows.map(function(row,idx){
+                return state.renderDetail(row,start+idx);
+            }).join('');
+        }
+
+        $(state.list).toggleClass('fm-view-miniatura',state.view==='miniatura').html(html);
+        $(state.info).text(state.filtered.length
+            ? 'Mostrando '+(start+1)+' a '+Math.min(start+pageRows.length,state.filtered.length)+' de '+state.filtered.length+' registros'
+            : '0 registros');
+
+        izzyRenderPagination(state);
+        izzyApplyPermissions();
+
+        $(state.modal).find('.fm-view-btn')
+            .removeClass('active')
+            .filter('[data-view="'+state.view+'"]').addClass('active');
+    }
+
+    function izzyBindState(state) {
+        $(document)
+            .off('input.izzyList',state.searchInput)
+            .on('input.izzyList',state.searchInput,function(){
+                state.search = $(this).val() || '';
+                state.page = 1;
+                izzyRenderState(state);
+            })
+            .off('click.izzyList',state.clearBtn)
+            .on('click.izzyList',state.clearBtn,function(){
+                $(state.searchInput).val('');
+                state.search = '';
+                state.page = 1;
+                izzyRenderState(state);
+                $(state.searchInput).focus();
+            })
+            .off('change.izzyList',state.pageSizeSelect)
+            .on('change.izzyList',state.pageSizeSelect,function(){
+                state.pageSize = parseInt($(this).val(),10) || 10;
+                state.page = 1;
+                izzyRenderState(state);
+            })
+            .off('click.izzyList',state.modal+' .fm-view-btn')
+            .on('click.izzyList',state.modal+' .fm-view-btn',function(){
+                state.view = $(this).attr('data-view') === 'miniatura' ? 'miniatura' : 'detalle';
+                state.page = 1;
+                izzyRenderState(state);
+            })
+            .off('click.izzyList',state.list+' [data-row-index]')
+            .on('click.izzyList',state.list+' [data-row-index]',function(e){
+                if ($(e.target).closest('.iv-trigger').length) return;
+                var index = parseInt($(this).attr('data-row-index'),10);
+                var row = state.filtered[index];
+                if (row && typeof state.onSelect === 'function') state.onSelect(row);
+            });
+    }
+
+    function izzyLoadState(state,url,data,done) {
+        $(state.list).removeClass('fm-view-miniatura').html('<div class="fm-loading"><i class="fas fa-spinner fa-spin mr-1"></i> Cargando...</div>');
+        $.ajax({
+            type:'POST',
+            url:url,
+            data:data || {},
+            cache:false
+        }).done(function(response){
+            state.rows = izzyListRows(response);
+            state.page = 1;
+            izzyRenderState(state);
+            if (typeof done === 'function') done(state.rows);
+        }).fail(function(){
+            state.rows = [];
+            state.filtered = [];
+            izzyRenderState(state);
+            if (typeof showNotify === 'function') {
+                showNotify('error','Error','No fue posible cargar la información.');
+            }
+        });
+    }
+
+
+    var izzyComprasProductosState;
+
+
+    function izzyComprasOrdenarHeaderModal($modal, titulo, subtitulo) {
+        var $header = $modal.find('.modal-header').first();
+
+        $modal.addClass('fm-modal');
+        $header.addClass('fm-modal-header');
+
+        var $close = $header.find('.close').first().detach();
+        var $title = $header.find('.modal-title').first();
+
+        if (!$header.find('.fm-modal-title-wrap').length) {
+            var $wrap = $('<div class="fm-modal-title-wrap"></div>');
+            $title.detach().appendTo($wrap);
+            $wrap.append('<small class="d-block mt-1"></small>');
+            $header.empty().append($wrap).append($close);
+        }
+
+        $header.find('.modal-title').text(titulo);
+        $header.find('.fm-modal-title-wrap small').text(subtitulo);
+    }
+
+    function izzyComprasPrepareProductoModal() {
+        var $modal = $('#modal_buscar_productos_compras');
+        var $form = $('#formulario_busqueda_productos_compras');
+
+        izzyComprasOrdenarHeaderModal(
+            $modal,
+            'Buscar Productos - Compras',
+            'Seleccione un producto para agregarlo a la factura de compra.'
+        );
+        $modal.find('.modal-body').addClass('fm-modal-body');
+
+        if (!$('#productosComprasListado').length) {
+            $('#DatatableProductosBusquedaCompra').closest('.col-md-12').replaceWith(
+                '<div class="fm-directory-card">' +
+                    '<div class="fm-list-toolbar">' +
+                        '<div class="fm-toolbar-left">' +
+                            '<button type="button" id="btnActualizarProductosCompras" class="btn btn-info table_actualizar ocultar"><i class="fas fa-sync-alt"></i>Actualizar</button>' +
+                            '<button type="button" id="btnNuevoProductoCompras" class="btn btn-primary table_crear ocultar"><i class="fas fa-plus"></i>Ingresar</button>' +
+                        '</div>' +
+                        '<div class="fm-toolbar-right">' +
+                            '<label class="fm-page-size">Mostrar <select id="productosComprasPageSize" class="form-control form-control-sm fm-page-size-select"><option>10</option><option>25</option><option>50</option><option>100</option></select> registros</label>' +
+                            '<div class="fm-view-switch"><button type="button" class="fm-view-btn active" data-view="detalle"><i class="fas fa-list"></i></button><button type="button" class="fm-view-btn" data-view="miniatura"><i class="fas fa-th-large"></i></button></div>' +
+                            '<div class="fm-search-wrap"><i class="fas fa-search"></i><input type="search" id="productosComprasSearch" class="form-control form-control-sm" placeholder="Buscar..."><button type="button" id="productosComprasClear" class="fm-search-clear"><i class="fas fa-times"></i></button></div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="productosComprasListado" class="fm-listado"></div>' +
+                    '<div class="fm-list-footer"><span id="productosComprasInfo" class="fm-list-info">0 registros</span><div id="productosComprasPaginacion" class="fm-pagination"></div></div>' +
+                '</div>'
+            );
+        }
+    }
+
+    function izzyComprasSeleccionarProducto(data) {
+        $('#purchase-form #purchaseItem #bar-code-idPurchase_' + row).val(data.barCode);
+        $('#purchase-form #purchaseItem #productos_idPurchase_' + row).val(data.productos_id);
+        $('#purchase-form #purchaseItem #productNamePurchase_' + row).val(data.nombre);
+        $('#purchase-form #purchaseItem #quantityPurchase_' + row).val(1);
+        $('#purchase-form #purchaseItem #quantityPurchase_' + row).focus();
+        $('#purchase-form #purchaseItem #medidaPurchase_' + row).val(data.medida);
+        $('#purchase-form #purchaseItem #bodegaPurchase_' + row).val(data.almacen_id);
+        $('#purchase-form #purchaseItem #discountPurchase_' + row).val(0);
+        $('#purchase-form #purchaseItem #isvPurchase_' + row).val(data.isv_compra);
+
+        if (data.isv_compra == 1) {
+            var porcentaje_isv = parseFloat(getPorcentajeISV("Compras") / 100);
+            var porcentaje_calculo = (parseFloat(data.precio_compra || 0) * porcentaje_isv).toFixed(2);
+            var isv_total = parseFloat($('#purchase-form #taxAmountPurchase').val() || 0);
+            $('#purchase-form #taxAmountPurchase').val((isv_total + parseFloat(porcentaje_calculo)).toFixed(2));
+            $('#purchase-form #purchaseItem #valor_isvPurchase_' + row).val(porcentaje_calculo);
+        }
+
+        calculateTotalCompras();
+        addRowCompras();
+        $('#modal_buscar_productos_compras').modal('hide');
+        row++;
+    }
+
+    function izzyComprasInitState() {
+        izzyComprasPrepareProductoModal();
+
+        izzyComprasProductosState = izzyCreateState({
+            modal:'#modal_buscar_productos_compras',
+            list:'#productosComprasListado',
+            info:'#productosComprasInfo',
+            pagination:'#productosComprasPaginacion',
+            searchInput:'#productosComprasSearch',
+            clearBtn:'#productosComprasClear',
+            pageSizeSelect:'#productosComprasPageSize',
+            grid:'130px minmax(280px,2fr) minmax(160px,1fr) 110px 100px minmax(150px,1fr) 150px',
+            columns:[
+                {label:'Agregar'},
+                {label:'Producto'},
+                {label:'Código'},
+                {label:'Existencia'},
+                {label:'Medida'},
+                {label:'Tipo'},
+                {label:'Precio Compra'}
+            ],
+            renderDetail:function(r,i){
+                return '<div class="fm-detail-row" style="grid-template-columns:'+this.grid+'" data-row-index="'+i+'">' +
+                    '<div class="fm-cell fm-text-center" data-label="Agregar"><button type="button" class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-cart-plus mr-1"></i>Agregar</button></div>' +
+                    '<div class="fm-cell" data-label="Producto"><div class="fm-product-card-main">'+izzyProductImageHtml(r)+'<div class="fm-product-copy"><div class="fm-product-name">'+izzyListEscape(r.nombre||'')+'</div><div class="fm-product-kind">'+izzyListEscape(r.tipo_producto||'Producto')+'</div></div></div></div>' +
+                    '<div class="fm-cell" data-label="Código">'+izzyListEscape(r.barCode||'')+'</div>' +
+                    '<div class="fm-cell fm-text-center" data-label="Existencia">'+izzyListEscape(r.cantidad||0)+'</div>' +
+                    '<div class="fm-cell" data-label="Medida">'+izzyListEscape(r.medida||'')+'</div>' +
+                    '<div class="fm-cell" data-label="Tipo">'+izzyListEscape(r.tipo_producto||'')+'</div>' +
+                    '<div class="fm-cell fm-text-right" data-label="Precio Compra"><strong>'+izzyListMoney(r.precio_compra)+'</strong></div>' +
+                '</div>';
+            },
+            renderMini:function(r,i){
+                return '<div class="fm-mini-card" data-row-index="'+i+'">' +
+                    '<div class="fm-mini-header"><div class="fm-product-card-main">'+izzyProductImageHtml(r)+'<div class="fm-product-copy"><div class="fm-mini-title">'+izzyListEscape(r.nombre||'')+'</div><span class="fm-mini-subtitle">Código: '+izzyListEscape(r.barCode||'')+'</span></div></div><button class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-cart-plus mr-1"></i>Agregar</button></div>' +
+                    '<div class="fm-mini-body">' +
+                        izzyMiniField('Existencia',izzyListEscape(r.cantidad||0)) +
+                        izzyMiniField('Medida',izzyListEscape(r.medida||'')) +
+                        izzyMiniField('Tipo',izzyListEscape(r.tipo_producto||'')) +
+                        izzyMiniField('Precio Compra','<strong>'+izzyListMoney(r.precio_compra)+'</strong>') +
+                    '</div>' +
+                '</div>';
+            },
+            onSelect:izzyComprasSeleccionarProducto
+        });
+
+        izzyBindState(izzyComprasProductosState);
+
+        $('#btnActualizarProductosCompras').off('click.izzy').on('click.izzy',listar_productos_compras_buscar);
+        $('#btnNuevoProductoCompras').off('click.izzy').on('click.izzy',function(){ if(typeof modal_productos==='function') modal_productos(); });
+    }
+
+    listar_productos_compras_buscar = function() {
+        if (!izzyComprasProductosState) izzyComprasInitState();
+        var bodega = $('#formulario_busqueda_productos_compras #almacen').val() || '';
+        izzyLoadState(izzyComprasProductosState,'<?php echo SERVERURL;?>core/llenarDataTableProductosCompras.php',{bodega:bodega});
+    };
+
+    $(function(){
+        izzyComprasInitState();
+        $('#modal_buscar_productos_compras')
+            .off('shown.bs.modal.izzyFocus')
+            .on('shown.bs.modal.izzyFocus',function(){
+                $('#productosComprasSearch').focus();
+            });
+    });
+
 </script>

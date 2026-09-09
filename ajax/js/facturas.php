@@ -9911,4 +9911,2295 @@ $('#modalConfigFactura')
         actualizarCentroConfigFactura();
     });
 
+
+
+
+/* =========================================================
+   IZZY | FACTURACIÓN - LISTADOS DIV PREMIUM
+   ---------------------------------------------------------
+   Override seguro de los DataTables usados por los modales
+   de Facturación. La lógica de negocio y endpoints permanecen.
+   La vista principal #invoice-form NO se modifica.
+   ========================================================= */
+(function iniciarFacturasModalDivPremium() {
+    'use strict';
+
+    if (!window.jQuery) {
+        window.setTimeout(iniciarFacturasModalDivPremium, 50);
+        return;
+    }
+
+    if (window.__IZZY_FACTURAS_MODAL_DIV_PREMIUM__) {
+        return;
+    }
+    window.__IZZY_FACTURAS_MODAL_DIV_PREMIUM__ = true;
+
+    var $ = window.jQuery;
+
+    var FM = window.IZZYFacturasModalUI = {
+        lists: {},
+        logoDataUrl: null
+    };
+
+    function fmEscape(value) {
+        return $('<div>').text(value === null || value === undefined ? '' : String(value)).html();
+    }
+
+    function fmNormalize(value) {
+        var text = String(value === null || value === undefined ? '' : value).toLowerCase();
+        try {
+            text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        } catch (e) {}
+        return text;
+    }
+
+    function fmMoney(value) {
+        var n = parseFloat(String(value === null || value === undefined ? 0 : value)
+            .replace(/L\./gi, '')
+            .replace(/L/gi, '')
+            .replace(/,/g, '')
+            .replace(/<[^>]*>/g, '')
+            .trim());
+        if (isNaN(n)) n = 0;
+        return 'L. ' + n.toLocaleString('es-HN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function fmNumber(value) {
+        var n = parseFloat(String(value === null || value === undefined ? 0 : value)
+            .replace(/L\./gi, '')
+            .replace(/L/gi, '')
+            .replace(/,/g, '')
+            .replace(/<[^>]*>/g, '')
+            .trim());
+        return isNaN(n) ? 0 : n;
+    }
+
+    function fmRowsResponse(response) {
+        if (typeof response === 'string') {
+            try {
+                response = JSON.parse(response);
+            } catch (e) {
+                console.error('Respuesta inválida de listado de facturación:', response);
+                return [];
+            }
+        }
+
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.data)) return response.data;
+        if (response && Array.isArray(response.aaData)) return response.aaData;
+        if (response && Array.isArray(response.rows)) return response.rows;
+        return [];
+    }
+
+    function fmFetch(url, data) {
+        return $.ajax({
+            type: 'POST',
+            url: url,
+            data: data || {},
+            dataType: 'json',
+            cache: false,
+            timeout: 30000
+        });
+    }
+
+    function fmRegister(key, config) {
+        var savedView = 'detalle';
+        try {
+            savedView = localStorage.getItem('izzy.facturas.modal.' + key + '.vista') || 'detalle';
+        } catch (e) {}
+
+        FM.lists[key] = $.extend(true, {
+            key: key,
+            rows: [],
+            filtered: [],
+            page: 1,
+            perPage: 10,
+            perPageDetail: 10,
+            perPageMini: 10,
+            view: savedView === 'miniatura' ? 'miniatura' : 'detalle',
+            search: '',
+            selector: '',
+            searchSelector: '#' + key + 'Search',
+            sizeSelector: '#' + key + 'PageSize',
+            infoSelector: '#' + key + 'Info',
+            paginationSelector: '#' + key + 'Paginacion',
+            searchFields: null,
+            detailHeader: [],
+            renderDetail: null,
+            renderMini: null,
+            exportConfig: null,
+            screenTotals: null
+        }, config || {});
+
+        fmSyncSizeOptions(FM.lists[key]);
+        fmSyncViewButtons(FM.lists[key]);
+        return FM.lists[key];
+    }
+
+    function fmState(key) {
+        return FM.lists[key] || null;
+    }
+
+    function fmSyncSizeOptions(state) {
+        if (!state) return;
+        var $select = $(state.sizeSelector);
+        if (!$select.length) return;
+
+        var options = state.view === 'miniatura'
+            ? [10, 15, 20, 30]
+            : [10, 25, 50, 100];
+
+        var selected = state.view === 'miniatura'
+            ? state.perPageMini
+            : state.perPageDetail;
+
+        if (options.indexOf(selected) === -1) selected = options[0];
+
+        $select.empty();
+        options.forEach(function (n) {
+            $select.append($('<option>').val(n).text(n));
+        });
+
+        state.perPage = selected;
+        $select.val(String(selected));
+    }
+
+    function fmSyncViewButtons(state) {
+        if (!state) return;
+        $('.fm-view-btn[data-list="' + state.key + '"]')
+            .removeClass('active')
+            .attr('aria-pressed', 'false');
+
+        $('.fm-view-btn[data-list="' + state.key + '"][data-view="' + state.view + '"]')
+            .addClass('active')
+            .attr('aria-pressed', 'true');
+    }
+
+    function fmSearchText(row, state) {
+        if (!state.searchFields || !state.searchFields.length) {
+            try { return fmNormalize(JSON.stringify(row)); } catch (e) { return fmNormalize(row); }
+        }
+
+        return fmNormalize(state.searchFields.map(function (field) {
+            return row && row[field] !== undefined ? row[field] : '';
+        }).join(' '));
+    }
+
+    function fmApplyFilter(key) {
+        var state = fmState(key);
+        if (!state) return;
+
+        var search = fmNormalize($(state.searchSelector).val() || state.search || '').trim();
+        state.search = search;
+
+        state.filtered = !search
+            ? state.rows.slice()
+            : state.rows.filter(function (row) {
+                return fmSearchText(row, state).indexOf(search) !== -1;
+            });
+
+        var totalPages = Math.max(1, Math.ceil(state.filtered.length / state.perPage));
+        if (state.page > totalPages) state.page = totalPages;
+        if (state.page < 1) state.page = 1;
+
+        fmRender(key);
+    }
+
+    function fmSetRows(key, rows) {
+        var state = fmState(key);
+        if (!state) return;
+        state.rows = Array.isArray(rows) ? rows : [];
+        state.page = 1;
+        fmApplyFilter(key);
+    }
+
+    function fmHeader(state) {
+        if (!state.detailHeader || !state.detailHeader.length) return '';
+        var cells = state.detailHeader.map(function (item) {
+            return '<div class="fm-cell ' + (item.className || '') + '">' + fmEscape(item.label || '') + '</div>';
+        }).join('');
+        return '<div class="fm-row fm-row-header" aria-hidden="true">' + cells + '</div>';
+    }
+
+    function fmRenderScreenTotals(state) {
+        if (!state || !Array.isArray(state.screenTotals) || !state.screenTotals.length) {
+            if (state && state.key) {
+                $('#'+state.key+'TotalesGenerales').remove();
+            }
+            return;
+        }
+
+        var rows = Array.isArray(state.filtered) ? state.filtered : [];
+        var totalId = state.key + 'TotalesGenerales';
+        var $total = $('#' + totalId);
+
+        if (!$total.length) {
+            $total = $('<div>', {
+                id: totalId,
+                class: 'fm-screen-totals'
+            });
+            $(state.selector).after($total);
+        }
+
+        if (!rows.length) {
+            $total.empty().hide();
+            return;
+        }
+
+        var totals = {};
+        state.screenTotals.forEach(function (item) {
+            totals[item.field] = rows.reduce(function (sum, row) {
+                return sum + fmNumber(row && row[item.field]);
+            }, 0);
+        });
+
+        if (state.view === 'miniatura') {
+            var miniHtml =
+                '<div class="d-flex flex-wrap justify-content-end align-items-stretch" style="gap:10px;margin-top:12px;">' +
+                    '<div style="display:flex;align-items:center;padding:10px 14px;border:1px solid #cfe2f3;border-radius:8px;background:#eaf4fc;color:#172b4d;font-weight:800;">TOTAL GENERAL</div>';
+
+            state.screenTotals.forEach(function (item) {
+                miniHtml +=
+                    '<div style="min-width:150px;padding:9px 12px;border:1px solid #dfe6ee;border-radius:8px;background:#f7f9fc;text-align:right;">' +
+                        '<span style="display:block;font-size:.68rem;font-weight:700;color:#6b778c;text-transform:uppercase;">' + fmEscape(item.label) + '</span>' +
+                        '<strong style="display:block;margin-top:3px;color:#172b4d;white-space:nowrap;">' + fmMoney(totals[item.field]) + '</strong>' +
+                    '</div>';
+            });
+
+            miniHtml += '</div>';
+            $total.html(miniHtml).show();
+            return;
+        }
+
+        var header = Array.isArray(state.detailHeader) ? state.detailHeader : [];
+        var labelIndex = typeof state.screenTotalsLabelIndex === 'number'
+            ? state.screenTotalsLabelIndex
+            : Math.max(0, header.length - state.screenTotals.length - 1);
+
+        var byIndex = {};
+        state.screenTotals.forEach(function (item) {
+            byIndex[item.index] = item;
+        });
+
+        var cells = header.map(function (h, index) {
+            var content = '';
+
+            if (index === labelIndex) {
+                content = '<strong style="color:#172b4d;">TOTAL GENERAL</strong>';
+            }
+
+            if (byIndex[index]) {
+                content =
+                    '<strong style="display:block;text-align:right;color:#172b4d;white-space:nowrap;">' +
+                        fmMoney(totals[byIndex[index].field]) +
+                    '</strong>';
+            }
+
+            return '<div class="fm-cell ' + (h.className || '') + '">' + content + '</div>';
+        }).join('');
+
+        $total.html(
+            '<div class="fm-row" style="margin-top:10px;border-top:3px solid #2f9ddd;background:#eaf4fc;box-shadow:none;">' +
+                cells +
+            '</div>'
+        ).show();
+    }
+
+    function fmRender(key) {
+        var state = fmState(key);
+        if (!state) return;
+
+        var $container = $(state.selector);
+        if (!$container.length) return;
+
+        var total = state.filtered.length;
+        var totalPages = Math.max(1, Math.ceil(total / state.perPage));
+        state.page = Math.max(1, Math.min(state.page, totalPages));
+
+        var start = (state.page - 1) * state.perPage;
+        var end = Math.min(start + state.perPage, total);
+        var visible = state.filtered.slice(start, end);
+
+        $container
+            .toggleClass('fm-view-miniatura', state.view === 'miniatura')
+            .toggleClass('fm-view-detalle', state.view !== 'miniatura');
+
+        if (!visible.length) {
+            $container.html(
+                '<div class="fm-empty">' +
+                    '<i class="fas fa-inbox"></i>' +
+                    '<strong>Sin registros</strong>' +
+                    '<span>No hay información que coincida con los criterios actuales.</span>' +
+                '</div>'
+            );
+        } else {
+            var html = '';
+            if (state.view === 'detalle') html += fmHeader(state);
+
+            visible.forEach(function (row, localIndex) {
+                var globalIndex = start + localIndex;
+                html += state.view === 'miniatura'
+                    ? state.renderMini(row, globalIndex, state)
+                    : state.renderDetail(row, globalIndex, state);
+            });
+
+            $container.html(html);
+        }
+
+        fmRenderScreenTotals(state);
+
+        $(state.infoSelector).text(
+            total === 0
+                ? '0 registros'
+                : 'Mostrando ' + (start + 1) + ' a ' + end + ' de ' + total + ' registros'
+        );
+
+        fmRenderPagination(state, totalPages);
+        fmSyncViewButtons(state);
+
+        if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+            typeof getPrivilegioTipoUsuario === 'function') {
+            try {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            } catch (e) {
+                console.warn('No se pudieron aplicar permisos al listado DIV:', e);
+            }
+        }
+
+        if (typeof cerrarDropdownAcciones === 'function') {
+            try { cerrarDropdownAcciones(); } catch (e) {}
+        }
+
+        $('[title]').tooltip({
+            container: 'body',
+            placement: 'top'
+        });
+    }
+
+    function fmRenderPagination(state, totalPages) {
+        var $p = $(state.paginationSelector);
+        if (!$p.length) return;
+
+        var current = state.page;
+        var buttons = [];
+
+        function btn(label, page, disabled, active, title) {
+            buttons.push(
+                '<button type="button" class="' + (active ? 'active' : '') + '" ' +
+                    'data-list="' + fmEscape(state.key) + '" data-page="' + page + '" ' +
+                    (disabled ? 'disabled ' : '') +
+                    (title ? 'title="' + fmEscape(title) + '"' : '') +
+                '>' + label + '</button>'
+            );
+        }
+
+        btn('<i class="fas fa-angle-double-left"></i><span class="d-none d-md-inline ml-1">Inicio</span>', 1, current <= 1, false, 'Inicio');
+        btn('<i class="fas fa-angle-left"></i><span class="d-none d-md-inline ml-1">Anterior</span>', current - 1, current <= 1, false, 'Anterior');
+
+        var from = Math.max(1, current - 2);
+        var to = Math.min(totalPages, from + 4);
+        from = Math.max(1, to - 4);
+
+        for (var p = from; p <= to; p++) {
+            btn(String(p), p, false, p === current, 'Página ' + p);
+        }
+
+        btn('<span class="d-none d-md-inline mr-1">Siguiente</span><i class="fas fa-angle-right"></i>', current + 1, current >= totalPages, false, 'Siguiente');
+        btn('<span class="d-none d-md-inline mr-1">Final</span><i class="fas fa-angle-double-right"></i>', totalPages, current >= totalPages, false, 'Final');
+
+        $p.html(buttons.join(''));
+    }
+
+    function fmRowIndexAttr(index) {
+        return ' data-fm-index="' + index + '"';
+    }
+
+    function fmGetRecord(element, key) {
+        var state = fmState(key);
+        if (!state) return null;
+        var idx = parseInt($(element).closest('[data-fm-index]').attr('data-fm-index'), 10);
+        if (isNaN(idx) || idx < 0 || idx >= state.filtered.length) return null;
+        return state.filtered[idx];
+    }
+
+    function fmCell(label, value, className) {
+        return '<div class="fm-cell ' + (className || '') + '">' +
+            '<span class="fm-cell-label">' + fmEscape(label) + '</span>' +
+            '<div class="fm-cell-value">' + (value === null || value === undefined ? '—' : value) + '</div>' +
+        '</div>';
+    }
+
+    function fmMiniField(label, value) {
+        return '<div class="fm-mini-field">' +
+            '<span>' + fmEscape(label) + '</span>' +
+            '<strong>' + (value === null || value === undefined || value === '' ? '—' : value) + '</strong>' +
+        '</div>';
+    }
+
+    function fmActionsMenu(items) {
+        return '<div class="acciones-caja-wrap">' +
+            '<div class="dropdown acciones-dropdown">' +
+                '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                    '<i class="fas fa-cog"></i><span>Acciones</span>' +
+                '</button>' +
+                '<div class="dropdown-menu dropdown-menu-right acciones-menu">' + items.join('') + '</div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function fmActionItem(css, iconClass, iconStyle, label, disabled) {
+        return '<button type="button" class="dropdown-item accion-item ' + css + '" ' + (disabled ? 'disabled aria-disabled="true"' : '') + '>' +
+            '<span class="accion-icon ' + (iconStyle || 'accion-icon-primary') + '"><i class="' + iconClass + '"></i></span>' +
+            '<span class="accion-label">' + fmEscape(label) + '</span>' +
+        '</button>';
+    }
+
+    function fmMiniCard(index, title, subtitle, fields, actionsHtml, extraClass, topExtra) {
+        return '<article class="fm-mini-card ' + (extraClass || '') + '"' + fmRowIndexAttr(index) + '>' +
+            '<div class="fm-mini-header">' +
+                '<div class="fm-mini-title">' +
+                    (topExtra || '') +
+                    '<strong>' + (title || '—') + '</strong>' +
+                    (subtitle ? '<small>' + subtitle + '</small>' : '') +
+                '</div>' +
+                (actionsHtml ? '<div class="fm-mini-actions">' + actionsHtml + '</div>' : '') +
+            '</div>' +
+            '<div class="fm-mini-body">' + fields.join('') + '</div>' +
+        '</article>';
+    }
+
+    function fmBadge(text, type) {
+        return '<span class="fm-status-badge fm-status-' + (type || 'neutral') + '">' + fmEscape(text) + '</span>';
+    }
+
+    function fmActionButtonsDirect(buttons) {
+        return '<div class="d-flex flex-wrap align-items-center" style="gap:6px;">' + buttons.join('') + '</div>';
+    }
+
+    /* =====================================================
+       Configuración visual por listado
+       ===================================================== */
+
+    fmRegister('clientesFactura', {
+        selector: '#clientesFacturaListado',
+        searchFields: ['cliente', 'rtn', 'correo', 'telefono'],
+        detailHeader: [
+            {label:'Acciones',className:'fm-cell-actions-wide'},
+            {label:'Cliente',className:'fm-cell-large'},
+            {label:'RTN',className:'fm-cell-medium'},
+            {label:'Correo',className:'fm-cell-large'},
+            {label:'Teléfono',className:'fm-cell-medium'}
+        ],
+        renderDetail: function (r, i) {
+            var actions = fmActionButtonsDirect([
+                '<button type="button" class="btn btn-primary btn-sm table_view ocultar" title="Seleccionar cliente"><i class="fas fa-copy mr-1"></i>Seleccionar</button>',
+                '<button type="button" class="btn btn-warning btn-sm table_edit ocultar" title="Editar cliente"><i class="fas fa-edit"></i></button>'
+            ]);
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Acciones', actions, 'fm-cell-actions-wide') +
+                fmCell('Cliente', '<strong>' + fmEscape(r.cliente || '') + '</strong>', 'fm-cell-large') +
+                fmCell('RTN', fmEscape(r.rtn || '—'), 'fm-cell-medium') +
+                fmCell('Correo', fmEscape(r.correo || '—'), 'fm-cell-large') +
+                fmCell('Teléfono', fmEscape(r.telefono || '—'), 'fm-cell-medium') +
+            '</article>';
+        },
+        renderMini: function (r, i) {
+            var actions = fmActionButtonsDirect([
+                '<button type="button" class="btn btn-primary btn-sm table_view ocultar" title="Seleccionar"><i class="fas fa-copy"></i></button>',
+                '<button type="button" class="btn btn-warning btn-sm table_edit ocultar" title="Editar"><i class="fas fa-edit"></i></button>'
+            ]);
+            return fmMiniCard(i, fmEscape(r.cliente || 'Sin cliente'), 'RTN: ' + fmEscape(r.rtn || '—'), [
+                fmMiniField('Correo', fmEscape(r.correo || '—')),
+                fmMiniField('Teléfono', fmEscape(r.telefono || '—'))
+            ], actions);
+        }
+    });
+
+    fmRegister('colaboradoresFactura', {
+        selector: '#colaboradoresFacturaListado',
+        searchFields: ['colaborador', 'identidad', 'telefono'],
+        detailHeader: [
+            {label:'Seleccione',className:'fm-cell-actions'},
+            {label:'Colaborador',className:'fm-cell-large'},
+            {label:'Identidad',className:'fm-cell-medium'},
+            {label:'Teléfono',className:'fm-cell-medium'}
+        ],
+        renderDetail: function (r, i) {
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Seleccione', '<button type="button" class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-copy mr-1"></i>Seleccionar</button>', 'fm-cell-actions') +
+                fmCell('Colaborador', '<strong>' + fmEscape(r.colaborador || '') + '</strong>', 'fm-cell-large') +
+                fmCell('Identidad', fmEscape(r.identidad || '—'), 'fm-cell-medium') +
+                fmCell('Teléfono', fmEscape(r.telefono || '—'), 'fm-cell-medium') +
+            '</article>';
+        },
+        renderMini: function (r, i) {
+            return fmMiniCard(i, fmEscape(r.colaborador || 'Sin colaborador'), fmEscape(r.identidad || 'Sin identidad'), [
+                fmMiniField('Teléfono', fmEscape(r.telefono || '—'))
+            ], '<button type="button" class="btn btn-primary btn-sm table_view ocultar"><i class="fas fa-copy mr-1"></i>Seleccionar</button>');
+        }
+    });
+
+    fmRegister('productosFactura', {
+        selector: '#productosFacturaListado',
+        searchFields: ['barCode', 'nombre', 'cantidad', 'medida', 'tipo_producto_nombre', 'precio_venta', 'almacen_facturas'],
+        detailHeader: [
+            {label:'Agregar',className:'fm-cell-actions'},
+            {label:'Producto',className:'fm-cell-large'},
+            {label:'Código',className:'fm-cell-medium'},
+            {label:'Existencia',className:'fm-cell-small'},
+            {label:'Medida',className:'fm-cell-small'},
+            {label:'Categoría',className:'fm-cell-medium'},
+            {label:'Venta',className:'fm-cell-money'},
+            {label:'Bodega',className:'fm-cell-medium'}
+        ],
+        renderDetail: function (r, i) {
+            var defaultImage = '<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png';
+            var image = r.image ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + r.image : defaultImage;
+            var bodega = String(r.tipo_producto_id || '') === '2' ? 'Sin bodega' : (r.almacen_facturas || 'Sin bodega');
+            var product = '<div class="fm-product-card-main">' +
+                '<div class="fm-product-image-wrap">' +
+                    '<img class="fm-product-image" src="' + fmEscape(image) + '" alt="' + fmEscape(r.nombre || 'Producto') + '">' +
+                    '<button type="button" class="btn btn-light btn-sm fm-product-zoom iv-trigger" data-iv-src="' + fmEscape(image) + '" data-iv-fallback="' + fmEscape(defaultImage) + '" data-iv-title="' + fmEscape(r.nombre || 'Producto') + '" title="Ver imagen"><i class="fas fa-search-plus"></i></button>' +
+                '</div>' +
+                '<div class="fm-product-copy"><strong>' + fmEscape(r.nombre || '') + '</strong><small>' + fmEscape(r.tipo_producto_nombre || '') + '</small></div>' +
+            '</div>';
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Agregar', '<button type="button" class="btn btn-primary btn-sm table_view fm-product-select ocultar"><i class="fas fa-cart-plus mr-1"></i>Agregar</button>', 'fm-cell-actions') +
+                fmCell('Producto', product, 'fm-cell-large') +
+                fmCell('Código', fmEscape(r.barCode || '—'), 'fm-cell-medium') +
+                fmCell('Existencia', fmEscape(r.cantidad == null ? '0' : r.cantidad), 'fm-cell-small') +
+                fmCell('Medida', fmEscape(r.medida || '—'), 'fm-cell-small') +
+                fmCell('Categoría', fmEscape(r.tipo_producto_nombre || '—'), 'fm-cell-medium') +
+                fmCell('Venta', '<span class="' + (fmNumber(r.precio_venta) < 0 ? 'fm-money-negative' : 'fm-money-positive') + '">' + fmMoney(r.precio_venta) + '</span>', 'fm-cell-money') +
+                fmCell('Bodega', fmEscape(bodega), 'fm-cell-medium') +
+            '</article>';
+        },
+        renderMini: function (r, i) {
+            var defaultImage = '<?php echo SERVERURL; ?>vistas/plantilla/img/products/image_preview.png';
+            var image = r.image ? '<?php echo SERVERURL; ?>vistas/plantilla/img/products/' + r.image : defaultImage;
+            var bodega = String(r.tipo_producto_id || '') === '2' ? 'Sin bodega' : (r.almacen_facturas || 'Sin bodega');
+            var top = '<div class="fm-product-card-main">' +
+                '<div class="fm-product-image-wrap">' +
+                    '<img class="fm-product-image" src="' + fmEscape(image) + '" alt="' + fmEscape(r.nombre || 'Producto') + '">' +
+                    '<button type="button" class="btn btn-light btn-sm fm-product-zoom iv-trigger" data-iv-src="' + fmEscape(image) + '" data-iv-fallback="' + fmEscape(defaultImage) + '" data-iv-title="' + fmEscape(r.nombre || 'Producto') + '" title="Ver imagen"><i class="fas fa-search-plus"></i></button>' +
+                '</div></div>';
+            return fmMiniCard(i, fmEscape(r.nombre || 'Sin producto'), 'Código: ' + fmEscape(r.barCode || '—'), [
+                fmMiniField('Existencia', fmEscape(r.cantidad == null ? '0' : r.cantidad)),
+                fmMiniField('Medida', fmEscape(r.medida || '—')),
+                fmMiniField('Venta', fmMoney(r.precio_venta)),
+                fmMiniField('Bodega', fmEscape(bodega))
+            ], '<button type="button" class="btn btn-primary btn-sm table_view fm-product-select ocultar"><i class="fas fa-cart-plus mr-1"></i>Agregar</button>', '', top);
+        }
+    });
+
+    fmRegister('cotizaciones', {
+        selector: '#cotizacionesListado',
+        searchFields: ['fecha','tipo_documento','cliente','numero','subtotal','isv','descuento','total'],
+        detailHeader: [
+            {label:'Acciones',className:'fm-cell-actions-wide'},
+            {label:'Fecha',className:'fm-cell-small'},
+            {label:'Tipo',className:'fm-cell-small'},
+            {label:'Cliente',className:'fm-cell-large'},
+            {label:'Cotización',className:'fm-cell-medium'},
+            {label:'Subtotal',className:'fm-cell-money'},
+            {label:'ISV',className:'fm-cell-money'},
+            {label:'Descuento',className:'fm-cell-money'},
+            {label:'Total',className:'fm-cell-money'}
+        ],
+        renderDetail: function (r, i) {
+            var actions = fmActionButtonsDirect([
+                '<button type="button" class="btn btn-primary btn-sm table_view load_quote ocultar" title="Cargar en factura"><i class="fas fa-play mr-1"></i>Continuar</button>',
+                '<button type="button" class="btn btn-success btn-sm table_reportes print_cotizaciones ocultar" title="Imprimir"><i class="fas fa-file-download"></i></button>'
+            ]);
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Acciones', actions, 'fm-cell-actions-wide') +
+                fmCell('Fecha', fmEscape(r.fecha || '—'), 'fm-cell-small') +
+                fmCell('Tipo', fmEscape(r.tipo_documento || '—'), 'fm-cell-small') +
+                fmCell('Cliente', '<strong>' + fmEscape(r.cliente || '—') + '</strong>', 'fm-cell-large') +
+                fmCell('Cotización', fmEscape(r.numero || '—'), 'fm-cell-medium') +
+                fmCell('Subtotal', fmMoney(r.subtotal), 'fm-cell-money') +
+                fmCell('ISV', fmMoney(r.isv), 'fm-cell-money') +
+                fmCell('Descuento', fmMoney(r.descuento), 'fm-cell-money') +
+                fmCell('Total', '<strong>' + fmMoney(r.total) + '</strong>', 'fm-cell-money') +
+            '</article>';
+        },
+        renderMini: function (r, i) {
+            return fmMiniCard(i, fmEscape(r.cliente || 'Sin cliente'), 'Cotización: ' + fmEscape(r.numero || '—'), [
+                fmMiniField('Fecha', fmEscape(r.fecha || '—')),
+                fmMiniField('Tipo', fmEscape(r.tipo_documento || '—')),
+                fmMiniField('Subtotal', fmMoney(r.subtotal)),
+                fmMiniField('ISV', fmMoney(r.isv)),
+                fmMiniField('Descuento', fmMoney(r.descuento)),
+                fmMiniField('Total', fmMoney(r.total))
+            ], fmActionButtonsDirect([
+                '<button type="button" class="btn btn-primary btn-sm table_view load_quote ocultar"><i class="fas fa-play"></i></button>',
+                '<button type="button" class="btn btn-success btn-sm table_reportes print_cotizaciones ocultar"><i class="fas fa-file-download"></i></button>'
+            ]));
+        },
+        screenTotalsLabelIndex: 4,
+        screenTotals: [
+            {field:'subtotal',label:'Subtotal',index:5},
+            {field:'isv',label:'ISV',index:6},
+            {field:'descuento',label:'Descuento',index:7},
+            {field:'total',label:'Total',index:8}
+        ],
+        exportConfig:{
+            title:'REPORTE DE COTIZACIONES',
+            subtitle:'Cotizaciones disponibles, impuestos, descuentos y total',
+            file:'Reporte_Cotizaciones_Facturacion',
+            headers:['Fecha','Tipo','Cliente','Cotización','Subtotal','ISV','Descuento','Total'],
+            row:function(r){return [r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',fmNumber(r.subtotal),fmNumber(r.isv),fmNumber(r.descuento),fmNumber(r.total)];},
+            numeric:[4,5,6,7],
+            columnTotals:[4,5,6,7],
+            summary:function(rows){
+                return [
+                    {label:'COTIZACIONES',value:rows.length},
+                    {label:'ISV',value:rows.reduce(function(a,r){return a+fmNumber(r.isv);},0),money:true},
+                    {label:'TOTAL',value:rows.reduce(function(a,r){return a+fmNumber(r.total);},0),money:true}
+                ];
+            },
+            filters:function(){
+                return 'Tipo: '+($('#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte option:selected').text()||'Todos')+
+                    ' | Fechas: '+($('#formulario_busqueda_cotizaciones #fechai').val()||'')+' a '+($('#formulario_busqueda_cotizaciones #fechaf').val()||'');
+            }
+        }
+    });
+
+    fmRegister('cxcFactura', {
+        selector: '#cxcFacturaListado',
+        searchFields: ['fecha','cliente','estado','numero','credito','abono','saldo'],
+        detailHeader: [
+            {label:'Acciones',className:'fm-cell-actions'},
+            {label:'Fecha',className:'fm-cell-small'},
+            {label:'Cliente',className:'fm-cell-large'},
+            {label:'Tipo',className:'fm-cell-small'},
+            {label:'Factura',className:'fm-cell-medium'},
+            {label:'Crédito',className:'fm-cell-money'},
+            {label:'Abono',className:'fm-cell-money'},
+            {label:'Saldo',className:'fm-cell-money'}
+        ],
+        renderDetail: function (r, i) {
+            var items = [
+                fmActionItem('accion-abonar table_abono','fas fa-cash-register','accion-icon-success','Registrar abono'),
+                fmActionItem('accion-abonos table_reportes abono_factura','fas fa-money-bill-wave','accion-icon-warning','Ver abonos'),
+                fmActionItem('accion-factura table_reportes print_factura','fas fa-file-download','accion-icon-danger','Ver factura')
+            ];
+            var typeText = parseInt(r.estado || 0,10) === 1 ? 'Crédito' : 'Contado';
+            var typeBadge = parseInt(r.estado || 0,10) === 1 ? fmBadge(typeText,'warning') : fmBadge(typeText,'success');
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Acciones', fmActionsMenu(items), 'fm-cell-actions') +
+                fmCell('Fecha', fmEscape(r.fecha || '—'), 'fm-cell-small') +
+                fmCell('Cliente', '<strong>' + fmEscape(r.cliente || '—') + '</strong>', 'fm-cell-large') +
+                fmCell('Tipo', typeBadge, 'fm-cell-small') +
+                fmCell('Factura', fmEscape(r.numero || '—'), 'fm-cell-medium') +
+                fmCell('Crédito', fmMoney(r.credito), 'fm-cell-money') +
+                fmCell('Abono', fmMoney(r.abono), 'fm-cell-money') +
+                fmCell('Saldo', '<strong>' + fmMoney(r.saldo) + '</strong>', 'fm-cell-money') +
+            '</article>';
+        },
+        renderMini: function (r, i) {
+            var items = [
+                fmActionItem('accion-abonar table_abono','fas fa-cash-register','accion-icon-success','Registrar abono'),
+                fmActionItem('accion-abonos table_reportes abono_factura','fas fa-money-bill-wave','accion-icon-warning','Ver abonos'),
+                fmActionItem('accion-factura table_reportes print_factura','fas fa-file-download','accion-icon-danger','Ver factura')
+            ];
+            return fmMiniCard(i, fmEscape(r.cliente || 'Sin cliente'), 'Factura: ' + fmEscape(r.numero || '—'), [
+                fmMiniField('Fecha', fmEscape(r.fecha || '—')),
+                fmMiniField('Crédito', fmMoney(r.credito)),
+                fmMiniField('Abono', fmMoney(r.abono)),
+                fmMiniField('Saldo', fmMoney(r.saldo))
+            ], fmActionsMenu(items));
+        },
+        exportConfig: {
+            title: 'REPORTE CUENTAS POR COBRAR CLIENTES',
+            subtitle: 'Control de crédito, abonos y saldos pendientes',
+            file: 'Reporte_Cuentas_Por_Cobrar_Clientes',
+            headers: ['Fecha','Cliente','Tipo','Factura','Crédito','Abono','Saldo'],
+            row: function(r){return [r.fecha||'',r.cliente||'',parseInt(r.estado||0,10)===1?'Crédito':'Contado',r.numero||'',fmNumber(r.credito),fmNumber(r.abono),fmNumber(r.saldo)];},
+            numeric: [4,5,6],
+            summary: function(rows){
+                return [
+                    {label:'REGISTROS',value:rows.length},
+                    {label:'CRÉDITO TOTAL',value:rows.reduce(function(a,r){return a+fmNumber(r.credito);},0),money:true},
+                    {label:'SALDO PENDIENTE',value:rows.reduce(function(a,r){return a+fmNumber(r.saldo);},0),money:true}
+                ];
+            },
+            filters: function(){
+                return 'Estado: '+($('#cobrar_clientes_estado option:selected').text()||'Todos')+
+                    ' | Cliente: '+($('#cobrar_clientes option:selected').text()||'Todos')+
+                    ' | Fechas: '+($('#formulario_busqueda_cuentas_cobrar_clientes #fechai').val()||'')+' a '+($('#formulario_busqueda_cuentas_cobrar_clientes #fechaf').val()||'');
+            }
+        }
+    });
+
+    fmRegister('borradoresFactura', {
+        selector: '#borradoresFacturaListado',
+        searchFields: ['fecha','tipo_documento','cliente','numero','subtotal','isv','descuento','total'],
+        detailHeader: [
+            {label:'Acciones',className:'fm-cell-actions-wide'},
+            {label:'Fecha',className:'fm-cell-small'},
+            {label:'Tipo',className:'fm-cell-small'},
+            {label:'Cliente',className:'fm-cell-large'},
+            {label:'Factura',className:'fm-cell-medium'},
+            {label:'Subtotal',className:'fm-cell-money'},
+            {label:'ISV',className:'fm-cell-money'},
+            {label:'Descuento',className:'fm-cell-money'},
+            {label:'Total',className:'fm-cell-money'}
+        ],
+        renderDetail: function (r, i) {
+            var actions=fmActionButtonsDirect([
+                '<button type="button" class="btn btn-primary btn-sm table_pay pay"><i class="fas fa-play mr-1"></i>Continuar</button>',
+                '<button type="button" class="btn btn-danger btn-sm table_eliminar eliminar"><i class="fas fa-trash"></i></button>'
+            ]);
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Acciones',actions,'fm-cell-actions-wide')+
+                fmCell('Fecha',fmEscape(r.fecha||'—'),'fm-cell-small')+
+                fmCell('Tipo',fmEscape(r.tipo_documento||'—'),'fm-cell-small')+
+                fmCell('Cliente','<strong>'+fmEscape(r.cliente||'—')+'</strong>','fm-cell-large')+
+                fmCell('Factura',fmEscape(r.numero||'—'),'fm-cell-medium')+
+                fmCell('Subtotal',fmMoney(r.subtotal),'fm-cell-money')+
+                fmCell('ISV',fmMoney(r.isv),'fm-cell-money')+
+                fmCell('Descuento',fmMoney(r.descuento),'fm-cell-money')+
+                fmCell('Total','<strong>'+fmMoney(r.total)+'</strong>','fm-cell-money')+
+            '</article>';
+        },
+        renderMini: function(r,i){
+            return fmMiniCard(i,fmEscape(r.cliente||'Sin cliente'),'Borrador: '+fmEscape(r.numero||'—'),[
+                fmMiniField('Fecha',fmEscape(r.fecha||'—')),
+                fmMiniField('Tipo',fmEscape(r.tipo_documento||'—')),
+                fmMiniField('Subtotal',fmMoney(r.subtotal)),
+                fmMiniField('ISV',fmMoney(r.isv)),
+                fmMiniField('Descuento',fmMoney(r.descuento)),
+                fmMiniField('Total',fmMoney(r.total))
+            ],fmActionButtonsDirect([
+                '<button type="button" class="btn btn-primary btn-sm table_pay pay"><i class="fas fa-play"></i></button>',
+                '<button type="button" class="btn btn-danger btn-sm table_eliminar eliminar"><i class="fas fa-trash"></i></button>'
+            ]));
+        },
+        screenTotalsLabelIndex: 4,
+        screenTotals: [
+            {field:'subtotal',label:'Subtotal',index:5},
+            {field:'isv',label:'ISV',index:6},
+            {field:'descuento',label:'Descuento',index:7},
+            {field:'total',label:'Total',index:8}
+        ],
+        exportConfig:{
+            title:'REPORTE DE FACTURAS PENDIENTES',
+            subtitle:'Borradores pendientes sin afectar la secuencia fiscal',
+            file:'Reporte_Facturas_Pendientes',
+            headers:['Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','Total'],
+            row:function(r){return [r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',fmNumber(r.subtotal),fmNumber(r.isv),fmNumber(r.descuento),fmNumber(r.total)];},
+            numeric:[4,5,6,7],
+            columnTotals:[4,5,6,7],
+            summary:function(rows){
+                return [
+                    {label:'PENDIENTES',value:rows.length},
+                    {label:'ISV',value:rows.reduce(function(a,r){return a+fmNumber(r.isv);},0),money:true},
+                    {label:'TOTAL',value:rows.reduce(function(a,r){return a+fmNumber(r.total);},0),money:true}
+                ];
+            },
+            filters:function(){
+                return 'Fechas: '+($('#formulario_bill_draft #fechai').val()||'')+' a '+($('#formulario_bill_draft #fechaf').val()||'');
+            }
+        }
+    });
+
+    fmRegister('facturasEmitidas', {
+        selector: '#facturasEmitidasListado',
+        searchFields: ['fecha','tipo_documento','cliente','numero','subtotal','isv','descuento','total'],
+        detailHeader: [
+            {label:'Acciones',className:'fm-cell-actions'},
+            {label:'Fecha',className:'fm-cell-small'},
+            {label:'Tipo',className:'fm-cell-small'},
+            {label:'Cliente',className:'fm-cell-large'},
+            {label:'Factura',className:'fm-cell-medium'},
+            {label:'Subtotal',className:'fm-cell-money'},
+            {label:'ISV',className:'fm-cell-money'},
+            {label:'Descuento',className:'fm-cell-money'},
+            {label:'Total',className:'fm-cell-money'}
+        ],
+        renderDetail: function(r,i){
+            var items=[
+                fmActionItem('accion-factura table_reportes print_factura','fas fa-file-download','accion-icon-danger','Factura'),
+                fmActionItem('accion-comprobante table_reportes print_comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'),
+                fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar'),
+                fmActionItem('accion-nota-credito nota_credito_factura','fas fa-file-invoice-dollar','accion-icon-credito','Nota de Crédito'),
+                fmActionItem('accion-anular table_cancelar cancelar_factura','fas fa-ban','accion-icon-danger','Anular')
+            ];
+            var type=String(r.tipo_documento||'');
+            var credit=fmNormalize(type).indexOf('credito')!==-1;
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Acciones',fmActionsMenu(items),'fm-cell-actions')+
+                fmCell('Fecha',fmEscape(r.fecha||'—'),'fm-cell-small')+
+                fmCell('Tipo',fmBadge(type||'—',credit?'warning':'success'),'fm-cell-small')+
+                fmCell('Cliente','<strong>'+fmEscape(r.cliente||'—')+'</strong>','fm-cell-large')+
+                fmCell('Factura',fmEscape(r.numero||'—'),'fm-cell-medium')+
+                fmCell('Subtotal',fmMoney(r.subtotal),'fm-cell-money')+
+                fmCell('ISV',fmMoney(r.isv),'fm-cell-money')+
+                fmCell('Descuento',fmMoney(r.descuento),'fm-cell-money')+
+                fmCell('Total','<strong>'+fmMoney(r.total)+'</strong>','fm-cell-money')+
+            '</article>';
+        },
+        renderMini:function(r,i){
+            var items=[
+                fmActionItem('accion-factura table_reportes print_factura','fas fa-file-download','accion-icon-danger','Factura'),
+                fmActionItem('accion-comprobante table_reportes print_comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'),
+                fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar'),
+                fmActionItem('accion-nota-credito nota_credito_factura','fas fa-file-invoice-dollar','accion-icon-credito','Nota de Crédito'),
+                fmActionItem('accion-anular table_cancelar cancelar_factura','fas fa-ban','accion-icon-danger','Anular')
+            ];
+            return fmMiniCard(i,fmEscape(r.cliente||'Sin cliente'),'Factura: '+fmEscape(r.numero||'—'),[
+                fmMiniField('Fecha',fmEscape(r.fecha||'—')),
+                fmMiniField('Tipo',fmEscape(r.tipo_documento||'—')),
+                fmMiniField('Subtotal',fmMoney(r.subtotal)),
+                fmMiniField('ISV',fmMoney(r.isv)),
+                fmMiniField('Descuento',fmMoney(r.descuento)),
+                fmMiniField('Total',fmMoney(r.total))
+            ],fmActionsMenu(items));
+        },
+        screenTotalsLabelIndex: 4,
+        screenTotals: [
+            {field:'subtotal',label:'Subtotal',index:5},
+            {field:'isv',label:'ISV',index:6},
+            {field:'descuento',label:'Descuento',index:7},
+            {field:'total',label:'Total',index:8}
+        ],
+        exportConfig:{
+            title:'REPORTE DE FACTURAS',
+            subtitle:'Facturación emitida, impuestos, descuentos y total',
+            file:'Reporte_Facturas',
+            headers:['Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','Total'],
+            row:function(r){return [r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',fmNumber(r.subtotal),fmNumber(r.isv),fmNumber(r.descuento),fmNumber(r.total)];},
+            numeric:[4,5,6,7],
+            columnTotals:[4,5,6,7],
+            summary:function(rows){
+                return [
+                    {label:'FACTURAS',value:rows.length},
+                    {label:'ISV',value:rows.reduce(function(a,r){return a+fmNumber(r.isv);},0),money:true},
+                    {label:'TOTAL',value:rows.reduce(function(a,r){return a+fmNumber(r.total);},0),money:true}
+                ];
+            },
+            filters:function(){
+                return 'Tipo: '+($('#tipo_factura_reporte option:selected').text()||'Todos')+
+                    ' | Facturador: '+($('#facturador option:selected').text()||'Todos')+
+                    ' | Vendedor: '+($('#vendedor option:selected').text()||'Todos')+
+                    ' | Fechas: '+($('#formulario_bill #fechai').val()||'')+' a '+($('#formulario_bill #fechaf').val()||'');
+            }
+        }
+    });
+
+    fmRegister('cajaFactura', {
+        selector:'#dataTableCajaFactura',
+        searchFields:['fecha','usuario','factura_inicial','factura_final','monto_apertura','importe_venta','retiro_caja','neto','estado'],
+        detailHeader:[
+            {label:'Acciones',className:'fm-cell-actions-wide'},
+            {label:'Fecha',className:'fm-cell-small'},
+            {label:'Usuario',className:'fm-cell-medium'},
+            {label:'Factura Inicial',className:'fm-cell-medium'},
+            {label:'Factura Final',className:'fm-cell-medium'},
+            {label:'Apertura',className:'fm-cell-money'},
+            {label:'Ventas',className:'fm-cell-money'},
+            {label:'Retiros',className:'fm-cell-money'},
+            {label:'Neto',className:'fm-cell-money'}
+        ],
+        renderDetail:function(r,i){
+            var active=parseInt(r.estado||0,10)===1;
+            var items=[];
+            if(active){
+                items.push(fmActionItem('accion-cerrar btn-cf-cerrar','fas fa-lock','accion-icon-success','Cerrar caja'));
+                items.push(fmActionItem('accion-retiro btn-cf-retirar','fas fa-money-bill-wave','accion-icon-warning','Retirar dinero'));
+            }else{
+                items.push(fmActionItem('accion-cerrada','fas fa-lock','accion-icon-eliminar','Caja cerrada',true));
+                items.push(fmActionItem('accion-no-retiro','fas fa-ban','accion-icon-eliminar','Retiro no disponible',true));
+            }
+            items.push(fmActionItem('accion-comprobante btn-cf-comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'));
+            items.push(fmActionItem('accion-retiros-detalle btn-cf-retiros-detalle','fas fa-list-ul','accion-icon-warning','Ver retiros'));
+            items.push(fmActionItem('accion-ganancia btn-cf-ganancia','fas fa-chart-line','accion-icon-primary','Ver ganancia'));
+            var actions='<div class="d-flex flex-wrap align-items-center" style="gap:6px;">'+fmActionsMenu(items)+(active?fmBadge('Abierta','success'):fmBadge('Cerrada','neutral'))+'</div>';
+            return '<article class="fm-row '+(active?'fila-caja-abierta':'fila-caja-cerrada')+'"' + fmRowIndexAttr(i) + '>' +
+                fmCell('Acciones',actions,'fm-cell-actions-wide')+
+                fmCell('Fecha',fmEscape(r.fecha||'—'),'fm-cell-small')+
+                fmCell('Usuario',fmEscape(r.usuario||'—'),'fm-cell-medium')+
+                fmCell('Factura Inicial',fmEscape(r.factura_inicial||'—'),'fm-cell-medium')+
+                fmCell('Factura Final',fmEscape(r.factura_final||'—'),'fm-cell-medium')+
+                fmCell('Apertura',fmMoney(r.monto_apertura),'fm-cell-money')+
+                fmCell('Ventas',fmMoney(r.importe_venta),'fm-cell-money')+
+                fmCell('Retiros',fmMoney(r.retiro_caja),'fm-cell-money')+
+                fmCell('Neto','<strong>'+fmMoney(r.neto)+'</strong>','fm-cell-money')+
+            '</article>';
+        },
+        renderMini:function(r,i){
+            var active=parseInt(r.estado||0,10)===1;
+            var items=[];
+            if(active){
+                items.push(fmActionItem('accion-cerrar btn-cf-cerrar','fas fa-lock','accion-icon-success','Cerrar caja'));
+                items.push(fmActionItem('accion-retiro btn-cf-retirar','fas fa-money-bill-wave','accion-icon-warning','Retirar dinero'));
+            }
+            items.push(fmActionItem('accion-comprobante btn-cf-comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'));
+            items.push(fmActionItem('accion-retiros-detalle btn-cf-retiros-detalle','fas fa-list-ul','accion-icon-warning','Ver retiros'));
+            items.push(fmActionItem('accion-ganancia btn-cf-ganancia','fas fa-chart-line','accion-icon-primary','Ver ganancia'));
+            return fmMiniCard(i,'Caja #'+fmEscape(r.apertura_id||'—'),fmEscape(r.usuario||'—'),[
+                fmMiniField('Fecha',fmEscape(r.fecha||'—')),
+                fmMiniField('Factura inicial',fmEscape(r.factura_inicial||'—')),
+                fmMiniField('Factura final',fmEscape(r.factura_final||'—')),
+                fmMiniField('Ventas',fmMoney(r.importe_venta)),
+                fmMiniField('Retiros',fmMoney(r.retiro_caja)),
+                fmMiniField('Neto',fmMoney(r.neto))
+            ],fmActionsMenu(items),'',active?fmBadge('Abierta','success'):fmBadge('Cerrada','neutral'));
+        },
+        exportConfig:{
+            title:'CAJA DESDE FACTURACIÓN',
+            subtitle:'Aperturas, ventas, retiros y neto disponible',
+            file:'Caja_Desde_Facturacion',
+            headers:['Fecha','Usuario','Factura Inicial','Factura Final','Apertura','Ventas','Retiros','Neto'],
+            row:function(r){return [r.fecha||'',r.usuario||'',r.factura_inicial||'',r.factura_final||'',fmNumber(r.monto_apertura),fmNumber(r.importe_venta),fmNumber(r.retiro_caja),fmNumber(r.neto)];},
+            numeric:[4,5,6,7],
+            summary:function(rows){
+                return [
+                    {label:'CAJAS',value:rows.length},
+                    {label:'VENTAS',value:rows.reduce(function(a,r){return a+fmNumber(r.importe_venta);},0),money:true},
+                    {label:'NETO',value:rows.reduce(function(a,r){return a+fmNumber(r.neto);},0),money:true}
+                ];
+            },
+            filters:function(){
+                return 'Estado: '+($('#estado_caja_factura option:selected').text()||'Todas')+
+                    ' | Fechas: '+($('#fecha_caja_factura_i').val()||'')+' a '+($('#fecha_caja_factura_f').val()||'');
+            }
+        }
+    });
+
+    fmRegister('retirosDetalle', {
+        selector:'#dataTableDetalleRetirosCaja',
+        searchFields:['apertura_id','fecha','motivo','observacion','cuenta','factura_egreso','monto','estado_label','fecha_registro'],
+        detailHeader:[
+            {label:'Acción',className:'fm-cell-actions'},
+            {label:'Caja',className:'fm-cell-small'},
+            {label:'Fecha',className:'fm-cell-small'},
+            {label:'Motivo',className:'fm-cell-medium'},
+            {label:'Observación',className:'fm-cell-large'},
+            {label:'Cuenta',className:'fm-cell-medium'},
+            {label:'Egreso',className:'fm-cell-medium'},
+            {label:'Monto',className:'fm-cell-money'},
+            {label:'Estado',className:'fm-cell-small'},
+            {label:'Registrado',className:'fm-cell-medium'}
+        ],
+        renderDetail:function(r,i){
+            var action=parseInt(r.puede_reintegrar||0,10)===1
+                ? '<button type="button" class="btn btn-success btn-sm btn-reintegrar-retiro" data-caja-retiros-id="'+fmEscape(r.caja_retiros_id)+'" data-apertura-id="'+fmEscape(r.apertura_id)+'" data-monto="'+fmEscape(r.monto)+'"><i class="fas fa-undo-alt mr-1"></i>Reintegrar</button>'
+                : fmBadge('No disponible','neutral');
+            var active=parseInt(r.estado||0,10)===1;
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>'+
+                fmCell('Acción',action,'fm-cell-actions')+
+                fmCell('Caja','#'+fmEscape(r.apertura_id||'—')+' '+(parseInt(r.estado_caja||0,10)===1?fmBadge('Abierta','success'):fmBadge('Cerrada','neutral')),'fm-cell-small')+
+                fmCell('Fecha',fmEscape(r.fecha||'—'),'fm-cell-small')+
+                fmCell('Motivo',fmEscape(r.motivo||'—'),'fm-cell-medium')+
+                fmCell('Observación',fmEscape(r.observacion||'—'),'fm-cell-large')+
+                fmCell('Cuenta',fmEscape(r.cuenta||'—'),'fm-cell-medium')+
+                fmCell('Egreso',fmEscape(r.factura_egreso||'—'),'fm-cell-medium')+
+                fmCell('Monto',fmMoney(r.monto),'fm-cell-money')+
+                fmCell('Estado',fmBadge(r.estado_label||(active?'Activo':'Anulado'),active?'success':'danger'),'fm-cell-small')+
+                fmCell('Registrado',fmEscape(r.fecha_registro||'—'),'fm-cell-medium')+
+            '</article>';
+        },
+        renderMini:function(r,i){
+            var action=parseInt(r.puede_reintegrar||0,10)===1
+                ? '<button type="button" class="btn btn-success btn-sm btn-reintegrar-retiro" data-caja-retiros-id="'+fmEscape(r.caja_retiros_id)+'" data-apertura-id="'+fmEscape(r.apertura_id)+'" data-monto="'+fmEscape(r.monto)+'"><i class="fas fa-undo-alt"></i></button>'
+                : '';
+            return fmMiniCard(i,'Retiro '+fmMoney(r.monto),'Caja #'+fmEscape(r.apertura_id||'—'),[
+                fmMiniField('Fecha',fmEscape(r.fecha||'—')),
+                fmMiniField('Motivo',fmEscape(r.motivo||'—')),
+                fmMiniField('Cuenta',fmEscape(r.cuenta||'—')),
+                fmMiniField('Estado',fmEscape(r.estado_label||'—'))
+            ],action);
+        },
+        exportConfig:{
+            title:'DETALLE DE RETIROS DE CAJA',
+            subtitle:'Retiros, estado, cuenta y trazabilidad',
+            file:'Detalle_Retiros_Caja',
+            headers:['Caja','Fecha','Motivo','Observación','Cuenta','Egreso','Monto','Estado','Registrado'],
+            row:function(r){return [r.apertura_id||'',r.fecha||'',r.motivo||'',r.observacion||'',r.cuenta||'',r.factura_egreso||'',fmNumber(r.monto),r.estado_label||'',r.fecha_registro||''];},
+            numeric:[6],
+            summary:function(rows){
+                return [
+                    {label:'RETIROS',value:rows.length},
+                    {label:'TOTAL ACTIVO',value:rows.reduce(function(a,r){return a+(parseInt(r.estado||0,10)===1?fmNumber(r.monto):0);},0),money:true},
+                    {label:'CAJAS',value:(new Set(rows.map(function(r){return String(r.apertura_id||'');}))).size}
+                ];
+            },
+            filters:function(){return $('#dr_contexto_caja').text()||'Detalle de retiros';}
+        }
+    });
+
+    fmRegister('gananciaDetalle', {
+        selector:'#dataTableDetalleGananciaCaja',
+        searchFields:['factura','producto','cantidad','costo_unitario','precio_venta','total_costo','total_venta','ganancia'],
+        detailHeader:[
+            {label:'Factura',className:'fm-cell-medium'},
+            {label:'Producto',className:'fm-cell-large'},
+            {label:'Cantidad',className:'fm-cell-small'},
+            {label:'Costo Unit.',className:'fm-cell-money'},
+            {label:'Precio Venta',className:'fm-cell-money'},
+            {label:'Total Costo',className:'fm-cell-money'},
+            {label:'Total Venta',className:'fm-cell-money'},
+            {label:'Ganancia',className:'fm-cell-money'}
+        ],
+        renderDetail:function(r,i){
+            var gain=fmNumber(r.ganancia);
+            return '<article class="fm-row"' + fmRowIndexAttr(i) + '>'+
+                fmCell('Factura',fmEscape(r.factura||'—'),'fm-cell-medium')+
+                fmCell('Producto','<strong>'+fmEscape(r.producto||'—')+'</strong>','fm-cell-large')+
+                fmCell('Cantidad',fmEscape(r.cantidad||0),'fm-cell-small')+
+                fmCell('Costo Unit.',fmMoney(r.costo_unitario),'fm-cell-money')+
+                fmCell('Precio Venta',fmMoney(r.precio_venta),'fm-cell-money')+
+                fmCell('Total Costo',fmMoney(r.total_costo),'fm-cell-money')+
+                fmCell('Total Venta',fmMoney(r.total_venta),'fm-cell-money')+
+                fmCell('Ganancia','<span class="'+(gain<0?'fm-money-negative':'fm-money-positive')+'">'+fmMoney(gain)+'</span>','fm-cell-money')+
+            '</article>';
+        },
+        renderMini:function(r,i){
+            return fmMiniCard(i,fmEscape(r.producto||'Sin producto'),'Factura: '+fmEscape(r.factura||'—'),[
+                fmMiniField('Cantidad',fmEscape(r.cantidad||0)),
+                fmMiniField('Costo unit.',fmMoney(r.costo_unitario)),
+                fmMiniField('Venta',fmMoney(r.total_venta)),
+                fmMiniField('Ganancia',fmMoney(r.ganancia))
+            ],'');
+        },
+        exportConfig:{
+            title:'DETALLE DE GANANCIA',
+            subtitle:'Venta, costo y ganancia por producto',
+            file:'Detalle_Ganancia',
+            headers:['Factura','Producto','Cantidad','Costo Unit.','Precio Venta','Total Costo','Total Venta','Ganancia'],
+            row:function(r){return [r.factura||'',r.producto||'',fmNumber(r.cantidad),fmNumber(r.costo_unitario),fmNumber(r.precio_venta),fmNumber(r.total_costo),fmNumber(r.total_venta),fmNumber(r.ganancia)];},
+            numeric:[2,3,4,5,6,7],
+            summary:function(rows){
+                return [
+                    {label:'LÍNEAS',value:rows.length},
+                    {label:'VENTA',value:rows.reduce(function(a,r){return a+fmNumber(r.total_venta);},0),money:true},
+                    {label:'GANANCIA',value:rows.reduce(function(a,r){return a+fmNumber(r.ganancia);},0),money:true}
+                ];
+            },
+            filters:function(){return $('#dg_contexto_consulta').text()||'Detalle de ganancia';}
+        }
+    });
+
+    /* =====================================================
+       Listeners genéricos de vista / búsqueda / paginación
+       ===================================================== */
+
+    $(document)
+        .off('input.fmListSearch', '.fm-search-wrap input[type="search"]')
+        .on('input.fmListSearch', '.fm-search-wrap input[type="search"]', function () {
+            var key = String($(this).closest('.fm-directory-card').find('.fm-listado').data('list') || '');
+            var state = fmState(key);
+            if (!state) return;
+            state.page = 1;
+            fmApplyFilter(key);
+        });
+
+    $(document)
+        .off('click.fmSearchClear', '.fm-search-clear')
+        .on('click.fmSearchClear', '.fm-search-clear', function () {
+            var key = String($(this).data('list') || '');
+            var state = fmState(key);
+            if (!state) return;
+            $(state.searchSelector).val('');
+            state.search = '';
+            state.page = 1;
+            fmApplyFilter(key);
+            $(state.searchSelector).trigger('focus');
+        });
+
+    $(document)
+        .off('change.fmPageSize', '.fm-page-size-select')
+        .on('change.fmPageSize', '.fm-page-size-select', function () {
+            var key = String($(this).closest('.fm-directory-card').find('.fm-listado').data('list') || '');
+            var state = fmState(key);
+            if (!state) return;
+            var n = parseInt($(this).val(), 10);
+            if (isNaN(n) || n <= 0) return;
+            state.perPage = n;
+            if (state.view === 'miniatura') state.perPageMini = n;
+            else state.perPageDetail = n;
+            state.page = 1;
+            fmRender(key);
+        });
+
+    $(document)
+        .off('click.fmView', '.fm-view-btn')
+        .on('click.fmView', '.fm-view-btn', function () {
+            var key = String($(this).data('list') || '');
+            var state = fmState(key);
+            if (!state) return;
+            state.view = $(this).data('view') === 'miniatura' ? 'miniatura' : 'detalle';
+            try { localStorage.setItem('izzy.facturas.modal.'+key+'.vista', state.view); } catch(e){}
+            state.page = 1;
+            fmSyncSizeOptions(state);
+            fmSyncViewButtons(state);
+            fmRender(key);
+        });
+
+    $(document)
+        .off('click.fmPage', '.fm-pagination button')
+        .on('click.fmPage', '.fm-pagination button', function () {
+            if ($(this).prop('disabled')) return;
+            var key = String($(this).data('list') || '');
+            var state = fmState(key);
+            if (!state) return;
+            var page = parseInt($(this).data('page'), 10);
+            if (isNaN(page)) return;
+            state.page = page;
+            fmRender(key);
+        });
+
+    $(document)
+        .off('click.fmFilterToggle', '.fm-toggle-filter')
+        .on('click.fmFilterToggle', '.fm-toggle-filter', function () {
+            var $btn = $(this);
+            var $content = $($btn.data('target'));
+            if (!$content.length) return;
+            var show = !$content.is(':visible');
+            $content.stop(true,true)[show?'slideDown':'slideUp'](160);
+            $btn.attr('aria-expanded', show ? 'true' : 'false');
+            $btn.find('span').text(show ? 'Ocultar' : 'Mostrar');
+            $btn.find('i').toggleClass('fa-chevron-up', show).toggleClass('fa-chevron-down', !show);
+        });
+
+    $(document)
+        .off('shown.bs.modal.fmSearchFocus', '.fm-modal')
+        .on('shown.bs.modal.fmSearchFocus', '.fm-modal', function () {
+            var $search = $(this).find('.fm-search-wrap input[type="search"]').first();
+            if ($search.length) window.setTimeout(function(){ $search.trigger('focus'); }, 80);
+        });
+
+    $(document)
+        .off('click.fmReset', '.fm-form button[type="reset"]')
+        .on('click.fmReset', '.fm-form button[type="reset"]', function () {
+            var form = this.form;
+            if (!form) return;
+            window.setTimeout(function () {
+                $(form).find('.selectpicker').selectpicker('refresh');
+                var id = form.id;
+                if (id === 'formulario_busqueda_cotizaciones') listar_busqueda_cotizaciones();
+                else if (id === 'formulario_busqueda_cuentas_cobrar_clientes') listar_busqueda_cuentas_por_cobrar_clientes();
+                else if (id === 'formulario_bill_draft') listar_busqueda_bill_draf();
+                else if (id === 'formulario_bill') listar_busqueda_bill();
+            }, 0);
+        });
+
+    /* =====================================================
+       Consultas AJAX - reemplazo de DataTables
+       ===================================================== */
+
+    function fmLoad(key, url, data, failMessage, after) {
+        var state = fmState(key);
+        if (!state) return $.Deferred().reject().promise();
+
+        $(state.selector).html('<div class="fm-loading"><i class="fas fa-spinner fa-spin"></i><strong>Cargando...</strong></div>');
+
+        return fmFetch(url, data).done(function (response) {
+            var rows = fmRowsResponse(response);
+            fmSetRows(key, rows);
+            if (typeof after === 'function') after(rows, response);
+        }).fail(function (xhr) {
+            $(state.selector).html('<div class="fm-empty"><i class="fas fa-exclamation-circle"></i><strong>No se pudo cargar</strong><span>' + fmEscape(failMessage || 'Error de comunicación.') + '</span></div>');
+            showNotify('error', 'Error de comunicación', failMessage || 'No se pudo cargar la información.');
+        });
+    }
+
+    listar_clientes_factura_buscar = function () {
+        return fmLoad(
+            'clientesFactura',
+            '<?php echo SERVERURL; ?>core/llenarDataTableClientes.php',
+            {},
+            'No se pudo cargar el listado de clientes.'
+        );
+    };
+
+    listar_colaboradores_buscar_factura = function () {
+        return fmLoad(
+            'colaboradoresFactura',
+            '<?php echo SERVERURL; ?>core/llenarDataTableColaboradoresFacturas.php',
+            {},
+            'No se pudo cargar el listado de colaboradores.'
+        );
+    };
+
+    listar_productos_factura_buscar = function () {
+        var bodega = $('#formulario_busqueda_productos_facturacion #almacen_facturas').val();
+        bodega = (bodega === '' || bodega == null) ? 1 : bodega;
+
+        return fmLoad(
+            'productosFactura',
+            '<?php echo SERVERURL; ?>core/llenarDataTableProductosFacturas.php',
+            {bodega: bodega},
+            'No se pudo cargar el listado de productos.'
+        );
+    };
+
+    listar_busqueda_cotizaciones = function () {
+        var $form = $('#formulario_busqueda_cotizaciones');
+        return fmLoad(
+            'cotizaciones',
+            '<?php echo SERVERURL; ?>core/llenarDataTableReporteCotizaciones.php',
+            {
+                tipo_cotizacion_reporte: $form.find('#tipo_cotizacion_reporte').val() || 1,
+                fechai: $form.find('#fechai').val(),
+                fechaf: $form.find('#fechaf').val()
+            },
+            'No se pudieron cargar las cotizaciones.'
+        );
+    };
+
+    listar_busqueda_cuentas_por_cobrar_clientes = function () {
+        var $form = $('#formulario_busqueda_cuentas_cobrar_clientes');
+        var estado = $form.find('#cobrar_clientes_estado').val();
+        if (estado === '') estado = 1;
+
+        return fmLoad(
+            'cxcFactura',
+            '<?php echo SERVERURL; ?>core/llenarDataTableCobrarClientes.php',
+            {
+                estado: estado,
+                clientes_id: $form.find('#cobrar_clientes').val(),
+                fechai: $form.find('#fechai').val(),
+                fechaf: $form.find('#fechaf').val()
+            },
+            'No se pudieron cargar las cuentas por cobrar.'
+        );
+    };
+
+    listar_busqueda_bill_draf = function () {
+        var $form = $('#formulario_bill_draft');
+        return fmLoad(
+            'borradoresFactura',
+            '<?php echo SERVERURL;?>core/llenarDataTableFacturasBorrador.php',
+            {
+                fechai: $form.find('#fechai').val(),
+                fechaf: $form.find('#fechaf').val()
+            },
+            'No se pudieron cargar las facturas pendientes.'
+        );
+    };
+
+    listar_busqueda_bill = function () {
+        var tipoFactura = $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').val();
+        tipoFactura = (tipoFactura === null || tipoFactura === '') ? 1 : tipoFactura;
+
+        var factura = getTipoDocumento(function () {
+            listar_busqueda_bill();
+        });
+
+        if (factura === null) return $.Deferred().reject().promise();
+
+        if (factura === 'No hay datos que mostrar' || factura === 'Error en la solicitud') {
+            showNotify('error', 'Error', 'Lo sentimos, hubo un error al obtener la información de la factura.');
+            return $.Deferred().reject().promise();
+        }
+
+        return fmLoad(
+            'facturasEmitidas',
+            '<?php echo SERVERURL; ?>core/llenarDataTableReporteVentas.php',
+            {
+                tipo_factura_reporte: tipoFactura,
+                facturador: $('#formulario_bill #facturador').val(),
+                vendedor: $('#formulario_bill #vendedor').val(),
+                factura: factura,
+                fechai: $('#formulario_bill #fechai').val(),
+                fechaf: $('#formulario_bill #fechaf').val()
+            },
+            'No se pudieron cargar las facturas.'
+        );
+    };
+
+    cargarCajaFactura = function () {
+        var fechai = $('#fecha_caja_factura_i').val();
+        var fechaf = $('#fecha_caja_factura_f').val();
+        var estado = $('#estado_caja_factura').val();
+
+        if (!fechai) {
+            fechai = new Date().toISOString().split('T')[0];
+            $('#fecha_caja_factura_i').val(fechai);
+        }
+        if (!fechaf) {
+            fechaf = fechai;
+            $('#fecha_caja_factura_f').val(fechaf);
+        }
+        if (!estado) {
+            estado = 0;
+            $('#estado_caja_factura').val(estado);
+        }
+
+        return fmLoad(
+            'cajaFactura',
+            '<?php echo SERVERURL;?>core/llenarDataTableCajaDisponibles.php',
+            {
+                fechai: fechai,
+                fechaf: fechaf,
+                estado: estado,
+                solo_mi_caja: 1,
+                origen: 'facturacion'
+            },
+            'No se pudo cargar la información de caja.',
+            function () {
+                if (typeof agregarBotonCuadreDiaCajaFactura === 'function') {
+                    agregarBotonCuadreDiaCajaFactura();
+                }
+            }
+        );
+    };
+
+    cargarTablaDetalleRetirosCaja = function (detalles) {
+        fmSetRows('retirosDetalle', Array.isArray(detalles) ? detalles : []);
+    };
+
+    cargarTablaDetalleGananciaCaja = function (detalles) {
+        fmSetRows('gananciaDetalle', Array.isArray(detalles) ? detalles : []);
+    };
+
+    /* El código de Caja existente usa este helper desde eventos capture.
+       Se conserva la misma firma, pero obtiene la fila desde el DIV. */
+    obtenerFilaCajaFacturaPorBoton = function (boton) {
+        return fmGetRecord(boton, 'cajaFactura');
+    };
+
+    /* =====================================================
+       Acciones: clientes / vendedor / productos
+       ===================================================== */
+
+    $(document)
+        .off('click.fmClienteSelect', '#clientesFacturaListado .table_view')
+        .on('click.fmClienteSelect', '#clientesFacturaListado .table_view', function (e) {
+            e.preventDefault();
+            var data = fmGetRecord(this, 'clientesFactura');
+            if (!data) {
+                showNotify('error','Error','No se pudo obtener la información del cliente.');
+                return;
+            }
+
+            $('#invoice-form #cliente_id').val(data.clientes_id);
+            $('#invoice-form #cliente').val(data.cliente);
+            $('#invoice-form #client-customers-bill').html('<b>Cliente: </b> ' + fmEscape(data.cliente || ''));
+            $('#invoice-form #rtn-customers-bill').html('<b>RTN: </b>' + fmEscape(data.rtn || ''));
+            $('#modal_buscar_clientes_facturacion').modal('hide');
+        });
+
+    $(document)
+        .off('click.fmClienteEdit', '#clientesFacturaListado .table_edit')
+        .on('click.fmClienteEdit', '#clientesFacturaListado .table_edit', function (e) {
+            e.preventDefault();
+            var data = fmGetRecord(this, 'clientesFactura');
+            if (!data) {
+                showNotify('error','Error','No se pudo obtener la información del cliente.');
+                return;
+            }
+            abrirEditarClienteDesdeFacturacion(data);
+        });
+
+    $(document)
+        .off('click.fmColaboradorSelect', '#colaboradoresFacturaListado .table_view')
+        .on('click.fmColaboradorSelect', '#colaboradoresFacturaListado .table_view', function (e) {
+            e.preventDefault();
+            var data = fmGetRecord(this, 'colaboradoresFactura');
+            if (!data) return;
+            $('#invoice-form #colaborador_id').val(data.colaborador_id);
+            $('#invoice-form #colaborador').val(data.colaborador);
+            $('#invoice-form #vendedor-customers-bill').html('<b>Vendedor: </b> ' + fmEscape(data.colaborador || ''));
+            $('#modal_buscar_colaboradores_facturacion').modal('hide');
+        });
+
+    async function fmSeleccionarProductoFactura(data) {
+        var row = parseInt($('#formulario_busqueda_productos_facturacion #row').val() || $('#invoice-form #bill_row').val() || '0', 10);
+        row = asegurarFilaFacturaDisponible(row);
+
+        if (getConsultarAperturaCaja() == 2) {
+            showNotify('error','Error','Lo sentimos debe aperturar la caja antes de continuar');
+            return;
+        }
+
+        getTotalFacturasDisponibles();
+
+        if (
+            $('#invoice-form #cliente_id').val() === '' ||
+            $('#invoice-form #cliente').val() === '' ||
+            $('#invoice-form #colaborador_id').val() === '' ||
+            $('#invoice-form #colaborador').val() === ''
+        ) {
+            showNotify('error','Error','Lo sentimos no se puede seleccionar un producto, por favor verifica cliente y vendedor.');
+            return;
+        }
+
+        data = data || {};
+
+        var tipoProductoId = Number(data.tipo_producto_id || 0);
+        var esServicio = tipoProductoId === 2;
+        var almacenId = (data.almacen_id == null || data.almacen_id === '') ? 0 : parseInt(data.almacen_id, 10);
+        var existencia = parseFloat(data.cantidad || 0);
+
+        if (!esServicio && almacenId > 0) {
+            var facturar_cero = !!(await facturarEnCeroAlmacen(almacenId));
+            if (existencia <= 0 && !facturar_cero) {
+                showNotify('error','Error','No se puede facturar este producto con inventario en cero');
+                return false;
+            }
+        }
+
+        $('#invoice-form #invoiceItem #productos_id_' + row).val(data.productos_id);
+        $('#invoice-form #invoiceItem #bar-code-id_' + row).val(data.barCode || '');
+        $('#invoice-form #invoiceItem #productName_' + row).val(data.nombre || '');
+        $('#invoice-form #invoiceItem #quantity_' + row).val(1).focus();
+        $('#invoice-form #invoiceItem #price_' + row).val(data.precio_venta || 0);
+        $('#invoice-form #invoiceItem #discount_' + row).val(0);
+        $('#invoice-form #invoiceItem #isv_' + row).val(parseInt(data.impuesto_venta || 0, 10));
+        $('#invoice-form #invoiceItem #precio_mayoreo_' + row).val(data.precio_mayoreo || 0);
+        $('#invoice-form #invoiceItem #cantidad_mayoreo_' + row).val(data.cantidad_mayoreo || 0);
+        $('#invoice-form #invoiceItem #medida_' + row).val(data.medida || '');
+        $('#invoice-form #invoiceItem #bodega_' + row).val(almacenId || '');
+        $('#invoice-form #invoiceItem #precio_real_' + row).val(data.precio_venta || 0);
+
+        var dataGravaISV = parseInt(data.impuesto_venta || data.isv_venta || 0, 10) === 1;
+        var dataFlagISV1 = parseInt(data.isv1 || 0, 10) === 1 ? 1 : 0;
+        var dataFlagISV2 = parseInt(data.isv2 || 0, 10) === 1 ? 1 : 0;
+
+        if (dataGravaISV && dataFlagISV1 === 0 && dataFlagISV2 === 0) dataFlagISV1 = 1;
+
+        if ($('#isv1_flag_' + row).length) $('#isv1_flag_' + row).val(dataFlagISV1);
+        if ($('#isv2_flag_' + row).length) $('#isv2_flag_' + row).val(dataFlagISV2);
+        if ($('#valor_isv_' + row).length) $('#valor_isv_' + row).val('0.00');
+        if ($('#valor_isv1_' + row).length) $('#valor_isv1_' + row).val('0.00');
+
+        if (typeof actualizarTextoProducto === 'function') {
+            actualizarTextoProducto(row, data.nombre || '', data.medida || '');
+        }
+
+        await recalcISVForRow(row);
+        calculateTotalFacturas();
+        asegurarFilaVaciaFinalFactura();
+
+        if (row > 0) $('#invoice-form #invoiceItem #icon-search-bar_' + (row - 1)).hide();
+        $('#invoice-form #invoiceItem #icon-search-bar_' + row).hide();
+        $('#modal_buscar_productos_facturacion').modal('hide');
+    }
+
+    $(document)
+        .off('click.fmProductoSelect', '#productosFacturaListado .fm-product-select')
+        .on('click.fmProductoSelect', '#productosFacturaListado .fm-product-select', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var data = fmGetRecord(this, 'productosFactura');
+            if (data) fmSeleccionarProductoFactura(data);
+        });
+
+    /* =====================================================
+       Cotizaciones: quitar handler DataTable y conservar flujo
+       ===================================================== */
+
+    $(document).off('click', '#DatatableBusquedaCotizaciones button.load_quote');
+    $(document).off('click', '#DatatableBusquedaCotizaciones button.print_cotizaciones');
+
+    function fmCargarCotizacion(row, $btn) {
+        if (!row || !row.cotizacion_id) return;
+
+        var originalHtml = $btn.html();
+        $btn.prop('disabled', true).html("<span class='spinner-border spinner-border-sm'></span>");
+
+        $.ajax({
+            type:'POST',
+            url:'<?php echo SERVERURL; ?>core/cotizacion/getCotizacionParaFactura.php',
+            data:{cotizacion_id:row.cotizacion_id},
+            dataType:'json'
+        }).done(function(res){
+            if(!res || res.ok!==true){
+                showNotify('error','Error',(res&&res.msg)?res.msg:'No se pudo cargar la cotización');
+                return;
+            }
+
+            var h=res.header||{};
+            var d=Array.isArray(res.detalle)?res.detalle:[];
+            var today=new Date().toISOString().slice(0,10);
+            var $tbody=$('#invoiceItem tbody');
+            $tbody.hide();
+
+            if(typeof limpiarTablaFacturaDetalles==='function') limpiarTablaFacturaDetalles(0);
+
+            $('#invoice-form #facturas_id').val('');
+            $('#cliente_id').val(h.clientes_id||'');
+            $('#cliente').val(h.cliente_nombre||'');
+            $('#colaborador_id').val(h.colaboradores_id||'');
+            $('#colaborador').val(h.colaborador_nombre||'');
+            $('#notesBill').val(h.notas||'');
+            $('#fecha').val(h.fecha||today);
+            $('#fecha_dolar').val(h.fecha_dolar||today);
+
+            if(typeof setTipoFactura==='function'){
+                setTipoFactura(h.tipo_factura==1?'contado':'credito');
+            }else{
+                $('#facturas_activo').val(h.tipo_factura==1?1:0);
+                try{
+                    var contado=(h.tipo_factura==1);
+                    $('#btn-tipo-contado').toggleClass('active',contado).toggleClass('btn-primary',contado).toggleClass('btn-outline-primary',!contado);
+                    $('#btn-tipo-credito').toggleClass('active',!contado).toggleClass('btn-primary',!contado).toggleClass('btn-outline-primary',contado);
+                }catch(_){}
+            }
+
+            $('#rtn-customers-bill').text(h.cliente_rtn?('RTN: '+h.cliente_rtn):'');
+            $('#client-customers-bill').text(h.cliente_nombre?('Cliente: '+h.cliente_nombre):'');
+            $('#vendedor-customers-bill').text(h.colaborador_nombre?('Vendedor: '+h.colaborador_nombre):'');
+
+            if(typeof addRowFacturas==='function' && d.length>1){
+                for(var k=1;k<d.length;k++) addRowFacturas();
+            }
+
+            for(var i=0;i<d.length;i++){
+                $('#facturas_detalle_id_'+i).val('');
+                $('#bar-code-id_'+i).val(d[i].barCode||'');
+                $('#productos_id_'+i).val(d[i].productos_id||'');
+                $('#productName_'+i).val(d[i].producto||'');
+                $('#productName_text_'+i).text(d[i].producto||'Descripción del Producto');
+                $('#quantity_'+i).val(d[i].cantidad||0);
+                $('#price_'+i).val(d[i].precio||0);
+                $('#precio_real_'+i).val(d[i].precio||0);
+                $('#isv_'+i).val(d[i].isv_venta||0);
+                $('#valor_isv_'+i).val(d[i].isv_valor||0);
+                $('#cantidad_mayoreo_'+i).val(d[i].cantidad_mayoreo||0);
+                $('#precio_mayoreo_'+i).val(d[i].precio_mayoreo||0);
+                $('#bodega_'+i).val(d[i].almacen_id||'');
+                $('#medida_'+i).val(d[i].medida||'');
+                $('#medida_text_'+i).text(d[i].medida||'Medida');
+                $('#discount_'+i).val(d[i].descuento||0);
+            }
+
+            if(res.totales){
+                $('#subTotalImporte').val(res.totales.subtotal||0);
+                $('#taxDescuento').val(res.totales.descuento||0);
+                $('#taxAmount').val(res.totales.isv||0);
+                $('#totalAftertax').val(res.totales.total||0);
+            }
+
+            if(typeof calculateTotalFacturas==='function') calculateTotalFacturas();
+
+            if(typeof addRowFacturas==='function'){
+                addRowFacturas();
+                var next=parseInt($('#bill_row').val(),10);
+                if(!Number.isNaN(next)) $('#bar-code-id_'+next).focus();
+            }
+
+            $tbody.show();
+            $('#modal_buscar_cotizaciones').modal('hide');
+            showNotify('success','Cotización cargada','Se cargó la cotización en la factura');
+        }).fail(function(){
+            showNotify('error','Error','Falló la petición al servidor');
+        }).always(function(){
+            $btn.prop('disabled',false).html(originalHtml);
+        });
+    }
+
+    $(document)
+        .off('click.fmQuoteLoad', '#cotizacionesListado .load_quote')
+        .on('click.fmQuoteLoad', '#cotizacionesListado .load_quote', function(e){
+            e.preventDefault();
+            var row=fmGetRecord(this,'cotizaciones');
+            if(row) fmCargarCotizacion(row,$(this));
+        });
+
+    $(document)
+        .off('click.fmQuotePrint', '#cotizacionesListado .print_cotizaciones')
+        .on('click.fmQuotePrint', '#cotizacionesListado .print_cotizaciones', function(e){
+            e.preventDefault();
+            var row=fmGetRecord(this,'cotizaciones');
+            if(row && typeof printQuote==='function') printQuote(row.cotizacion_id);
+        });
+
+    /* =====================================================
+       Borradores
+       ===================================================== */
+
+    $(document)
+        .off('click.fmDraftContinue', '#borradoresFacturaListado .pay')
+        .on('click.fmDraftContinue', '#borradoresFacturaListado .pay', function(e){
+            e.preventDefault();
+            var row=fmGetRecord(this,'borradoresFactura');
+            if(row&&row.facturas_id){
+                window.cargarFacturaEnFormulario(row.facturas_id,{modo:'borrador',cerrarModal:true,notificar:true});
+            }
+        });
+
+    $(document)
+        .off('click.fmDraftDelete', '#borradoresFacturaListado .eliminar')
+        .on('click.fmDraftDelete', '#borradoresFacturaListado .eliminar', function(e){
+            e.preventDefault();
+            var row=fmGetRecord(this,'borradoresFactura');
+            if(row&&row.facturas_id) deleteBillDraft(row.facturas_id);
+        });
+
+    /* =====================================================
+       Cuentas por cobrar
+       ===================================================== */
+
+    $(document)
+        .off('click.fmCxcAbono', '#cxcFacturaListado .table_abono')
+        .on('click.fmCxcAbono', '#cxcFacturaListado .table_abono', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'cxcFactura');
+            if(!data)return;
+            if(parseInt(data.estado||0,10)===2 || fmNumber(data.saldo)<=0){
+                showNotify('error','Error','No puede realizar esta acción a las facturas canceladas.');
+                return;
+            }
+            REFRESCAR_CXC_AL_CERRAR_PAGO=true;
+            pago(data.facturas_id,2,'cxc');
+        });
+
+    $(document)
+        .off('click.fmCxcVerAbonos', '#cxcFacturaListado .abono_factura')
+        .on('click.fmCxcVerAbonos', '#cxcFacturaListado .abono_factura', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'cxcFactura');
+            if(!data)return;
+            $('#ver_abono_cxc').modal('show');
+            $('#formulario_ver_abono_cxc #abono_facturas_id').val(data.facturas_id);
+            listar_AbonosCXC();
+        });
+
+    $(document)
+        .off('click.fmCxcFactura', '#cxcFacturaListado .print_factura')
+        .on('click.fmCxcFactura', '#cxcFacturaListado .print_factura', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'cxcFactura');
+            if(data) printBill(data.facturas_id);
+        });
+
+    /* =====================================================
+       Facturas emitidas
+       ===================================================== */
+
+    $(document)
+        .off('click.fmBillMail', '#facturasEmitidasListado .email_factura')
+        .on('click.fmBillMail', '#facturasEmitidasListado .email_factura', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'facturasEmitidas');
+            if(data) mailBill(data.facturas_id);
+        });
+
+    $(document)
+        .off('click.fmBillPrint', '#facturasEmitidasListado .print_factura')
+        .on('click.fmBillPrint', '#facturasEmitidasListado .print_factura', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'facturasEmitidas');
+            if(data) printBill(data.facturas_id);
+        });
+
+    $(document)
+        .off('click.fmBillReceipt', '#facturasEmitidasListado .print_comprobante')
+        .on('click.fmBillReceipt', '#facturasEmitidasListado .print_comprobante', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'facturasEmitidas');
+            if(!data)return;
+            window.open('<?php echo SERVERURL; ?>core/generaComprobante.php?facturas_id='+encodeURIComponent(data.facturas_id));
+        });
+
+    $(document)
+        .off('click.fmBillNC', '#facturasEmitidasListado .nota_credito_factura')
+        .on('click.fmBillNC', '#facturasEmitidasListado .nota_credito_factura', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'facturasEmitidas');
+            if(!data||!data.facturas_id)return;
+            if(window.IZZYNotaCredito && typeof window.IZZYNotaCredito.abrir==='function'){
+                window.IZZYNotaCredito.abrir(data.facturas_id);
+            }else{
+                showNotify('error','Nota de Crédito','No está cargado el módulo de Nota de Crédito.');
+            }
+        });
+
+    $(document)
+        .off('click.fmBillCancel', '#facturasEmitidasListado .cancelar_factura')
+        .on('click.fmBillCancel', '#facturasEmitidasListado .cancelar_factura', function(e){
+            e.preventDefault();
+            var data=fmGetRecord(this,'facturasEmitidas');
+            if(!data||!data.facturas_id){
+                showNotify('error','Error','No se pudo obtener la factura seleccionada');
+                return;
+            }
+            if(typeof validarAdminSistema!=='function'){
+                showNotify('error','Validación no disponible','No está cargado el JS de autenticación administrativa.');
+                return;
+            }
+            var facturaId=data.facturas_id;
+            var numero=data.number||data.numero||data.factura||data.numero_factura||facturaId;
+            validarAdminSistema(function(permitido){
+                if(permitido===true){
+                    anularFacturas(facturaId,{permitir_regenerar:true,origen:'facturacion'});
+                }
+            },{
+                mensaje:'Para anular esta factura debe validar un administrador.',
+                modulo:'Facturación',
+                accion:'Anular factura',
+                referencia_id:facturaId,
+                referencia_texto:numero,
+                motivo:'Validación requerida para anular factura desde facturación'
+            });
+        });
+
+    /* =====================================================
+       Retiros: reintegro
+       ===================================================== */
+
+    $(document)
+        .off('click.fmRetiroReintegrar', '#dataTableDetalleRetirosCaja .btn-reintegrar-retiro')
+        .on('click.fmRetiroReintegrar', '#dataTableDetalleRetirosCaja .btn-reintegrar-retiro', function(e){
+            e.preventDefault();
+            abrirModalReintegroRetiroCaja(
+                $(this).data('caja-retiros-id'),
+                $(this).data('apertura-id'),
+                $(this).data('monto')
+            );
+        });
+
+    /* =====================================================
+       Botones de toolbar
+       ===================================================== */
+
+    $('#btnActualizarClientesFm').off('click.fm').on('click.fm', listar_clientes_factura_buscar);
+    $('#btnNuevoClienteFm').off('click.fm').on('click.fm', function(){ modal_clientes(); });
+    $('#btnActualizarColaboradoresFm').off('click.fm').on('click.fm', listar_colaboradores_buscar_factura);
+    $('#btnNuevoColaboradorFm').off('click.fm').on('click.fm', function(){ modal_colaboradores(); });
+    $('#btnActualizarProductosFm').off('click.fm').on('click.fm', listar_productos_factura_buscar);
+    $('#btnNuevoProductoFm').off('click.fm').on('click.fm', function(){ modal_productos(); });
+    $('#btnActualizarCotizacionesFm').off('click.fm').on('click.fm', listar_busqueda_cotizaciones);
+    $('#btnActualizarCxcFm').off('click.fm').on('click.fm', listar_busqueda_cuentas_por_cobrar_clientes);
+    $('#btnActualizarBorradoresFm').off('click.fm').on('click.fm', listar_busqueda_bill_draf);
+
+    function fmAsegurarBotonesExportacionFacturacion() {
+        var $cotizacionesToolbar = $('#btnActualizarCotizacionesFm').parent();
+        if ($cotizacionesToolbar.length) {
+            if (!$('#btnExcelCotizacionesFm').length) {
+                $cotizacionesToolbar.append(
+                    '<button type="button" class="btn btn-success ocultar" id="btnExcelCotizacionesFm">' +
+                        '<i class="fas fa-file-excel mr-1"></i> Excel' +
+                    '</button>'
+                );
+            }
+            if (!$('#btnPdfCotizacionesFm').length) {
+                $cotizacionesToolbar.append(
+                    '<button type="button" class="btn btn-danger ocultar" id="btnPdfCotizacionesFm">' +
+                        '<i class="fas fa-file-pdf mr-1"></i> PDF' +
+                    '</button>'
+                );
+            }
+        }
+
+        var $borradoresToolbar = $('#btnActualizarBorradoresFm').parent();
+        if ($borradoresToolbar.length) {
+            if (!$('#btnExcelBorradoresFm').length) {
+                $borradoresToolbar.append(
+                    '<button type="button" class="btn btn-success ocultar" id="btnExcelBorradoresFm">' +
+                        '<i class="fas fa-file-excel mr-1"></i> Excel' +
+                    '</button>'
+                );
+            }
+            if (!$('#btnPdfBorradoresFm').length) {
+                $borradoresToolbar.append(
+                    '<button type="button" class="btn btn-danger ocultar" id="btnPdfBorradoresFm">' +
+                        '<i class="fas fa-file-pdf mr-1"></i> PDF' +
+                    '</button>'
+                );
+            }
+        }
+
+        if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+            typeof getPrivilegioTipoUsuario === 'function') {
+            try {
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            } catch (e) {}
+        }
+    }
+
+    fmAsegurarBotonesExportacionFacturacion();
+    $('#btnActualizarFacturasFm').off('click.fm').on('click.fm', listar_busqueda_bill);
+    $('#btnActualizarCajaFactura').off('click.fm').on('click.fm', cargarCajaFactura);
+    $('#btnActualizarRetirosDetalleFm').off('click.fm').on('click.fm', refrescarDetalleRetirosCaja);
+    $('#btnActualizarGananciaDetalleFm').off('click.fm').on('click.fm', refrescarDesgloseGananciaCaja);
+
+    /* =====================================================
+       Exportación Premium: mismo lenguaje visual de Usuarios
+       ===================================================== */
+
+    function fmDateFile() {
+        return new Date().toISOString().slice(0,10);
+    }
+
+    function fmDownloadBlob(blob, fileName) {
+        var a=document.createElement('a');
+        var url=URL.createObjectURL(blob);
+        a.href=url;
+        a.download=fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.setTimeout(function(){URL.revokeObjectURL(url);},1000);
+    }
+
+    function fmXmlEscape(value) {
+        return String(value===null||value===undefined?'':value)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;')
+            .replace(/'/g,'&apos;');
+    }
+
+    function fmExcelCol(index) {
+        var name='';
+        var n=index+1;
+        while(n>0){
+            var mod=(n-1)%26;
+            name=String.fromCharCode(65+mod)+name;
+            n=Math.floor((n-1)/26);
+        }
+        return name;
+    }
+
+    function fmExcelCell(ref,value,styleId,numeric) {
+        if(numeric){
+            var n=Number(value);
+            if(!isNaN(n)){
+                return '<c r="'+ref+'" s="'+styleId+'"><v>'+n+'</v></c>';
+            }
+        }
+        var raw=String(value===null||value===undefined?'':value);
+        var preserve=/^\s|\s$/.test(raw)?' xml:space="preserve"':'';
+        return '<c r="'+ref+'" s="'+styleId+'" t="inlineStr"><is><t'+preserve+'>'+fmXmlEscape(raw)+'</t></is></c>';
+    }
+
+    function fmExcelGenerate(state) {
+        if(typeof JSZip==='undefined') return null;
+        var cfg=state.exportConfig;
+        if(!cfg)return null;
+        var source=state.filtered.slice();
+        var rows=source.map(cfg.row);
+        var headers=cfg.headers.slice();
+        var numeric=cfg.numeric||[];
+        var summary=typeof cfg.summary==='function'?cfg.summary(source):[{label:'REGISTROS',value:source.length}];
+        while(summary.length<3) summary.push({label:'',value:''});
+        summary=summary.slice(0,3);
+
+        var lastCol=fmExcelCol(headers.length-1);
+        var headerRow=7;
+        var firstData=8;
+        var dataLastRow=headerRow+rows.length;
+        var totalColumns=Array.isArray(cfg.columnTotals)?cfg.columnTotals.slice():[];
+        var totalRow=totalColumns.length?firstData+rows.length:null;
+        var lastRow=totalRow||Math.max(headerRow,dataLastRow);
+        var sheetRows=[];
+
+        sheetRows.push('<row r="1" ht="30" customHeight="1">'+fmExcelCell('A1','IZZY • '+cfg.title,1,false)+'</row>');
+        sheetRows.push('<row r="2" ht="20" customHeight="1">'+fmExcelCell('A2',cfg.subtitle+' • Generado: '+new Date().toLocaleDateString('es-HN'),2,false)+'</row>');
+
+        var summaryCols=[0,Math.floor(headers.length/3),Math.floor((headers.length*2)/3)];
+        sheetRows.push('<row r="3" ht="18" customHeight="1">'+summary.map(function(s,i){
+            return fmExcelCell(fmExcelCol(summaryCols[i])+'3',s.label||'',6,false);
+        }).join('')+'</row>');
+        sheetRows.push('<row r="4" ht="26" customHeight="1">'+summary.map(function(s,i){
+            return fmExcelCell(fmExcelCol(summaryCols[i])+'4',s.money?fmNumber(s.value):s.value,7,!!s.money||typeof s.value==='number');
+        }).join('')+'</row>');
+        sheetRows.push('<row r="5"></row>');
+        sheetRows.push('<row r="6" ht="18" customHeight="1">'+fmExcelCell('A6','Detalle de registros filtrados',8,false)+'</row>');
+
+        sheetRows.push('<row r="'+headerRow+'" ht="26" customHeight="1">'+headers.map(function(h,i){
+            return fmExcelCell(fmExcelCol(i)+headerRow,h,3,false);
+        }).join('')+'</row>');
+
+        rows.forEach(function(row,rowIndex){
+            var rr=firstData+rowIndex;
+            var cells=row.map(function(v,colIndex){
+                var isNum=numeric.indexOf(colIndex)!==-1;
+                return fmExcelCell(fmExcelCol(colIndex)+rr,v,isNum?5:4,isNum);
+            }).join('');
+            sheetRows.push('<row r="'+rr+'" ht="22" customHeight="1">'+cells+'</row>');
+        });
+
+        if(totalRow){
+            var totalsByColumn={};
+            totalColumns.forEach(function(colIndex){
+                totalsByColumn[colIndex]=rows.reduce(function(total,row){
+                    return total+fmNumber(row[colIndex]);
+                },0);
+            });
+
+            var totalCells=[];
+            totalCells.push(fmExcelCell('A'+totalRow,'TOTALES GENERALES',9,false));
+            totalColumns.forEach(function(colIndex){
+                totalCells.push(fmExcelCell(fmExcelCol(colIndex)+totalRow,totalsByColumn[colIndex],10,true));
+            });
+            sheetRows.push('<row r="'+totalRow+'" ht="24" customHeight="1">'+totalCells.join('')+'</row>');
+        }
+
+        var cols='';
+        for(var c=0;c<headers.length;c++){
+            var width=Math.min(34,Math.max(14,String(headers[c]||'').length+7));
+            if(c===1||c===2) width=Math.max(width,24);
+            cols+='<col min="'+(c+1)+'" max="'+(c+1)+'" width="'+width+'" customWidth="1"/>';
+        }
+
+        var merges=[
+            '<mergeCell ref="A1:'+lastCol+'1"/>',
+            '<mergeCell ref="A2:'+lastCol+'2"/>'
+        ];
+        var sheetXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+            '<dimension ref="A1:'+lastCol+lastRow+'"/>'+
+            '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A8" sqref="A8"/></sheetView></sheetViews>'+
+            '<sheetFormatPr defaultRowHeight="15"/><cols>'+cols+'</cols><sheetData>'+sheetRows.join('')+'</sheetData>'+
+            '<autoFilter ref="A'+headerRow+':'+lastCol+dataLastRow+'"/>'+
+            '<mergeCells count="'+merges.length+'">'+merges.join('')+'</mergeCells>'+
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>'+
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>'+
+            '</worksheet>';
+
+        var stylesXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>'+
+            '<fonts count="8">'+
+                '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>'+
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'+
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>'+
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'+
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>'+
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>'+
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>'+
+                '<font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>'+
+            '</fonts>'+
+            '<fills count="5">'+
+                '<fill><patternFill patternType="none"/></fill>'+
+                '<fill><patternFill patternType="gray125"/></fill>'+
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/><bgColor indexed="64"/></patternFill></fill>'+
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/><bgColor indexed="64"/></patternFill></fill>'+
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/><bgColor indexed="64"/></patternFill></fill>'+
+            '</fills>'+
+            '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders>'+
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+            '<cellXfs count="11">'+
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'+
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'+
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>'+
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'+
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'+
+                '<xf numFmtId="164" fontId="6" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'+
+                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'+
+                '<xf numFmtId="0" fontId="7" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'+
+                '<xf numFmtId="164" fontId="7" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'+
+            '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+        var sheetName=(cfg.title||'Reporte').replace(/[\\\/\?\*\[\]:]/g,' ').substring(0,31)||'Reporte';
+        var workbookXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+            '<bookViews><workbookView activeTab="0"/></bookViews><sheets><sheet name="'+fmXmlEscape(sheetName)+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
+
+        var workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        var rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+        var contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+
+        var zip=new JSZip();
+        zip.file('[Content_Types].xml',contentTypes);
+        zip.folder('_rels').file('.rels',rootRels);
+        zip.folder('xl').file('workbook.xml',workbookXml);
+        zip.folder('xl').file('styles.xml',stylesXml);
+        zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+
+        var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
+        if(typeof zip.generateAsync==='function') return zip.generateAsync(opts);
+        if(typeof zip.generate==='function') return Promise.resolve(zip.generate(opts));
+        return Promise.reject(new Error('JSZip no permite generar archivos XLSX.'));
+    }
+
+    function fmExportCsv(state) {
+        var cfg=state.exportConfig;
+        var rows=state.filtered.map(cfg.row);
+        var csvRows=[cfg.headers].concat(rows);
+        if(Array.isArray(cfg.columnTotals)&&cfg.columnTotals.length){
+            var totalLine=new Array(cfg.headers.length).fill('');
+            totalLine[0]='TOTALES GENERALES';
+            cfg.columnTotals.forEach(function(colIndex){
+                totalLine[colIndex]=rows.reduce(function(total,row){return total+fmNumber(row[colIndex]);},0).toFixed(2);
+            });
+            csvRows.push(totalLine);
+        }
+        var csv=csvRows.map(function(line){
+            return line.map(function(v){return '"'+String(v===null||v===undefined?'':v).replace(/"/g,'""')+'"';}).join(',');
+        }).join('\r\n');
+        fmDownloadBlob(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),cfg.file+'_'+fmDateFile()+'.csv');
+        showNotify('warning','Excel compatible','JSZip no está disponible; se generó CSV compatible con Excel.');
+    }
+
+    function fmExportExcel(key) {
+        var state=fmState(key);
+        if(!state||!state.exportConfig)return;
+        if(!state.filtered.length){
+            showNotify('warning','Sin datos','No hay registros para exportar.');
+            return;
+        }
+        var promise=fmExcelGenerate(state);
+        if(!promise){
+            fmExportCsv(state);
+            return;
+        }
+        promise.then(function(blob){
+            fmDownloadBlob(blob,state.exportConfig.file+'_'+fmDateFile()+'.xlsx');
+        }).catch(function(error){
+            console.error('Error XLSX Facturación:',error);
+            showNotify('error','Error al generar Excel','No se pudo generar el archivo Excel.');
+        });
+    }
+
+    function fmGetLogo(callback) {
+        if(FM.logoDataUrl){
+            callback(FM.logoDataUrl);
+            return;
+        }
+
+        function convert(source){
+            source=String(source||'').trim();
+            if(!source){callback(null);return;}
+            if(source.indexOf('data:image/')===0){FM.logoDataUrl=source;callback(source);return;}
+            var img=new Image();
+            img.crossOrigin='Anonymous';
+            img.onload=function(){
+                try{
+                    var canvas=document.createElement('canvas');
+                    canvas.width=img.naturalWidth||img.width;
+                    canvas.height=img.naturalHeight||img.height;
+                    canvas.getContext('2d').drawImage(img,0,0);
+                    FM.logoDataUrl=canvas.toDataURL('image/png');
+                    callback(FM.logoDataUrl);
+                }catch(e){callback(null);}
+            };
+            img.onerror=function(){callback(null);};
+            img.src=source;
+        }
+
+        if(typeof imagen!=='undefined'&&imagen){
+            convert(imagen);
+            return;
+        }
+
+        $.ajax({type:'GET',url:'<?php echo SERVERURL;?>core/get_image.php',dataType:'text',timeout:15000})
+            .done(convert)
+            .fail(function(){callback(null);});
+    }
+
+    function fmPdfLogoPlate(logo) {
+        if(!logo)return {text:'IZZY',fontSize:16,bold:true,color:'#FFFFFF',margin:[10,8,0,8]};
+        return {
+            table:{widths:['*'],body:[[{image:logo,fit:[62,36],alignment:'center',margin:[7,5,7,5],fillColor:'#FFFFFF'}]]},
+            layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return .5;},vLineWidth:function(){return .5;},paddingLeft:function(){return 0;},paddingRight:function(){return 0;},paddingTop:function(){return 0;},paddingBottom:function(){return 0;}}
+        };
+    }
+
+    function fmExportPdf(key) {
+        var state=fmState(key);
+        if(!state||!state.exportConfig)return;
+        if(!state.filtered.length){
+            showNotify('warning','Sin datos','No hay registros para exportar.');
+            return;
+        }
+        if(typeof pdfMake==='undefined'){
+            showNotify('error','PDF no disponible','No se encontró pdfMake.');
+            return;
+        }
+        if(typeof abrirModalPdfPublico!=='function'){
+            showNotify('error','Visor PDF no disponible','No se encontró el modal PDF público.');
+            return;
+        }
+
+        fmGetLogo(function(logoData){
+            var cfg=state.exportConfig;
+            var source=state.filtered.slice();
+            var rows=source.map(cfg.row);
+            var summary=typeof cfg.summary==='function'?cfg.summary(source):[{label:'REGISTROS',value:source.length}];
+            while(summary.length<3)summary.push({label:'',value:''});
+            summary=summary.slice(0,3);
+            var totalColumns=Array.isArray(cfg.columnTotals)?cfg.columnTotals.slice():[];
+            var totalsByColumn={};
+            totalColumns.forEach(function(colIndex){
+                totalsByColumn[colIndex]=rows.reduce(function(total,row){
+                    return total+fmNumber(row[colIndex]);
+                },0);
+            });
+
+            var header={
+                table:{widths:[100,'*',150],body:[[
+                    {border:[false,false,false,false],fillColor:'#17324D',margin:[12,10,0,10],stack:[fmPdfLogoPlate(logoData)]},
+                    {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,0,10],stack:[
+                        {text:cfg.title,fontSize:15,bold:true,color:'#FFFFFF'},
+                        {text:cfg.subtitle,fontSize:7.5,color:'#D8E5F0',margin:[0,2,0,0]}
+                    ]},
+                    {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,12,10],stack:[
+                        {text:'REPORTE EJECUTIVO',fontSize:6.5,bold:true,color:'#72E2E5',alignment:'right'},
+                        {text:new Date().toLocaleDateString('es-HN'),fontSize:9,bold:true,color:'#FFFFFF',alignment:'right',margin:[0,3,0,0]},
+                        {text:source.length+' registro(s) filtrado(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right',margin:[0,2,0,0]}
+                    ]}
+                ]]},
+                layout:{hLineWidth:function(){return 0;},vLineWidth:function(){return 0;}},
+                margin:[0,0,0,10]
+            };
+
+            var filters={
+                table:{widths:['*'],body:[[{text:'Filtros aplicados: '+(typeof cfg.filters==='function'?cfg.filters():'Sin filtros adicionales')+' | Búsqueda: '+($(state.searchSelector).val()||'Sin búsqueda'),fontSize:6.8,color:'#52627A',margin:[10,7,10,7],fillColor:'#F7F9FC'}]]},
+                layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return .6;},vLineWidth:function(){return .6;}},
+                margin:[0,0,0,10]
+            };
+
+            var summaryBlock={
+                table:{widths:['*','*','*'],body:[summary.map(function(s){
+                    return {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[
+                        {text:s.label||'',fontSize:6.3,bold:true,color:'#6B778C'},
+                        {text:s.money?fmMoney(s.value):String(s.value===undefined?'':s.value),fontSize:12,bold:true,color:'#172B4D',margin:[0,2,0,0]}
+                    ]};
+                })]},
+                layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return .6;},vLineWidth:function(){return .6;}},
+                margin:[0,0,0,12]
+            };
+
+            var content=[];
+            if(state.view==='miniatura'){
+                function reportCard(row){
+                    var fields=cfg.headers.map(function(h,idx){
+                        var value=row[idx];
+                        if((cfg.numeric||[]).indexOf(idx)!==-1)value=fmMoney(value);
+                        return {text:h+': '+String(value===undefined?'':value),fontSize:7.2,color:'#42526E',margin:[0,2,0,0]};
+                    });
+                    return {table:{widths:['*'],body:[[{margin:[10,8,10,8],stack:fields}]]},layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return .7;},vLineWidth:function(){return .7;}}};
+                }
+                for(var i=0;i<rows.length;i+=2){
+                    content.push({columns:[
+                        {width:'*',stack:[reportCard(rows[i])]},
+                        {width:10,text:''},
+                        rows[i+1]?{width:'*',stack:[reportCard(rows[i+1])]}:{width:'*',text:''}
+                    ],margin:[0,0,0,9]});
+                }
+                if(totalColumns.length){
+                    content.push({
+                        table:{widths:totalColumns.map(function(){return '*';}),body:[
+                            totalColumns.map(function(colIndex){return {text:cfg.headers[colIndex],fontSize:6.3,bold:true,color:'#6B778C',fillColor:'#F7F9FC',margin:[7,5,7,2]};}),
+                            totalColumns.map(function(colIndex){return {text:fmMoney(totalsByColumn[colIndex]),fontSize:9,bold:true,color:'#172B4D',fillColor:'#F7F9FC',alignment:'right',margin:[7,2,7,6]};})
+                        ]},
+                        layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return .6;},vLineWidth:function(){return .6;}},
+                        margin:[0,3,0,0]
+                    });
+                }
+            }else{
+                var body=[cfg.headers.map(function(h){return {text:h,style:'th',fillColor:'#17324D'};})];
+                rows.forEach(function(row,index){
+                    var fill=index%2===0?'#FFFFFF':'#F7F9FC';
+                    body.push(row.map(function(v,colIndex){
+                        var isNum=(cfg.numeric||[]).indexOf(colIndex)!==-1;
+                        return {text:isNum?fmMoney(v):String(v===undefined?'':v),fillColor:fill,alignment:isNum?'right':'left'};
+                    }));
+                });
+                if(totalColumns.length){
+                    var totalCells=[];
+                    var firstTotalCol=Math.min.apply(null,totalColumns);
+                    for(var tc=0;tc<cfg.headers.length;tc++){
+                        if(tc===0){
+                            totalCells.push({text:'TOTALES GENERALES',colSpan:firstTotalCol,bold:true,color:'#172B4D',fillColor:'#EAF4FC',alignment:'left'});
+                        }else if(tc<firstTotalCol){
+                            totalCells.push({});
+                        }else if(totalColumns.indexOf(tc)!==-1){
+                            totalCells.push({text:fmMoney(totalsByColumn[tc]),bold:true,color:'#172B4D',fillColor:'#EAF4FC',alignment:'right'});
+                        }else{
+                            totalCells.push({text:'',fillColor:'#EAF4FC'});
+                        }
+                    }
+                    body.push(totalCells);
+                }
+                var widths=cfg.headers.map(function(h,idx){
+                    if((cfg.numeric||[]).indexOf(idx)!==-1)return 65;
+                    return idx===1||idx===2?'*':80;
+                });
+                content=[{table:{headerRows:1,widths:widths,body:body},layout:{
+                    hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return .55;},vLineWidth:function(){return .55;},
+                    paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 5;},paddingBottom:function(){return 5;}
+                }}];
+            }
+
+            var doc={
+                pageSize:'LETTER',
+                pageOrientation:'landscape',
+                pageMargins:[28,28,28,34],
+                header:function(){return {margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},
+                footer:function(currentPage,pageCount){return {margin:[28,8,28,0],columns:[{text:'IZZY • Facturación',fontSize:7,color:'#7A869A'},{text:'Página '+currentPage+' de '+pageCount,fontSize:7,color:'#7A869A',alignment:'right'}]};},
+                content:[header,filters,summaryBlock,{text:state.view==='miniatura'?'VISTA MINIATURA':'VISTA DETALLE',fontSize:7,bold:true,color:'#17324D',margin:[0,1,0,7]}].concat(content),
+                styles:{th:{fontSize:6.2,bold:true,color:'#FFFFFF',alignment:'center'}},
+                defaultStyle:{fontSize:7.7,color:'#253858'}
+            };
+
+            var pdf=pdfMake.createPdf(doc);
+            var fileName=cfg.file+'_'+fmDateFile()+'.pdf';
+
+            if(typeof pdf.getDataUrl==='function'){
+                pdf.getDataUrl(function(url){abrirModalPdfPublico(url,cfg.title,fileName);});
+            }else if(typeof pdf.getBase64==='function'){
+                pdf.getBase64(function(base64){abrirModalPdfPublico('data:application/pdf;base64,'+base64,cfg.title,fileName);});
+            }else{
+                showNotify('error','PDF no disponible','La versión actual de pdfMake no permite previsualización compatible.');
+            }
+        });
+    }
+
+    $('#btnExcelCxcFm').off('click.fm').on('click.fm',function(){fmExportExcel('cxcFactura');});
+    $('#btnPdfCxcFm').off('click.fm').on('click.fm',function(){fmExportPdf('cxcFactura');});
+    $('#btnExcelFacturasFm').off('click.fm').on('click.fm',function(){fmExportExcel('facturasEmitidas');});
+    $('#btnPdfFacturasFm').off('click.fm').on('click.fm',function(){fmExportPdf('facturasEmitidas');});
+    $('#btnExcelCajaFacturaFm').off('click.fm').on('click.fm',function(){fmExportExcel('cajaFactura');});
+    $('#btnPdfCajaFacturaFm').off('click.fm').on('click.fm',function(){fmExportPdf('cajaFactura');});
+    $('#btnExcelRetirosDetalleFm').off('click.fm').on('click.fm',function(){fmExportExcel('retirosDetalle');});
+    $('#btnPdfRetirosDetalleFm').off('click.fm').on('click.fm',function(){fmExportPdf('retirosDetalle');});
+    $('#btnExcelGananciaDetalleFm').off('click.fm').on('click.fm',function(){fmExportExcel('gananciaDetalle');});
+    $('#btnPdfGananciaDetalleFm').off('click.fm').on('click.fm',function(){fmExportPdf('gananciaDetalle');});
+
+    /* =====================================================
+       Cuadre del día: los antiguos <table> ahora son DIVs
+       ===================================================== */
+
+    renderTablaGastosCuadreDiaCajaFactura = function(gastos) {
+        var $root=$('#cd_tabla_gastos');
+        if(!$root.length)return;
+        if(!gastos||!gastos.length){
+            $root.html('<div class="fm-empty" style="min-height:90px;"><i class="fas fa-receipt"></i><span>No hay gastos/retiros registrados.</span></div>');
+            return;
+        }
+        $root.html(gastos.map(function(item){
+            return '<div class="fm-simple-row"><div class="fm-simple-row-copy"><strong>'+fmEscape(item.tipo||'—')+'</strong><small>'+fmEscape(item.cuenta||'—')+'</small></div><strong>'+fmMoney(item.monto)+'</strong></div>';
+        }).join(''));
+    };
+
+    renderTablaInversionesCuadreDiaCajaFactura = function(inversiones,inversionReposicion) {
+        var $root=$('#cd_tabla_inversiones');
+        if(!$root.length)return;
+        if(!inversiones||!inversiones.length){
+            var msg=fmNumber(inversionReposicion)>0
+                ? 'No hay inversión manual registrada. Se usa el costo de productos vendidos como inversión/reposición sugerida.'
+                : 'No hay inversión/reposición registrada.';
+            $root.html('<div class="fm-empty" style="min-height:90px;"><i class="fas fa-seedling"></i><span>'+fmEscape(msg)+'</span></div>');
+            return;
+        }
+        $root.html(inversiones.map(function(item){
+            return '<div class="fm-simple-row"><div class="fm-simple-row-copy"><strong>'+fmEscape(item.tipo||'—')+'</strong><small>'+fmEscape(item.cuenta||'—')+'</small></div><strong>'+fmMoney(item.monto)+'</strong></div>';
+        }).join(''));
+    };
+
+    /* Exponer utilidades para diagnóstico / futuras reutilizaciones. */
+    FM.render=fmRender;
+    FM.setRows=fmSetRows;
+    FM.getRecord=fmGetRecord;
+    FM.exportExcel=fmExportExcel;
+    FM.exportPdf=fmExportPdf;
+})();
+
+
 </script>

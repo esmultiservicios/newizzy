@@ -3365,442 +3365,1255 @@ function getConsultarAperturaCaja() {
 }
 
 /* =========================================================
-   HEADER Y FOOTER DINÁMICO - CUENTAS POR COBRAR CLIENTES
+   CUENTAS POR COBRAR CLIENTES - LISTADO DIV / KPI / EXPORT
    ========================================================= */
 
-   function construirHeaderFooterDataTableCuentasPorCobrarClientes() {
-    var $tabla = $("#dataTableCuentasPorCobrarClientes");
-    $tabla.empty();
+var CXC_UI = {
+    rows: [],
+    filtered: [],
+    page: 1,
+    pageSize: 10,
+    view: 'detalle',
+    search: ''
+};
 
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Acciones</th>' +
-                '<th>Fecha</th>' +
-                '<th>Cliente</th>' +
-                '<th>Tipo</th>' +
-                '<th>Número</th>' +
-                '<th>Crédito</th>' +
-                '<th>Abono</th>' +
-                '<th>Saldo</th>' +
-                '<th>Vendedor</th>' +
-            '</tr>' +
-        '</thead>' +
-        '<tfoot class="bg-secondary">' +
-            '<tr>' +
-                '<td colspan="5" class="text-right">Totales:</td>' +
-                '<td id="credito-cxc"></td>' +
-                '<td id="abono-cxc"></td>' +
-                '<td id="total-footer-cxc"></td>' +
-                '<td></td>' +
-            '</tr>' +
-        '</tfoot>'
+function cxcNum(value) {
+    if (value === null || value === undefined || value === '') return 0;
+
+    value = String(value)
+        .replace(/<[^>]*>/g, '')
+        .replace(/HNL/g, '')
+        .replace(/L\./g, '')
+        .replace(/L/g, '')
+        .replace(/,/g, '')
+        .trim();
+
+    var number = parseFloat(value);
+    return isNaN(number) ? 0 : number;
+}
+
+function cxcMoney(value) {
+    return 'L. ' + cxcNum(value).toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function cxcDate(value) {
+    var text = String(value === null || value === undefined ? '' : value).trim();
+    if (!text) return '';
+
+    var match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/);
+    if (match) {
+        return match[3] + '/' + match[2] + '/' + match[1];
+    }
+
+    return text;
+}
+
+function cxcEsc(value) {
+    return $('<div>').text(
+        value === null || value === undefined ? '' : String(value)
+    ).html();
+}
+
+function cxcRows(response) {
+    if (typeof response === 'string') {
+        try {
+            response = JSON.parse(response);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    if (Array.isArray(response)) return response;
+    if (response && Array.isArray(response.data)) return response.data;
+    if (response && Array.isArray(response.aaData)) return response.aaData;
+
+    return [];
+}
+
+function cxcTotals(rows) {
+    return rows.reduce(function(acc, row) {
+        acc.credito += cxcNum(row.credito);
+        acc.abono += cxcNum(row.abono);
+        acc.saldo += cxcNum(row.saldo);
+        return acc;
+    }, {
+        credito: 0,
+        abono: 0,
+        saldo: 0
+    });
+}
+
+function cxcSearchText(row) {
+    try {
+        return JSON.stringify(row || {}).toLowerCase();
+    } catch (e) {
+        return '';
+    }
+}
+
+function cxcFilterRows() {
+    var q = String(CXC_UI.search || '').trim().toLowerCase();
+
+    CXC_UI.filtered = !q
+        ? CXC_UI.rows.slice()
+        : CXC_UI.rows.filter(function(row) {
+            return cxcSearchText(row).indexOf(q) !== -1;
+        });
+
+    var pages = Math.max(1, Math.ceil(CXC_UI.filtered.length / CXC_UI.pageSize));
+
+    if (CXC_UI.page > pages) CXC_UI.page = pages;
+    if (CXC_UI.page < 1) CXC_UI.page = 1;
+}
+
+function cxcTypeBadge(row) {
+    var isContado = parseInt(row.tipo_factura, 10) === 1;
+    var text = isContado ? 'Contado' : 'Crédito';
+
+    return '<span class="badge badge-pill ' + (isContado ? 'badge-success' : 'badge-warning') + '">' +
+        '<i class="fas ' + (isContado ? 'fa-check-circle' : 'fa-clock') + ' mr-1"></i>' +
+        text +
+    '</span>';
+}
+
+function cxcStatusBadge(row) {
+    var saldo = cxcNum(row.saldo);
+    var pagada = parseInt(row.estado, 10) === 2 || saldo <= 0;
+
+    return '<span class="badge badge-pill ' + (pagada ? 'badge-success' : 'badge-warning') + '">' +
+        '<i class="fas ' + (pagada ? 'fa-check-circle' : 'fa-hourglass-half') + ' mr-1"></i>' +
+        (pagada ? 'Pagada' : 'Pendiente') +
+    '</span>';
+}
+
+function cxcMiniField(label, value) {
+    return '' +
+        '<div class="rv-mini-field">' +
+            '<span>' + cxcEsc(label) + '</span>' +
+            '<strong>' + value + '</strong>' +
+        '</div>';
+}
+
+function cxcEmpty() {
+    return '' +
+        '<div class="rv-empty">' +
+            '<i class="fas fa-inbox"></i>' +
+            '<strong>Sin registros</strong>' +
+            '<span>No hay cuentas por cobrar que coincidan con los criterios actuales.</span>' +
+        '</div>';
+}
+
+function cxcDropdown(row, index) {
+    var pagada = parseInt(row.estado, 10) === 2 || cxcNum(row.saldo) <= 0;
+
+    return '' +
+        '<div class="dropdown acciones-dropdown">' +
+            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+            '</button>' +
+
+            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                '<button type="button" class="dropdown-item accion-item table_abono cxc-action" data-action="abonar" data-index="' + index + '" ' + (pagada ? 'disabled' : '') + '>' +
+                    '<span class="accion-icon accion-icon-success"><i class="fas fa-cash-register"></i></span>' +
+                    '<span class="accion-label">Registrar abono</span>' +
+                '</button>' +
+
+                '<button type="button" class="dropdown-item accion-item table_reportes cxc-action" data-action="abonos" data-index="' + index + '">' +
+                    '<span class="accion-icon accion-icon-warning"><i class="fas fa-money-bill-wave"></i></span>' +
+                    '<span class="accion-label">Ver abonos</span>' +
+                '</button>' +
+
+                '<button type="button" class="dropdown-item accion-item table_reportes cxc-action" data-action="factura" data-index="' + index + '">' +
+                    '<span class="accion-icon accion-icon-danger"><i class="fas fa-file-download"></i></span>' +
+                    '<span class="accion-label">Ver factura</span>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+}
+
+function ejecutarAccionCXC(action, data) {
+    if (!data || !data.facturas_id) {
+        showNotify('error', 'Error', 'No se pudo obtener la factura seleccionada.');
+        return;
+    }
+
+    if (action === 'factura') {
+        printBillReporteVentas(data.facturas_id);
+        return;
+    }
+
+    if (action === 'abonos') {
+        $('#ver_abono_cxc').modal({
+            backdrop: 'static',
+            keyboard: false
+        }).modal('show');
+
+        $("#formulario_ver_abono_cxc #abono_facturas_id").val(data.facturas_id);
+        listar_AbonosCXC();
+        return;
+    }
+
+    if (action === 'abonar') {
+        if (parseInt(data.estado, 10) === 2 || cxcNum(data.saldo) <= 0) {
+            showNotify(
+                'error',
+                'Cuenta cancelada',
+                'No puede registrar abonos en una factura que ya se encuentra cancelada.'
+            );
+            return;
+        }
+
+        $("#GrupoPagosMultiplesFacturas").hide();
+        REFRESCAR_CXC_AL_CERRAR_PAGO = true;
+        window.REFRESCAR_CXC_AL_CERRAR_PAGO = true;
+
+        pago(data.facturas_id, 2, 'cxc');
+    }
+}
+
+function renderCuentasPorCobrarClientes() {
+    cxcFilterRows();
+
+    var start = (CXC_UI.page - 1) * CXC_UI.pageSize;
+    var pageRows = CXC_UI.filtered.slice(start, start + CXC_UI.pageSize);
+
+    var grid =
+        '125px 112px minmax(190px,1.55fr) 105px minmax(175px,1.15fr) ' +
+        '110px 110px 120px minmax(145px,1fr)';
+
+    var html = '';
+
+    if (!pageRows.length) {
+        html = cxcEmpty();
+    } else if (CXC_UI.view === 'miniatura') {
+        html = pageRows.map(function(row, idx) {
+            var index = start + idx;
+
+            return '' +
+                '<div class="rv-mini-card">' +
+                    '<div class="rv-mini-head">' +
+                        '<div>' +
+                            '<div class="rv-mini-title">' + cxcEsc(row.cliente || 'Sin cliente') + '</div>' +
+                            '<span class="rv-mini-sub">' +
+                                cxcEsc(row.numero || '') + ' • ' + cxcEsc(cxcDate(row.fecha)) +
+                            '</span>' +
+                        '</div>' +
+                        cxcDropdown(row, index) +
+                    '</div>' +
+
+                    '<div class="rv-mini-body">' +
+                        cxcMiniField('Tipo', cxcTypeBadge(row)) +
+                        cxcMiniField('Estado', cxcStatusBadge(row)) +
+                        cxcMiniField('Crédito', cxcMoney(row.credito)) +
+                        cxcMiniField('Abonos', cxcMoney(row.abono)) +
+                        cxcMiniField('Saldo', '<span class="cxc-saldo-value">' + cxcMoney(row.saldo) + '</span>') +
+                        cxcMiniField('Vendedor', cxcEsc(row.vendedor || '')) +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    } else {
+        var headers = [
+            'Acciones',
+            'Fecha',
+            'Cliente',
+            'Tipo',
+            'Número',
+            'Crédito',
+            'Abonos',
+            'Saldo',
+            'Vendedor'
+        ];
+
+        html =
+            '<div class="rv-detail-header" style="grid-template-columns:' + grid + '">' +
+                headers.map(function(header) {
+                    return '<div class="rv-cell">' + header + '</div>';
+                }).join('') +
+            '</div>';
+
+        html += pageRows.map(function(row, idx) {
+            var index = start + idx;
+
+            return '' +
+                '<div class="rv-detail-row" style="grid-template-columns:' + grid + '">' +
+                    '<div class="rv-cell rv-actions-cell" data-label="Acciones">' +
+                        cxcDropdown(row, index) +
+                    '</div>' +
+
+                    '<div class="rv-cell cxc-fecha-cell" data-label="Fecha">' +
+                        cxcEsc(cxcDate(row.fecha)) +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Cliente">' +
+                        '<strong>' + cxcEsc(row.cliente || '') + '</strong>' +
+                    '</div>' +
+
+                    '<div class="rv-cell cxc-tipo-cell" data-label="Tipo">' +
+                        cxcTypeBadge(row) +
+                    '</div>' +
+
+                    '<div class="rv-cell cxc-numero-cell" data-label="Número">' +
+                        cxcEsc(row.numero || '') +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="Crédito">' +
+                        cxcMoney(row.credito) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="Abonos">' +
+                        cxcMoney(row.abono) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money cxc-saldo-cell" data-label="Saldo">' +
+                        '<strong>' + cxcMoney(row.saldo) + '</strong>' +
+                        cxcStatusBadge(row) +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Vendedor">' +
+                        cxcEsc(row.vendedor || '') +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    $('#cxcListado')
+        .toggleClass('rv-mini', CXC_UI.view === 'miniatura')
+        .html(html);
+
+    var totals = cxcTotals(CXC_UI.filtered);
+    var recovery = totals.credito > 0
+        ? (totals.abono / totals.credito) * 100
+        : 0;
+
+    var average = CXC_UI.filtered.length
+        ? totals.saldo / CXC_UI.filtered.length
+        : 0;
+
+    $('#cxcKpiRegistros').text(CXC_UI.filtered.length);
+    $('#cxcKpiCredito').text(cxcMoney(totals.credito));
+    $('#cxcKpiAbonos').text(cxcMoney(totals.abono));
+    $('#cxcKpiSaldo').text(cxcMoney(totals.saldo));
+    $('#cxcKpiRecuperacion').text(recovery.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + '%');
+    $('#cxcKpiPromedio').text(cxcMoney(average));
+
+    renderTotalesCXC(totals);
+    renderPaginacionCXC();
+
+    $('#cxcInfo').text(
+        CXC_UI.filtered.length
+            ? 'Mostrando ' +
+              (start + 1) +
+              ' a ' +
+              Math.min(start + pageRows.length, CXC_UI.filtered.length) +
+              ' de ' +
+              CXC_UI.filtered.length +
+              ' registros'
+            : '0 registros'
+    );
+
+    if (typeof aplicarPermisosDataTablesAsync === 'function') {
+        aplicarPermisosDataTablesAsync();
+    }
+
+    if (typeof cerrarDropdownAcciones === 'function') {
+        cerrarDropdownAcciones();
+    }
+}
+
+function renderTotalesCXC(totals) {
+    if (CXC_UI.view === 'miniatura') {
+        $('#cxcTotales').html(
+            '<div class="rv-total-mini">' +
+                '<div class="rv-total-chip"><span>Crédito</span><strong>' + cxcMoney(totals.credito) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>Abonos</span><strong>' + cxcMoney(totals.abono) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>Saldo</span><strong>' + cxcMoney(totals.saldo) + '</strong></div>' +
+            '</div>'
+        );
+        return;
+    }
+
+    var grid =
+        '125px 112px minmax(190px,1.55fr) 105px minmax(175px,1.15fr) ' +
+        '110px 110px 120px minmax(145px,1fr)';
+
+    $('#cxcTotales').html(
+        '<div class="rv-total-detail cxc-total-grid" style="grid-template-columns:' + grid + '">' +
+            '<div class="cxc-total-label">TOTALES GENERALES</div>' +
+            '<div class="rv-cell rv-money cxc-total-value">' + cxcMoney(totals.credito) + '</div>' +
+            '<div class="rv-cell rv-money cxc-total-value">' + cxcMoney(totals.abono) + '</div>' +
+            '<div class="rv-cell rv-money cxc-total-value cxc-total-highlight">' + cxcMoney(totals.saldo) + '</div>' +
+            '<div class="rv-cell"></div>' +
+        '</div>'
     );
 }
 
-/* =========================================================
-   LISTADO - CUENTAS POR COBRAR CLIENTES
-   ========================================================= */
-   var listar_cuentas_por_cobrar_clientes = function() {
-    var cobrar_estado = "";
+function renderPaginacionCXC() {
+    var pages = Math.max(1, Math.ceil(CXC_UI.filtered.length / CXC_UI.pageSize));
+    var html = '';
 
-    if (
-        $("#form_main_cobrar_clientes #main_cobrar_clientes_estado").val() == "" ||
-        $("#form_main_cobrar_clientes #cobrar_clientes_estado").val() == null
-    ) {
+    function addButton(label, page, disabled, active) {
+        html +=
+            '<button type="button" data-page="' + page + '" ' +
+            (disabled ? 'disabled ' : '') +
+            'class="' + (active ? 'active' : '') + '">' +
+                label +
+            '</button>';
+    }
+
+    addButton('<i class="fas fa-angle-double-left"></i> Inicio', 1, CXC_UI.page === 1, false);
+    addButton('<i class="fas fa-angle-left"></i> Anterior', CXC_UI.page - 1, CXC_UI.page === 1, false);
+
+    var from = Math.max(1, CXC_UI.page - 2);
+    var to = Math.min(pages, from + 4);
+    from = Math.max(1, to - 4);
+
+    for (var page = from; page <= to; page++) {
+        addButton(String(page), page, false, page === CXC_UI.page);
+    }
+
+    addButton('Siguiente <i class="fas fa-angle-right"></i>', CXC_UI.page + 1, CXC_UI.page === pages, false);
+    addButton('Final <i class="fas fa-angle-double-right"></i>', pages, CXC_UI.page === pages, false);
+
+    $('#cxcPagination')
+        .html(html)
+        .off('click.cxc', 'button[data-page]')
+        .on('click.cxc', 'button[data-page]', function() {
+            if (this.disabled || $(this).hasClass('active')) return;
+
+            CXC_UI.page = parseInt($(this).attr('data-page'), 10) || 1;
+            renderCuentasPorCobrarClientes();
+        });
+}
+
+var listar_cuentas_por_cobrar_clientes = function() {
+    var cobrar_estado = $("#form_main_cobrar_clientes #main_cobrar_clientes_estado").val();
+
+    if (cobrar_estado === null || cobrar_estado === '') {
         cobrar_estado = 1;
-    } else {
-        cobrar_estado = $("#form_main_cobrar_clientes #cobrar_clientes_estado").val();
     }
 
     var cobrar_clientes_id = $("#form_main_cobrar_clientes #main_cobrar_clientes").val();
     var cobrar_fechai = $("#form_main_cobrar_clientes #main_cobrarclientes_fechai").val();
     var cobrar_fechaf = $("#form_main_cobrar_clientes #main_cobrarclientes_fechaf").val();
 
-    if ($.fn.DataTable.isDataTable("#dataTableCuentasPorCobrarClientes")) {
-        $("#dataTableCuentasPorCobrarClientes").DataTable().clear().destroy();
-    }
+    $('#cxcListado')
+        .removeClass('rv-mini')
+        .html(
+            '<div class="rv-loading">' +
+                '<i class="fas fa-spinner fa-spin mr-1"></i>' +
+                'Cargando cuentas por cobrar...' +
+            '</div>'
+        );
 
-    construirHeaderFooterDataTableCuentasPorCobrarClientes();
-
-    var table_cuentas_por_cobrar_clientes = $("#dataTableCuentasPorCobrarClientes").DataTable({
-        "destroy": true,
-        "processing": true,
-        "deferRender": true,
-        "searchDelay": 350,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableCobrarClientes.php",
-            "data": {
-                "estado": cobrar_estado,
-                "clientes_id": cobrar_clientes_id,
-                "fechai": cobrar_fechai,
-                "fechaf": cobrar_fechaf
-            },
-            "timeout": 30000
+    $.ajax({
+        method: 'POST',
+        url: '<?php echo SERVERURL;?>core/llenarDataTableCobrarClientes.php',
+        data: {
+            estado: cobrar_estado,
+            clientes_id: cobrar_clientes_id,
+            fechai: cobrar_fechai,
+            fechaf: cobrar_fechaf
         },
-        "columns": [
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
+        dataType: 'json',
+        timeout: 30000
+    })
+    .done(function(response) {
+        CXC_UI.rows = cxcRows(response);
+        CXC_UI.page = 1;
+        renderCuentasPorCobrarClientes();
+    })
+    .fail(function(xhr) {
+        CXC_UI.rows = [];
+        CXC_UI.filtered = [];
+        renderCuentasPorCobrarClientes();
 
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
-
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
-
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item table_abono">' +
-                                  '<span class="accion-icon accion-icon-success">' +
-                                      '<i class="fas fa-cash-register"></i>' +
-                                  '</span>' +
-                                    '<span class="accion-label">Registrar abono</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes abono_factura ocultar">' +
-                                  '<span class="accion-icon accion-icon-warning">' +
-                                      '<i class="fas fa-money-bill-wave"></i>' +
-                                  '</span>' +
-                                  '<span class="accion-label">Ver abonos</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes print_factura ocultar">' +
-                                  '<span class="accion-icon accion-icon-danger">' +
-                                      '<i class="fas fa-file-download"></i>' +
-                                  '</span>' +
-                                  '<span class="accion-label">Ver factura</span>' +
-                                '</button>' +
-
-                            '</div>' +
-
-                        '</div>';
-                }
-            },
-            {
-                "data": "fecha"
-            },
-            {
-                "data": "cliente"
-            },
-            {
-                "data": "tipo_factura",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var text = data == 1 ? 'Contado' : 'Crédito';
-
-                        var icon = data == 1
-                            ? '<i class="fas fa-clock mr-1"></i>'
-                            : '<i class="fas fa-check-circle mr-1"></i>';
-
-                        var badgeClass = data == 1
-                            ? 'badge badge-pill badge-success'
-                            : 'badge badge-pill badge-warning';
-
-                        return '<span class="' + badgeClass + '" style="font-size:0.85rem; padding:0.45em 0.7em; font-weight:500;">' +
-                            icon +
-                            text +
-                        '</span>';
-                    }
-
-                    return data;
-                }
-            },
-            {
-                "data": "numero",
-                "render": function(data, type, row) {
-                    if (type === 'sort') {
-                        return parseInt(row.numero_ordenamiento);
-                    }
-
-                    return data;
-                }
-            },
-            {
-                "data": "credito",
-                "render": function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            },
-            {
-                "data": "abono",
-                "render": function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            },
-            {
-                "data": "saldo",
-                "render": function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            },
-            {
-                "data": "vendedor"
-            }
-        ],
-        "pageLength": 10,
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "order": [[4, "desc"]],
-        "orderFixed": {
-            "pre": [[4, "desc"]]
-        },
-        "columnDefs": [
-            {
-                width: "10%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "10%",
-                targets: 1
-            },
-            {
-                width: "18%",
-                targets: 2
-            },
-            {
-                width: "9%",
-                targets: 3,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "12%",
-                targets: 4,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "12%",
-                targets: 5,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "12%",
-                targets: 6,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "12%",
-                targets: 7,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "15%",
-                targets: 8
-            }
-        ],
-        "footerCallback": function(row, data, start, end, display) {
-            var totalCredito = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.credito) || 0);
-            }, 0);
-
-            var totalAbono = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.abono) || 0);
-            }, 0);
-
-            var totalPendiente = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.saldo) || 0);
-            }, 0);
-
-            var formatter = new Intl.NumberFormat('es-HN', {
-                style: 'currency',
-                currency: 'HNL',
-                minimumFractionDigits: 2
-            });
-
-            $('#credito-cxc').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatter.format(totalCredito) +
-                '</span>'
-            );
-
-            $('#abono-cxc').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatter.format(totalAbono) +
-                '</span>'
-            );
-
-            $('#total-footer-cxc').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatter.format(totalPendiente) +
-                '</span>'
-            );
-        },
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Cuentas por Cobrar Clientes',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_cuentas_por_cobrar_clientes();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte Cuents por Cobrar Clientes',
-                exportOptions: {
-                    columns: [3, 4, 5, 6, 7]
-                },
-                className: 'table_reportes btn btn-success ocultar'
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                title: 'Reporte Cuentas por Cobrar Clientes',
-                messageTop: 'Fecha desde: ' + convertDateFormat(cobrar_fechai) + ' Fecha hasta: ' +
-                    convertDateFormat(cobrar_fechaf),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [3, 4, 5, 6, 7]
-                },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function(settings) {
-            aplicarPermisosDataTablesAsync();
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-        }
+        showNotify(
+            'error',
+            'Error',
+            xhr.responseText || 'No fue posible cargar las cuentas por cobrar.'
+        );
     });
-
-    table_cuentas_por_cobrar_clientes.search('').draw();
-    $('#buscar').focus();
-
-    registrar_abono_cxc_clientes_dataTable(
-        "#dataTableCuentasPorCobrarClientes tbody",
-        table_cuentas_por_cobrar_clientes
-    );
-
-    ver_abono_cxc_clientes_dataTable(
-        "#dataTableCuentasPorCobrarClientes tbody",
-        table_cuentas_por_cobrar_clientes
-    );
-
-    view_reporte_facturas_dataTable(
-        "#dataTableCuentasPorCobrarClientes tbody",
-        table_cuentas_por_cobrar_clientes
-    );
 };
 
-var view_reporte_facturas_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.print_factura");
-    $(tbody).on("click", "button.print_factura", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        printBillReporteVentas(data.facturas_id);
-    });
-}
+/*
+ * Compatibilidad: se conservan los nombres públicos de estas funciones
+ * porque otros módulos podrían invocarlas. El listado principal ya no usa DataTable.
+ */
+var view_reporte_facturas_dataTable = function() {};
+var registrar_abono_cxc_clientes_dataTable = function() {};
+var ver_abono_cxc_clientes_dataTable = function() {};
 
 var REFRESCAR_CXC_AL_CERRAR_PAGO = false;
 
-var registrar_abono_cxc_clientes_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.table_abono");
-
-    $(tbody).on("click", "button.table_abono", function(e) {
+$(document)
+    .off('click.cxcAction', '.cxc-action')
+    .on('click.cxcAction', '.cxc-action', function(e) {
         e.preventDefault();
 
-        var data = table.row($(this).parents("tr")).data();
+        if ($(this).prop('disabled')) return false;
 
-        if (data.estado == 2 || data.saldo <= 0) {
-            // no tiene acceso a la accion si la factura ya fue cancelada
-            showNotify('error', 'Error', 'No puede realizar esta accion a las facturas canceladas!');
-        } else {
-            $("#GrupoPagosMultiplesFacturas").hide();
+        var index = parseInt($(this).attr('data-index'), 10);
+        var action = $(this).attr('data-action');
+        var row = CXC_UI.filtered[index];
 
-            REFRESCAR_CXC_AL_CERRAR_PAGO = true;
-
-            pago(data.facturas_id, 2, 'cxc');
-
-            // Para facturas
-            // openPaymentModal('factura', 1250.00, 'Cliente Ejemplo', 12345);
+        if (!row) {
+            showNotify('error', 'Error', 'No se pudo obtener la cuenta seleccionada.');
+            return false;
         }
-    });
-};
 
-var ver_abono_cxc_clientes_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.abono_factura");
-    $(tbody).on("click", "button.abono_factura", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        
-        // Configuración del modal para evitar cierre no deseado
-        $('#ver_abono_cxc').modal({
-            backdrop: 'static', // Evita que se cierre al hacer clic fuera
-            keyboard: false    // Evita que se cierre al presionar ESC
-        }).modal('show');
-        
-        $("#formulario_ver_abono_cxc #abono_facturas_id").val(data.facturas_id);
-        listar_AbonosCXC();
+        ejecutarAccionCXC(action, row);
+        return false;
+    });
+
+$(document)
+    .off('change.cxcPageSize', '#cxcPageSize')
+    .on('change.cxcPageSize', '#cxcPageSize', function() {
+        CXC_UI.pageSize = parseInt(this.value, 10) || 10;
+        CXC_UI.page = 1;
+        renderCuentasPorCobrarClientes();
+    });
+
+$(document)
+    .off('input.cxcSearch', '#cxcSearch')
+    .on('input.cxcSearch', '#cxcSearch', function() {
+        CXC_UI.search = this.value || '';
+        CXC_UI.page = 1;
+        renderCuentasPorCobrarClientes();
+    });
+
+$(document)
+    .off('click.cxcSearchClear', '#cxcSearchClear')
+    .on('click.cxcSearchClear', '#cxcSearchClear', function() {
+        $('#cxcSearch').val('').focus();
+        CXC_UI.search = '';
+        CXC_UI.page = 1;
+        renderCuentasPorCobrarClientes();
+    });
+
+$(document)
+    .off('click.cxcView', '[data-cxc-view]')
+    .on('click.cxcView', '[data-cxc-view]', function() {
+        $('[data-cxc-view]').removeClass('active');
+        $(this).addClass('active');
+
+        CXC_UI.view = $(this).attr('data-cxc-view') === 'miniatura'
+            ? 'miniatura'
+            : 'detalle';
+
+        CXC_UI.page = 1;
+        renderCuentasPorCobrarClientes();
+    });
+
+$(document)
+    .off('click.cxcRefresh', '#cxcBtnActualizar')
+    .on('click.cxcRefresh', '#cxcBtnActualizar', function() {
+        listar_cuentas_por_cobrar_clientes();
+    });
+
+$(document)
+    .off('click.cxcToggle', '.rv-toggle-section')
+    .on('click.cxcToggle', '.rv-toggle-section', function() {
+        var $button = $(this);
+        var $target = $($button.attr('data-target'));
+
+        if (!$target.length) return;
+
+        var hide = $target.is(':visible');
+
+        $target.stop(true, true).slideToggle(160);
+
+        $button.find('span').text(hide ? 'Mostrar' : 'Ocultar');
+        $button.find('i')
+            .toggleClass('fa-chevron-up', !hide)
+            .toggleClass('fa-chevron-down', hide);
+    });
+
+/* =========================================================
+   EXPORTAR EXCEL - CXC
+   ========================================================= */
+
+function cxcXml(value) {
+    return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function cxcCol(index) {
+    var n = index + 1;
+    var result = '';
+
+    while (n > 0) {
+        var mod = (n - 1) % 26;
+        result = String.fromCharCode(65 + mod) + result;
+        n = Math.floor((n - 1) / 26);
+    }
+
+    return result;
+}
+
+function cxcCell(ref, value, style, numeric) {
+    if (numeric) {
+        var number = Number(value);
+
+        if (!isNaN(number)) {
+            return '<c r="' + ref + '" s="' + style + '"><v>' + number + '</v></c>';
+        }
+    }
+
+    return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' +
+        cxcXml(value) +
+    '</t></is></c>';
+}
+
+function cxcDownload(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(function() {
+        URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+function exportarCXCExcel() {
+    if (!CXC_UI.filtered.length) {
+        showNotify('warning', 'Sin datos', 'No hay registros para exportar.');
+        return;
+    }
+
+    if (typeof JSZip === 'undefined') {
+        showNotify('error', 'Excel no disponible', 'No se encontró JSZip.');
+        return;
+    }
+
+    var rows = CXC_UI.filtered.map(function(row) {
+        return [
+            cxcDate(row.fecha),
+            row.cliente || '',
+            parseInt(row.tipo_factura, 10) === 1 ? 'Contado' : 'Crédito',
+            row.numero || '',
+            cxcNum(row.credito),
+            cxcNum(row.abono),
+            cxcNum(row.saldo),
+            row.vendedor || ''
+        ];
+    });
+
+    var headers = [
+        'Fecha',
+        'Cliente',
+        'Tipo',
+        'Número',
+        'Crédito',
+        'Abonos',
+        'Saldo',
+        'Vendedor'
+    ];
+
+    var totals = cxcTotals(CXC_UI.filtered);
+    var totalRow = 8 + rows.length;
+    var lastCol = cxcCol(headers.length - 1);
+    var sheetRows = [];
+
+    sheetRows.push('<row r="1" ht="30" customHeight="1">' + cxcCell('A1', 'IZZY • CUENTAS POR COBRAR CLIENTES', 1, false) + '</row>');
+    sheetRows.push('<row r="2" ht="20" customHeight="1">' + cxcCell('A2', 'Cartera, abonos y saldo pendiente • Generado: ' + new Date().toLocaleDateString('es-HN'), 2, false) + '</row>');
+    sheetRows.push('<row r="3" ht="18" customHeight="1">' + cxcCell('A3', 'REGISTROS', 6, false) + cxcCell('E3', 'SALDO GENERAL', 6, false) + '</row>');
+    sheetRows.push('<row r="4" ht="26" customHeight="1">' + cxcCell('A4', rows.length, 7, true) + cxcCell('E4', totals.saldo, 10, true) + '</row>');
+    sheetRows.push('<row r="5"></row>');
+    sheetRows.push('<row r="6">' + cxcCell('A6', 'Detalle de cuentas filtradas', 8, false) + '</row>');
+    sheetRows.push(
+        '<row r="7" ht="26" customHeight="1">' +
+            headers.map(function(header, index) {
+                return cxcCell(cxcCol(index) + '7', header, 3, false);
+            }).join('') +
+        '</row>'
+    );
+
+    rows.forEach(function(row, rowIndex) {
+        var r = 8 + rowIndex;
+
+        sheetRows.push(
+            '<row r="' + r + '" ht="22" customHeight="1">' +
+                row.map(function(value, colIndex) {
+                    var numeric = [4, 5, 6].indexOf(colIndex) !== -1;
+                    return cxcCell(cxcCol(colIndex) + r, value, numeric ? 5 : 4, numeric);
+                }).join('') +
+            '</row>'
+        );
+    });
+
+    sheetRows.push(
+        '<row r="' + totalRow + '" ht="30" customHeight="1">' +
+            cxcCell('A' + totalRow, 'TOTALES GENERALES', 9, false) +
+            cxcCell('E' + totalRow, totals.credito, 10, true) +
+            cxcCell('F' + totalRow, totals.abono, 10, true) +
+            cxcCell('G' + totalRow, totals.saldo, 10, true) +
+        '</row>'
+    );
+
+    var widths = [13, 31, 13, 22, 17, 17, 17, 24];
+    var cols = widths.map(function(width, index) {
+        return '<col min="' + (index + 1) + '" max="' + (index + 1) + '" width="' + width + '" customWidth="1"/>';
+    }).join('');
+
+    var sheet =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:' + lastCol + totalRow + '"/>' +
+            '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+            '<cols>' + cols + '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A7:' + lastCol + (7 + rows.length) + '"/>' +
+            '<mergeCells count="3">' +
+                '<mergeCell ref="A1:' + lastCol + '1"/>' +
+                '<mergeCell ref="A2:' + lastCol + '2"/>' +
+                '<mergeCell ref="A' + totalRow + ':D' + totalRow + '"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
+
+    var styles =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>' +
+            '<fonts count="8">' +
+                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="5">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+            '<cellXfs count="11">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="7" fillId="0" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="7" fillId="4" borderId="1"/>' +
+                '<xf numFmtId="164" fontId="7" fillId="4" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+
+    var workbook =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<sheets><sheet name="Cuentas por Cobrar" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
+
+    var rels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+
+    var rootRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+    var types =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+    var zip = new JSZip();
+
+    zip.file('[Content_Types].xml', types);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbook);
+    zip.folder('xl').file('styles.xml', styles);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', rels);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheet);
+
+    var options = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
+
+    var promise = typeof zip.generateAsync === 'function'
+        ? zip.generateAsync(options)
+        : Promise.resolve(zip.generate(options));
+
+    promise
+        .then(function(blob) {
+            cxcDownload(
+                blob,
+                'Cuentas_Por_Cobrar_Clientes_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+            );
+        })
+        .catch(function(error) {
+            console.error(error);
+            showNotify('error', 'Excel', 'No se pudo generar el archivo Excel.');
+        });
+}
+
+/* =========================================================
+   EXPORTAR PDF - CXC
+   ========================================================= */
+
+function cxcGetLogo(callback) {
+    if (
+        typeof imagen !== 'undefined' &&
+        imagen &&
+        String(imagen).indexOf('data:image/') === 0
+    ) {
+        callback(imagen);
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/get_image.php',
+        dataType: 'text',
+        timeout: 10000
+    })
+    .done(function(src) {
+        src = String(src || '').trim();
+
+        if (!src) {
+            callback(null);
+            return;
+        }
+
+        if (src.indexOf('data:image/') === 0) {
+            callback(src);
+            return;
+        }
+
+        var image = new Image();
+        image.crossOrigin = 'Anonymous';
+
+        image.onload = function() {
+            try {
+                var canvas = document.createElement('canvas');
+                canvas.width = image.naturalWidth;
+                canvas.height = image.naturalHeight;
+                canvas.getContext('2d').drawImage(image, 0, 0);
+                callback(canvas.toDataURL('image/png'));
+            } catch (e) {
+                callback(null);
+            }
+        };
+
+        image.onerror = function() {
+            callback(null);
+        };
+
+        image.src = src;
+    })
+    .fail(function() {
+        callback(null);
     });
 }
+
+function cxcPdfLogoPlate(logoDataUrl) {
+    if (!logoDataUrl) {
+        return {
+            table: {
+                widths: ['*'],
+                body: [[{
+                    text: 'IZZY',
+                    fontSize: 16,
+                    bold: true,
+                    color: '#17324D',
+                    alignment: 'center',
+                    margin: [7, 8, 7, 8],
+                    fillColor: '#FFFFFF'
+                }]]
+            },
+            layout: {
+                hLineColor: function() { return '#DDE3EA'; },
+                vLineColor: function() { return '#DDE3EA'; },
+                hLineWidth: function() { return .5; },
+                vLineWidth: function() { return .5; }
+            }
+        };
+    }
+
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                image: logoDataUrl,
+                fit: [62, 36],
+                alignment: 'center',
+                margin: [7, 5, 7, 5],
+                fillColor: '#FFFFFF'
+            }]]
+        },
+        layout: {
+            hLineColor: function() { return '#DDE3EA'; },
+            vLineColor: function() { return '#DDE3EA'; },
+            hLineWidth: function() { return .5; },
+            vLineWidth: function() { return .5; }
+        }
+    };
+}
+
+function exportarCXCPdf() {
+    if (!CXC_UI.filtered.length) {
+        showNotify('warning', 'Sin datos', 'No hay registros para exportar.');
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined') {
+        showNotify('error', 'PDF no disponible', 'No se encontró pdfMake.');
+        return;
+    }
+
+    var totals = cxcTotals(CXC_UI.filtered);
+    var rows = CXC_UI.filtered.map(function(row) {
+        return [
+            cxcDate(row.fecha),
+            row.cliente || '',
+            parseInt(row.tipo_factura, 10) === 1 ? 'Contado' : 'Crédito',
+            row.numero || '',
+            cxcNum(row.credito),
+            cxcNum(row.abono),
+            cxcNum(row.saldo),
+            row.vendedor || ''
+        ];
+    });
+
+    var headers = [
+        'Fecha',
+        'Cliente',
+        'Tipo',
+        'Número',
+        'Crédito',
+        'Abonos',
+        'Saldo',
+        'Vendedor'
+    ];
+
+    cxcGetLogo(function(logo) {
+        var body = [
+            headers.map(function(header) {
+                return {
+                    text: header,
+                    fillColor: '#17324D',
+                    color: '#FFFFFF',
+                    bold: true,
+                    fontSize: 7,
+                    alignment: 'center',
+                    margin: [2, 3, 2, 3]
+                };
+            })
+        ];
+
+        rows.forEach(function(row, rowIndex) {
+            body.push(
+                row.map(function(value, colIndex) {
+                    var money = [4, 5, 6].indexOf(colIndex) !== -1;
+
+                    return {
+                        text: money ? cxcMoney(value) : String(value || ''),
+                        fillColor: rowIndex % 2 ? '#F7F9FC' : '#FFFFFF',
+                        alignment: money ? 'right' : 'left',
+                        fontSize: 7,
+                        margin: [2, 3, 2, 3]
+                    };
+                })
+            );
+        });
+
+        body.push([
+            {
+                text: 'TOTALES GENERALES',
+                colSpan: 4,
+                bold: true,
+                fillColor: '#EAF4FC',
+                color: '#17324D',
+                fontSize: 7,
+                margin: [6, 5, 6, 5],
+                alignment: 'left'
+            },
+            {},
+            {},
+            {},
+            {
+                text: cxcMoney(totals.credito),
+                bold: true,
+                fillColor: '#EAF4FC',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            },
+            {
+                text: cxcMoney(totals.abono),
+                bold: true,
+                fillColor: '#EAF4FC',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            },
+            {
+                text: cxcMoney(totals.saldo),
+                bold: true,
+                fillColor: '#FFF5DC',
+                color: '#9B6500',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            },
+            {
+                text: '',
+                fillColor: '#EAF4FC'
+            }
+        ]);
+
+        var estado = $('#form_main_cobrar_clientes #main_cobrar_clientes_estado option:selected').text() || 'Todos';
+        var cliente = $('#form_main_cobrar_clientes #main_cobrar_clientes option:selected').text() || 'Todos';
+        var fechai = $('#form_main_cobrar_clientes #main_cobrarclientes_fechai').val() || '';
+        var fechaf = $('#form_main_cobrar_clientes #main_cobrarclientes_fechaf').val() || '';
+
+        var filters =
+            'Estado: ' + estado +
+            ' | Cliente: ' + cliente +
+            ' | Fechas: ' + fechai + ' a ' + fechaf;
+
+        var recovery = totals.credito > 0
+            ? (totals.abono / totals.credito) * 100
+            : 0;
+
+        var doc = {
+            pageSize: 'LETTER',
+            pageOrientation: 'landscape',
+            pageMargins: [28, 28, 28, 34],
+
+            content: [
+                {
+                    table: {
+                        widths: [100, '*', 135],
+                        body: [[
+                            {
+                                fillColor: '#17324D',
+                                border: [false, false, false, false],
+                                margin: [10, 7, 4, 7],
+                                stack: [cxcPdfLogoPlate(logo)]
+                            },
+                            {
+                                fillColor: '#17324D',
+                                border: [false, false, false, false],
+                                stack: [
+                                    {
+                                        text: 'CUENTAS POR COBRAR CLIENTES',
+                                        color: '#FFFFFF',
+                                        bold: true,
+                                        fontSize: 15
+                                    },
+                                    {
+                                        text: 'Crédito, abonos y cartera pendiente',
+                                        color: '#D8E5F0',
+                                        fontSize: 7.5,
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [0, 10, 0, 10]
+                            },
+                            {
+                                fillColor: '#17324D',
+                                border: [false, false, false, false],
+                                stack: [
+                                    {
+                                        text: 'REPORTE EJECUTIVO',
+                                        color: '#72E2E5',
+                                        bold: true,
+                                        fontSize: 6.5,
+                                        alignment: 'right'
+                                    },
+                                    {
+                                        text: new Date().toLocaleDateString('es-HN'),
+                                        color: '#FFFFFF',
+                                        bold: true,
+                                        fontSize: 9,
+                                        alignment: 'right',
+                                        margin: [0, 3, 0, 0]
+                                    },
+                                    {
+                                        text: CXC_UI.filtered.length + ' registro(s) filtrado(s)',
+                                        color: '#D8E5F0',
+                                        fontSize: 6.5,
+                                        alignment: 'right',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [0, 9, 10, 9]
+                            }
+                        ]]
+                    },
+                    layout: 'noBorders',
+                    margin: [0, 0, 0, 10]
+                },
+
+                {
+                    table: {
+                        widths: ['*', '*', '*', '*'],
+                        body: [[
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {text: 'REGISTROS', fontSize: 6.5, bold: true, color: '#6B778C'},
+                                    {text: String(CXC_UI.filtered.length), fontSize: 12, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                                ],
+                                margin: [8, 7, 8, 7]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {text: 'CRÉDITO', fontSize: 6.5, bold: true, color: '#6B778C'},
+                                    {text: cxcMoney(totals.credito), fontSize: 12, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                                ],
+                                margin: [8, 7, 8, 7]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {text: 'SALDO PENDIENTE', fontSize: 6.5, bold: true, color: '#6B778C'},
+                                    {text: cxcMoney(totals.saldo), fontSize: 12, bold: true, color: '#9B6500', margin: [0, 2, 0, 0]}
+                                ],
+                                margin: [8, 7, 8, 7]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {text: 'RECUPERACIÓN', fontSize: 6.5, bold: true, color: '#6B778C'},
+                                    {text: recovery.toFixed(2) + '%', fontSize: 12, bold: true, color: '#087F5B', margin: [0, 2, 0, 0]}
+                                ],
+                                margin: [8, 7, 8, 7]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; }
+                    },
+                    margin: [0, 0, 0, 8]
+                },
+
+                {
+                    table: {
+                        widths: ['*'],
+                        body: [[{
+                            text: 'Filtros aplicados: ' + filters,
+                            fillColor: '#F7F9FC',
+                            color: '#53627A',
+                            fontSize: 7,
+                            margin: [8, 6, 8, 6]
+                        }]]
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: [55, '*', 55, 90, 68, 68, 68, 85],
+                        body: body
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; },
+                        hLineWidth: function() { return .55; },
+                        vLineWidth: function() { return .55; },
+                        paddingLeft: function() { return 4; },
+                        paddingRight: function() { return 4; },
+                        paddingTop: function() { return 5; },
+                        paddingBottom: function() { return 5; }
+                    }
+                }
+            ],
+
+            footer: function(currentPage, pageCount) {
+                return {
+                    margin: [28, 8, 28, 0],
+                    columns: [
+                        {text: 'IZZY • Cuentas por Cobrar', fontSize: 7, color: '#7A869A'},
+                        {text: 'Página ' + currentPage + ' de ' + pageCount, fontSize: 7, color: '#7A869A', alignment: 'right'}
+                    ]
+                };
+            },
+
+            defaultStyle: {
+                fontSize: 7,
+                color: '#253858'
+            }
+        };
+
+        var pdf = pdfMake.createPdf(doc);
+        var filename = 'Cuentas_Por_Cobrar_Clientes_' + new Date().toISOString().slice(0, 10) + '.pdf';
+
+        if (
+            typeof abrirModalPdfPublico === 'function' &&
+            typeof pdf.getDataUrl === 'function'
+        ) {
+            pdf.getDataUrl(function(url) {
+                abrirModalPdfPublico(
+                    url,
+                    'Cuentas por Cobrar Clientes',
+                    filename
+                );
+            });
+        } else {
+            pdf.download(filename);
+        }
+    });
+}
+
+$(document)
+    .off('click.cxcExcel', '#cxcBtnExcel')
+    .on('click.cxcExcel', '#cxcBtnExcel', exportarCXCExcel);
+
+$(document)
+    .off('click.cxcPdf', '#cxcBtnPdf')
+    .on('click.cxcPdf', '#cxcBtnPdf', exportarCXCPdf);
 
 var ver_abono_cxp_proveedor_dataTable = function(tbody, table) {
     $(tbody).off("click", "button.abono_proveedor");
@@ -3871,418 +4684,1166 @@ function getProveedoresCXP() {
 }
 
 $(() => {
-    // Evento para el botón de Generar Reporte
-    $('#form_main_cobrar_clientes').on('submit', function(e) {
-        e.preventDefault();
-        listar_cuentas_por_cobrar_clientes();
-    });
+    // Cuentas por Cobrar Clientes - eventos del formulario
+    $('#form_main_cobrar_clientes')
+        .off('submit.cxc')
+        .on('submit.cxc', function(e) {
+            e.preventDefault();
+            listar_cuentas_por_cobrar_clientes();
+        });
 
-    // Evento para el botón de Limpiar (reset)
-    $('#form_main_cobrar_clientes').on('reset', function() {
-        // Limpia y refresca los selects
-        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
-            .val('')
-            .selectpicker('refresh');
+    $('#form_main_cobrar_clientes')
+        .off('reset.cxc')
+        .on('reset.cxc', function() {
+            var $form = $(this);
 
-			listar_cuentas_por_cobrar_clientes();
-    });	    
+            setTimeout(function() {
+                $form.find('#main_cobrar_clientes').val('');
+                $form.find('#main_cobrar_clientes_estado').val('1');
 
-    // Evento para el botón de Generar Reporte
-    $('#form_main_pagar_proveedores').on('submit', function(e) {
-        e.preventDefault();
-        listar_cuentas_por_pagar_proveedores();
-    });
+                try {
+                    $form.find('.selectpicker').selectpicker('refresh');
+                } catch (e) {}
 
-    // Evento para el botón de Limpiar (reset)
-    $('#form_main_pagar_proveedores').on('reset', function() {
-        // Limpia y refresca los selects
-        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
-            .val('')
-            .selectpicker('refresh');
-
-			listar_cuentas_por_pagar_proveedores();
-    });	       
+                listar_cuentas_por_cobrar_clientes();
+            }, 100);
+        });	    
 });
 
 /* =========================================================
    HEADER Y FOOTER DINÁMICO - CUENTAS POR PAGAR PROVEEDORES
    ========================================================= */
-   function construirHeaderFooterDataTableCuentasPorPagarProveedores() {
-    var $tabla = $("#dataTableCuentasPorPagarProveedores");
+   /* =========================================================
+   CUENTAS POR PAGAR PROVEEDORES - LISTADO DIV / KPI / EXPORT
+   ========================================================= */
 
-    $tabla.empty();
+var CXP_UI = {
+    rows: [],
+    filtered: [],
+    page: 1,
+    pageSize: 10,
+    view: 'detalle',
+    search: ''
+};
 
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Acciones</th>' +
-                '<th>Fecha</th>' +
-                '<th>Proveedor</th>' +
-                '<th>Tipo</th>' +
-                '<th>Factura</th>' +
-                '<th>Crédito</th>' +
-                '<th>Abono</th>' +
-                '<th>Saldo</th>' +
-            '</tr>' +
-        '</thead>' +
-        '<tfoot class="bg-secondary">' +
-            '<tr>' +
-                '<td colspan="5" class="text-right">Totales:</td>' +
-                '<td id="credito-cxp"></td>' +
-                '<td id="abono-cxp"></td>' +
-                '<td id="total-footer-cxp"></td>' +
-            '</tr>' +
-        '</tfoot>'
+var REFRESCAR_CXP_AL_CERRAR_PAGO = false;
+
+function cxpNum(value) {
+    if (value === null || value === undefined || value === '') return 0;
+
+    value = String(value)
+        .replace(/<[^>]*>/g, '')
+        .replace(/HNL/g, '')
+        .replace(/L\./g, '')
+        .replace(/L/g, '')
+        .replace(/,/g, '')
+        .trim();
+
+    var number = parseFloat(value);
+    return isNaN(number) ? 0 : number;
+}
+
+function cxpMoney(value) {
+    return 'L. ' + cxpNum(value).toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function cxpDate(value) {
+    var text = String(value === null || value === undefined ? '' : value).trim();
+    if (!text) return '';
+
+    var match = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/);
+    if (match) {
+        return match[3] + '/' + match[2] + '/' + match[1];
+    }
+
+    return text;
+}
+
+function cxpEsc(value) {
+    return $('<div>').text(
+        value === null || value === undefined ? '' : String(value)
+    ).html();
+}
+
+function cxpRows(response) {
+    if (typeof response === 'string') {
+        try {
+            response = JSON.parse(response);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    if (Array.isArray(response)) return response;
+    if (response && Array.isArray(response.data)) return response.data;
+    if (response && Array.isArray(response.aaData)) return response.aaData;
+
+    return [];
+}
+
+function cxpTotals(rows) {
+    return rows.reduce(function(acc, row) {
+        acc.credito += cxpNum(row.credito);
+        acc.abono += cxpNum(row.abono);
+        acc.saldo += cxpNum(row.saldo);
+        return acc;
+    }, {
+        credito: 0,
+        abono: 0,
+        saldo: 0
+    });
+}
+
+function cxpFilterRows() {
+    var q = String(CXP_UI.search || '').trim().toLowerCase();
+
+    CXP_UI.filtered = !q
+        ? CXP_UI.rows.slice()
+        : CXP_UI.rows.filter(function(row) {
+            try {
+                return JSON.stringify(row || {}).toLowerCase().indexOf(q) !== -1;
+            } catch (e) {
+                return false;
+            }
+        });
+
+    var pages = Math.max(1, Math.ceil(CXP_UI.filtered.length / CXP_UI.pageSize));
+    if (CXP_UI.page > pages) CXP_UI.page = pages;
+    if (CXP_UI.page < 1) CXP_UI.page = 1;
+}
+
+function cxpTypeBadge(row) {
+    var credito = parseInt(row.estado, 10) === 1;
+
+    return '<span class="badge badge-pill ' + (credito ? 'badge-warning' : 'badge-success') + '">' +
+        '<i class="fas ' + (credito ? 'fa-clock' : 'fa-check-circle') + ' mr-1"></i>' +
+        (credito ? 'Crédito' : 'Contado') +
+    '</span>';
+}
+
+function cxpStatusBadge(row) {
+    var pendiente = cxpNum(row.saldo) > 0;
+
+    return '<span class="badge badge-pill ' + (pendiente ? 'badge-warning' : 'badge-success') + '">' +
+        '<i class="fas ' + (pendiente ? 'fa-hourglass-half' : 'fa-check-circle') + ' mr-1"></i>' +
+        (pendiente ? 'Pendiente' : 'Pagada') +
+    '</span>';
+}
+
+function cxpMiniField(label, value) {
+    return '' +
+        '<div class="rv-mini-field">' +
+            '<span>' + cxpEsc(label) + '</span>' +
+            '<strong>' + value + '</strong>' +
+        '</div>';
+}
+
+function cxpEmpty() {
+    return '' +
+        '<div class="rv-empty">' +
+            '<i class="fas fa-inbox"></i>' +
+            '<strong>Sin registros</strong>' +
+            '<span>No hay cuentas por pagar que coincidan con los criterios actuales.</span>' +
+        '</div>';
+}
+
+function cxpDropdown(row, index) {
+    var pagada = cxpNum(row.saldo) <= 0;
+
+    return '' +
+        '<div class="dropdown acciones-dropdown">' +
+            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+            '</button>' +
+
+            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                '<button type="button" class="dropdown-item accion-item table_pay cxp-action" data-action="abonar" data-index="' + index + '" ' + (pagada ? 'disabled' : '') + '>' +
+                    '<span class="accion-icon accion-icon-primary"><i class="fas fa-hand-holding-usd"></i></span>' +
+                    '<span class="accion-label">Abonar</span>' +
+                '</button>' +
+
+                '<button type="button" class="dropdown-item accion-item cxp-action" data-action="abonos" data-index="' + index + '">' +
+                    '<span class="accion-icon accion-icon-secondary"><i class="fas fa-money-bill-wave"></i></span>' +
+                    '<span class="accion-label">Abonos</span>' +
+                '</button>' +
+
+                '<button type="button" class="dropdown-item accion-item table_reportes cxp-action" data-action="factura" data-index="' + index + '">' +
+                    '<span class="accion-icon accion-icon-success"><i class="fas fa-file-download"></i></span>' +
+                    '<span class="accion-label">Factura</span>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+}
+
+function ejecutarAccionCXP(action, data) {
+    if (!data || !data.compras_id) {
+        showNotify('error', 'Error', 'No se pudo obtener la compra seleccionada.');
+        return;
+    }
+
+    if (action === 'factura') {
+        printPurchase(data.compras_id);
+        return;
+    }
+
+    if (action === 'abonos') {
+        $('#ver_abono_cxp').modal({
+            backdrop: 'static',
+            keyboard: false
+        }).modal('show');
+
+        $("#formulario_ver_abono_cxp #abono_compras_id").val(data.compras_id);
+        listar_AbonosCXP();
+        return;
+    }
+
+    if (action === 'abonar') {
+        if (cxpNum(data.saldo) <= 0) {
+            showNotify('info', 'Cuenta cancelada', 'Esta factura ya fue cancelada.');
+            return;
+        }
+
+        $("#GrupoPagosMultiples").hide();
+        REFRESCAR_CXP_AL_CERRAR_PAGO = true;
+        window.REFRESCAR_CXP_AL_CERRAR_PAGO = true;
+
+        pagoCompras(data.compras_id, data.saldo, 2);
+    }
+}
+
+function renderCuentasPorPagarProveedores() {
+    cxpFilterRows();
+
+    var start = (CXP_UI.page - 1) * CXP_UI.pageSize;
+    var pageRows = CXP_UI.filtered.slice(start, start + CXP_UI.pageSize);
+
+    var grid =
+        '125px 112px minmax(220px,1.55fr) 105px minmax(185px,1.15fr) ' +
+        '115px 115px 125px';
+
+    var html = '';
+
+    if (!pageRows.length) {
+        html = cxpEmpty();
+    } else if (CXP_UI.view === 'miniatura') {
+        html = pageRows.map(function(row, idx) {
+            var index = start + idx;
+
+            return '' +
+                '<div class="rv-mini-card">' +
+                    '<div class="rv-mini-head">' +
+                        '<div>' +
+                            '<div class="rv-mini-title">' + cxpEsc(row.proveedores || 'Sin proveedor') + '</div>' +
+                            '<span class="rv-mini-sub">' +
+                                cxpEsc(row.factura || '') + ' • ' + cxpEsc(cxpDate(row.fecha)) +
+                            '</span>' +
+                        '</div>' +
+                        cxpDropdown(row, index) +
+                    '</div>' +
+
+                    '<div class="rv-mini-body">' +
+                        cxpMiniField('Tipo', cxpTypeBadge(row)) +
+                        cxpMiniField('Estado', cxpStatusBadge(row)) +
+                        cxpMiniField('Crédito', cxpMoney(row.credito)) +
+                        cxpMiniField('Abonos', cxpMoney(row.abono)) +
+                        cxpMiniField('Saldo', '<span class="cxp-saldo-value">' + cxpMoney(row.saldo) + '</span>') +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    } else {
+        var headers = [
+            'Acciones',
+            'Fecha',
+            'Proveedor',
+            'Tipo',
+            'Factura',
+            'Crédito',
+            'Abonos',
+            'Saldo'
+        ];
+
+        html =
+            '<div class="rv-detail-header" style="grid-template-columns:' + grid + '">' +
+                headers.map(function(header) {
+                    return '<div class="rv-cell">' + header + '</div>';
+                }).join('') +
+            '</div>';
+
+        html += pageRows.map(function(row, idx) {
+            var index = start + idx;
+
+            return '' +
+                '<div class="rv-detail-row" style="grid-template-columns:' + grid + '">' +
+                    '<div class="rv-cell rv-actions-cell" data-label="Acciones">' +
+                        cxpDropdown(row, index) +
+                    '</div>' +
+
+                    '<div class="rv-cell cxp-fecha-cell" data-label="Fecha">' +
+                        cxpEsc(cxpDate(row.fecha)) +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Proveedor">' +
+                        '<strong>' + cxpEsc(row.proveedores || '') + '</strong>' +
+                    '</div>' +
+
+                    '<div class="rv-cell cxp-tipo-cell" data-label="Tipo">' +
+                        cxpTypeBadge(row) +
+                    '</div>' +
+
+                    '<div class="rv-cell cxp-factura-cell" data-label="Factura">' +
+                        cxpEsc(row.factura || '') +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="Crédito">' +
+                        cxpMoney(row.credito) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="Abonos">' +
+                        cxpMoney(row.abono) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money cxp-saldo-cell" data-label="Saldo">' +
+                        '<strong>' + cxpMoney(row.saldo) + '</strong>' +
+                        cxpStatusBadge(row) +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    $('#cxpListado')
+        .toggleClass('rv-mini', CXP_UI.view === 'miniatura')
+        .html(html);
+
+    var totals = cxpTotals(CXP_UI.filtered);
+    var paidPercent = totals.credito > 0 ? (totals.abono / totals.credito) * 100 : 0;
+    var average = CXP_UI.filtered.length ? totals.saldo / CXP_UI.filtered.length : 0;
+
+    $('#cxpKpiRegistros').text(CXP_UI.filtered.length);
+    $('#cxpKpiCredito').text(cxpMoney(totals.credito));
+    $('#cxpKpiAbonos').text(cxpMoney(totals.abono));
+    $('#cxpKpiSaldo').text(cxpMoney(totals.saldo));
+    $('#cxpKpiPagado').text(paidPercent.toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + '%');
+    $('#cxpKpiPromedio').text(cxpMoney(average));
+
+    renderTotalesCXP(totals);
+    renderPaginacionCXP();
+
+    $('#cxpInfo').text(
+        CXP_UI.filtered.length
+            ? 'Mostrando ' +
+              (start + 1) +
+              ' a ' +
+              Math.min(start + pageRows.length, CXP_UI.filtered.length) +
+              ' de ' +
+              CXP_UI.filtered.length +
+              ' registros'
+            : '0 registros'
+    );
+
+    if (typeof aplicarPermisosDataTablesAsync === 'function') {
+        aplicarPermisosDataTablesAsync();
+    }
+
+    if (typeof cerrarDropdownAcciones === 'function') {
+        cerrarDropdownAcciones();
+    }
+}
+
+function renderTotalesCXP(totals) {
+    if (CXP_UI.view === 'miniatura') {
+        $('#cxpTotales').html(
+            '<div class="rv-total-mini">' +
+                '<div class="rv-total-chip"><span>Crédito</span><strong>' + cxpMoney(totals.credito) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>Abonos</span><strong>' + cxpMoney(totals.abono) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>Saldo</span><strong>' + cxpMoney(totals.saldo) + '</strong></div>' +
+            '</div>'
+        );
+        return;
+    }
+
+    var grid =
+        '125px 112px minmax(220px,1.55fr) 105px minmax(185px,1.15fr) ' +
+        '115px 115px 125px';
+
+    $('#cxpTotales').html(
+        '<div class="rv-total-detail cxp-total-grid" style="grid-template-columns:' + grid + '">' +
+            '<div class="cxp-total-label">TOTALES GENERALES</div>' +
+            '<div class="rv-cell rv-money cxp-total-value">' + cxpMoney(totals.credito) + '</div>' +
+            '<div class="rv-cell rv-money cxp-total-value">' + cxpMoney(totals.abono) + '</div>' +
+            '<div class="rv-cell rv-money cxp-total-value cxp-total-highlight">' + cxpMoney(totals.saldo) + '</div>' +
+        '</div>'
     );
 }
 
-/* =========================================================
-   LISTADO - CUENTAS POR PAGAR PROVEEDORES
-   ========================================================= */
-   var listar_cuentas_por_pagar_proveedores = function() {
+function renderPaginacionCXP() {
+    var pages = Math.max(1, Math.ceil(CXP_UI.filtered.length / CXP_UI.pageSize));
+    var html = '';
+
+    function addButton(label, page, disabled, active) {
+        html +=
+            '<button type="button" data-page="' + page + '" ' +
+            (disabled ? 'disabled ' : '') +
+            'class="' + (active ? 'active' : '') + '">' +
+                label +
+            '</button>';
+    }
+
+    addButton('<i class="fas fa-angle-double-left"></i> Inicio', 1, CXP_UI.page === 1, false);
+    addButton('<i class="fas fa-angle-left"></i> Anterior', CXP_UI.page - 1, CXP_UI.page === 1, false);
+
+    var from = Math.max(1, CXP_UI.page - 2);
+    var to = Math.min(pages, from + 4);
+    from = Math.max(1, to - 4);
+
+    for (var page = from; page <= to; page++) {
+        addButton(String(page), page, false, page === CXP_UI.page);
+    }
+
+    addButton('Siguiente <i class="fas fa-angle-right"></i>', CXP_UI.page + 1, CXP_UI.page === pages, false);
+    addButton('Final <i class="fas fa-angle-double-right"></i>', pages, CXP_UI.page === pages, false);
+
+    $('#cxpPagination')
+        .html(html)
+        .off('click.cxp', 'button[data-page]')
+        .on('click.cxp', 'button[data-page]', function() {
+            if (this.disabled || $(this).hasClass('active')) return;
+
+            CXP_UI.page = parseInt($(this).attr('data-page'), 10) || 1;
+            renderCuentasPorPagarProveedores();
+        });
+}
+
+var listar_cuentas_por_pagar_proveedores = function() {
     var estado = $('#form_main_pagar_proveedores #pagar_proveedores_estado').val();
+    if (estado === null || estado === '') estado = 1;
 
     var proveedores_id = $("#form_main_pagar_proveedores #pagar_proveedores").val();
     var fechai = $("#form_main_pagar_proveedores #fechai").val();
     var fechaf = $("#form_main_pagar_proveedores #fechaf").val();
 
-    if ($.fn.DataTable.isDataTable("#dataTableCuentasPorPagarProveedores")) {
-        $("#dataTableCuentasPorPagarProveedores").DataTable().clear().destroy();
+    $('#cxpListado')
+        .removeClass('rv-mini')
+        .html(
+            '<div class="rv-loading">' +
+                '<i class="fas fa-spinner fa-spin mr-1"></i>' +
+                'Cargando cuentas por pagar...' +
+            '</div>'
+        );
+
+    $.ajax({
+        method: 'POST',
+        url: '<?php echo SERVERURL;?>core/llenarDataTablePagarProveedores.php',
+        data: {
+            estado: estado,
+            proveedores_id: proveedores_id,
+            fechai: fechai,
+            fechaf: fechaf
+        },
+        dataType: 'json',
+        timeout: 30000
+    })
+    .done(function(response) {
+        CXP_UI.rows = cxpRows(response);
+        CXP_UI.page = 1;
+        renderCuentasPorPagarProveedores();
+    })
+    .fail(function(xhr) {
+        CXP_UI.rows = [];
+        CXP_UI.filtered = [];
+        renderCuentasPorPagarProveedores();
+
+        showNotify(
+            'error',
+            'Error',
+            xhr.responseText || 'No fue posible cargar las cuentas por pagar.'
+        );
+    });
+};
+
+$(document)
+    .off('click.cxpAction', '.cxp-action')
+    .on('click.cxpAction', '.cxp-action', function(e) {
+        e.preventDefault();
+
+        if ($(this).prop('disabled')) return false;
+
+        var index = parseInt($(this).attr('data-index'), 10);
+        var action = $(this).attr('data-action');
+        var row = CXP_UI.filtered[index];
+
+        if (!row) {
+            showNotify('error', 'Error', 'No se pudo obtener la cuenta seleccionada.');
+            return false;
+        }
+
+        ejecutarAccionCXP(action, row);
+        return false;
+    });
+
+$(document)
+    .off('change.cxpPageSize', '#cxpPageSize')
+    .on('change.cxpPageSize', '#cxpPageSize', function() {
+        CXP_UI.pageSize = parseInt(this.value, 10) || 10;
+        CXP_UI.page = 1;
+        renderCuentasPorPagarProveedores();
+    });
+
+$(document)
+    .off('input.cxpSearch', '#cxpSearch')
+    .on('input.cxpSearch', '#cxpSearch', function() {
+        CXP_UI.search = this.value || '';
+        CXP_UI.page = 1;
+        renderCuentasPorPagarProveedores();
+    });
+
+$(document)
+    .off('click.cxpSearchClear', '#cxpSearchClear')
+    .on('click.cxpSearchClear', '#cxpSearchClear', function() {
+        $('#cxpSearch').val('').focus();
+        CXP_UI.search = '';
+        CXP_UI.page = 1;
+        renderCuentasPorPagarProveedores();
+    });
+
+$(document)
+    .off('click.cxpView', '[data-cxp-view]')
+    .on('click.cxpView', '[data-cxp-view]', function() {
+        $('[data-cxp-view]').removeClass('active');
+        $(this).addClass('active');
+
+        CXP_UI.view = $(this).attr('data-cxp-view') === 'miniatura'
+            ? 'miniatura'
+            : 'detalle';
+
+        CXP_UI.page = 1;
+        renderCuentasPorPagarProveedores();
+    });
+
+$(document)
+    .off('click.cxpRefresh', '#cxpBtnActualizar')
+    .on('click.cxpRefresh', '#cxpBtnActualizar', function() {
+        listar_cuentas_por_pagar_proveedores();
+    });
+
+$(document)
+    .off('click.cxpToggle', '.cxp-toggle-section')
+    .on('click.cxpToggle', '.cxp-toggle-section', function() {
+        var $button = $(this);
+        var $target = $($button.attr('data-target'));
+
+        if (!$target.length) return;
+
+        var hide = $target.is(':visible');
+        $target.stop(true, true).slideToggle(160);
+
+        $button.find('span').text(hide ? 'Mostrar' : 'Ocultar');
+        $button.find('i')
+            .toggleClass('fa-chevron-up', !hide)
+            .toggleClass('fa-chevron-down', hide);
+    });
+
+$(document)
+    .off('submit.cxp', '#form_main_pagar_proveedores')
+    .on('submit.cxp', '#form_main_pagar_proveedores', function(e) {
+        e.preventDefault();
+        listar_cuentas_por_pagar_proveedores();
+    });
+
+$(document)
+    .off('reset.cxp', '#form_main_pagar_proveedores')
+    .on('reset.cxp', '#form_main_pagar_proveedores', function() {
+        var $form = $(this);
+
+        setTimeout(function() {
+            $form.find('#pagar_proveedores').val('');
+            $form.find('#pagar_proveedores_estado').val('1');
+
+            try {
+                $form.find('.selectpicker').selectpicker('refresh');
+            } catch (e) {}
+
+            listar_cuentas_por_pagar_proveedores();
+        }, 100);
+    });
+
+$(document)
+    .off('hidden.bs.modal.refrescarCXP', '#modal_pagosPurchase')
+    .on('hidden.bs.modal.refrescarCXP', '#modal_pagosPurchase', function() {
+        if (window.REFRESCAR_CXP_AL_CERRAR_PAGO === true) {
+            window.REFRESCAR_CXP_AL_CERRAR_PAGO = false;
+            REFRESCAR_CXP_AL_CERRAR_PAGO = false;
+
+            if (typeof listar_cuentas_por_pagar_proveedores === 'function') {
+                listar_cuentas_por_pagar_proveedores();
+            }
+        }
+    });
+
+/* =========================================================
+   EXPORT EXCEL CXP
+   ========================================================= */
+
+function cxpXml(value) {
+    return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function cxpCol(index) {
+    var n = index + 1;
+    var result = '';
+
+    while (n > 0) {
+        var mod = (n - 1) % 26;
+        result = String.fromCharCode(65 + mod) + result;
+        n = Math.floor((n - 1) / 26);
     }
 
-    construirHeaderFooterDataTableCuentasPorPagarProveedores();
+    return result;
+}
 
-    var table_cuentas_por_pagar_proveedores = $("#dataTableCuentasPorPagarProveedores").DataTable({
-        "destroy": true,
-        "processing": true,
-        "deferRender": true,
-        "searchDelay": 350,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTablePagarProveedores.php",
-            "data": {
-                "estado": estado,
-                "proveedores_id": proveedores_id,
-                "fechai": fechai,
-                "fechaf": fechaf
-            },
-            "timeout": 30000
-        },
-        "columns": [
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
+function cxpCell(ref, value, style, numeric) {
+    if (numeric) {
+        var number = Number(value);
+        if (!isNaN(number)) {
+            return '<c r="' + ref + '" s="' + style + '"><v>' + number + '</v></c>';
+        }
+    }
 
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
+    return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' +
+        cxpXml(value) +
+    '</t></is></c>';
+}
 
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
+function cxpDownload(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
 
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+    setTimeout(function() {
+        URL.revokeObjectURL(url);
+    }, 1000);
+}
 
-                                '<button type="button" class="dropdown-item accion-item table_pay ocultar">' +
-                                    '<span class="accion-icon accion-icon-primary">' +
-                                        '<i class="fas fa-hand-holding-usd"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Abonar</span>' +
-                                '</button>' +
+function exportarCXPExcel() {
+    if (!CXP_UI.filtered.length) {
+        showNotify('warning', 'Sin datos', 'No hay registros para exportar.');
+        return;
+    }
 
-                                '<button type="button" class="dropdown-item accion-item abono_proveedor">' +
-                                    '<span class="accion-icon accion-icon-secondary">' +
-                                        '<i class="fas fa-money-bill-wave"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Abonos</span>' +
-                                '</button>' +
+    if (typeof JSZip === 'undefined') {
+        showNotify('error', 'Excel no disponible', 'No se encontró JSZip.');
+        return;
+    }
 
-                                '<button type="button" class="dropdown-item accion-item table_reportes print_factura ocultar">' +
-                                    '<span class="accion-icon accion-icon-success">' +
-                                        '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Factura</span>' +
-                                '</button>' +
+    var rows = CXP_UI.filtered.map(function(row) {
+        return [
+            cxpDate(row.fecha),
+            row.proveedores || '',
+            parseInt(row.estado, 10) === 1 ? 'Crédito' : 'Contado',
+            row.factura || '',
+            cxpNum(row.credito),
+            cxpNum(row.abono),
+            cxpNum(row.saldo)
+        ];
+    });
 
-                            '</div>' +
+    var headers = ['Fecha','Proveedor','Tipo','Factura','Crédito','Abonos','Saldo'];
+    var totals = cxpTotals(CXP_UI.filtered);
+    var totalRow = 8 + rows.length;
+    var lastCol = cxpCol(headers.length - 1);
+    var sheetRows = [];
 
-                        '</div>';
-                }
-            },
-            {
-                "data": "fecha"
-            },
-            {
-                "data": "proveedores"
-            },
-            {
-                "data": "estado",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var text = data == 1 ? 'Crédito' : 'Contado';
+    sheetRows.push('<row r="1" ht="30" customHeight="1">' + cxpCell('A1', 'IZZY • CUENTAS POR PAGAR PROVEEDORES', 1, false) + '</row>');
+    sheetRows.push('<row r="2" ht="20" customHeight="1">' + cxpCell('A2', 'Obligaciones, abonos y saldo pendiente • Generado: ' + new Date().toLocaleDateString('es-HN'), 2, false) + '</row>');
+    sheetRows.push('<row r="3" ht="18" customHeight="1">' + cxpCell('A3', 'REGISTROS', 6, false) + cxpCell('E3', 'SALDO GENERAL', 6, false) + '</row>');
+    sheetRows.push('<row r="4" ht="26" customHeight="1">' + cxpCell('A4', rows.length, 7, true) + cxpCell('E4', totals.saldo, 10, true) + '</row>');
+    sheetRows.push('<row r="5"></row>');
+    sheetRows.push('<row r="6">' + cxpCell('A6', 'Detalle de cuentas filtradas', 8, false) + '</row>');
+    sheetRows.push('<row r="7" ht="26" customHeight="1">' + headers.map(function(h, i){ return cxpCell(cxpCol(i)+'7', h, 3, false); }).join('') + '</row>');
 
-                        var icon = data == 1
-                            ? '<i class="fas fa-clock mr-1"></i>'
-                            : '<i class="fas fa-check-circle mr-1"></i>';
+    rows.forEach(function(row, rowIndex) {
+        var r = 8 + rowIndex;
+        sheetRows.push(
+            '<row r="' + r + '" ht="22" customHeight="1">' +
+            row.map(function(value, colIndex) {
+                var numeric = [4,5,6].indexOf(colIndex) !== -1;
+                return cxpCell(cxpCol(colIndex)+r, value, numeric ? 5 : 4, numeric);
+            }).join('') +
+            '</row>'
+        );
+    });
 
-                        var badgeClass = data == 1
-                            ? 'badge badge-pill badge-warning'
-                            : 'badge badge-pill badge-success';
+    sheetRows.push(
+        '<row r="' + totalRow + '" ht="30" customHeight="1">' +
+            cxpCell('A' + totalRow, 'TOTALES GENERALES', 9, false) +
+            cxpCell('E' + totalRow, totals.credito, 10, true) +
+            cxpCell('F' + totalRow, totals.abono, 10, true) +
+            cxpCell('G' + totalRow, totals.saldo, 10, true) +
+        '</row>'
+    );
 
-                        return '<span class="' + badgeClass + '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon +
-                            text +
-                        '</span>';
-                    }
+    var widths = [14,34,14,24,18,18,18];
+    var cols = widths.map(function(width, index) {
+        return '<col min="' + (index+1) + '" max="' + (index+1) + '" width="' + width + '" customWidth="1"/>';
+    }).join('');
 
-                    return data;
-                }
-            },
-            {
-                "data": "factura",
-                "render": function(data, type, row) {
-                    if (type === 'sort') {
-                        return parseInt(row.numero_ordenamiento);
-                    }
+    var sheet =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:' + lastCol + totalRow + '"/>' +
+            '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+            '<cols>' + cols + '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A7:' + lastCol + (7 + rows.length) + '"/>' +
+            '<mergeCells count="3">' +
+                '<mergeCell ref="A1:' + lastCol + '1"/>' +
+                '<mergeCell ref="A2:' + lastCol + '2"/>' +
+                '<mergeCell ref="A' + totalRow + ':D' + totalRow + '"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
 
-                    return data;
-                }
-            },
-            {
-                "data": "credito",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
+    var styles =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>' +
+            '<fonts count="8">' +
+                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="5">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+            '<cellXfs count="11">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="7" fillId="0" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="7" fillId="4" borderId="1"/>' +
+                '<xf numFmtId="164" fontId="7" fillId="4" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
 
-                    if (type === 'display') {
-                        let color = 'green';
+    var workbook =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<sheets><sheet name="Cuentas por Pagar" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
+    var rels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
 
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
+    var rootRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
 
-                    return number;
-                }
-            },
-            {
-                "data": "abono",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
+    var types =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
 
-                    if (type === 'display') {
-                        let color = 'green';
+    var zip = new JSZip();
+    zip.file('[Content_Types].xml', types);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbook);
+    zip.folder('xl').file('styles.xml', styles);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', rels);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheet);
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
+    var options = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
 
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
+    var promise = typeof zip.generateAsync === 'function'
+        ? zip.generateAsync(options)
+        : Promise.resolve(zip.generate(options));
 
-                    return number;
-                }
-            },
-            {
-                "data": "saldo",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
+    promise
+        .then(function(blob) {
+            cxpDownload(blob, 'Cuentas_Por_Pagar_Proveedores_' + new Date().toISOString().slice(0,10) + '.xlsx');
+        })
+        .catch(function(error) {
+            console.error(error);
+            showNotify('error', 'Excel', 'No se pudo generar el archivo Excel.');
+        });
+}
 
-                    if (type === 'display') {
-                        let color = 'green';
+/* =========================================================
+   EXPORT PDF CXP
+   ========================================================= */
 
-                        if (data < 0) {
-                            color = 'red';
-                        }
+function cxpGetLogo(callback) {
+    if (
+        typeof imagen !== 'undefined' &&
+        imagen &&
+        String(imagen).indexOf('data:image/') === 0
+    ) {
+        callback(imagen);
+        return;
+    }
 
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/get_image.php',
+        dataType: 'text',
+        timeout: 10000
+    })
+    .done(function(src) {
+        src = String(src || '').trim();
 
-                    return number;
-                }
+        if (!src) {
+            callback(null);
+            return;
+        }
+
+        if (src.indexOf('data:image/') === 0) {
+            callback(src);
+            return;
+        }
+
+        var image = new Image();
+        image.crossOrigin = 'Anonymous';
+
+        image.onload = function() {
+            try {
+                var canvas = document.createElement('canvas');
+                canvas.width = image.naturalWidth;
+                canvas.height = image.naturalHeight;
+                canvas.getContext('2d').drawImage(image, 0, 0);
+                callback(canvas.toDataURL('image/png'));
+            } catch (e) {
+                callback(null);
             }
-        ],
-        "order": [[4, "desc"]],
-        "orderFixed": {
-            "pre": [[4, "desc"]]
-        },
-        "pageLength": 10,
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            {
-                width: "10%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
+        };
+
+        image.onerror = function() { callback(null); };
+        image.src = src;
+    })
+    .fail(function() { callback(null); });
+}
+
+function cxpPdfLogoPlate(logoDataUrl) {
+    if (!logoDataUrl) {
+        return {
+            table: {
+                widths: ['*'],
+                body: [[{
+                    text: 'IZZY',
+                    fontSize: 16,
+                    bold: true,
+                    color: '#17324D',
+                    alignment: 'center',
+                    margin: [7,8,7,8],
+                    fillColor: '#FFFFFF'
+                }]]
             },
-            {
-                width: "12%",
-                targets: 1
-            },
-            {
-                width: "18%",
-                targets: 2
-            },
-            {
-                width: "12%",
-                targets: 3,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "18%",
-                targets: 4,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "13%",
-                targets: 5,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "13%",
-                targets: 6,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "14%",
-                targets: 7,
-                className: "text-right text-nowrap align-middle"
+            layout: {
+                hLineColor: function(){ return '#DDE3EA'; },
+                vLineColor: function(){ return '#DDE3EA'; }
             }
-        ],
-        "footerCallback": function(row, data, start, end, display) {
-            var totalCredito = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.credito) || 0);
-            }, 0);
+        };
+    }
 
-            var totalAbono = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.abono) || 0);
-            }, 0);
-
-            var totalPendiente = data.reduce(function(acc, row) {
-                return acc + (parseFloat(row.saldo) || 0);
-            }, 0);
-
-            var formatter = new Intl.NumberFormat('es-HN', {
-                style: 'currency',
-                currency: 'HNL',
-                minimumFractionDigits: 2
-            });
-
-            $('#credito-cxp').html(formatter.format(totalCredito));
-            $('#abono-cxp').html(formatter.format(totalAbono));
-            $('#total-footer-cxp').html(formatter.format(totalPendiente));
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                image: logoDataUrl,
+                fit: [62,36],
+                alignment: 'center',
+                margin: [7,5,7,5],
+                fillColor: '#FFFFFF'
+            }]]
         },
-        "buttons": [
+        layout: {
+            hLineColor: function(){ return '#DDE3EA'; },
+            vLineColor: function(){ return '#DDE3EA'; }
+        }
+    };
+}
+
+function exportarCXPPdf() {
+    if (!CXP_UI.filtered.length) {
+        showNotify('warning', 'Sin datos', 'No hay registros para exportar.');
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined') {
+        showNotify('error', 'PDF no disponible', 'No se encontró pdfMake.');
+        return;
+    }
+
+    var totals = cxpTotals(CXP_UI.filtered);
+    var rows = CXP_UI.filtered.map(function(row) {
+        return [
+            cxpDate(row.fecha),
+            row.proveedores || '',
+            parseInt(row.estado, 10) === 1 ? 'Crédito' : 'Contado',
+            row.factura || '',
+            cxpNum(row.credito),
+            cxpNum(row.abono),
+            cxpNum(row.saldo)
+        ];
+    });
+
+    var headers = ['Fecha','Proveedor','Tipo','Factura','Crédito','Abonos','Saldo'];
+
+    cxpGetLogo(function(logo) {
+        var body = [
+            headers.map(function(header) {
+                return {
+                    text: header,
+                    fillColor: '#17324D',
+                    color: '#FFFFFF',
+                    bold: true,
+                    fontSize: 7,
+                    alignment: 'center',
+                    margin: [2,3,2,3]
+                };
+            })
+        ];
+
+        rows.forEach(function(row, rowIndex) {
+            body.push(
+                row.map(function(value, colIndex) {
+                    var money = [4,5,6].indexOf(colIndex) !== -1;
+
+                    return {
+                        text: money ? cxpMoney(value) : String(value || ''),
+                        fillColor: rowIndex % 2 ? '#F7F9FC' : '#FFFFFF',
+                        alignment: money ? 'right' : 'left',
+                        fontSize: 7,
+                        margin: [2,3,2,3]
+                    };
+                })
+            );
+        });
+
+        body.push([
             {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Cuentas Pagar Proveedores',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_cuentas_por_pagar_proveedores();
-                }
+                text: 'TOTALES GENERALES',
+                colSpan: 4,
+                bold: true,
+                fillColor: '#EAF4FC',
+                color: '#17324D',
+                fontSize: 7,
+                margin: [6,5,6,5]
             },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte Cuentas por Pagar Proveedores',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [2, 3, 4, 5, 6, 7]
-                }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                title: 'Reporte Cuentas por Pagar Proveedores',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [2, 3, 4, 5, 6, 7]
+            {}, {}, {},
+            {text: cxpMoney(totals.credito), bold: true, fillColor: '#EAF4FC', alignment: 'right', margin: [3,5,3,5]},
+            {text: cxpMoney(totals.abono), bold: true, fillColor: '#EAF4FC', alignment: 'right', margin: [3,5,3,5]},
+            {text: cxpMoney(totals.saldo), bold: true, fillColor: '#FFF5DC', color: '#9B6500', alignment: 'right', margin: [3,5,3,5]}
+        ]);
+
+        var estado = $('#form_main_pagar_proveedores #pagar_proveedores_estado option:selected').text() || 'Todos';
+        var proveedor = $('#form_main_pagar_proveedores #pagar_proveedores option:selected').text() || 'Todos';
+        var fechai = $('#form_main_pagar_proveedores #fechai').val() || '';
+        var fechaf = $('#form_main_pagar_proveedores #fechaf').val() || '';
+
+        var filters =
+            'Estado: ' + estado +
+            ' | Proveedor: ' + proveedor +
+            ' | Fechas: ' + fechai + ' a ' + fechaf;
+
+        var paidPercent = totals.credito > 0 ? (totals.abono / totals.credito) * 100 : 0;
+
+        var doc = {
+            pageSize: 'LETTER',
+            pageOrientation: 'landscape',
+            pageMargins: [28,28,28,34],
+
+            content: [
+                {
+                    table: {
+                        widths: [100,'*',135],
+                        body: [[
+                            {
+                                fillColor: '#17324D',
+                                border: [false,false,false,false],
+                                margin: [10,7,4,7],
+                                stack: [cxpPdfLogoPlate(logo)]
+                            },
+                            {
+                                fillColor: '#17324D',
+                                border: [false,false,false,false],
+                                stack: [
+                                    {text: 'CUENTAS POR PAGAR PROVEEDORES', color: '#FFFFFF', bold: true, fontSize: 15},
+                                    {text: 'Obligaciones, abonos y saldo pendiente', color: '#D8E5F0', fontSize: 7.5, margin: [0,2,0,0]}
+                                ],
+                                margin: [0,10,0,10]
+                            },
+                            {
+                                fillColor: '#17324D',
+                                border: [false,false,false,false],
+                                stack: [
+                                    {text: 'REPORTE EJECUTIVO', color: '#72E2E5', bold: true, fontSize: 6.5, alignment: 'right'},
+                                    {text: new Date().toLocaleDateString('es-HN'), color: '#FFFFFF', bold: true, fontSize: 9, alignment: 'right', margin: [0,3,0,0]},
+                                    {text: CXP_UI.filtered.length + ' registro(s) filtrado(s)', color: '#D8E5F0', fontSize: 6.5, alignment: 'right', margin: [0,2,0,0]}
+                                ],
+                                margin: [0,9,10,9]
+                            }
+                        ]]
+                    },
+                    layout: 'noBorders',
+                    margin: [0,0,0,10]
                 },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
+
+                {
+                    table: {
+                        widths: ['*','*','*','*'],
+                        body: [[
+                            {fillColor:'#F7F9FC', stack:[{text:'REGISTROS',fontSize:6.5,bold:true,color:'#6B778C'},{text:String(CXP_UI.filtered.length),fontSize:12,bold:true,color:'#172B4D',margin:[0,2,0,0]}], margin:[8,7,8,7]},
+                            {fillColor:'#F7F9FC', stack:[{text:'CRÉDITO',fontSize:6.5,bold:true,color:'#6B778C'},{text:cxpMoney(totals.credito),fontSize:12,bold:true,color:'#172B4D',margin:[0,2,0,0]}], margin:[8,7,8,7]},
+                            {fillColor:'#F7F9FC', stack:[{text:'SALDO PENDIENTE',fontSize:6.5,bold:true,color:'#6B778C'},{text:cxpMoney(totals.saldo),fontSize:12,bold:true,color:'#9B6500',margin:[0,2,0,0]}], margin:[8,7,8,7]},
+                            {fillColor:'#F7F9FC', stack:[{text:'PAGADO',fontSize:6.5,bold:true,color:'#6B778C'},{text:paidPercent.toFixed(2)+'%',fontSize:12,bold:true,color:'#087F5B',margin:[0,2,0,0]}], margin:[8,7,8,7]}
+                        ]]
+                    },
+                    layout: {
+                        hLineColor: function(){ return '#DDE3EA'; },
+                        vLineColor: function(){ return '#DDE3EA'; }
+                    },
+                    margin: [0,0,0,8]
+                },
+
+                {
+                    table: {
+                        widths: ['*'],
+                        body: [[{
+                            text: 'Filtros aplicados: ' + filters,
+                            fillColor: '#F7F9FC',
+                            color: '#53627A',
+                            fontSize: 7,
+                            margin: [8,6,8,6]
+                        }]]
+                    },
+                    layout: {
+                        hLineColor: function(){ return '#DDE3EA'; },
+                        vLineColor: function(){ return '#DDE3EA'; }
+                    },
+                    margin: [0,0,0,10]
+                },
+
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: [60,'*',65,105,78,78,78],
+                        body: body
+                    },
+                    layout: {
+                        hLineColor: function(){ return '#DDE3EA'; },
+                        vLineColor: function(){ return '#DDE3EA'; },
+                        hLineWidth: function(){ return .55; },
+                        vLineWidth: function(){ return .55; },
+                        paddingLeft: function(){ return 4; },
+                        paddingRight: function(){ return 4; },
+                        paddingTop: function(){ return 5; },
+                        paddingBottom: function(){ return 5; }
                     }
                 }
+            ],
+
+            footer: function(currentPage, pageCount) {
+                return {
+                    margin: [28,8,28,0],
+                    columns: [
+                        {text:'IZZY • Cuentas por Pagar',fontSize:7,color:'#7A869A'},
+                        {text:'Página '+currentPage+' de '+pageCount,fontSize:7,color:'#7A869A',alignment:'right'}
+                    ]
+                };
+            },
+
+            defaultStyle: {
+                fontSize: 7,
+                color: '#253858'
             }
-        ],
-        "drawCallback": function(settings) {
-            aplicarPermisosDataTablesAsync();
+        };
 
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-        }
-    });
+        var pdf = pdfMake.createPdf(doc);
+        var filename = 'Cuentas_Por_Pagar_Proveedores_' + new Date().toISOString().slice(0,10) + '.pdf';
 
-    table_cuentas_por_pagar_proveedores.search('').draw();
-    $('#buscar').focus();
-
-    registrar_pago_proveedores_dataTable(
-        "#dataTableCuentasPorPagarProveedores tbody",
-        table_cuentas_por_pagar_proveedores
-    );
-
-    ver_abono_cxp_proveedor_dataTable(
-        "#dataTableCuentasPorPagarProveedores tbody",
-        table_cuentas_por_pagar_proveedores
-    );
-
-    ver_reporte_facturas_cxp_proveedor_dataTable(
-        "#dataTableCuentasPorPagarProveedores tbody",
-        table_cuentas_por_pagar_proveedores
-    );
-}
-
-var ver_reporte_facturas_cxp_proveedor_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.print_factura");
-    $(tbody).on("click", "button.print_factura", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        printPurchase(data.compras_id);
-    });
-}
-
-var registrar_pago_proveedores_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.table_pay");
-    $(tbody).on("click", "button.table_pay", function() {
-        var data = table.row($(this).parents("tr")).data();
-        if (data.saldo <= 0) {
-            showNotify('info', 'Alerta', 'Esta Factura ya fue Cancelada');
+        if (
+            typeof abrirModalPdfPublico === 'function' &&
+            typeof pdf.getDataUrl === 'function'
+        ) {
+            pdf.getDataUrl(function(url) {
+                abrirModalPdfPublico(
+                    url,
+                    'Cuentas por Pagar Proveedores',
+                    filename
+                );
+            });
         } else {
-            $("#GrupoPagosMultiples").hide();
-            pagoCompras(data.compras_id, data.saldo, 2);
+            pdf.download(filename);
         }
     });
 }
-//FIN LLENAR TABLAS
+
+$(document)
+    .off('click.cxpExcel', '#cxpBtnExcel')
+    .on('click.cxpExcel', '#cxpBtnExcel', exportarCXPExcel);
+
+$(document)
+    .off('click.cxpPdf', '#cxpBtnPdf')
+    .on('click.cxpPdf', '#cxpBtnPdf', exportarCXPPdf);
+
+/*
+ * Compatibilidad con nombres públicos anteriores.
+ * No se usan en el nuevo listado DIV, pero se mantienen para no romper llamadas externas.
+ */
+var ver_reporte_facturas_cxp_proveedor_dataTable = function() {};
+var registrar_pago_proveedores_dataTable = function() {};
+
 
 /*INICIO FUNCION OBTENER MUNICIPIOS*/
 function getMunicipiosClientes(municipios_id) {

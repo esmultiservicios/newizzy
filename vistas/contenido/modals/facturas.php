@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturas_modales.css">
 <?php
 // ====== Soporte / WhatsApp ======
 // Defaults por si no llegan definidas
@@ -164,467 +165,408 @@ $telefono_ws_legible = __format_tel_legible($__tel_digits);
 <!-- FIN MODAL AYUDA (PRO / DINÁMICO) -->
 
 <!--INICIO MODAL BUSQUEDA CONVERTIR COTIZACION EN FACTURAS-->
-<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_cotizaciones">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
-        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Cotizaciones</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="container"></div>
-            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
-                <form class="FormularioAjax" id="formulario_busqueda_cotizaciones">
-
-                    <div class="row align-items-end">
-                        <!-- Tipo Factura -->
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="form-group">
-                                <label class="small mb-1">Tipo Factura</label>
-                                <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte"
-                                    class="form-control selectpicker" title="Tipo Factura" data-live-search="true">
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Fecha Inicio -->
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="form-group">
-                                <label class="small mb-1">Fecha Inicio</label>
-                                <input type="date" required id="fechai" name="fechai" value="<?php 
-                                    $fecha = date ("Y-m-d");
-                                    $año = date("Y", strtotime($fecha));
-                                    $mes = date("m", strtotime($fecha));
-                                    $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-                                    $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
-                                    $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
-                                    $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-                                    echo $fecha_inicial;
-                                ?>" class="form-control" title="Fecha Inicio">
-                            </div>
-                        </div>
-
-                        <!-- Fecha Fin -->
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <div class="form-group">
-                                <label class="small mb-1">Fecha Fin</label>
-                                <input type="date" required id="fechaf" name="fechaf"
-                                    value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
-                            </div>
-                        </div>
-
-                        <!-- Botón Buscar -->
-                        <div class="col-md-3 col-sm-6 mb-3 d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search fa-lg mr-1"></i> Buscar
-                            </button>
-                            <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-                                <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <div class="col-md-12">
-                            <div class="overflow-auto">
-                                <table id="DatatableBusquedaCotizaciones"
-                                    class="table table-header-gradient table-striped table-condensed table-hover"
-                                    style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>Continuar</th>
-                                            <th>Imprimir</th>
-                                            <th>Fecha</th>
-                                            <th>Tipo</th>
-                                            <th>Proveedor</th>
-                                            <th>Factura</th>
-                                            <th>SubTotal</th>
-                                            <th>ISV</th>
-                                            <th>Descuento</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-
-            </div>
+<div class="modal fade izzy-modal-consulta-facturacion fm-modal" id="modal_buscar_cotizaciones" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Cotizaciones</h4>
+          <small>Cotizaciones disponibles para cargar o imprimir.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_busqueda_cotizaciones">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de cotizaciones</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#cotizacionesFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="cotizacionesFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field">
+    <label>Tipo Factura</label>
+    <select id="tipo_cotizacion_reporte" name="tipo_cotizacion_reporte" class="form-control selectpicker" title="Tipo Factura" data-live-search="true"></select>
+  </div>
+  <div class="fm-filter-field"><label>Fecha Inicio</label><input type="date" required id="fechai" name="fechai" value="<?php 
+    $fecha = date ("Y-m-d");
+    $año = date("Y", strtotime($fecha));
+    $mes = date("m", strtotime($fecha));
+    $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+    $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+    $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+    $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+    echo $fecha_inicial;
+?>" class="form-control"></div>
+  <div class="fm-filter-field"><label>Fecha Fin</label><input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>" class="form-control"></div>
+  <div class="fm-filter-actions">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-search mr-1"></i>Buscar</button>
+    <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary"><i class="fas fa-broom mr-1"></i>Limpiar</button>
+  </div>
+</div>
+  </div>
+</div>
+          <div class="fm-directory-card">
+            
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarCotizacionesFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="cotizacionesPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="cotizaciones" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="cotizaciones" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="cotizacionesSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="cotizaciones" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="cotizacionesListado" class="fm-listado" data-list="cotizaciones"></div>
+<div class="fm-list-footer">
+  <span id="cotizacionesInfo" class="fm-list-info">0 registros</span>
+  <div id="cotizacionesPaginacion" class="fm-pagination"></div>
+</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!--FIN MODAL BUSQUEDA CONVERTIR COTIZACION EN FACTURAS-->
 
 <!--INICIO MODAL BUSQUEDA COBRAR CUENTAS POR COBRAR CLIENTES-->
-<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_cuentas_cobrar_clientes">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
-        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Cuentas por Cobrar Clientes</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
-            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
-                <form class="FormularioAjax" id="formulario_busqueda_cuentas_cobrar_clientes">
-                    <div class="container-fluid">
-                        <!-- Fila de filtros -->
-                        <div class="row align-items-end">
-                            <div class="col-md-3 col-sm-6 mb-2">
-                                <div class="form-group">
-                                    <label class="small mb-1">Estado</label>
-                                    <select id="cobrar_clientes_estado" name="cobrar_clientes_estado"
-                                        class="form-control selectpicker" title="Estado" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-2">
-                                <div class="form-group">
-                                    <label class="small mb-1">Clientes</label>
-                                    <select id="cobrar_clientes" name="cobrar_clientes"
-                                        class="form-control selectpicker" title="Clientes" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-2">
-                                <div class="form-group">
-                                    <label class="small mb-1">Fecha Inicio</label>
-                                    <input type="date" required id="fechai" name="fechai"
-                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Inicio">
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6 mb-2">
-                                <div class="form-group">
-                                    <label class="small mb-1">Fecha Fin</label>
-                                    <input type="date" required id="fechaf" name="fechaf"
-                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Fila de botones -->
-                        <div class="row mb-3">
-                            <div class="col-12 text-right">
-                                <button type="submit" class="btn btn-primary mr-2">
-                                    <i class="fas fa-search fa-lg mr-1"></i> Buscar
-                                </button>
-                                <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-                                    <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Tabla de resultados -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table id="DatatableBusquedaCuentasCobrarClientes"
-                                        class="table table-header-gradient table-striped table-condensed table-hover"
-                                        style="width:100%">
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-            </div>
+<div class="modal fade izzy-modal-consulta-facturacion fm-modal" id="modal_buscar_cuentas_cobrar_clientes" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Cuentas por Cobrar Clientes</h4>
+          <small>Consulte saldos, abonos y documentos pendientes.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_busqueda_cuentas_cobrar_clientes">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de cuentas por cobrar</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#cxcFacturaFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="cxcFacturaFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field"><label>Estado</label><select id="cobrar_clientes_estado" name="cobrar_clientes_estado" class="form-control selectpicker" title="Estado" data-live-search="true"></select></div>
+  <div class="fm-filter-field"><label>Clientes</label><select id="cobrar_clientes" name="cobrar_clientes" class="form-control selectpicker" title="Clientes" data-live-search="true"></select></div>
+  <div class="fm-filter-field"><label>Fecha Inicio</label><input type="date" required id="fechai" name="fechai" value="<?php echo date ("Y-m-d");?>" class="form-control"></div>
+  <div class="fm-filter-field"><label>Fecha Fin</label><input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>" class="form-control"></div>
+  <div class="fm-filter-actions">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-search mr-1"></i>Buscar</button>
+    <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary"><i class="fas fa-broom mr-1"></i>Limpiar</button>
+  </div>
+</div>
+  </div>
+</div>
+          <div class="fm-directory-card">
+            
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarCxcFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnExcelCxcFm" class="btn table_reportes btn-success ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-excel mr-1"></i>Excel</button><button type="button" id="btnPdfCxcFm" class="btn table_reportes btn-danger ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-pdf mr-1"></i>PDF</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="cxcFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="cxcFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="cxcFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="cxcFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="cxcFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="cxcFacturaListado" class="fm-listado" data-list="cxcFactura"></div>
+<div class="fm-list-footer">
+  <span id="cxcFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="cxcFacturaPaginacion" class="fm-pagination"></div>
+</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!--FIN MODAL BUSQUEDA COBRAR CUENTAS POR COBRAR CLIENTES-->
 
 <!--INICIO MODAL BUSQUEDA FACTURAS BORRADOR-->
-<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_bill_draft">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
-        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Facturas Pendientes</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
-                <form class="FormularioAjax" id="formulario_bill_draft">
-                    <div class="container-fluid">
-                        <!-- Fila de filtros -->
-                        <div class="row align-items-end">
-                            <div class="col-md-5 col-sm-6 mb-2">
-                                <div class="form-group">
-                                    <label class="small mb-1">Fecha Inicio</label>
-                                    <input type="date" required id="fechai" name="fechai" value="<?php 
-                                        $fecha = date ("Y-m-d");
-                                        $año = date("Y", strtotime($fecha));
-                                        $mes = date("m", strtotime($fecha));
-                                        $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-                                        $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
-                                        $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
-                                        $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-                                        echo $fecha_inicial;
-                                    ?>" class="form-control" title="Fecha Inicio">
-                                </div>
-                            </div>
-
-                            <div class="col-md-5 col-sm-6 mb-2">
-                                <div class="form-group">
-                                    <label class="small mb-1">Fecha Fin</label>
-                                    <input type="date" required id="fechaf" name="fechaf"
-                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Fila de botones ajustada -->
-                        <div class="row mb-3">
-                            <div class="col-12 text-right">
-                                <button type="submit" class="btn btn-primary mr-2">
-                                    <i class="fas fa-search fa-lg mr-1"></i> Buscar
-                                </button>
-                                <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-                                    <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Tabla de resultados -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table id="DatatableBusquedaBillDraft"
-                                        class="table table-header-gradient table-striped table-condensed table-hover"
-                                        style="width:100%">
-                                        <thead>
-                                            <tr>
-                                                <th>Continuar</th>
-                                                <th>Eliminar</th>
-                                                <th>Fecha</th>
-                                                <th>Tipo</th>
-                                                <th>Empresa</th>
-                                                <th>Factura</th>
-                                                <th>SubTotal</th>
-                                                <th>ISV</th>
-                                                <th>Descuento</th>
-                                                <th>Total</th>
-                                            </tr>
-                                        </thead>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-            </div>
+<div class="modal fade izzy-modal-consulta-facturacion fm-modal" id="modal_buscar_bill_draft" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Facturas Pendientes</h4>
+          <small>Continúe o elimine borradores sin afectar la secuencia fiscal.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_bill_draft">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de facturas pendientes</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#borradoresFacturaFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="borradoresFacturaFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field"><label>Fecha Inicio</label><input type="date" required id="fechai" name="fechai" value="<?php 
+    $fecha = date ("Y-m-d");
+    $año = date("Y", strtotime($fecha));
+    $mes = date("m", strtotime($fecha));
+    $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+    $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+    $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+    $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+    echo $fecha_inicial;
+?>" class="form-control"></div>
+  <div class="fm-filter-field"><label>Fecha Fin</label><input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>" class="form-control"></div>
+  <div class="fm-filter-actions">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-search mr-1"></i>Buscar</button>
+    <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary"><i class="fas fa-broom mr-1"></i>Limpiar</button>
+  </div>
+</div>
+  </div>
+</div>
+          <div class="fm-directory-card">
+            
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarBorradoresFm" class="btn table_actualizar btn-secondary btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="borradoresFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="borradoresFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="borradoresFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="borradoresFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="borradoresFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="borradoresFacturaListado" class="fm-listado" data-list="borradoresFactura"></div>
+<div class="fm-list-footer">
+  <span id="borradoresFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="borradoresFacturaPaginacion" class="fm-pagination"></div>
+</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!--FIN MODAL BUSQUEDA FACTURAS BORRADOR-->
 
 <!--INICIO MODAL BUSQUEDA CREDITO Y CONTADO-->
-<div class="modal fade izzy-modal-consulta-facturacion" id="modal_buscar_bill">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
-        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
-            <div class="modal-header">
-                <h4 class="modal-title">Buscar Facturas</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
-            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
-                <form class="FormularioAjax" id="formulario_bill">
-                    <div class="container-fluid">
-                        <!-- Primera fila de filtros -->
-                        <div class="row align-items-end mb-3">
-                            <div class="col-md-3 col-sm-6">
-                                <div class="form-group">
-                                    <label class="small mb-1">Tipo Factura</label>
-                                    <select id="tipo_factura_reporte" name="tipo_factura_reporte"
-                                        class="form-control selectpicker" title="Tipo de Factura"
-                                        data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6">
-                                <div class="form-group">
-                                    <label class="small mb-1">Facturador</label>
-                                    <select id="facturador" name="facturador" class="form-control selectpicker"
-                                        title="Facturador" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6">
-                                <div class="form-group">
-                                    <label class="small mb-1">Vendedor</label>
-                                    <select id="vendedor" name="vendedor" class="form-control selectpicker"
-                                        title="Vendedor" data-live-search="true">
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Segunda fila con fechas y botones -->
-                        <div class="row align-items-end mb-3">
-                            <div class="col-md-3 col-sm-6">
-                                <div class="form-group">
-                                    <label class="small mb-1">Fecha Inicio</label>
-                                    <input type="date" required id="fechai" name="fechai" value="<?php 
-                                        $fecha = date ("Y-m-d");
-                                        $año = date("Y", strtotime($fecha));
-                                        $mes = date("m", strtotime($fecha));
-                                        $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
-                                        $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
-                                        $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
-                                        $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
-                                        echo $fecha_inicial;
-                                    ?>" class="form-control" title="Fecha Inicio">
-                                </div>
-                            </div>
-
-                            <div class="col-md-3 col-sm-6">
-                                <div class="form-group">
-                                    <label class="small mb-1">Fecha Fin</label>
-                                    <input type="date" required id="fechaf" name="fechaf"
-                                        value="<?php echo date ("Y-m-d");?>" class="form-control" title="Fecha Fin">
-                                </div>
-                            </div>
-
-                            <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
-                                <button type="submit" class="btn btn-primary mr-2">
-                                    <i class="fas fa-search fa-lg mr-1"></i> Buscar
-                                </button>
-                                <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary">
-                                    <i class="fas fa-broom fa-lg mr-1"></i> Limpiar
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Contador de registros -->
-                        <div class="row mb-2">
-                            <div class="col-12 text-right">
-                                <small class="text-muted">
-                                    Mostrando <span id="contador-registros">0</span> registros
-                                </small>
-                            </div>
-                        </div>
-
-                        <!-- Tabla de resultados -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table id="DatatableBusquedaBill"
-                                        class="table table-header-gradient table-striped table-condensed table-hover"
-                                        style="width:100%">
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-            </div>
+<div class="modal fade izzy-modal-consulta-facturacion fm-modal" id="modal_buscar_bill" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0">Buscar Facturas</h4>
+          <small>Facturas emitidas con acciones, reportes y Nota de Crédito.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formulario_bill">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de facturas emitidas</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#facturasEmitidasFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="facturasEmitidasFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field"><label>Tipo Factura</label><select id="tipo_factura_reporte" name="tipo_factura_reporte" class="form-control selectpicker" title="Tipo de Factura" data-live-search="true"></select></div>
+  <div class="fm-filter-field"><label>Facturador</label><select id="facturador" name="facturador" class="form-control selectpicker" title="Facturador" data-live-search="true"></select></div>
+  <div class="fm-filter-field"><label>Vendedor</label><select id="vendedor" name="vendedor" class="form-control selectpicker" title="Vendedor" data-live-search="true"></select></div>
+  <div class="fm-filter-field"><label>Fecha Inicio</label><input type="date" required id="fechai" name="fechai" value="<?php 
+    $fecha = date ("Y-m-d");
+    $año = date("Y", strtotime($fecha));
+    $mes = date("m", strtotime($fecha));
+    $dia = date("d", mktime(0,0,0, $mes+1, 0, $año));
+    $dia1 = date('d', mktime(0,0,0, $mes, 1, $año));
+    $dia2 = date('d', mktime(0,0,0, $mes, $dia, $año));
+    $fecha_inicial = date("Y-m-d", strtotime($año."-".$mes."-".$dia1));
+    echo $fecha_inicial;
+?>" class="form-control"></div>
+  <div class="fm-filter-field"><label>Fecha Fin</label><input type="date" required id="fechaf" name="fechaf" value="<?php echo date ("Y-m-d");?>" class="form-control"></div>
+  <div class="fm-filter-actions">
+    <button type="submit" class="btn btn-primary"><i class="fas fa-search mr-1"></i>Buscar</button>
+    <button type="reset" id="btn-limpiar-filtros" class="btn btn-secondary"><i class="fas fa-broom mr-1"></i>Limpiar</button>
+  </div>
+</div>
+  </div>
+</div>
+          <div class="fm-directory-card">
+            
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarFacturasFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnExcelFacturasFm" class="btn table_reportes btn-success ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-excel mr-1"></i>Excel</button><button type="button" id="btnPdfFacturasFm" class="btn table_reportes btn-danger ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-pdf mr-1"></i>PDF</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="facturasEmitidasPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="facturasEmitidas" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="facturasEmitidas" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="facturasEmitidasSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="facturasEmitidas" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="facturasEmitidasListado" class="fm-listado" data-list="facturasEmitidas"></div>
+<div class="fm-list-footer">
+  <span id="facturasEmitidasInfo" class="fm-list-info">0 registros</span>
+  <div id="facturasEmitidasPaginacion" class="fm-pagination"></div>
+</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!--FIN MODAL BUSQUEDA FACTURAS CREDITO Y CONTADO-->
 
 <!-- =========================================================
      INICIO MODAL - CAJA DESDE FACTURACIÓN
      ========================================================= -->
-     <div class="modal fade izzy-modal-consulta-facturacion" id="modalCajaFactura" tabindex="-1" role="dialog" aria-labelledby="modalCajaFacturaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document" style="width:calc(100vw - 64px) !important; max-width:1600px !important; height:calc(100vh - 48px) !important; min-height:calc(100vh - 48px) !important; max-height:calc(100vh - 48px) !important; margin:24px auto !important; display:flex !important; align-items:stretch !important;">
-        <div class="modal-content" style="width:100% !important; max-width:none !important; height:100% !important; min-height:100% !important; max-height:100% !important; margin:0 !important; display:flex !important; flex-direction:column !important; overflow:hidden !important;">
-
-            <div class="modal-header bg-dark text-white">
-                <h5 class="modal-title" id="modalCajaFacturaLabel">
-                    <i class="fas fa-cash-register mr-1"></i>
-                    Caja desde Facturación
-                    <small class="d-block mt-1 text-light" style="opacity:.85;">
-                        Consulta de caja, ventas, retiros y neto.
-                    </small>
-                </h5>
-
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-
-            <div class="modal-body" style="flex:1 1 auto !important; min-height:0 !important; max-height:none !important; overflow-y:auto !important; overflow-x:hidden !important;">
-
-                <form id="formCajaFactura" autocomplete="off">
-                    <div class="row mb-3">
-
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="small mb-1">Estado</label>
-                            <select id="estado_caja_factura" name="estado_caja_factura" class="form-control">
-                                <option value="0">Todas</option>
-                                <option value="1">Activas</option>
-                                <option value="2">Cerradas</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="small mb-1">Fecha Inicial</label>
-                            <input type="date" class="form-control" id="fecha_caja_factura_i" name="fecha_caja_factura_i" value="<?php echo date('Y-m-d'); ?>">
-                        </div>
-
-                        <div class="col-md-3 col-sm-6 mb-2">
-                            <label class="small mb-1">Fecha Final</label>
-                            <input type="date" class="form-control" id="fecha_caja_factura_f" name="fecha_caja_factura_f" value="<?php echo date('Y-m-d'); ?>">
-                        </div>
-
-                        <div class="col-md-3 col-sm-6 mb-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary mr-2">
-                                <i class="fas fa-filter"></i> Filtrar
-                            </button>
-
-                            <button type="button" class="btn btn-secondary" id="btnActualizarCajaFactura">
-                                <i class="fas fa-sync-alt"></i> Actualizar
-                            </button>
-                        </div>
-
-                    </div>
-                </form>
-
-                <div class="table-responsive">
-                    <table id="dataTableCajaFactura" class="table table-striped table-hover table-condensed" style="width:100%">
-                    </table>
-                </div>
-
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal">
-                    <i class="fas fa-times"></i> Cerrar
-                </button>
-            </div>
-
+<div class="modal fade izzy-modal-consulta-facturacion fm-modal" id="modalCajaFactura" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header fm-modal-header">
+        <div>
+          <h4 class="modal-title mb-0"><i class="fas fa-cash-register mr-1"></i>Caja desde Facturación</h4>
+          <small>Consulta de caja, ventas, retiros, neto y operaciones disponibles.</small>
         </div>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body fm-modal-body">
+        <form class="FormularioAjax fm-form" id="formCajaFactura">
+          
+<div class="fm-section-card fm-filter-card mb-3">
+  <div class="fm-section-header">
+    <div>
+      <h6 class="mb-0"><i class="fas fa-filter mr-1"></i>Filtros de caja</h6>
+      <small>Use los criterios necesarios y aplique la búsqueda.</small>
     </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm fm-toggle-filter" data-target="#cajaFacturaFiltrosContenido" aria-expanded="true">
+      <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+    </button>
+  </div>
+  <div id="cajaFacturaFiltrosContenido" class="fm-section-body">
+    
+<div class="fm-filter-row">
+  <div class="fm-filter-field"><label>Estado</label><select id="estado_caja_factura" name="estado_caja_factura" class="form-control"><option value="0">Todas</option><option value="1">Activas</option><option value="2">Cerradas</option></select></div>
+  <div class="fm-filter-field"><label>Fecha Inicial</label><input type="date" class="form-control" id="fecha_caja_factura_i" name="fecha_caja_factura_i" value="<?php echo date('Y-m-d'); ?>"></div>
+  <div class="fm-filter-field"><label>Fecha Final</label><input type="date" class="form-control" id="fecha_caja_factura_f" name="fecha_caja_factura_f" value="<?php echo date('Y-m-d'); ?>"></div>
+  <div class="fm-filter-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-filter mr-1"></i>Filtrar</button></div>
+</div>
+  </div>
+</div>
+          <div class="fm-directory-card">
+            
+<div class="fm-list-toolbar">
+  <div class="fm-toolbar-left"><button type="button" id="btnActualizarCajaFactura" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnExcelCajaFacturaFm" class="btn table_reportes btn-success ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-excel mr-1"></i>Excel</button><button type="button" id="btnPdfCajaFacturaFm" class="btn table_reportes btn-danger ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-pdf mr-1"></i>PDF</button></div>
+  <div class="fm-toolbar-right">
+    <label class="fm-page-size">Mostrar
+      <select id="cajaFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+        <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
+      </select>
+      registros
+    </label>
+    <div class="btn-group btn-group-sm fm-view-switch" role="group" aria-label="Tipo de vista">
+      <button type="button" class="btn btn-outline-secondary fm-view-btn active" data-list="cajaFactura" data-view="detalle" title="Vista detalle"><i class="fas fa-list"></i></button>
+      <button type="button" class="btn btn-outline-secondary fm-view-btn" data-list="cajaFactura" data-view="miniatura" title="Vista miniatura"><i class="fas fa-th-large"></i></button>
+    </div>
+    <div class="fm-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="search" id="cajaFacturaSearch" class="form-control form-control-sm" placeholder="Buscar..." autocomplete="off">
+      <button type="button" class="fm-search-clear" data-list="cajaFactura" title="Limpiar búsqueda"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+</div>
+<div id="dataTableCajaFactura" class="fm-listado" data-list="cajaFactura"></div>
+<div class="fm-list-footer">
+  <span id="cajaFacturaInfo" class="fm-list-info">0 registros</span>
+  <div id="cajaFacturaPaginacion" class="fm-pagination"></div>
+</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 <!-- =========================================================
      FIN MODAL - CAJA DESDE FACTURACIÓN

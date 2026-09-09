@@ -1,455 +1,298 @@
 <script>
-//reporteCompras.php    
+// reporteCompras.php
+// IZZY | Reporte de Compras - DIV / KPI / Excel / PDF
+
 $(() => {
     getReporteCompras();
-    listar_reporte_compras();
-    $('#form_main_compras #tipo_compras_reporte').val(1);
-    $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
 
-    $('#form_main_compras #search').on("click", function(e) {
+    $('#form_main_compras #tipo_compras_reporte').val(1);
+    try {
+        $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+    } catch (e) {}
+
+    $('#form_main_compras').off('submit.reporteCompras');
+    $('#form_main_compras').on('submit.reporteCompras', function(e) {
         e.preventDefault();
         listar_reporte_compras();
     });
 
-    // Evento para el botón de Limpiar (reset)
-    $('#form_main_compras').on('reset', function() {
-        // Limpia y refresca los selects
-        $(this).find('.selectpicker')  // Usa `this` para referenciar el formulario actual
-            .val('')
-            .selectpicker('refresh');
+    $('#form_main_compras').off('reset.reporteCompras');
+    $('#form_main_compras').on('reset.reporteCompras', function() {
+        var $form = $(this);
 
-			listar_reporte_compras();
-    });		   
-});
+        setTimeout(function() {
+            try {
+                $form.find('.selectpicker').selectpicker('refresh');
+            } catch (e) {}
 
-/* =========================================================
-   HEADER Y FOOTER DINÁMICO - REPORTE DE COMPRAS
-   ========================================================= */
-   function construirHeaderFooterDataTablaReporteCompras() {
-    var $tabla = $("#dataTablaReporteCompras");
+            $('#form_main_compras #tipo_compras_reporte').val(1);
 
-    $tabla.empty();
+            try {
+                $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+            } catch (e) {}
 
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Acciones</th>' +
-                '<th>Fecha</th>' +
-                '<th>Tipo</th>' +
-                '<th>Cuenta</th>' +
-                '<th>Proveedor</th>' +
-                '<th>Número</th>' +
-                '<th>SubTotal</th>' +
-                '<th>ISV</th>' +
-                '<th>Descuento</th>' +
-                '<th>Total</th>' +
-            '</tr>' +
-        '</thead>' +
-        '<tfoot class="bg-secondary">' +
-            '<tr>' +
-                '<td colspan="6">Total</td>' +
-                '<td id="subtotal-i"></td>' +
-                '<td id="impuesto-i"></td>' +
-                '<td id="descuento-i"></td>' +
-                '<td id="total-footer-ingreso"></td>' +
-            '</tr>' +
-        '</tfoot>'
-    );
-}
-
-/* =========================================================
-   LISTADO - REPORTE DE COMPRAS
-   ========================================================= */
-//INICIO REPORTE DE COMPRAS
-var listar_reporte_compras = function() {
-    var tipo_compra_reporte = 1;
-
-    if (
-        $("#form_main_compras #tipo_compras_reporte").val() == null ||
-        $("#form_main_compras #tipo_compras_reporte").val() == ""
-    ) {
-        tipo_compra_reporte = 1;
-    } else {
-        tipo_compra_reporte = $("#form_main_compras #tipo_compras_reporte").val();
-    }
-
-    var fechai = $("#form_main_compras #fechai").val();
-    var fechaf = $("#form_main_compras #fechaf").val();
-
-    if ($.fn.DataTable.isDataTable("#dataTablaReporteCompras")) {
-        $("#dataTablaReporteCompras").DataTable().clear().destroy();
-    }
-
-    construirHeaderFooterDataTablaReporteCompras();
-
-    var table_reporteCompras = $("#dataTablaReporteCompras").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableReporteCompras.php",
-            "data": {
-                "tipo_compra_reporte": tipo_compra_reporte,
-                "fechai": fechai,
-                "fechaf": fechaf
-            }
-        },
-        "columns": [
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
-
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
-
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
-
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item table_reportes print_compras ocultar">' +
-                                    '<span class="accion-icon accion-icon-success">' +
-                                        '<i class="fas fa-file-download"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Factura</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar cancelar_compras ocultar">' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-ban"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Anular</span>' +
-                                '</button>' +
-
-                            '</div>' +
-
-                        '</div>';
-                }
-            },
-            {
-                "data": "fecha"
-            },
-            {
-                "data": "tipo_documento",
-                "render": function(data, type, row) {
-                    if (type === 'display') {
-                        var icon = data === 'Crédito'
-                            ? '<i class="fas fa-clock mr-1"></i>'
-                            : '<i class="fas fa-check-circle mr-1"></i>';
-
-                        var badgeClass = data === 'Crédito'
-                            ? 'badge badge-pill badge-warning'
-                            : 'badge badge-pill badge-success';
-
-                        return '<span class="' + badgeClass + '" style="font-size:0.85rem; padding:0.45em 0.7em; font-weight:500;">' +
-                            icon +
-                            data +
-                        '</span>';
-                    }
-
-                    return data;
-                }
-            },
-            {
-                "data": "cuenta"
-            },
-            {
-                "data": "proveedor"
-            },
-            {
-                "data": "numero",
-                "render": function(data, type, row) {
-                    if (type === 'sort') {
-                        return parseInt(row.numero_ordenamiento);
-                    }
-
-                    return data;
-                }
-            },
-            {
-                "data": "subtotal",
-                render: function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            },
-            {
-                "data": "isv",
-                render: function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            },
-            {
-                "data": "descuento",
-                render: function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            },
-            {
-                "data": "total",
-                render: function(data, type) {
-                    var valor = parseFloat(data || 0);
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(valor);
-
-                    if (type === 'display') {
-                        var color = valor < 0 ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '; font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                            number +
-                        '</span>';
-                    }
-
-                    return valor;
-                }
-            }
-        ],
-        "order": [[5, "desc"]],
-        "orderFixed": {
-            "pre": [[5, "desc"]]
-        },
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            {
-                width: "10%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "9%",
-                targets: 1
-            },
-            {
-                width: "9%",
-                targets: 2,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "12%",
-                targets: 3
-            },
-            {
-                width: "15%",
-                targets: 4
-            },
-            {
-                width: "12%",
-                targets: 5,
-                className: "text-center text-nowrap"
-            },
-            {
-                width: "11%",
-                targets: 6,
-                className: "text-right text-nowrap"
-            },
-            {
-                width: "10%",
-                targets: 7,
-                className: "text-right text-nowrap"
-            },
-            {
-                width: "10%",
-                targets: 8,
-                className: "text-right text-nowrap"
-            },
-            {
-                width: "12%",
-                targets: 9,
-                className: "text-right text-nowrap"
-            }
-        ],
-        "footerCallback": function(row, data, start, end, display) {
-            var api = this.api();
-
-            function formatNumber(number) {
-                number = parseFloat(number || 0);
-
-                return 'L ' + number.toLocaleString('es-HN', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
-            }
-
-            var subtotal = api.column(6, { page: 'current' }).data().reduce(function(a, b) {
-                return a + (parseFloat(b) || 0);
-            }, 0);
-
-            var isv = api.column(7, { page: 'current' }).data().reduce(function(a, b) {
-                return a + (parseFloat(b) || 0);
-            }, 0);
-
-            var descuento = api.column(8, { page: 'current' }).data().reduce(function(a, b) {
-                return a + (parseFloat(b) || 0);
-            }, 0);
-
-            var total = api.column(9, { page: 'current' }).data().reduce(function(a, b) {
-                return a + (parseFloat(b) || 0);
-            }, 0);
-
-            $('#subtotal-i').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatNumber(subtotal) +
-                '</span>'
-            );
-
-            $('#impuesto-i').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatNumber(isv) +
-                '</span>'
-            );
-
-            $('#descuento-i').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatNumber(descuento) +
-                '</span>'
-            );
-
-            $('#total-footer-ingreso').html(
-                '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
-                    formatNumber(total) +
-                '</span>'
-            );
-        },
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Reporte de Compras',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_reporte_compras();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                footer: true,
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte de Compras',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-                }
-            },
-            {
-                extend: 'pdf',
-                footer: true,
-                orientation: 'landscape',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                pageSize: 'LETTER',
-                title: 'Reporte de Compras',
-                messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
-                },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function(settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-        }
+            listar_reporte_compras();
+        }, 100);
     });
 
-    table_reporteCompras.search('').draw();
-    $('#buscar').focus();
+    $('#rcmpBtnActualizar').off('click.rcmp').on('click.rcmp', listar_reporte_compras);
 
-    view_reporteCompras_dataTable("#dataTablaReporteCompras tbody", table_reporteCompras);
-    view_anularCompras_dataTable("#dataTablaReporteCompras tbody", table_reporteCompras);
+    $('#rcmpPageSize').off('change.rcmp').on('change.rcmp', function() {
+        RCMP.pageSize = parseInt(this.value, 10) || 10;
+        RCMP.page = 1;
+        renderReporteCompras();
+    });
+
+    $('#rcmpSearch').off('input.rcmp').on('input.rcmp', function() {
+        RCMP.search = this.value || '';
+        RCMP.page = 1;
+        renderReporteCompras();
+    });
+
+    $('#rcmpSearchClear').off('click.rcmp').on('click.rcmp', function() {
+        $('#rcmpSearch').val('').focus();
+        RCMP.search = '';
+        RCMP.page = 1;
+        renderReporteCompras();
+    });
+
+    $('[data-rcmp-view]').off('click.rcmp').on('click.rcmp', function() {
+        $('[data-rcmp-view]').removeClass('active');
+        $(this).addClass('active');
+
+        RCMP.view = $(this).attr('data-rcmp-view') === 'miniatura'
+            ? 'miniatura'
+            : 'detalle';
+
+        RCMP.page = 1;
+        renderReporteCompras();
+    });
+
+    $('#rcmpBtnExcel').off('click.rcmp').on('click.rcmp', exportarReporteComprasExcel);
+    $('#rcmpBtnPdf').off('click.rcmp').on('click.rcmp', exportarReporteComprasPdf);
+
+    $(document)
+        .off('click.rcmpToggle', '.rv-toggle-section')
+        .on('click.rcmpToggle', '.rv-toggle-section', function() {
+            var $button = $(this);
+            var $target = $($button.attr('data-target'));
+
+            if (!$target.length) return;
+
+            var ocultar = $target.is(':visible');
+
+            $target.stop(true, true).slideToggle(160);
+
+            $button.find('span').text(ocultar ? 'Mostrar' : 'Ocultar');
+            $button.find('i')
+                .toggleClass('fa-chevron-up', !ocultar)
+                .toggleClass('fa-chevron-down', ocultar);
+        });
+
+    $(document)
+        .off('click.rcmpAction', '.rcmp-action')
+        .on('click.rcmpAction', '.rcmp-action', function(e) {
+            e.preventDefault();
+
+            var index = parseInt($(this).attr('data-index'), 10);
+            var action = $(this).attr('data-action');
+            var row = RCMP.filtered[index];
+
+            if (!row) {
+                showNotify('error', 'Error', 'No se pudo obtener la compra seleccionada.');
+                return false;
+            }
+
+            ejecutarAccionReporteCompra(action, row);
+            return false;
+        });
+
+    listar_reporte_compras();
+});
+
+
+/* =========================================================
+   ESTADO / HELPERS
+   ========================================================= */
+
+var RCMP = {
+    rows: [],
+    filtered: [],
+    page: 1,
+    pageSize: 10,
+    view: 'detalle',
+    search: ''
 };
 
-var view_anularCompras_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.cancelar_compras");
-    $(tbody).on("click", "button.cancelar_compras", function (e) {
-        e.preventDefault();
+function rcmpNum(value) {
+    if (value === null || value === undefined || value === '') {
+        return 0;
+    }
 
-        var data = table.row($(this).parents("tr")).data();
+    value = String(value)
+        .replace(/<[^>]*>/g, '')
+        .replace(/L\./g, '')
+        .replace(/L/g, '')
+        .replace(/,/g, '')
+        .trim();
 
-        if (!data || !data.compras_id) {
-            showNotify('error', 'Error', 'No se pudo obtener la compra seleccionada');
-            return false;
+    var number = parseFloat(value);
+    return isNaN(number) ? 0 : number;
+}
+
+function rcmpMoney(value) {
+    return 'L. ' + rcmpNum(value).toLocaleString('es-HN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function rcmpEsc(value) {
+    return $('<div>').text(
+        value === null || value === undefined ? '' : String(value)
+    ).html();
+}
+
+function rcmpRows(response) {
+    if (typeof response === 'string') {
+        try {
+            response = JSON.parse(response);
+        } catch (e) {
+            return [];
         }
+    }
 
+    if (Array.isArray(response)) return response;
+    if (response && Array.isArray(response.data)) return response.data;
+    if (response && Array.isArray(response.aaData)) return response.aaData;
+
+    return [];
+}
+
+function rcmpSearchText(row) {
+    try {
+        return JSON.stringify(row || {}).toLowerCase();
+    } catch (e) {
+        return '';
+    }
+}
+
+function rcmpFilter() {
+    var q = String(RCMP.search || '').trim().toLowerCase();
+
+    RCMP.filtered = !q
+        ? RCMP.rows.slice()
+        : RCMP.rows.filter(function(row) {
+            return rcmpSearchText(row).indexOf(q) !== -1;
+        });
+
+    var pages = Math.max(1, Math.ceil(RCMP.filtered.length / RCMP.pageSize));
+
+    if (RCMP.page > pages) RCMP.page = pages;
+    if (RCMP.page < 1) RCMP.page = 1;
+}
+
+function rcmpTotals(rows) {
+    return rows.reduce(function(acc, row) {
+        acc.subtotal += rcmpNum(row.subtotal);
+        acc.isv += rcmpNum(row.isv);
+        acc.descuento += rcmpNum(row.descuento);
+        acc.total += rcmpNum(row.total);
+        return acc;
+    }, {
+        subtotal: 0,
+        isv: 0,
+        descuento: 0,
+        total: 0
+    });
+}
+
+function rcmpTypeBadge(row) {
+    var text = row.tipo_documento || '';
+    var credit = text === 'Crédito';
+
+    return '<span class="badge badge-pill ' + (credit ? 'badge-warning' : 'badge-success') + '">' +
+        '<i class="fas ' + (credit ? 'fa-clock' : 'fa-check-circle') + ' mr-1"></i>' +
+        rcmpEsc(text) +
+    '</span>';
+}
+
+function rcmpMiniField(label, value) {
+    return '' +
+        '<div class="rv-mini-field">' +
+            '<span>' + rcmpEsc(label) + '</span>' +
+            '<strong>' + value + '</strong>' +
+        '</div>';
+}
+
+function rcmpEmpty() {
+    return '' +
+        '<div class="rv-empty">' +
+            '<i class="fas fa-inbox"></i>' +
+            '<strong>Sin registros</strong>' +
+            '<span>No hay información que coincida con los criterios actuales.</span>' +
+        '</div>';
+}
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+function rcmpDropdown(row, index) {
+    return '' +
+        '<div class="dropdown acciones-dropdown">' +
+            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
+                '<i class="fas fa-cog"></i>' +
+                '<span>Acciones</span>' +
+            '</button>' +
+
+            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+                '<button type="button" class="dropdown-item accion-item table_reportes rcmp-action" data-action="print" data-index="' + index + '">' +
+                    '<span class="accion-icon accion-icon-success"><i class="fas fa-file-download"></i></span>' +
+                    '<span class="accion-label">Factura</span>' +
+                '</button>' +
+
+                '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar rcmp-action" data-action="anular" data-index="' + index + '">' +
+                    '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-ban"></i></span>' +
+                    '<span class="accion-label">Anular</span>' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+}
+
+function ejecutarAccionReporteCompra(action, data) {
+    if (!data || !data.compras_id) {
+        showNotify('error', 'Error', 'No se pudo obtener la compra seleccionada.');
+        return;
+    }
+
+    if (action === 'print') {
+        printPurchase(data.compras_id);
+        return;
+    }
+
+    if (action === 'anular') {
         if (typeof validarAdminSistema !== 'function') {
-            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
-            return false;
+            showNotify(
+                'error',
+                'Validación no disponible',
+                'No está cargado el JS de autenticación administrativa.'
+            );
+            return;
         }
 
         var compraId = data.compras_id;
-        var numeroCompra = data.number || data.numero || data.compra || data.numero_compra || data.factura_compra || data.compras_id;
+        var numeroCompra =
+            data.number ||
+            data.numero ||
+            data.compra ||
+            data.numero_compra ||
+            data.factura_compra ||
+            data.compras_id;
 
-        validarAdminSistema(function (permitido) {
-            if (permitido !== true) {
-                return;
-            }
+        validarAdminSistema(function(permitido) {
+            if (permitido !== true) return;
 
             anularCompra(compraId);
         }, {
@@ -460,37 +303,306 @@ var view_anularCompras_dataTable = function (tbody, table) {
             referencia_texto: numeroCompra,
             motivo: 'Validación requerida para anular compra'
         });
+    }
+}
 
-        return false;
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+
+function renderReporteCompras() {
+    rcmpFilter();
+
+    var start = (RCMP.page - 1) * RCMP.pageSize;
+    var pageRows = RCMP.filtered.slice(start, start + RCMP.pageSize);
+
+    var grid =
+        '118px 90px 95px minmax(110px,.9fr) minmax(170px,1.45fr) ' +
+        'minmax(130px,1.05fr) 100px 92px 100px 115px';
+
+    var html = '';
+
+    if (!pageRows.length) {
+        html = rcmpEmpty();
+    } else if (RCMP.view === 'miniatura') {
+        html = pageRows.map(function(row, idx) {
+            var index = start + idx;
+
+            return '' +
+                '<div class="rv-mini-card">' +
+                    '<div class="rv-mini-head">' +
+                        '<div>' +
+                            '<div class="rv-mini-title">' + rcmpEsc(row.proveedor || 'Sin proveedor') + '</div>' +
+                            '<span class="rv-mini-sub">' +
+                                rcmpEsc(row.numero || '') + ' • ' + rcmpEsc(row.fecha || '') +
+                            '</span>' +
+                        '</div>' +
+                        rcmpDropdown(row, index) +
+                    '</div>' +
+
+                    '<div class="rv-mini-body">' +
+                        rcmpMiniField('Tipo', rcmpTypeBadge(row)) +
+                        rcmpMiniField('Cuenta', rcmpEsc(row.cuenta || '')) +
+                        rcmpMiniField('Subtotal', rcmpMoney(row.subtotal)) +
+                        rcmpMiniField('ISV', rcmpMoney(row.isv)) +
+                        rcmpMiniField('Descuento', rcmpMoney(row.descuento)) +
+                        rcmpMiniField('Total', '<span class="rcmp-mini-total">' + rcmpMoney(row.total) + '</span>') +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    } else {
+        var headers = [
+            'Acciones',
+            'Fecha',
+            'Tipo',
+            'Cuenta',
+            'Proveedor',
+            'Número',
+            'Subtotal',
+            'ISV',
+            'Descuento',
+            'Total'
+        ];
+
+        html =
+            '<div class="rv-detail-header" style="grid-template-columns:' + grid + '">' +
+                headers.map(function(header) {
+                    return '<div class="rv-cell">' + header + '</div>';
+                }).join('') +
+            '</div>';
+
+        html += pageRows.map(function(row, idx) {
+            var index = start + idx;
+
+            return '' +
+                '<div class="rv-detail-row" style="grid-template-columns:' + grid + '">' +
+                    '<div class="rv-cell rv-actions-cell" data-label="Acciones">' +
+                        rcmpDropdown(row, index) +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Fecha">' +
+                        rcmpEsc(row.fecha || '') +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Tipo">' +
+                        rcmpTypeBadge(row) +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Cuenta">' +
+                        rcmpEsc(row.cuenta || '') +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Proveedor">' +
+                        '<strong>' + rcmpEsc(row.proveedor || '') + '</strong>' +
+                    '</div>' +
+
+                    '<div class="rv-cell" data-label="Número">' +
+                        rcmpEsc(row.numero || '') +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="Subtotal">' +
+                        rcmpMoney(row.subtotal) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="ISV">' +
+                        rcmpMoney(row.isv) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money" data-label="Descuento">' +
+                        rcmpMoney(row.descuento) +
+                    '</div>' +
+
+                    '<div class="rv-cell rv-money rcmp-total-cell" data-label="Total">' +
+                        '<strong>' + rcmpMoney(row.total) + '</strong>' +
+                    '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    $('#rcmpListado')
+        .toggleClass('rv-mini', RCMP.view === 'miniatura')
+        .html(html);
+
+    var totals = rcmpTotals(RCMP.filtered);
+    var promedio = RCMP.filtered.length
+        ? totals.total / RCMP.filtered.length
+        : 0;
+
+    $('#rcmpKpiRegistros').text(RCMP.filtered.length);
+    $('#rcmpKpiSubtotal').text(rcmpMoney(totals.subtotal));
+    $('#rcmpKpiIsv').text(rcmpMoney(totals.isv));
+    $('#rcmpKpiDescuento').text(rcmpMoney(totals.descuento));
+    $('#rcmpKpiTotal').text(rcmpMoney(totals.total));
+    $('#rcmpKpiPromedio').text(rcmpMoney(promedio));
+
+    renderTotalesReporteCompras(totals);
+
+    $('#rcmpInfo').text(
+        RCMP.filtered.length
+            ? 'Mostrando ' +
+              (start + 1) +
+              ' a ' +
+              Math.min(start + pageRows.length, RCMP.filtered.length) +
+              ' de ' +
+              RCMP.filtered.length +
+              ' registros'
+            : '0 registros'
+    );
+
+    renderPaginacionReporteCompras();
+
+    try {
+        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+    } catch (e) {}
+
+    if (typeof cerrarDropdownAcciones === 'function') {
+        cerrarDropdownAcciones();
+    }
+}
+
+function renderTotalesReporteCompras(totals) {
+    if (RCMP.view === 'miniatura') {
+        $('#rcmpTotales').html(
+            '<div class="rv-total-mini">' +
+                '<div class="rv-total-chip"><span>Subtotal</span><strong>' + rcmpMoney(totals.subtotal) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>ISV</span><strong>' + rcmpMoney(totals.isv) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>Descuento</span><strong>' + rcmpMoney(totals.descuento) + '</strong></div>' +
+                '<div class="rv-total-chip"><span>Total</span><strong>' + rcmpMoney(totals.total) + '</strong></div>' +
+            '</div>'
+        );
+        return;
+    }
+
+    var grid =
+        '118px 90px 95px minmax(110px,.9fr) minmax(170px,1.45fr) ' +
+        'minmax(130px,1.05fr) 100px 92px 100px 115px';
+
+    $('#rcmpTotales').html(
+        '<div class="rv-total-detail rcmp-total-main-grid" style="grid-template-columns:' + grid + '">' +
+            '<div class="rcmp-total-main-label">TOTALES GENERALES</div>' +
+            '<div class="rv-cell rv-money rcmp-total-value">' + rcmpMoney(totals.subtotal) + '</div>' +
+            '<div class="rv-cell rv-money rcmp-total-value">' + rcmpMoney(totals.isv) + '</div>' +
+            '<div class="rv-cell rv-money rcmp-total-value">' + rcmpMoney(totals.descuento) + '</div>' +
+            '<div class="rv-cell rv-money rcmp-total-value rcmp-total-highlight">' + rcmpMoney(totals.total) + '</div>' +
+        '</div>'
+    );
+}
+
+function renderPaginacionReporteCompras() {
+    var pages = Math.max(1, Math.ceil(RCMP.filtered.length / RCMP.pageSize));
+    var html = '';
+
+    function addButton(label, page, disabled, active) {
+        html +=
+            '<button type="button" data-page="' + page + '" ' +
+            (disabled ? 'disabled ' : '') +
+            'class="' + (active ? 'active' : '') + '">' +
+                label +
+            '</button>';
+    }
+
+    addButton('<i class="fas fa-angle-double-left"></i> Inicio', 1, RCMP.page === 1, false);
+    addButton('<i class="fas fa-angle-left"></i> Anterior', RCMP.page - 1, RCMP.page === 1, false);
+
+    var from = Math.max(1, RCMP.page - 2);
+    var to = Math.min(pages, from + 4);
+
+    from = Math.max(1, to - 4);
+
+    for (var page = from; page <= to; page++) {
+        addButton(String(page), page, false, page === RCMP.page);
+    }
+
+    addButton('Siguiente <i class="fas fa-angle-right"></i>', RCMP.page + 1, RCMP.page === pages, false);
+    addButton('Final <i class="fas fa-angle-double-right"></i>', pages, RCMP.page === pages, false);
+
+    $('#rcmpPagination')
+        .html(html)
+        .off('click.rcmp', 'button[data-page]')
+        .on('click.rcmp', 'button[data-page]', function() {
+            if (this.disabled || $(this).hasClass('active')) return;
+
+            RCMP.page = parseInt($(this).attr('data-page'), 10) || 1;
+            renderReporteCompras();
+        });
+}
+
+
+/* =========================================================
+   AJAX
+   ========================================================= */
+
+var listar_reporte_compras = function() {
+    var tipo_compra_reporte = $('#form_main_compras #tipo_compras_reporte').val();
+
+    if (tipo_compra_reporte === null || tipo_compra_reporte === '') {
+        tipo_compra_reporte = 1;
+    }
+
+    var fechai = $('#form_main_compras #fechai').val();
+    var fechaf = $('#form_main_compras #fechaf').val();
+
+    $('#rcmpListado')
+        .removeClass('rv-mini')
+        .html(
+            '<div class="rv-loading">' +
+                '<i class="fas fa-spinner fa-spin mr-1"></i>' +
+                'Cargando reporte...' +
+            '</div>'
+        );
+
+    $.ajax({
+        method: 'POST',
+        url: '<?php echo SERVERURL;?>core/llenarDataTableReporteCompras.php',
+        data: {
+            tipo_compra_reporte: tipo_compra_reporte,
+            fechai: fechai,
+            fechaf: fechaf
+        },
+        dataType: 'json'
+    })
+    .done(function(response) {
+        RCMP.rows = rcmpRows(response);
+        RCMP.page = 1;
+        renderReporteCompras();
+    })
+    .fail(function(xhr) {
+        RCMP.rows = [];
+        RCMP.filtered = [];
+        renderReporteCompras();
+
+        showNotify(
+            'error',
+            'Error',
+            xhr.responseText || 'No fue posible cargar el reporte de compras.'
+        );
     });
 };
 
-var view_reporteCompras_dataTable = function(tbody, table) {
-    $(tbody).off("click", "button.print_compras");
-    $(tbody).on("click", "button.print_compras", function(e) {
-        e.preventDefault();
-        var data = table.row($(this).parents("tr")).data();
-        printPurchase(data.compras_id);
-    });
-}
+
+/* =========================================================
+   ANULAR COMPRA
+   ========================================================= */
 
 function anularCompra(compras_id) {
     swal({
-        title: "¿Estas seguro?",
-        text: "¿Desea anular la factura de compra: # " + getNumeroCompra(compras_id) + "?",
-        icon: "warning",
+        title: '¿Está seguro?',
+        text: '¿Desea anular la factura de compra: # ' + getNumeroCompra(compras_id) + '?',
+        icon: 'warning',
         buttons: {
             cancel: {
-                text: "Cancelar",
+                text: 'Cancelar',
                 visible: true
             },
             confirm: {
-                text: "¡Si, anular la factura de compra!",
+                text: '¡Sí, anular la factura de compra!',
+                closeModal: false
             }
         },
         dangerMode: true,
-        closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-        closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
+        closeOnEsc: false,
+        closeOnClickOutside: false
     }).then((willConfirm) => {
         if (willConfirm === true) {
             anular(compras_id);
@@ -504,34 +616,845 @@ function anular(compras_id) {
     $.ajax({
         type: 'POST',
         url: url,
-        async: false,
-        data: 'compras_id=' + compras_id,
+        async: true,
+        data: {
+            compras_id: compras_id
+        },
         success: function(data) {
+            swal.close();
+
             if (data == 1) {
-                swal.close(); // Cierra el modal de SweetAlert
-                showNotify('success', 'Success', 'La factura de compra ha sido anulada con éxito');
+                showNotify(
+                    'success',
+                    'Success',
+                    'La factura de compra ha sido anulada con éxito'
+                );
+
                 listar_reporte_compras();
             } else {
-                swal.close(); // Cierra el modal de SweetAlert
-                showNotify('error', 'Error', 'La factura de compra no se pudo anular');
+                showNotify(
+                    'error',
+                    'Error',
+                    'La factura de compra no se pudo anular'
+                );
             }
+        },
+        error: function(xhr) {
+            swal.close();
+
+            showNotify(
+                'error',
+                'Error',
+                xhr.responseText || 'Hubo un problema al anular la compra'
+            );
         }
     });
 }
+
+
+/* =========================================================
+   EXCEL XLSX
+   ========================================================= */
+
+function rcmpXml(value) {
+    return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+function rcmpCol(index) {
+    var n = index + 1;
+    var result = '';
+
+    while (n > 0) {
+        var mod = (n - 1) % 26;
+        result = String.fromCharCode(65 + mod) + result;
+        n = Math.floor((n - 1) / 26);
+    }
+
+    return result;
+}
+
+function rcmpCell(ref, value, style, numeric) {
+    if (numeric) {
+        var number = Number(value);
+
+        if (!isNaN(number)) {
+            return '<c r="' + ref + '" s="' + style + '"><v>' + number + '</v></c>';
+        }
+    }
+
+    return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' +
+        rcmpXml(value) +
+    '</t></is></c>';
+}
+
+function rcmpDownload(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+
+    a.href = url;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(function() {
+        URL.revokeObjectURL(url);
+    }, 1000);
+}
+
+function exportarReporteComprasExcel() {
+    var rows = RCMP.filtered.map(function(row) {
+        return [
+            row.fecha || '',
+            row.tipo_documento || '',
+            row.cuenta || '',
+            row.proveedor || '',
+            row.numero || '',
+            rcmpNum(row.subtotal),
+            rcmpNum(row.isv),
+            rcmpNum(row.descuento),
+            rcmpNum(row.total)
+        ];
+    });
+
+    if (!rows.length) {
+        showNotify('warning', 'Sin datos', 'No hay registros para exportar.');
+        return;
+    }
+
+    if (typeof JSZip === 'undefined') {
+        showNotify('error', 'Excel no disponible', 'No se encontró JSZip.');
+        return;
+    }
+
+    var headers = [
+        'Fecha',
+        'Tipo',
+        'Cuenta',
+        'Proveedor',
+        'Número',
+        'Subtotal',
+        'ISV',
+        'Descuento',
+        'Total'
+    ];
+
+    var totalCols = [5, 6, 7, 8];
+    var sums = {};
+
+    totalCols.forEach(function(col) {
+        sums[col] = rows.reduce(function(acc, row) {
+            return acc + rcmpNum(row[col]);
+        }, 0);
+    });
+
+    var headerRow = 7;
+    var firstDataRow = 8;
+    var totalRow = firstDataRow + rows.length;
+    var lastCol = rcmpCol(headers.length - 1);
+
+    var sheetRows = [];
+
+    sheetRows.push(
+        '<row r="1" ht="30" customHeight="1">' +
+            rcmpCell('A1', 'IZZY • REPORTE DE COMPRAS', 1, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="2" ht="20" customHeight="1">' +
+            rcmpCell(
+                'A2',
+                'Compras, impuestos, descuentos y total • Generado: ' +
+                new Date().toLocaleDateString('es-HN'),
+                2,
+                false
+            ) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="3" ht="18" customHeight="1">' +
+            rcmpCell('A3', 'REGISTROS', 6, false) +
+            rcmpCell('F3', 'TOTAL GENERAL', 6, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="4" ht="26" customHeight="1">' +
+            rcmpCell('A4', rows.length, 7, true) +
+            rcmpCell('F4', sums[8], 10, true) +
+        '</row>'
+    );
+
+    sheetRows.push('<row r="5"></row>');
+
+    sheetRows.push(
+        '<row r="6">' +
+            rcmpCell('A6', 'Detalle de registros filtrados', 8, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="7" ht="26" customHeight="1">' +
+            headers.map(function(header, index) {
+                return rcmpCell(rcmpCol(index) + '7', header, 3, false);
+            }).join('') +
+        '</row>'
+    );
+
+    rows.forEach(function(row, rowIndex) {
+        var r = firstDataRow + rowIndex;
+
+        sheetRows.push(
+            '<row r="' + r + '" ht="22" customHeight="1">' +
+                row.map(function(value, colIndex) {
+                    var numeric = totalCols.indexOf(colIndex) !== -1;
+
+                    return rcmpCell(
+                        rcmpCol(colIndex) + r,
+                        value,
+                        numeric ? 5 : 4,
+                        numeric
+                    );
+                }).join('') +
+            '</row>'
+        );
+    });
+
+    var totalCells =
+        rcmpCell('A' + totalRow, 'TOTALES GENERALES', 9, false);
+
+    totalCols.forEach(function(col) {
+        totalCells += rcmpCell(
+            rcmpCol(col) + totalRow,
+            sums[col],
+            10,
+            true
+        );
+    });
+
+    sheetRows.push(
+        '<row r="' + totalRow + '" ht="30" customHeight="1">' +
+            totalCells +
+        '</row>'
+    );
+
+    var widths = [13, 14, 18, 30, 20, 16, 14, 16, 17];
+
+    var cols = widths.map(function(width, index) {
+        return '<col min="' + (index + 1) +
+            '" max="' + (index + 1) +
+            '" width="' + width +
+            '" customWidth="1"/>';
+    }).join('');
+
+    var sheet =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:' + lastCol + totalRow + '"/>' +
+            '<sheetViews>' +
+                '<sheetView workbookViewId="0" showGridLines="0">' +
+                    '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                '</sheetView>' +
+            '</sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+            '<cols>' + cols + '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A7:' + lastCol + (headerRow + rows.length) + '"/>' +
+            '<mergeCells count="3">' +
+                '<mergeCell ref="A1:' + lastCol + '1"/>' +
+                '<mergeCell ref="A2:' + lastCol + '2"/>' +
+                '<mergeCell ref="A' + totalRow + ':E' + totalRow + '"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
+
+    var styles =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>' +
+            '<fonts count="8">' +
+                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="5">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border>' +
+                    '<left style="thin"><color rgb="FFDDE3EA"/></left>' +
+                    '<right style="thin"><color rgb="FFDDE3EA"/></right>' +
+                    '<top style="thin"><color rgb="FFDDE3EA"/></top>' +
+                    '<bottom style="thin"><color rgb="FFDDE3EA"/></bottom>' +
+                    '<diagonal/>' +
+                '</border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+            '<cellXfs count="11">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="7" fillId="0" borderId="0"/>' +
+                '<xf numFmtId="0" fontId="7" fillId="4" borderId="1"/>' +
+                '<xf numFmtId="164" fontId="7" fillId="4" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+
+    var workbook =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
+
+    var rels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+
+    var rootRels =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+    var types =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+    var zip = new JSZip();
+
+    zip.file('[Content_Types].xml', types);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbook);
+    zip.folder('xl').file('styles.xml', styles);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', rels);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheet);
+
+    var options = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
+
+    var promise =
+        typeof zip.generateAsync === 'function'
+            ? zip.generateAsync(options)
+            : Promise.resolve(zip.generate(options));
+
+    promise
+        .then(function(blob) {
+            rcmpDownload(
+                blob,
+                'Reporte_Compras_' + new Date().toISOString().slice(0, 10) + '.xlsx'
+            );
+        })
+        .catch(function(error) {
+            console.error(error);
+            showNotify('error', 'Excel', 'No se pudo generar el archivo Excel.');
+        });
+}
+
+
+/* =========================================================
+   PDF PREMIUM
+   ========================================================= */
+
+function rcmpGetLogo(callback) {
+    if (
+        typeof imagen !== 'undefined' &&
+        imagen &&
+        String(imagen).indexOf('data:image/') === 0
+    ) {
+        callback(imagen);
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '<?php echo SERVERURL;?>core/get_image.php',
+        dataType: 'text',
+        timeout: 10000
+    })
+    .done(function(src) {
+        src = String(src || '').trim();
+
+        if (!src) {
+            callback(null);
+            return;
+        }
+
+        if (src.indexOf('data:image/') === 0) {
+            callback(src);
+            return;
+        }
+
+        var image = new Image();
+        image.crossOrigin = 'Anonymous';
+
+        image.onload = function() {
+            try {
+                var canvas = document.createElement('canvas');
+
+                canvas.width = image.naturalWidth;
+                canvas.height = image.naturalHeight;
+
+                canvas.getContext('2d').drawImage(image, 0, 0);
+
+                callback(canvas.toDataURL('image/png'));
+            } catch (e) {
+                callback(null);
+            }
+        };
+
+        image.onerror = function() {
+            callback(null);
+        };
+
+        image.src = src;
+    })
+    .fail(function() {
+        callback(null);
+    });
+}
+
+function rcmpPdfLogoPlate(logoDataUrl) {
+    if (!logoDataUrl) {
+        return {
+            table: {
+                widths: ['*'],
+                body: [[{
+                    text: 'IZZY',
+                    fontSize: 16,
+                    bold: true,
+                    color: '#17324D',
+                    alignment: 'center',
+                    margin: [7, 8, 7, 8],
+                    fillColor: '#FFFFFF'
+                }]]
+            },
+            layout: {
+                hLineColor: function() { return '#DDE3EA'; },
+                vLineColor: function() { return '#DDE3EA'; },
+                hLineWidth: function() { return .5; },
+                vLineWidth: function() { return .5; }
+            }
+        };
+    }
+
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                image: logoDataUrl,
+                fit: [62, 36],
+                alignment: 'center',
+                margin: [7, 5, 7, 5],
+                fillColor: '#FFFFFF'
+            }]]
+        },
+        layout: {
+            hLineColor: function() { return '#DDE3EA'; },
+            vLineColor: function() { return '#DDE3EA'; },
+            hLineWidth: function() { return .5; },
+            vLineWidth: function() { return .5; }
+        }
+    };
+}
+
+function exportarReporteComprasPdf() {
+    if (!RCMP.filtered.length) {
+        showNotify('warning', 'Sin datos', 'No hay registros para exportar.');
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined') {
+        showNotify('error', 'PDF no disponible', 'No se encontró pdfMake.');
+        return;
+    }
+
+    var totals = rcmpTotals(RCMP.filtered);
+
+    var rows = RCMP.filtered.map(function(row) {
+        return [
+            row.fecha || '',
+            row.tipo_documento || '',
+            row.cuenta || '',
+            row.proveedor || '',
+            row.numero || '',
+            rcmpNum(row.subtotal),
+            rcmpNum(row.isv),
+            rcmpNum(row.descuento),
+            rcmpNum(row.total)
+        ];
+    });
+
+    var headers = [
+        'Fecha',
+        'Tipo',
+        'Cuenta',
+        'Proveedor',
+        'Número',
+        'Subtotal',
+        'ISV',
+        'Descuento',
+        'Total'
+    ];
+
+    var numeric = [5, 6, 7, 8];
+
+    rcmpGetLogo(function(logo) {
+        var body = [
+            headers.map(function(header) {
+                return {
+                    text: header,
+                    fillColor: '#17324D',
+                    color: '#FFFFFF',
+                    bold: true,
+                    fontSize: 7,
+                    alignment: 'center',
+                    margin: [2, 3, 2, 3]
+                };
+            })
+        ];
+
+        rows.forEach(function(row, rowIndex) {
+            body.push(
+                row.map(function(value, colIndex) {
+                    var money = numeric.indexOf(colIndex) !== -1;
+
+                    return {
+                        text: money ? rcmpMoney(value) : String(value || ''),
+                        fillColor: rowIndex % 2 ? '#F7F9FC' : '#FFFFFF',
+                        alignment: money ? 'right' : 'left',
+                        fontSize: 7,
+                        margin: [2, 3, 2, 3]
+                    };
+                })
+            );
+        });
+
+        body.push([
+            {
+                text: 'TOTALES GENERALES',
+                colSpan: 5,
+                bold: true,
+                fillColor: '#EAF4FC',
+                color: '#17324D',
+                fontSize: 7,
+                margin: [6, 5, 6, 5],
+                alignment: 'left'
+            },
+            {},
+            {},
+            {},
+            {},
+            {
+                text: rcmpMoney(totals.subtotal),
+                bold: true,
+                fillColor: '#EAF4FC',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            },
+            {
+                text: rcmpMoney(totals.isv),
+                bold: true,
+                fillColor: '#EAF4FC',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            },
+            {
+                text: rcmpMoney(totals.descuento),
+                bold: true,
+                fillColor: '#EAF4FC',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            },
+            {
+                text: rcmpMoney(totals.total),
+                bold: true,
+                fillColor: '#E8F7EF',
+                color: '#087F5B',
+                alignment: 'right',
+                margin: [3, 5, 3, 5]
+            }
+        ]);
+
+        var filters =
+            'Tipo: ' +
+            ($('#form_main_compras #tipo_compras_reporte option:selected').text() || 'Todos') +
+            ' | Fechas: ' +
+            ($('#form_main_compras #fechai').val() || '') +
+            ' a ' +
+            ($('#form_main_compras #fechaf').val() || '');
+
+        var doc = {
+            pageSize: 'LETTER',
+            pageOrientation: 'landscape',
+            pageMargins: [28, 28, 28, 34],
+
+            content: [
+                {
+                    table: {
+                        widths: [100, '*', 135],
+                        body: [[
+                            {
+                                fillColor: '#17324D',
+                                border: [false, false, false, false],
+                                margin: [10, 7, 4, 7],
+                                stack: [rcmpPdfLogoPlate(logo)]
+                            },
+                            {
+                                fillColor: '#17324D',
+                                border: [false, false, false, false],
+                                stack: [
+                                    {
+                                        text: 'REPORTE DE COMPRAS',
+                                        color: '#FFFFFF',
+                                        bold: true,
+                                        fontSize: 15
+                                    },
+                                    {
+                                        text: 'Compras, impuestos, descuentos y total',
+                                        color: '#D8E5F0',
+                                        fontSize: 7.5,
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [0, 10, 0, 10]
+                            },
+                            {
+                                fillColor: '#17324D',
+                                border: [false, false, false, false],
+                                stack: [
+                                    {
+                                        text: 'REPORTE EJECUTIVO',
+                                        color: '#72E2E5',
+                                        bold: true,
+                                        fontSize: 6.5,
+                                        alignment: 'right'
+                                    },
+                                    {
+                                        text: new Date().toLocaleDateString('es-HN'),
+                                        color: '#FFFFFF',
+                                        bold: true,
+                                        fontSize: 9,
+                                        alignment: 'right',
+                                        margin: [0, 3, 0, 0]
+                                    },
+                                    {
+                                        text: RCMP.filtered.length + ' registro(s) filtrado(s)',
+                                        color: '#D8E5F0',
+                                        fontSize: 6.5,
+                                        alignment: 'right',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [0, 9, 10, 9]
+                            }
+                        ]]
+                    },
+                    layout: 'noBorders',
+                    margin: [0, 0, 0, 10]
+                },
+
+                {
+                    table: {
+                        widths: ['*', '*', '*'],
+                        body: [[
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {
+                                        text: 'REGISTROS',
+                                        fontSize: 6.5,
+                                        bold: true,
+                                        color: '#6B778C'
+                                    },
+                                    {
+                                        text: String(RCMP.filtered.length),
+                                        fontSize: 12,
+                                        bold: true,
+                                        color: '#172B4D',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [8, 7, 8, 7]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {
+                                        text: 'TOTAL GENERAL',
+                                        fontSize: 6.5,
+                                        bold: true,
+                                        color: '#6B778C'
+                                    },
+                                    {
+                                        text: rcmpMoney(totals.total),
+                                        fontSize: 12,
+                                        bold: true,
+                                        color: '#087F5B',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [8, 7, 8, 7]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                stack: [
+                                    {
+                                        text: 'FILTROS',
+                                        fontSize: 6.5,
+                                        bold: true,
+                                        color: '#6B778C'
+                                    },
+                                    {
+                                        text: filters,
+                                        fontSize: 7,
+                                        color: '#42526E',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ],
+                                margin: [8, 7, 8, 7]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; }
+                    },
+                    margin: [0, 0, 0, 12]
+                },
+
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: [56, 55, 75, '*', 90, 62, 58, 62, 68],
+                        body: body
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; },
+                        hLineWidth: function() { return .55; },
+                        vLineWidth: function() { return .55; },
+                        paddingLeft: function() { return 4; },
+                        paddingRight: function() { return 4; },
+                        paddingTop: function() { return 5; },
+                        paddingBottom: function() { return 5; }
+                    }
+                }
+            ],
+
+            footer: function(currentPage, pageCount) {
+                return {
+                    margin: [28, 8, 28, 0],
+                    columns: [
+                        {
+                            text: 'IZZY • Reportes',
+                            fontSize: 7,
+                            color: '#7A869A'
+                        },
+                        {
+                            text: 'Página ' + currentPage + ' de ' + pageCount,
+                            fontSize: 7,
+                            color: '#7A869A',
+                            alignment: 'right'
+                        }
+                    ]
+                };
+            },
+
+            defaultStyle: {
+                fontSize: 7,
+                color: '#253858'
+            }
+        };
+
+        var pdf = pdfMake.createPdf(doc);
+        var filename =
+            'Reporte_Compras_' +
+            new Date().toISOString().slice(0, 10) +
+            '.pdf';
+
+        if (
+            typeof abrirModalPdfPublico === 'function' &&
+            typeof pdf.getDataUrl === 'function'
+        ) {
+            pdf.getDataUrl(function(url) {
+                abrirModalPdfPublico(
+                    url,
+                    'Reporte de Compras',
+                    filename
+                );
+            });
+        } else {
+            pdf.download(filename);
+        }
+    });
+}
+
+
+/* =========================================================
+   COMBO
+   ========================================================= */
 
 function getReporteCompras() {
     var url = '<?php echo SERVERURL;?>core/getTipoFacturaReporte.php';
 
     $.ajax({
-        type: "POST",
+        type: 'POST',
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_compras #tipo_compras_reporte').html("");
+            $('#form_main_compras #tipo_compras_reporte').html('');
             $('#form_main_compras #tipo_compras_reporte').html(data);
-            $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+
+            try {
+                $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+            } catch (e) {}
+        },
+        error: function() {
+            showNotify(
+                'error',
+                'Error',
+                'No se pudo cargar el tipo de factura'
+            );
         }
     });
 }
-//FIN REPORTE DE COMPRAS
+
+// FIN REPORTE DE COMPRAS
 </script>

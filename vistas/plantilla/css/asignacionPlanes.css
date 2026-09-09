@@ -3753,3 +3753,75 @@ body > .modal-backdrop.ap-pdf-backdrop {
 #modalAdministrarCliente .ap-user-access-summary i{color:#168fd0;}
 #modalAdministrarCliente .ap-user-access-summary b{color:#b7c1cc;font-weight:400;}
 #modalAdministrarCliente .ap-user-access-line{margin-top:5px;padding-top:5px;border-top:1px dashed #e0e7ee;}
+
+
+/* ============================================================
+   IZZY | ASIGNACIÓN DE PLANES - FIX RESPONSIVE MÓVIL
+   Elimina alturas/flex-basis que pueden dejar espacios vacíos.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .asignacion-toolbar,
+    .asignacion-toolbar-right {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .asignacion-toolbar-right {
+        width: 100% !important;
+        margin-left: 0 !important;
+        align-items: stretch !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .asignacion-search {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .asignacion-search .input-group,
+    .asignacion-search .input-group-text,
+    .asignacion-search .form-control {
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .asignacion-view-switch {
+        width: 100% !important;
+    }
+
+    .asignacion-view-btn {
+        flex: 1 1 50% !important;
+        min-width: 0 !important;
+    }
+
+    .asignacion-listado {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .asignacion-listado.vista-miniatura {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    .asignacion-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+}
+
+
+/* IZZY | MOVIL SOLO MINIATURA - ASIGNACION */
+@media (max-width: 767.98px) {
+    .asignacion-view-btn[data-view="detalle"] { display:none !important; }
+    .asignacion-view-btn[data-view="miniatura"] { flex:1 1 100% !important; width:100% !important; }
+}

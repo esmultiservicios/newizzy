@@ -1349,3 +1349,18 @@
         flex-wrap: wrap !important;
     }
 }
+
+
+/* IZZY | MOVIL SOLO MINIATURA - REPORTE VENTAS */
+@media (max-width: 767.98px) {
+    .rv-view-btn[data-view="detalle"],
+    [data-rv-detail-view="detalle"],
+    [data-rv-pay-view="detalle"] { display:none !important; }
+
+    .rv-view-btn[data-view="miniatura"],
+    [data-rv-detail-view="miniatura"],
+    [data-rv-pay-view="miniatura"] {
+        flex:1 1 100% !important;
+        width:100% !important;
+    }
+}

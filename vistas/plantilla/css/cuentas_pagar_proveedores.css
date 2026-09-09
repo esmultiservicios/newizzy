@@ -1678,3 +1678,95 @@
         flex: 0 0 auto !important;
     }
 }
+
+
+/* ============================================================
+   IZZY | CXP - FIX RESPONSIVE MÓVIL
+   Evita espacio muerto y compacta controles/listado.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    #cxpListadoSection .rv-list-toolbar,
+    #cxpListadoSection .rv-toolbar-right {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    #cxpListadoSection .rv-toolbar-right {
+        width: 100% !important;
+        margin-left: 0 !important;
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    #cxpListadoSection .rv-search-wrap {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        margin: 0 !important;
+    }
+
+    #cxpListadoSection .rv-search-wrap > i,
+    #cxpListadoSection .rv-search-wrap input {
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+    }
+
+    #cxpListadoSection .rv-search-wrap > i {
+        flex: 0 0 38px !important;
+        width: 38px !important;
+        min-width: 38px !important;
+    }
+
+    #cxpListadoSection .rv-view-switch {
+        width: 100% !important;
+        min-height: 34px !important;
+        height: 34px !important;
+    }
+
+    #cxpListadoSection .rv-view-btn {
+        flex: 1 1 50% !important;
+        min-width: 0 !important;
+    }
+
+    #cxpListado {
+        min-height: 0 !important;
+        height: auto !important;
+        margin-top: 0 !important;
+    }
+
+    #cxpListado.rv-mini {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    #cxpListado .rv-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+    }
+
+    #cxpListadoSection .rv-list-footer {
+        align-items: stretch !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    #cxpListadoSection .rv-pagination {
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+}
+
+
+/* IZZY | MOVIL SOLO MINIATURA - CXP */
+@media (max-width: 767.98px) {
+    #cxpListadoSection [data-cxp-view="detalle"] { display:none !important; }
+    #cxpListadoSection [data-cxp-view="miniatura"] { flex:1 1 100% !important; width:100% !important; }
+}

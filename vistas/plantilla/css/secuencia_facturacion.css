@@ -1563,3 +1563,39 @@
         transform: none;
     }
 }
+
+
+/* ============================================================
+   IZZY | MOVIL SOLO MINIATURA - SECUENCIA
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .secuencia-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .secuencia-view-btn[data-view="miniatura"] {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+    }
+
+    .secuencia-view-switch {
+        width: 100% !important;
+    }
+
+    .secuencia-listado.vista-miniatura {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    .secuencia-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .secuencia-toolbar,
+    .secuencia-toolbar-group {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+}

@@ -1342,3 +1342,70 @@
 .empresa-listado.vista-miniatura .empresa-mini-card.empresa-dropdown-open {
     transform: translateY(-3px);
 }
+
+
+/* ============================================================
+   IZZY | EMPRESA - FIX RESPONSIVE MÓVIL
+   Miniatura compacta, buscador sin altura fantasma y sin overflow.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .empresa-list-toolbar,
+    .empresa-list-tools {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .empresa-list-tools {
+        width: 100% !important;
+        margin-left: 0 !important;
+        gap: 8px !important;
+    }
+
+    .empresa-search-list {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        margin: 0 !important;
+    }
+
+    .empresa-search-list .input-group,
+    .empresa-search-list .input-group-text,
+    .empresa-search-list .form-control {
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+    }
+
+    .empresa-listado {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .empresa-listado.vista-miniatura {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    .empresa-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .empresa-section-body {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+}
+
+
+/* IZZY | MOVIL SOLO MINIATURA - EMPRESA */
+@media (max-width: 767.98px) {
+    .empresa-view-btn[data-view="detalle"] { display:none !important; }
+    .empresa-view-btn[data-view="miniatura"] { flex:1 1 100% !important; width:100% !important; }
+}

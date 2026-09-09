@@ -1327,7 +1327,18 @@ function getClientesPagos(){
     return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
   }
 
+  function rvActualizarDisponibilidadVista(){
+    var movil=rvEsMovil();
+
+    $('.rv-view-btn[data-view="detalle"],[data-rv-detail-view="detalle"],[data-rv-pay-view="detalle"]')
+      .prop('disabled',movil)
+      .toggleClass('d-none',movil)
+      .attr('aria-hidden',movil?'true':'false');
+  }
+
   function rvSincronizarBotonesVista(){
+    rvActualizarDisponibilidadVista();
+
     $('.rv-view-btn[data-view]').removeClass('active').attr('aria-pressed','false');
     $('.rv-view-btn[data-view="'+RV.main.view+'"]').addClass('active').attr('aria-pressed','true');
 
@@ -1858,7 +1869,12 @@ function getClientesPagos(){
   $('#rvPageSize').off('change.rv').on('change.rv',function(){RV.main.pageSize=parseInt(this.value,10)||10;RV.main.page=1;rvRenderMain();});
   $('#rvSearch').off('input.rv').on('input.rv',function(){RV.main.search=this.value||'';RV.main.page=1;rvRenderMain();});
   $('#rvSearchClear').off('click.rv').on('click.rv',function(){$('#rvSearch').val('').focus();RV.main.search='';RV.main.page=1;rvRenderMain();});
-  $('.rv-view-btn[data-view]').off('click.rv').on('click.rv',function(){$('.rv-view-btn[data-view]').removeClass('active');$(this).addClass('active');RV.main.view=$(this).data('view');RV.main.page=1;rvRenderMain();});
+  $('.rv-view-btn[data-view]').off('click.rv').on('click.rv',function(){
+    RV.main.view=rvEsMovil()?'miniatura':($(this).data('view')==='miniatura'?'miniatura':'detalle');
+    RV.main.page=1;
+    rvSincronizarBotonesVista();
+    rvRenderMain();
+  });
 
   $('#FormDetalleVentas').off('submit.rv').on('submit.rv',function(e){e.preventDefault();ListarDetalleVenas();});
   $('#rvDetActualizar').off('click.rv').on('click.rv',ListarDetalleVenas);
@@ -1867,7 +1883,12 @@ function getClientesPagos(){
   $('#rvDetPageSize').off('change.rv').on('change.rv',function(){RV.detail.pageSize=parseInt(this.value,10)||10;RV.detail.page=1;rvRenderDetailSales();});
   $('#rvDetSearch').off('input.rv').on('input.rv',function(){RV.detail.search=this.value||'';RV.detail.page=1;rvRenderDetailSales();});
   $('#rvDetSearchClear').off('click.rv').on('click.rv',function(){$('#rvDetSearch').val('').focus();RV.detail.search='';RV.detail.page=1;rvRenderDetailSales();});
-  $('[data-rv-detail-view]').off('click.rv').on('click.rv',function(){$('[data-rv-detail-view]').removeClass('active');$(this).addClass('active');RV.detail.view=$(this).data('rv-detail-view');RV.detail.page=1;rvRenderDetailSales();});
+  $('[data-rv-detail-view]').off('click.rv').on('click.rv',function(){
+    RV.detail.view=rvEsMovil()?'miniatura':($(this).data('rv-detail-view')==='miniatura'?'miniatura':'detalle');
+    RV.detail.page=1;
+    rvSincronizarBotonesVista();
+    rvRenderDetailSales();
+  });
 
   $('#rvPagActualizar').off('click.rv').on('click.rv',listar_pagos_cliente);
   $('#rvPagExcel').off('click.rv').on('click.rv',function(){rvExportXlsx(rvPayExportCfg());});
@@ -1875,7 +1896,12 @@ function getClientesPagos(){
   $('#rvPagPageSize').off('change.rv').on('change.rv',function(){RV.payments.pageSize=parseInt(this.value,10)||10;RV.payments.page=1;rvRenderPayments();});
   $('#rvPagSearch').off('input.rv').on('input.rv',function(){RV.payments.search=this.value||'';RV.payments.page=1;rvRenderPayments();});
   $('#rvPagSearchClear').off('click.rv').on('click.rv',function(){$('#rvPagSearch').val('').focus();RV.payments.search='';RV.payments.page=1;rvRenderPayments();});
-  $('[data-rv-pay-view]').off('click.rv').on('click.rv',function(){$('[data-rv-pay-view]').removeClass('active');$(this).addClass('active');RV.payments.view=$(this).data('rv-pay-view');RV.payments.page=1;rvRenderPayments();});
+  $('[data-rv-pay-view]').off('click.rv').on('click.rv',function(){
+    RV.payments.view=rvEsMovil()?'miniatura':($(this).data('rv-pay-view')==='miniatura'?'miniatura':'detalle');
+    RV.payments.page=1;
+    rvSincronizarBotonesVista();
+    rvRenderPayments();
+  });
 
   rvSincronizarBotonesVista();
 

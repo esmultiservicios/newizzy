@@ -13,6 +13,14 @@ var usuariosState = {
 };
 
 var USUARIOS_STORAGE_VISTA = 'izzy.users.tipo_vista';
+var USUARIOS_MOBILE_QUERY = '(max-width: 767.98px)';
+var usuariosVistaPreferida = 'detalle';
+
+function usuariosEsPantallaPequena() {
+    return window.matchMedia
+        ? window.matchMedia(USUARIOS_MOBILE_QUERY).matches
+        : $(window).width() <= 767;
+}
 
 $(document).ready(function () {
     inicializarVistaUsuarios();
@@ -145,23 +153,37 @@ function inicializarVistaUsuarios() {
         vistaGuardada = 'detalle';
     }
 
-    usuariosState.vista = vistaGuardada === 'miniatura'
+    usuariosVistaPreferida = vistaGuardada === 'miniatura'
         ? 'miniatura'
         : 'detalle';
+
+    usuariosState.vista = usuariosEsPantallaPequena()
+        ? 'miniatura'
+        : usuariosVistaPreferida;
 
     actualizarBotonesVistaUsuarios();
     sincronizarPageSizeUsuarios();
 }
 
 function cambiarVistaUsuarios(vista) {
-    usuariosState.vista = vista === 'miniatura'
+    var siguiente = vista === 'miniatura'
         ? 'miniatura'
         : 'detalle';
 
-    try {
-        localStorage.setItem(USUARIOS_STORAGE_VISTA, usuariosState.vista);
-    } catch (error) {
-        console.warn('No se pudo guardar el tipo de vista de usuarios:', error);
+    if (usuariosEsPantallaPequena()) {
+        siguiente = 'miniatura';
+    }
+
+    usuariosState.vista = siguiente;
+
+    if (!usuariosEsPantallaPequena()) {
+        usuariosVistaPreferida = siguiente;
+
+        try {
+            localStorage.setItem(USUARIOS_STORAGE_VISTA, usuariosVistaPreferida);
+        } catch (error) {
+            console.warn('No se pudo guardar el tipo de vista de usuarios:', error);
+        }
     }
 
     actualizarBotonesVistaUsuarios();
@@ -170,7 +192,18 @@ function cambiarVistaUsuarios(vista) {
     renderUsuarios();
 }
 
+function actualizarDisponibilidadVistaUsuarios() {
+    var movil = usuariosEsPantallaPequena();
+
+    $('.usuarios-view-btn[data-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
 function actualizarBotonesVistaUsuarios() {
+    actualizarDisponibilidadVistaUsuarios();
+
     $('.usuarios-view-btn')
         .removeClass('active')
         .attr('aria-pressed', 'false');
@@ -179,6 +212,31 @@ function actualizarBotonesVistaUsuarios() {
         .addClass('active')
         .attr('aria-pressed', 'true');
 }
+
+var usuariosResponsiveTimer = null;
+$(window)
+    .off('resize.usuariosResponsive orientationchange.usuariosResponsive')
+    .on('resize.usuariosResponsive orientationchange.usuariosResponsive', function () {
+        clearTimeout(usuariosResponsiveTimer);
+
+        usuariosResponsiveTimer = setTimeout(function () {
+            var objetivo = usuariosEsPantallaPequena()
+                ? 'miniatura'
+                : usuariosVistaPreferida;
+
+            actualizarDisponibilidadVistaUsuarios();
+
+            if (usuariosState.vista === objetivo) {
+                return;
+            }
+
+            usuariosState.vista = objetivo;
+            usuariosState.pagina = 1;
+            actualizarBotonesVistaUsuarios();
+            sincronizarPageSizeUsuarios();
+            renderUsuarios();
+        }, 120);
+    });
 
 function sincronizarPageSizeUsuarios() {
     var $select = $('#usuariosPageSize');

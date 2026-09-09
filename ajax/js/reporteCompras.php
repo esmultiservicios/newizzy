@@ -61,10 +61,15 @@ $(() => {
         $('[data-rcmp-view]').removeClass('active');
         $(this).addClass('active');
 
-        RCMP.view = $(this).attr('data-rcmp-view') === 'miniatura'
+        var vistaSolicitada = $(this).attr('data-rcmp-view') === 'miniatura'
             ? 'miniatura'
             : 'detalle';
 
+        RCMP.view = rcmpEsMovil()
+            ? 'miniatura'
+            : vistaSolicitada;
+
+        rcmpSincronizarBotonesVista();
         RCMP.page = 1;
         renderReporteCompras();
     });
@@ -129,7 +134,18 @@ function rcmpEsMovil() {
     return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
 }
 
+function rcmpActualizarDisponibilidadVista() {
+    var movil = rcmpEsMovil();
+
+    $('[data-rcmp-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
 function rcmpSincronizarBotonesVista() {
+    rcmpActualizarDisponibilidadVista();
+
     $('[data-rcmp-view]').removeClass('active').attr('aria-pressed', 'false');
     $('[data-rcmp-view="' + RCMP.view + '"]').addClass('active').attr('aria-pressed', 'true');
 }

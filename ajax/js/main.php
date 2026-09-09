@@ -3377,6 +3377,62 @@ var CXC_UI = {
     search: ''
 };
 
+function cxcEsMovil() {
+    return window.matchMedia
+        ? window.matchMedia('(max-width: 767.98px)').matches
+        : $(window).width() <= 767;
+}
+
+function cxcActualizarDisponibilidadVista() {
+    var movil = cxcEsMovil();
+
+    $('[data-cxc-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
+function cxcSincronizarBotonesVista() {
+    cxcActualizarDisponibilidadVista();
+
+    $('[data-cxc-view]')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+
+    $('[data-cxc-view="' + CXC_UI.view + '"]')
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function cxcAplicarVistaResponsiveInicial() {
+    if (cxcEsMovil()) {
+        CXC_UI.view = 'miniatura';
+    }
+    cxcSincronizarBotonesVista();
+}
+
+cxcAplicarVistaResponsiveInicial();
+
+var cxcResponsiveTimer = null;
+$(window)
+    .off('resize.cxcResponsive orientationchange.cxcResponsive')
+    .on('resize.cxcResponsive orientationchange.cxcResponsive', function() {
+        clearTimeout(cxcResponsiveTimer);
+
+        cxcResponsiveTimer = setTimeout(function() {
+            if (cxcEsMovil() && CXC_UI.view !== 'miniatura') {
+                CXC_UI.view = 'miniatura';
+                CXC_UI.page = 1;
+                cxcSincronizarBotonesVista();
+
+                if (CXC_UI.rows.length) {
+                    renderCuentasPorCobrarClientes();
+                }
+            }
+        }, 120);
+    });
+
+
 function cxcNum(value) {
     if (value === null || value === undefined || value === '') return 0;
 
@@ -3903,10 +3959,15 @@ $(document)
         $('[data-cxc-view]').removeClass('active');
         $(this).addClass('active');
 
-        CXC_UI.view = $(this).attr('data-cxc-view') === 'miniatura'
+        var vistaSolicitada = $(this).attr('data-cxc-view') === 'miniatura'
             ? 'miniatura'
             : 'detalle';
 
+        CXC_UI.view = cxcEsMovil()
+            ? 'miniatura'
+            : vistaSolicitada;
+
+        cxcSincronizarBotonesVista();
         CXC_UI.page = 1;
         renderCuentasPorCobrarClientes();
     });
@@ -4726,6 +4787,62 @@ var CXP_UI = {
     search: ''
 };
 
+function cxpEsMovil() {
+    return window.matchMedia
+        ? window.matchMedia('(max-width: 767.98px)').matches
+        : $(window).width() <= 767;
+}
+
+function cxpActualizarDisponibilidadVista() {
+    var movil = cxpEsMovil();
+
+    $('[data-cxp-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+}
+
+function cxpSincronizarBotonesVista() {
+    cxpActualizarDisponibilidadVista();
+
+    $('[data-cxp-view]')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+
+    $('[data-cxp-view="' + CXP_UI.view + '"]')
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function cxpAplicarVistaResponsiveInicial() {
+    if (cxpEsMovil()) {
+        CXP_UI.view = 'miniatura';
+    }
+    cxpSincronizarBotonesVista();
+}
+
+cxpAplicarVistaResponsiveInicial();
+
+var cxpResponsiveTimer = null;
+$(window)
+    .off('resize.cxpResponsive orientationchange.cxpResponsive')
+    .on('resize.cxpResponsive orientationchange.cxpResponsive', function() {
+        clearTimeout(cxpResponsiveTimer);
+
+        cxpResponsiveTimer = setTimeout(function() {
+            if (cxpEsMovil() && CXP_UI.view !== 'miniatura') {
+                CXP_UI.view = 'miniatura';
+                CXP_UI.page = 1;
+                cxpSincronizarBotonesVista();
+
+                if (CXP_UI.rows.length) {
+                    renderCuentasPorPagarProveedores();
+                }
+            }
+        }, 120);
+    });
+
+
 var REFRESCAR_CXP_AL_CERRAR_PAGO = false;
 
 function cxpNum(value) {
@@ -5218,10 +5335,15 @@ $(document)
         $('[data-cxp-view]').removeClass('active');
         $(this).addClass('active');
 
-        CXP_UI.view = $(this).attr('data-cxp-view') === 'miniatura'
+        var vistaSolicitada = $(this).attr('data-cxp-view') === 'miniatura'
             ? 'miniatura'
             : 'detalle';
 
+        CXP_UI.view = cxpEsMovil()
+            ? 'miniatura'
+            : vistaSolicitada;
+
+        cxpSincronizarBotonesVista();
         CXP_UI.page = 1;
         renderCuentasPorPagarProveedores();
     });

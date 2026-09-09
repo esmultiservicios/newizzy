@@ -111,6 +111,16 @@
         const PLANES_STORAGE_FILTROS = "izzy.registrarPlanes.filtros.visible";
         const PLANES_STORAGE_KPIS = "izzy.registrarPlanes.kpis.visible";
 
+        const PLANES_MOBILE_QUERY = "(max-width: 767.98px)";
+        let planesVistaPreferida = "detalle";
+
+        function planesEsMovil() {
+            return window.matchMedia
+                ? window.matchMedia(PLANES_MOBILE_QUERY).matches
+                : $(window).width() <= 767;
+        }
+
+
         const planesState = {
             registros: [],
             filtrados: [],
@@ -385,19 +395,34 @@
             );
 
             try {
-                planesState.vista =
+                planesVistaPreferida =
                     localStorage.getItem(PLANES_STORAGE_VISTA) === "miniatura"
                         ? "miniatura"
                         : "detalle";
             } catch (e) {
-                planesState.vista = "detalle";
+                planesVistaPreferida = "detalle";
             }
+
+            planesState.vista = planesEsMovil()
+                ? "miniatura"
+                : planesVistaPreferida;
 
             actualizarBotonesVistaPlanes();
             sincronizarPageSizePlanes();
         }
 
+        function actualizarDisponibilidadVistaPlanes() {
+            const movil = planesEsMovil();
+
+            $('.planes-view-btn[data-view="detalle"]')
+                .prop("disabled", movil)
+                .toggleClass("d-none", movil)
+                .attr("aria-hidden", movil ? "true" : "false");
+        }
+
         function actualizarBotonesVistaPlanes() {
+            actualizarDisponibilidadVistaPlanes();
+
             $(".planes-view-btn")
                 .removeClass("active")
                 .attr("aria-pressed", "false");
@@ -436,12 +461,18 @@
         }
 
         function cambiarVistaPlanes(vista) {
-            planesState.vista = vista === "miniatura" ? "miniatura" : "detalle";
+            planesState.vista = planesEsMovil()
+                ? "miniatura"
+                : (vista === "miniatura" ? "miniatura" : "detalle");
 
-            try {
-                localStorage.setItem(PLANES_STORAGE_VISTA, planesState.vista);
-            } catch (e) {
-                console.warn("No se pudo guardar la vista.", e);
+            if (!planesEsMovil()) {
+                planesVistaPreferida = planesState.vista;
+
+                try {
+                    localStorage.setItem(PLANES_STORAGE_VISTA, planesVistaPreferida);
+                } catch (e) {
+                    console.warn("No se pudo guardar la vista.", e);
+                }
             }
 
             actualizarBotonesVistaPlanes();
@@ -449,6 +480,29 @@
             planesState.pagina = 1;
             renderPlanesPrincipal();
         }
+
+        let planesResponsiveTimer = null;
+        $(window)
+            .off("resize.planesResponsive orientationchange.planesResponsive")
+            .on("resize.planesResponsive orientationchange.planesResponsive", function() {
+                clearTimeout(planesResponsiveTimer);
+
+                planesResponsiveTimer = setTimeout(function() {
+                    const objetivo = planesEsMovil()
+                        ? "miniatura"
+                        : planesVistaPreferida;
+
+                    if (planesState.vista === objetivo) {
+                        return;
+                    }
+
+                    planesState.vista = objetivo;
+                    planesState.pagina = 1;
+                    actualizarBotonesVistaPlanes();
+                    sincronizarPageSizePlanes();
+                    renderPlanesPrincipal();
+                }, 120);
+            });
 
         function recargarPlanesPrincipal(mantenerPagina) {
             if (planesState.loading) {

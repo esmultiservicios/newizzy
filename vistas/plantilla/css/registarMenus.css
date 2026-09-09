@@ -796,3 +796,48 @@
         flex-basis: 42px;
     }
 }
+
+
+/* ============================================================
+   IZZY | ADMINISTRAR MENÚS - FIX RESPONSIVE MÓVIL
+   Conserva Miniatura móvil existente y elimina reservas de altura.
+   ============================================================ */
+@media (max-width: 767.98px) {
+    .menus-toolbar,
+    .menus-toolbar-tools {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .menus-toolbar-tools {
+        width: 100% !important;
+        margin-left: 0 !important;
+        gap: 8px !important;
+    }
+
+    .menus-search-box,
+    .menus-search,
+    .menus-toolbar-tools .input-group {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .menus-listado {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .menus-listado.vista-miniatura {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+
+    .menus-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+}

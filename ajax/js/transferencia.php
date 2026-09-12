@@ -3,6 +3,7 @@ var inventarioResumenRowsCache = [];
 
 (function () {
   function inicializarInventarioTransferencia() {
+    transferenciaInicializarEventosUI();
     inventario_transferencia();
     getTipoProductos();
     getAlmacen();
@@ -276,353 +277,926 @@ function construirHeaderDataTableHistoricoVendidoInventario() {
    INVENTARIO TRANSFERENCIA
    ========================================================= */
 
-var inventario_transferencia = function() {
-  var filtros = obtenerFiltrosInventario();
 
-  try{
-    var _dtKey = 'DataTables_' + 'dataTablaMovimientos' + '_' + window.location.pathname;
-    localStorage.removeItem(_dtKey);
-  }catch(e){}
+var TRANSFERENCIA_MOBILE_QUERY = '(max-width: 767.98px)';
+var TRANSFERENCIA_STORAGE_VISTA = 'izzy.transferencia.tipo_vista';
 
-  if ($.fn.DataTable.isDataTable("#dataTablaMovimientos")) {
-    $("#dataTablaMovimientos").DataTable().clear().destroy();
+var transferenciaUI = {
+  rows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 10,
+  pageSizeDetalle: 10,
+  pageSizeMiniatura: 6,
+  view: 'detalle',
+  preferredView: 'detalle',
+  search: '',
+  loading: false
+};
+
+function transferenciaEsMovil() {
+  return window.matchMedia
+    ? window.matchMedia(TRANSFERENCIA_MOBILE_QUERY).matches
+    : $(window).width() <= 767;
+}
+
+function transferenciaConfigurarPanel(btn, contenido, key) {
+  var visible = true;
+  try {
+    var saved = localStorage.getItem(key);
+    if (saved !== null) visible = saved === '1';
+  } catch (e) {}
+
+  function sync() {
+    $(contenido).toggle(visible);
+    $(btn).attr('aria-expanded', visible ? 'true' : 'false');
+    $(btn).find('span').text(visible ? 'Ocultar' : 'Mostrar');
+    $(btn).find('i')
+      .toggleClass('fa-chevron-up', visible)
+      .toggleClass('fa-chevron-down', !visible);
   }
 
-  construirHeaderDataTableInventarioTransferencia();
+  sync();
 
-  var table_movimientos = $("#dataTablaMovimientos").DataTable({
-    destroy: true,
-    stateSave: false,
-    orderMulti: false,
-    autoWidth: false,
-    scrollX: false,
-    ajax: {
-      method: "POST",
-      url: "<?php echo SERVERURL;?>core/inventario/llenarDataTableInventarioTransferencia.php",
-      data: {
-        categoria_id: filtros.categoria_id,
-        bodega: filtros.bodega,
-        productos_id: filtros.productos_id
-      },
-      dataSrc: function(json) {
-        var rows = [];
+  $(btn).off('click.transferenciaPanel').on('click.transferenciaPanel', function() {
+    visible = !visible;
+    $(contenido).stop(true, true)[visible ? 'slideDown' : 'slideUp'](160);
+    sync();
+    try { localStorage.setItem(key, visible ? '1' : '0'); } catch (e) {}
+  });
+}
 
-        if (json && json.data) {
-          rows = json.data;
-        }
+function transferenciaInicializarVista() {
+  var saved = 'detalle';
+  try { saved = localStorage.getItem(TRANSFERENCIA_STORAGE_VISTA) || 'detalle'; } catch (e) {}
 
-        inventarioActualizarResumen(rows);
+  transferenciaUI.preferredView = saved === 'miniatura' ? 'miniatura' : 'detalle';
+  transferenciaUI.view = transferenciaEsMovil() ? 'miniatura' : transferenciaUI.preferredView;
 
-        return rows;
-      }
-    },
-    columns: [
-      {
-        data: null,
-        orderable: false,
-        searchable: false,
-        className: "text-center align-middle inventario-acciones-cell",
-        render: function(data, type, row) {
-          if (type !== "display") {
-            return "";
-          }
+  transferenciaActualizarVistaUI();
+  transferenciaSincronizarPageSize();
+}
 
-          return '' +
-            '<div class="dropdown acciones-dropdown">' +
-              '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                '<i class="fas fa-cog"></i>' +
-                '<span>Acciones</span>' +
-              '</button>' +
-              '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-                '<button type="button" class="dropdown-item accion-item accion-editar table_change_date ocultar" data-toggle="tooltip" data-placement="top" title="Actualizar fecha de vencimiento">' +
-                  '<span class="accion-icon accion-icon-editar">' +
-                    '<i class="fas fa-calendar-alt"></i>' +
-                  '</span>' +
-                  '<span class="accion-label">Cambiar fecha</span>' +
-                '</button>' +
-                '<button type="button" class="dropdown-item accion-item accion-transferir table_transferencia ocultar" data-toggle="tooltip" data-placement="top" title="Transferir producto a otra bodega">' +
-                  '<span class="accion-icon accion-icon-editar">' +
-                    '<i class="fas fa-exchange-alt"></i>' +
-                  '</span>' +
-                  '<span class="accion-label">Transferir</span>' +
-                '</button>' +
-              '</div>' +
-            '</div>';
-        }
-      },
-      {
-        data: null,
-        className: "align-middle inventario-producto-cell",
-        render: function(data, type, row) {
-          var defaultImageUrl = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
-          var imageUrl = row.image ? ('<?php echo SERVERURL;?>vistas/plantilla/img/products/' + row.image) : defaultImageUrl;
+function transferenciaActualizarVistaUI() {
+  var movil = transferenciaEsMovil();
 
-          var producto = inventarioEscape(row.producto);
-          var barcode = inventarioEscape(inventarioValor(row.barCode, 'Sin código'));
-          var medida = inventarioEscape(inventarioValor(row.medida, 'Sin medida'));
+  $('.transferencia-view-btn[data-view="detalle"]')
+    .toggleClass('d-none', movil)
+    .prop('disabled', movil);
 
-          var superior = toNumber(row.superior);
-          var tipoProductoHtml = superior > 0
-            ? '<span class="inventario-product-badge inventario-product-compuesto"><i class="fas fa-project-diagram mr-1"></i> Compuesto</span>'
-            : '<span class="inventario-product-badge inventario-product-normal"><i class="fas fa-box mr-1"></i> Normal</span>';
+  $('.transferencia-view-btn')
+    .removeClass('active')
+    .attr('aria-pressed', 'false');
 
-          if (type !== "display") {
-            return producto + ' ' + barcode + ' ' + medida;
-          }
+  $('.transferencia-view-btn[data-view="' + transferenciaUI.view + '"]')
+    .addClass('active')
+    .attr('aria-pressed', 'true');
+}
 
-          return '' +
-            '<div class="inventario-product-box">' +
-              '<div class="inventario-product-img-box">' +
-                '<a href="#" class="iv-trigger inventario-zoom-trigger" ' +
-                  'data-iv-src="' + imageUrl + '" ' +
-                  'data-iv-fallback="' + defaultImageUrl + '" ' +
-                  'data-iv-title="' + producto + '">' +
-                  '<img class="inventario-product-img table-image" src="' + imageUrl + '" alt="' + producto + '" loading="lazy" onerror="this.onerror=null;this.src=\'' + defaultImageUrl + '\';">' +
-                '</a>' +
-              '</div>' +
-              '<div class="inventario-product-info">' +
-                '<h6 class="inventario-product-name">' + producto + '</h6>' +
-                '<div class="inventario-product-meta">' +
-                  '<span><i class="fas fa-barcode mr-1"></i>' + barcode + '</span>' +
-                  '<span><i class="fas fa-ruler-combined mr-1"></i>' + medida + '</span>' +
-                '</div>' +
-                '<div class="inventario-product-type">' + tipoProductoHtml + '</div>' +
-              '</div>' +
-            '</div>';
-        }
-      },
-      {
-        data: null,
-        className: "align-middle inventario-lote-cell",
-        render: function(data, type, row) {
-          var lote = inventarioEscape(inventarioValor(row.numero_lote, 'No especificado'));
-          var bodega = inventarioEscape(inventarioValor(row.bodega, 'Sin bodega'));
-          var loteClass = inventarioValor(row.numero_lote, '') !== '' ? 'inventario-lote-ok' : 'inventario-lote-empty';
+function transferenciaSincronizarPageSize() {
+  var mini = transferenciaUI.view === 'miniatura';
+  var opciones = mini ? [6, 12, 18, 30] : [10, 25, 50, 100];
+  var preferido = mini ? transferenciaUI.pageSizeMiniatura : transferenciaUI.pageSizeDetalle;
+  if (opciones.indexOf(preferido) === -1) preferido = opciones[0];
 
-          if (type !== "display") {
-            return lote + ' ' + bodega;
-          }
-
-          return '' +
-            '<div class="inventario-detail-list">' +
-              '<div class="inventario-detail-item">' +
-                '<span class="inventario-detail-icon inventario-icon-lote"><i class="fas fa-box"></i></span>' +
-                '<span><strong>Lote:</strong> <span class="inventario-lote-badge ' + loteClass + '">' + lote + '</span></span>' +
-              '</div>' +
-              '<div class="inventario-detail-item">' +
-                '<span class="inventario-detail-icon inventario-icon-bodega"><i class="fas fa-warehouse"></i></span>' +
-                '<span><strong>Bodega:</strong> ' + bodega + '</span>' +
-              '</div>' +
-            '</div>';
-        }
-      },
-      {
-        data: null,
-        className: "align-middle inventario-fecha-cell",
-        render: function(data, type, row) {
-          var fecha = inventarioEscape(inventarioValor(row.fecha_registro, 'No registrada'));
-          var movimientoId = inventarioEscape(inventarioValor(row.movimientos_id, 'Sin ID'));
-
-          if (type !== "display") {
-            return fecha + ' ' + movimientoId;
-          }
-
-          return '' +
-            '<div class="inventario-detail-list">' +
-              '<div class="inventario-detail-item">' +
-                '<span class="inventario-detail-icon inventario-icon-date"><i class="fas fa-calendar-alt"></i></span>' +
-                '<span><strong>Fecha:</strong> ' + fecha + '</span>' +
-              '</div>' +
-              '<div class="inventario-detail-item">' +
-                '<span class="inventario-detail-icon inventario-icon-doc"><i class="fas fa-hashtag"></i></span>' +
-                '<span><strong>Movimiento:</strong> ' + movimientoId + '</span>' +
-              '</div>' +
-            '</div>';
-        }
-      },
-      {
-        data: "saldo_anterior",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type) {
-          if (type !== "display") {
-            return toNumber(data);
-          }
-
-          return inventarioNumeroBadge(data, 'anterior');
-        }
-      },
-      {
-        data: "entrada",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type) {
-          if (type !== "display") {
-            return toNumber(data);
-          }
-
-          return inventarioNumeroBadge(data, 'entrada');
-        }
-      },
-      {
-        data: "salida",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type) {
-          if (type !== "display") {
-            return toNumber(data);
-          }
-
-          return inventarioNumeroBadge(data, 'salida');
-        }
-      },
-      {
-        data: "saldo",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type) {
-          if (type !== "display") {
-            return toNumber(data);
-          }
-
-          return inventarioNumeroBadge(data, 'saldo');
-        }
-      }
-    ],
-    order: [[3, 'desc']],
-    lengthMenu: lengthMenu10,
-    language: idioma_español,
-    dom: dom,
-    columnDefs: [
-      {
-        width: "12%",
-        targets: 0,
-        orderable: false,
-        searchable: false,
-        className: "text-center align-middle inventario-acciones-cell"
-      },
-      {
-        width: "28%",
-        targets: 1,
-        className: "align-middle inventario-producto-cell"
-      },
-      {
-        width: "20%",
-        targets: 2,
-        className: "align-middle inventario-lote-cell"
-      },
-      {
-        width: "16%",
-        targets: 3,
-        className: "align-middle inventario-fecha-cell"
-      },
-      {
-        width: "6%",
-        targets: 4,
-        className: "text-center align-middle inventario-numero-cell"
-      },
-      {
-        width: "6%",
-        targets: 5,
-        className: "text-center align-middle inventario-numero-cell"
-      },
-      {
-        width: "6%",
-        targets: 6,
-        className: "text-center align-middle inventario-numero-cell"
-      },
-      {
-        width: "6%",
-        targets: 7,
-        className: "text-center align-middle inventario-numero-cell"
-      }
-    ],
-    buttons: [
-      {
-        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-        titleAttr: 'Actualizar Inventario',
-        className: 'table_actualizar btn btn-secondary ocultar',
-        action: function(){
-          inventario_transferencia();
-        }
-      },
-      {
-        text: '<i class="fas fa-chart-pie fa-lg"></i> Resumen',
-        titleAttr: 'Resumen de Inventario',
-        className: 'table_reportes btn btn-info ocultar',
-        action: function(){
-          mostrarVistaResumenInventario();
-        }
-      },
-      {
-        extend: 'excelHtml5',
-        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-        titleAttr: 'Exportar a Excel',
-        title: 'Reporte Inventario',
-        className: 'table_reportes btn btn-success ocultar',
-        exportOptions: {
-          columns: [1, 2, 3, 4, 5, 6, 7]
-        }
-      },
-      {
-        extend: 'pdfHtml5',
-        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-        titleAttr: 'Exportar a PDF',
-        orientation: 'landscape',
-        pageSize: 'LEGAL',
-        title: 'Reporte Inventario',
-        className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: {
-          columns: [1, 2, 3, 4, 5, 6, 7]
-        },
-        customize: function(doc){
-          if (typeof imagen !== 'undefined' && imagen){
-            doc.content.splice(0, 0, {
-              image: imagen,
-              width: 100,
-              height: 45,
-              margin: [0, 0, 0, 12]
-            });
-          }
-        }
-      }
-    ],
-    footerCallback: function(){
-      var api = this.api();
-
-      var totalSaldoAnterior = 0;
-      var totalEntrada = 0;
-      var totalSalida = 0;
-      var totalSaldo = 0;
-
-      api.rows({ search: 'applied' }).every(function(){
-        var item = this.data();
-
-        totalSaldoAnterior += toNumber(item.saldo_anterior);
-        totalEntrada += toNumber(item.entrada);
-        totalSalida += toNumber(item.salida);
-      });
-
-      totalSaldo = totalEntrada - totalSalida;
-
-      $('#anterior-footer-movimiento').html(formatNumber(totalSaldoAnterior));
-      $('#entrada-footer-movimiento').html(formatNumber(totalEntrada));
-      $('#salida-footer-movimiento').html(formatNumber(totalSalida));
-      $('#total-footer-movimiento').html(formatNumber(totalSaldo));
-    },
-    initComplete: function(){
-      this.api().order([3, 'desc']).draw();
-      inventarioActualizarResumenDataTable(this.api());
-    },
-    drawCallback: function(){
-      var api = this.api();
-
-      inventarioActualizarResumenDataTable(api);
-
-      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-      $('[data-toggle="tooltip"]').tooltip();
-    }
+  var $select = $('#transferenciaPageSize').empty();
+  opciones.forEach(function(n) {
+    $select.append($('<option></option>').val(n).text(n));
   });
 
-  transferencia_producto_dataTable("#dataTablaMovimientos tbody", table_movimientos);
-  cambiarVencimientoProducto_dataTable("#dataTablaMovimientos tbody", table_movimientos);
-};
+  transferenciaUI.pageSize = preferido;
+  $select.val(String(preferido));
+}
+
+function transferenciaTextoRow(row) {
+  return [
+    row.producto, row.barCode, row.medida, row.numero_lote, row.bodega,
+    row.fecha_registro, row.movimientos_id, row.saldo_anterior,
+    row.entrada, row.salida, row.saldo
+  ].map(function(v) {
+    return inventarioValor(v, '').toLowerCase();
+  }).join(' ');
+}
+
+function transferenciaFiltrar(rows) {
+  var q = $.trim(transferenciaUI.search || '').toLowerCase();
+  if (!q) return rows.slice();
+
+  return rows.filter(function(row) {
+    return transferenciaTextoRow(row).indexOf(q) !== -1;
+  });
+}
+
+function transferenciaImagenUrl(row) {
+  var fallback = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+  var image = row.image || row.imagen || '';
+
+  if (!image) return fallback;
+  if (/^https?:\/\//i.test(image)) return image;
+
+  return '<?php echo SERVERURL;?>vistas/plantilla/img/products/' + image;
+}
+
+function transferenciaTipoProducto(row) {
+  return toNumber(row.superior) > 0
+    ? '<span class="transferencia-product-badge transferencia-product-compuesto"><i class="fas fa-project-diagram"></i> Compuesto</span>'
+    : '<span class="transferencia-product-badge transferencia-product-normal"><i class="fas fa-box"></i> Normal</span>';
+}
+
+function transferenciaAcciones(row, index) {
+  return '' +
+    '<div class="dropdown acciones-dropdown">' +
+      '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle table_read ocultar">' +
+        '<i class="fas fa-cog"></i><span>Acciones</span>' +
+      '</button>' +
+      '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+        '<button type="button" class="dropdown-item accion-item js-transferencia-fecha table_change_date ocultar" data-index="' + index + '">' +
+          '<span class="accion-icon accion-icon-editar"><i class="fas fa-calendar-alt"></i></span>' +
+          '<span class="accion-label">Cambiar fecha</span>' +
+        '</button>' +
+        '<button type="button" class="dropdown-item accion-item js-transferencia-producto table_transferencia ocultar" data-index="' + index + '">' +
+          '<span class="accion-icon accion-icon-editar"><i class="fas fa-exchange-alt"></i></span>' +
+          '<span class="accion-label">Transferir</span>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function transferenciaAbrirTransferir(row) {
+  $('#formTransferencia')[0].reset();
+
+  if (toNumber(row.superior) > 0) {
+    showNotify('error', 'Error', 'No se puede hacer transferencia de producto que depende de otro inventario');
+    return false;
+  }
+
+  $('#formTransferencia #productos_id').val(row.productos_id);
+  $('#formTransferencia #nameProduct').html("<b style='color:#007bff;font-size:16px;text-transform:uppercase;'>Producto:</b> " + row.producto);
+  $('#formTransferencia #id_bodega_actual').val(row.id_bodega);
+  $('#formTransferencia #lote_id_productos').val(row.lote_id);
+  $('#formTransferencia #empresa_id_productos').val(row.empresa_id);
+
+  $('#modal_transferencia_producto').modal({
+    show: true,
+    keyboard: false,
+    backdrop: 'static'
+  });
+}
+
+function transferenciaAbrirFecha(row) {
+  $('#formTransferenciaCambiarFecha')[0].reset();
+
+  $('#formTransferenciaCambiarFecha #productos_id').val(row.productos_id);
+  $('#formTransferenciaCambiarFecha #nameProduct').html("<b style='color:#007bff;font-size:16px;text-transform:uppercase;'>Producto:</b> " + row.producto);
+  $('#formTransferenciaCambiarFecha #id_bodega_actual').val(row.id_bodega);
+  $('#formTransferenciaCambiarFecha #cantidad_productos').val(toNumber(row.saldo));
+  $('#formTransferenciaCambiarFecha #empresa_id_productos').val(row.empresa_id);
+  $('#formTransferenciaCambiarFecha #lote_id_productos').val(row.lote_id);
+
+  $('#modalCambiarFechaProducto').modal({
+    show: true,
+    keyboard: false,
+    backdrop: 'static'
+  });
+}
+
+function transferenciaActualizarTotales(rows) {
+  var anterior = 0, entrada = 0, salida = 0, saldo = 0;
+
+  rows.forEach(function(row) {
+    anterior += toNumber(row.saldo_anterior);
+    entrada += toNumber(row.entrada);
+    salida += toNumber(row.salida);
+    saldo += toNumber(row.saldo);
+  });
+
+  $('#transferencia_total_anterior_listado').text(formatNumber(anterior));
+  $('#transferencia_total_entrada_listado').text(formatNumber(entrada));
+  $('#transferencia_total_salida_listado').text(formatNumber(salida));
+  $('#transferencia_total_saldo_listado').text(formatNumber(saldo));
+}
+
+function transferenciaRenderDetalle(rows, offset) {
+  var html = '' +
+    '<div class="transferencia-detail-header">' +
+      '<div>Producto</div>' +
+      '<div>Lote / Bodega</div>' +
+      '<div>Último Movimiento</div>' +
+      '<div>Anterior</div>' +
+      '<div>Entrada</div>' +
+      '<div>Salida</div>' +
+      '<div>Saldo</div>' +
+      '<div>Acciones</div>' +
+    '</div>';
+
+  rows.forEach(function(row, i) {
+    var idx = offset + i;
+    var imageUrl = transferenciaImagenUrl(row);
+    var fallback = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+
+    html += '' +
+      '<article class="transferencia-detail-row">' +
+        '<div class="transferencia-cell">' +
+          '<span class="transferencia-cell-label">Producto</span>' +
+          '<div class="transferencia-product-box">' +
+            '<a href="#" class="iv-trigger transferencia-product-image" ' +
+               'data-iv-src="' + inventarioEscape(imageUrl) + '" ' +
+               'data-iv-fallback="' + inventarioEscape(fallback) + '" ' +
+               'data-iv-title="' + inventarioEscape(inventarioValor(row.producto, 'Producto')) + '">' +
+              '<img src="' + inventarioEscape(imageUrl) + '" alt="' + inventarioEscape(inventarioValor(row.producto, 'Producto')) + '" ' +
+                   'onerror="this.onerror=null;this.src=\'' + fallback + '\';">' +
+              '<span class="transferencia-image-overlay">' +
+                '<span class="transferencia-image-overlay-icon"><i class="fas fa-search-plus"></i></span>' +
+                '<span class="transferencia-image-overlay-text">Ver imagen</span>' +
+              '</span>' +
+            '</a>' +
+            '<div class="transferencia-product-info">' +
+              '<strong>' + inventarioEscape(inventarioValor(row.producto, 'Sin producto')) + '</strong>' +
+              '<small><i class="fas fa-barcode mr-1"></i>' + inventarioEscape(inventarioValor(row.barCode, 'Sin código')) + '</small>' +
+              '<small><i class="fas fa-ruler-combined mr-1"></i>' + inventarioEscape(inventarioValor(row.medida, 'Sin medida')) + '</small>' +
+              transferenciaTipoProducto(row) +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="transferencia-cell">' +
+          '<span class="transferencia-cell-label">Lote / Bodega</span>' +
+          '<div class="transferencia-stack">' +
+            '<span><b>Lote:</b> ' + inventarioEscape(inventarioValor(row.numero_lote, 'No especificado')) + '</span>' +
+            '<span><b>Bodega:</b> ' + inventarioEscape(inventarioValor(row.bodega, 'Sin bodega')) + '</span>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="transferencia-cell">' +
+          '<span class="transferencia-cell-label">Último Movimiento</span>' +
+          '<div class="transferencia-stack">' +
+            '<span><b>Fecha:</b> ' + inventarioEscape(inventarioValor(row.fecha_registro, 'No registrada')) + '</span>' +
+            '<span><b>ID:</b> ' + inventarioEscape(inventarioValor(row.movimientos_id, 'Sin ID')) + '</span>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="transferencia-cell transferencia-number-cell">' + inventarioNumeroBadge(row.saldo_anterior, 'anterior') + '</div>' +
+        '<div class="transferencia-cell transferencia-number-cell">' + inventarioNumeroBadge(row.entrada, 'entrada') + '</div>' +
+        '<div class="transferencia-cell transferencia-number-cell">' + inventarioNumeroBadge(row.salida, 'salida') + '</div>' +
+        '<div class="transferencia-cell transferencia-number-cell">' + inventarioNumeroBadge(row.saldo, 'saldo') + '</div>' +
+
+        '<div class="transferencia-cell transferencia-actions-cell">' +
+          '<span class="transferencia-cell-label">Acciones</span>' +
+          transferenciaAcciones(row, idx) +
+        '</div>' +
+      '</article>';
+  });
+
+  return html;
+}
+
+function transferenciaRenderMiniatura(rows, offset) {
+  var html = '<div class="transferencia-mini-grid">';
+
+  rows.forEach(function(row, i) {
+    var idx = offset + i;
+    var imageUrl = transferenciaImagenUrl(row);
+    var fallback = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+
+    html += '' +
+      '<article class="transferencia-mini-card">' +
+        '<div class="transferencia-mini-topline"></div>' +
+        '<div class="transferencia-mini-header">' +
+          '<a href="#" class="iv-trigger transferencia-mini-image" ' +
+             'data-iv-src="' + inventarioEscape(imageUrl) + '" ' +
+             'data-iv-fallback="' + inventarioEscape(fallback) + '" ' +
+             'data-iv-title="' + inventarioEscape(inventarioValor(row.producto, 'Producto')) + '">' +
+            '<img src="' + inventarioEscape(imageUrl) + '" alt="' + inventarioEscape(inventarioValor(row.producto, 'Producto')) + '" ' +
+                 'onerror="this.onerror=null;this.src=\'' + fallback + '\';">' +
+            '<span class="transferencia-image-overlay">' +
+              '<span class="transferencia-image-overlay-icon"><i class="fas fa-search-plus"></i></span>' +
+              '<span class="transferencia-image-overlay-text">Ver imagen</span>' +
+            '</span>' +
+          '</a>' +
+          '<div class="transferencia-mini-identity">' +
+            '<h4>' + inventarioEscape(inventarioValor(row.producto, 'Sin producto')) + '</h4>' +
+            '<div class="transferencia-mini-meta">' +
+              '<span><i class="fas fa-barcode"></i>' + inventarioEscape(inventarioValor(row.barCode, 'Sin código')) + '</span>' +
+              '<span><i class="fas fa-ruler-combined"></i>' + inventarioEscape(inventarioValor(row.medida, 'Sin medida')) + '</span>' +
+            '</div>' +
+            transferenciaTipoProducto(row) +
+          '</div>' +
+        '</div>' +
+
+        '<div class="transferencia-mini-body">' +
+          '<div class="transferencia-mini-field"><span>Lote</span><strong>' + inventarioEscape(inventarioValor(row.numero_lote, 'No especificado')) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Bodega</span><strong>' + inventarioEscape(inventarioValor(row.bodega, 'Sin bodega')) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Última fecha</span><strong>' + inventarioEscape(inventarioValor(row.fecha_registro, 'No registrada')) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Movimiento</span><strong>' + inventarioEscape(inventarioValor(row.movimientos_id, 'Sin ID')) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Anterior</span><strong>' + formatNumber(toNumber(row.saldo_anterior)) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Entrada</span><strong class="transferencia-text-success">' + formatNumber(toNumber(row.entrada)) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Salida</span><strong class="transferencia-text-danger">' + formatNumber(toNumber(row.salida)) + '</strong></div>' +
+          '<div class="transferencia-mini-field"><span>Saldo</span><strong>' + formatNumber(toNumber(row.saldo)) + '</strong></div>' +
+        '</div>' +
+
+        '<div class="transferencia-mini-footer">' +
+          transferenciaAcciones(row, idx) +
+        '</div>' +
+      '</article>';
+  });
+
+  return html + '</div>';
+}
+
+function transferenciaRenderPaginacion(totalPages) {
+  var current = transferenciaUI.page;
+  var html = '';
+
+  function btn(label, page, disabled, active, icon) {
+    return '<button type="button" class="transferencia-page-btn' + (active ? ' active' : '') + '" data-page="' + page + '"' +
+      (disabled ? ' disabled' : '') + '>' +
+      (icon ? '<i class="' + icon + ' mr-1"></i>' : '') + label +
+    '</button>';
+  }
+
+  html += btn('Inicio', 1, current === 1, false, 'fas fa-angle-double-left');
+  html += btn('Anterior', current - 1, current === 1, false, 'fas fa-angle-left');
+
+  var from = Math.max(1, current - 2);
+  var to = Math.min(totalPages, from + 4);
+  from = Math.max(1, to - 4);
+
+  for (var p = from; p <= to; p++) {
+    html += btn(String(p), p, false, p === current, '');
+  }
+
+  html += btn('Siguiente', current + 1, current === totalPages, false, 'fas fa-angle-right');
+  html += btn('Final', totalPages, current === totalPages, false, 'fas fa-angle-double-right');
+
+  $('#transferenciaPaginacion').html(html);
+}
+
+function transferenciaRender() {
+  var rows = transferenciaUI.filtered || [];
+
+  if (transferenciaUI.loading) {
+    $('#transferenciaListado').html('<div class="transferencia-state"><i class="fas fa-spinner fa-spin"></i><strong>Cargando inventario</strong><span>Espere mientras consultamos los registros.</span></div>');
+    $('#transferenciaInfo').text('0 registros');
+    $('#transferenciaPaginacion').empty();
+    return;
+  }
+
+  if (!rows.length) {
+    $('#transferenciaListado').html('<div class="transferencia-state"><i class="fas fa-box-open"></i><strong>Sin registros</strong><span>No se encontraron productos con los filtros actuales.</span></div>');
+    $('#transferenciaInfo').text('0 registros');
+    $('#transferenciaPaginacion').empty();
+    return;
+  }
+
+  var pages = Math.max(1, Math.ceil(rows.length / transferenciaUI.pageSize));
+  if (transferenciaUI.page > pages) transferenciaUI.page = pages;
+
+  var offset = (transferenciaUI.page - 1) * transferenciaUI.pageSize;
+  var pageRows = rows.slice(offset, offset + transferenciaUI.pageSize);
+
+  $('#transferenciaListado')
+    .removeClass('vista-detalle vista-miniatura')
+    .addClass('vista-' + transferenciaUI.view)
+    .html(
+      transferenciaUI.view === 'miniatura'
+        ? transferenciaRenderMiniatura(pageRows, offset)
+        : transferenciaRenderDetalle(pageRows, offset)
+    );
+
+  var end = Math.min(offset + pageRows.length, rows.length);
+  $('#transferenciaInfo').text('Mostrando ' + (offset + 1) + ' a ' + end + ' de ' + rows.length + ' registros');
+  transferenciaRenderPaginacion(pages);
+
+  if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+      typeof getPrivilegioTipoUsuario === 'function') {
+    getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+  }
+}
+
+function inventario_transferencia() {
+  var filtros = obtenerFiltrosInventario();
+
+  transferenciaUI.loading = true;
+  transferenciaRender();
+
+  $.ajax({
+    method: 'POST',
+    url: '<?php echo SERVERURL;?>core/inventario/llenarDataTableInventarioTransferencia.php',
+    dataType: 'json',
+    data: {
+      categoria_id: filtros.categoria_id,
+      bodega: filtros.bodega,
+      productos_id: filtros.productos_id
+    },
+    timeout: 30000
+  }).done(function(json) {
+    transferenciaUI.rows = json && Array.isArray(json.data) ? json.data : [];
+    transferenciaUI.search = $('#buscar_transferencia_general').val() || '';
+    transferenciaUI.filtered = transferenciaFiltrar(transferenciaUI.rows);
+    transferenciaUI.page = 1;
+    transferenciaUI.loading = false;
+
+    inventarioActualizarResumen(transferenciaUI.filtered);
+    transferenciaActualizarTotales(transferenciaUI.filtered);
+    transferenciaRender();
+  }).fail(function(xhr) {
+    transferenciaUI.rows = [];
+    transferenciaUI.filtered = [];
+    transferenciaUI.loading = false;
+    inventarioActualizarResumen([]);
+    transferenciaActualizarTotales([]);
+    transferenciaRender();
+
+    console.error('Error inventario transferencia:', xhr.responseText);
+    if (typeof showNotify === 'function') {
+      showNotify('error', 'Error', 'No se pudo cargar el inventario.');
+    }
+  });
+}
+
+/* =========================================================
+   EXPORTACIONES PRINCIPALES
+   ========================================================= */
+
+function transferenciaExcelEscape(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function transferenciaExcelCol(index) {
+  var name = '';
+  while (index >= 0) {
+    name = String.fromCharCode((index % 26) + 65) + name;
+    index = Math.floor(index / 26) - 1;
+  }
+  return name;
+}
+
+function transferenciaExcelCell(ref, value, style, numeric) {
+  if (numeric) {
+    var n = Number(value);
+    if (!isFinite(n)) n = 0;
+    return '<c r="' + ref + '" s="' + style + '" t="n"><v>' + n + '</v></c>';
+  }
+
+  return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' +
+    transferenciaExcelEscape(value) + '</t></is></c>';
+}
+
+function transferenciaGenerarXlsx(rows) {
+  if (typeof JSZip === 'undefined') return null;
+
+  var totalEntrada = 0, totalSalida = 0, totalSaldo = 0;
+  rows.forEach(function(r) {
+    totalEntrada += toNumber(r.entrada);
+    totalSalida += toNumber(r.salida);
+    totalSaldo += toNumber(r.saldo);
+  });
+
+  var headers = ['Producto','Código','Medida','Lote','Bodega','Último movimiento','Anterior','Entrada','Salida','Saldo'];
+  var sheetRows = [];
+
+  sheetRows.push('<row r="1" ht="30" customHeight="1">' + transferenciaExcelCell('A1','IZZY • REPORTE DE INVENTARIO',1,false) + '</row>');
+  sheetRows.push('<row r="2" ht="20" customHeight="1">' + transferenciaExcelCell('A2','Existencias, lotes, bodegas y movimientos • Generado: ' + new Date().toLocaleDateString('es-HN'),2,false) + '</row>');
+  sheetRows.push('<row r="3">' +
+    transferenciaExcelCell('A3','REGISTROS',6,false) +
+    transferenciaExcelCell('D3','ENTRADAS',6,false) +
+    transferenciaExcelCell('G3','SALIDAS',6,false) +
+    transferenciaExcelCell('I3','SALDO',6,false) +
+  '</row>');
+  sheetRows.push('<row r="4" ht="24" customHeight="1">' +
+    transferenciaExcelCell('A4',rows.length,7,true) +
+    transferenciaExcelCell('D4',totalEntrada,11,true) +
+    transferenciaExcelCell('G4',totalSalida,11,true) +
+    transferenciaExcelCell('I4',totalSaldo,11,true) +
+  '</row>');
+
+  var filtros = obtenerFiltrosInventario();
+  sheetRows.push('<row r="5">' +
+    transferenciaExcelCell('A5',
+      'Filtros: Categoría ' + ($('#inventario_tipo_productos_id option:selected').text() || 'Todas') +
+      ' | Producto ' + ($('#inventario_productos_id option:selected').text() || 'Todos') +
+      ' | Almacén ' + ($('#almacen option:selected').text() || 'Todos') +
+      ' | Búsqueda ' + ($.trim($('#buscar_transferencia_general').val()) || 'Sin búsqueda'),
+      8,false) +
+  '</row>');
+
+  sheetRows.push('<row r="6">' + transferenciaExcelCell('A6','Detalle de inventario filtrado',8,false) + '</row>');
+
+  sheetRows.push('<row r="7" ht="26" customHeight="1">' +
+    headers.map(function(h,i){ return transferenciaExcelCell(transferenciaExcelCol(i)+'7',h,3,false); }).join('') +
+  '</row>');
+
+  rows.forEach(function(r, i) {
+    var rr = 8 + i;
+    var values = [
+      inventarioValor(r.producto,''),
+      inventarioValor(r.barCode,''),
+      inventarioValor(r.medida,''),
+      inventarioValor(r.numero_lote,'No especificado'),
+      inventarioValor(r.bodega,'Sin bodega'),
+      inventarioValor(r.fecha_registro,'No registrada'),
+      toNumber(r.saldo_anterior),
+      toNumber(r.entrada),
+      toNumber(r.salida),
+      toNumber(r.saldo)
+    ];
+
+    sheetRows.push('<row r="' + rr + '" ht="22" customHeight="1">' +
+      values.map(function(v,c){
+        return transferenciaExcelCell(transferenciaExcelCol(c)+rr,v,c>=6?11:4,c>=6);
+      }).join('') +
+    '</row>');
+  });
+
+  var lastRow = Math.max(7, 7 + rows.length);
+
+  var sheetXml =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<dimension ref="A1:J' + lastRow + '"/>' +
+      '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+      '<cols>' +
+        '<col min="1" max="1" width="28" customWidth="1"/><col min="2" max="3" width="18" customWidth="1"/>' +
+        '<col min="4" max="6" width="22" customWidth="1"/><col min="7" max="10" width="15" customWidth="1"/>' +
+      '</cols>' +
+      '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+      '<autoFilter ref="A7:J' + lastRow + '"/>' +
+      '<mergeCells count="10">' +
+        '<mergeCell ref="A1:J1"/><mergeCell ref="A2:J2"/>' +
+        '<mergeCell ref="A3:C3"/><mergeCell ref="A4:C4"/>' +
+        '<mergeCell ref="D3:F3"/><mergeCell ref="D4:F4"/>' +
+        '<mergeCell ref="G3:H3"/><mergeCell ref="G4:H4"/>' +
+        '<mergeCell ref="I3:J3"/><mergeCell ref="I4:J4"/>' +
+      '</mergeCells>' +
+    '</worksheet>';
+
+  var stylesXml =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts>' +
+      '<fonts count="7">' +
+        '<font><sz val="10"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+        '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+        '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+      '</fonts>' +
+      '<fills count="5">' +
+        '<fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+      '</fills>' +
+      '<borders count="2">' +
+        '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+        '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+      '</borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="12">' +
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+      '</cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+
+  var workbookXml =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheets><sheet name="Inventario" sheetId="1" r:id="rId1"/></sheets>' +
+    '</workbook>';
+
+  var workbookRels =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    '</Relationships>';
+
+  var rootRels =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>';
+
+  var contentTypes =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '</Types>';
+
+  var zip = new JSZip();
+  zip.file('[Content_Types].xml', contentTypes);
+  zip.folder('_rels').file('.rels', rootRels);
+  zip.folder('xl').file('workbook.xml', workbookXml);
+  zip.folder('xl').file('styles.xml', stylesXml);
+  zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+
+  var opts = {type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression:'DEFLATE'};
+
+  if (typeof zip.generateAsync === 'function') return zip.generateAsync(opts);
+  if (typeof zip.generate === 'function') return Promise.resolve(zip.generate(opts));
+
+  return Promise.reject(new Error('JSZip no soportado.'));
+}
+
+function transferenciaExportarExcel() {
+  var rows = transferenciaUI.filtered || [];
+  if (!rows.length) {
+    showNotify('warning','Sin información','No hay registros para exportar.');
+    return;
+  }
+
+  var promise = transferenciaGenerarXlsx(rows);
+  if (!promise) {
+    showNotify('error','Excel no disponible','JSZip no está disponible.');
+    return;
+  }
+
+  promise.then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Reporte_Inventario.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }).catch(function(error) {
+    console.error(error);
+    showNotify('error','Error','No se pudo generar el Excel.');
+  });
+}
+
+function transferenciaObtenerLogoPdf(callback) {
+  if (typeof imagen === 'string' && imagen.indexOf('data:image/') === 0) {
+    callback(imagen);
+    return;
+  }
+
+  $.ajax({
+    type:'GET',
+    url:'<?php echo SERVERURL;?>core/get_image.php',
+    dataType:'text',
+    timeout:15000
+  }).done(function(url) {
+    url = $.trim(url || '');
+    if (!url) {
+      showNotify('error','Logo no disponible','No se pudo obtener el logo.');
+      return;
+    }
+
+    var img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = function() {
+      try {
+        var canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        canvas.getContext('2d').drawImage(img,0,0);
+        imagen = canvas.toDataURL('image/png');
+        callback(imagen);
+      } catch (e) {
+        showNotify('error','Logo no disponible','No se pudo preparar el logo.');
+      }
+    };
+    img.onerror = function() {
+      showNotify('error','Logo no disponible','No se pudo cargar el logo.');
+    };
+    img.src = url;
+  }).fail(function() {
+    showNotify('error','Logo no disponible','No se pudo obtener el logo.');
+  });
+}
+
+function transferenciaExportarPdf() {
+  var rows = transferenciaUI.filtered || [];
+
+  if (!rows.length) {
+    showNotify('warning','Sin información','No hay registros para mostrar en PDF.');
+    return;
+  }
+
+  if (typeof pdfMake === 'undefined' || typeof abrirModalPdfPublico !== 'function') {
+    showNotify('error','PDF no disponible','No están disponibles los componentes del PDF.');
+    return;
+  }
+
+  transferenciaObtenerLogoPdf(function(logo) {
+    var totalEntrada = 0, totalSalida = 0, totalSaldo = 0;
+    rows.forEach(function(r) {
+      totalEntrada += toNumber(r.entrada);
+      totalSalida += toNumber(r.salida);
+      totalSaldo += toNumber(r.saldo);
+    });
+
+    var body = [[
+      {text:'PRODUCTO',style:'th',fillColor:'#17324D'},
+      {text:'LOTE / BODEGA',style:'th',fillColor:'#17324D'},
+      {text:'ÚLTIMO MOV.',style:'th',fillColor:'#17324D'},
+      {text:'ANTERIOR',style:'th',fillColor:'#17324D'},
+      {text:'ENTRADA',style:'th',fillColor:'#17324D'},
+      {text:'SALIDA',style:'th',fillColor:'#17324D'},
+      {text:'SALDO',style:'th',fillColor:'#17324D'}
+    ]];
+
+    rows.forEach(function(r, i) {
+      var fill = i % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+      body.push([
+        {text:inventarioValor(r.producto,'') + '\n' + inventarioValor(r.barCode,'Sin código'),style:'td',fillColor:fill},
+        {text:inventarioValor(r.numero_lote,'No especificado') + '\n' + inventarioValor(r.bodega,'Sin bodega'),style:'td',fillColor:fill},
+        {text:inventarioValor(r.fecha_registro,'No registrada') + '\n#' + inventarioValor(r.movimientos_id,'Sin ID'),style:'td',fillColor:fill},
+        {text:formatNumber(toNumber(r.saldo_anterior)),style:'tdn',fillColor:fill},
+        {text:formatNumber(toNumber(r.entrada)),style:'tdn',color:'#14804A',fillColor:fill},
+        {text:formatNumber(toNumber(r.salida)),style:'tdn',color:'#C9372C',fillColor:fill},
+        {text:formatNumber(toNumber(r.saldo)),style:'tdn',fillColor:fill}
+      ]);
+    });
+
+    var doc = {
+      pageSize:'LETTER',
+      pageOrientation:'landscape',
+      pageMargins:[28,28,28,34],
+      header:function(){
+        return {margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};
+      },
+      footer:function(page,pages){
+        return {margin:[28,8,28,0],columns:[
+          {text:'IZZY • Inventario',fontSize:7,color:'#7A869A'},
+          {text:'Página ' + page + ' de ' + pages,fontSize:7,color:'#7A869A',alignment:'right'}
+        ]};
+      },
+      content:[
+        {
+          table:{widths:[100,'*',160],body:[[
+            {table:{widths:['*'],body:[[{image:logo,fit:[62,36],alignment:'center',margin:[7,5,7,5],fillColor:'#FFFFFF'}]]},layout:'noBorders',fillColor:'#17324D',margin:[8,7,8,7]},
+            {stack:[
+              {text:'REPORTE DE INVENTARIO',bold:true,fontSize:16,color:'#FFFFFF'},
+              {text:'Existencias, lotes, bodegas y movimientos',fontSize:7.5,color:'#D8E5F0',margin:[0,2,0,0]}
+            ],fillColor:'#17324D',margin:[0,10,0,10]},
+            {stack:[
+              {text:'REPORTE EJECUTIVO',bold:true,fontSize:6.5,color:'#72E2E5',alignment:'right'},
+              {text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},
+              {text:rows.length + ' registro(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right'}
+            ],fillColor:'#17324D',margin:[0,10,12,10]}
+          ]]},
+          layout:'noBorders',
+          margin:[0,0,0,10]
+        },
+        {
+          table:{widths:['*'],body:[[
+            {text:
+              'Filtros: Categoría ' + ($('#inventario_tipo_productos_id option:selected').text() || 'Todas') +
+              ' | Producto ' + ($('#inventario_productos_id option:selected').text() || 'Todos') +
+              ' | Almacén ' + ($('#almacen option:selected').text() || 'Todos') +
+              ' | Búsqueda ' + ($.trim($('#buscar_transferencia_general').val()) || 'Sin búsqueda'),
+             fontSize:7,color:'#52627A',fillColor:'#F7F9FC',margin:[8,7,8,7]}
+          ]]},
+          layout:'lightHorizontalLines',
+          margin:[0,0,0,10]
+        },
+        {
+          table:{widths:['*','*','*','*'],body:[[
+            {stack:[{text:'REGISTROS',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:13,bold:true,color:'#172B4D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},
+            {stack:[{text:'ENTRADAS',fontSize:6.3,bold:true,color:'#6B778C'},{text:formatNumber(totalEntrada),fontSize:13,bold:true,color:'#14804A'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},
+            {stack:[{text:'SALIDAS',fontSize:6.3,bold:true,color:'#6B778C'},{text:formatNumber(totalSalida),fontSize:13,bold:true,color:'#C9372C'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},
+            {stack:[{text:'SALDO',fontSize:6.3,bold:true,color:'#6B778C'},{text:formatNumber(totalSaldo),fontSize:13,bold:true,color:'#6554C0'}],fillColor:'#F7F9FC',margin:[8,7,8,7]}
+          ]]},
+          layout:'lightHorizontalLines',
+          margin:[0,0,0,12]
+        },
+        {text:'VISTA DETALLE',bold:true,fontSize:7,color:'#17324D',margin:[0,0,0,7]},
+        {
+          table:{headerRows:1,widths:[150,120,105,70,70,70,70],body:body},
+          layout:{
+            hLineColor:function(){return '#DDE3EA';},
+            vLineColor:function(){return '#DDE3EA';},
+            hLineWidth:function(){return .55;},
+            vLineWidth:function(){return .55;},
+            paddingLeft:function(){return 5;},
+            paddingRight:function(){return 5;},
+            paddingTop:function(){return 6;},
+            paddingBottom:function(){return 6;}
+          }
+        }
+      ],
+      styles:{
+        th:{fontSize:6.2,bold:true,color:'#FFFFFF',alignment:'center'},
+        td:{fontSize:6.2,color:'#253858'},
+        tdn:{fontSize:6.2,color:'#253858',alignment:'right'}
+      }
+    };
+
+    pdfMake.createPdf(doc).getDataUrl(function(url) {
+      abrirModalPdfPublico(url,'Reporte de Inventario','Reporte_Inventario.pdf');
+    });
+  });
+}
+
+function transferenciaInicializarEventosUI() {
+  transferenciaConfigurarPanel('#btnToggleFiltrosTransferencia','#transferenciaFiltrosContenido','izzy.transferencia.filtros.visible');
+  transferenciaConfigurarPanel('#btnToggleKpisTransferencia','#transferenciaKpisContenido','izzy.transferencia.kpis.visible');
+  transferenciaInicializarVista();
+
+  $('#buscar_transferencia_general').off('input.transferenciaUI').on('input.transferenciaUI',function(){
+    transferenciaUI.search = $(this).val() || '';
+    transferenciaUI.filtered = transferenciaFiltrar(transferenciaUI.rows || []);
+    transferenciaUI.page = 1;
+    inventarioActualizarResumen(transferenciaUI.filtered);
+    transferenciaActualizarTotales(transferenciaUI.filtered);
+    transferenciaRender();
+  });
+
+  $('#limpiarBuscarTransferencia').off('click.transferenciaUI').on('click.transferenciaUI',function(){
+    transferenciaUI.search = '';
+    $('#buscar_transferencia_general').val('').focus();
+    transferenciaUI.filtered = transferenciaFiltrar(transferenciaUI.rows || []);
+    transferenciaUI.page = 1;
+    inventarioActualizarResumen(transferenciaUI.filtered);
+    transferenciaActualizarTotales(transferenciaUI.filtered);
+    transferenciaRender();
+  });
+
+  $('#transferenciaPageSize').off('change.transferenciaUI').on('change.transferenciaUI',function(){
+    var n = parseInt($(this).val(),10);
+    if (!n) return;
+    transferenciaUI.pageSize = n;
+    if (transferenciaUI.view === 'miniatura') transferenciaUI.pageSizeMiniatura = n;
+    else transferenciaUI.pageSizeDetalle = n;
+    transferenciaUI.page = 1;
+    transferenciaRender();
+  });
+
+  $('.transferencia-view-btn').off('click.transferenciaUI').on('click.transferenciaUI',function(){
+    var vista = $(this).data('view');
+    transferenciaUI.view = transferenciaEsMovil() ? 'miniatura' : (vista === 'miniatura' ? 'miniatura' : 'detalle');
+
+    if (!transferenciaEsMovil()) {
+      transferenciaUI.preferredView = transferenciaUI.view;
+      try { localStorage.setItem(TRANSFERENCIA_STORAGE_VISTA, transferenciaUI.preferredView); } catch (e) {}
+    }
+
+    transferenciaUI.page = 1;
+    transferenciaActualizarVistaUI();
+    transferenciaSincronizarPageSize();
+    transferenciaRender();
+  });
+
+  $('#transferenciaPaginacion').off('click.transferenciaUI','.transferencia-page-btn').on('click.transferenciaUI','.transferencia-page-btn',function(){
+    if (this.disabled) return;
+    var p = parseInt($(this).data('page'),10);
+    if (!p) return;
+    transferenciaUI.page = p;
+    transferenciaRender();
+  });
+
+  $('#transferenciaListado')
+    .off('click.transferenciaUI','.js-transferencia-producto')
+    .on('click.transferenciaUI','.js-transferencia-producto',function(){
+      var row = transferenciaUI.filtered[parseInt($(this).data('index'),10)];
+      if (row) transferenciaAbrirTransferir(row);
+    })
+    .off('click.transferenciaFecha','.js-transferencia-fecha')
+    .on('click.transferenciaFecha','.js-transferencia-fecha',function(){
+      var row = transferenciaUI.filtered[parseInt($(this).data('index'),10)];
+      if (row) transferenciaAbrirFecha(row);
+    });
+
+  $('#btnActualizarTransferencia').off('click.transferenciaUI').on('click.transferenciaUI',inventario_transferencia);
+  $('#btnResumenTransferencia').off('click.transferenciaUI').on('click.transferenciaUI',mostrarVistaResumenInventario);
+  $('#btnExcelTransferencia').off('click.transferenciaUI').on('click.transferenciaUI',transferenciaExportarExcel);
+  $('#btnPdfTransferencia').off('click.transferenciaUI').on('click.transferenciaUI',transferenciaExportarPdf);
+
+  $(window).off('resize.transferenciaUI orientationchange.transferenciaUI').on('resize.transferenciaUI orientationchange.transferenciaUI',function(){
+    var objetivo = transferenciaEsMovil() ? 'miniatura' : transferenciaUI.preferredView;
+    if (transferenciaUI.view !== objetivo) {
+      transferenciaUI.view = objetivo;
+      transferenciaUI.page = 1;
+      transferenciaActualizarVistaUI();
+      transferenciaSincronizarPageSize();
+      transferenciaRender();
+    } else {
+      transferenciaActualizarVistaUI();
+    }
+  });
+}
 
 /* =========================================================
    RESUMEN INVENTARIO
@@ -642,12 +1216,10 @@ function mostrarVistaInventarioPrincipal() {
   $('#vistaResumenInventario').hide();
   $('#vistaInventarioPrincipal').show();
 
-  if ($.fn.DataTable.isDataTable("#dataTablaMovimientos")) {
-    setTimeout(function(){
-      $("#dataTablaMovimientos").DataTable().columns.adjust();
-      inventarioActualizarResumenDataTable($("#dataTablaMovimientos").DataTable());
-    }, 150);
-  }
+  setTimeout(function(){
+    transferenciaActualizarVistaUI();
+    transferenciaRender();
+  }, 80);
 }
 
 function cargarResumenInventario() {
@@ -704,10 +1276,7 @@ function construirTablaResumenInventario(rows) {
 
   rows.forEach(function(row){
     var existencia = toNumber(row.saldo);
-
-    if (existencia <= 0) {
-      return;
-    }
+    if (existencia <= 0) return;
 
     var precioVenta = toNumber(row.precio_venta);
     var precioCosto = toNumber(row.precio_compra);
@@ -725,7 +1294,7 @@ function construirTablaResumenInventario(rows) {
       existencia: existencia,
       precio_usado: precioUsado,
       valor_disponible: valorDisponible,
-      tipo_valorizacion: tipoValorizacion
+      image: row.image || row.imagen || ''
     });
   });
 
@@ -733,147 +1302,41 @@ function construirTablaResumenInventario(rows) {
   $('#resumen_total_unidades').text(formatNumber(totalUnidades));
   $('#resumen_valor_disponible').text(formatMoney(totalValor));
 
-  if ($.fn.DataTable.isDataTable("#dataTablaResumenInventario")) {
-    $("#dataTablaResumenInventario").DataTable().clear().destroy();
+  var html = '<div class="transferencia-summary-grid">';
+
+  detalle.forEach(function(row) {
+    var imageUrl = transferenciaImagenUrl(row);
+    var fallback = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+
+    html += '' +
+      '<article class="transferencia-summary-card">' +
+        '<a href="#" class="iv-trigger transferencia-summary-image" data-iv-src="' + inventarioEscape(imageUrl) + '" data-iv-fallback="' + inventarioEscape(fallback) + '" data-iv-title="' + inventarioEscape(inventarioValor(row.producto,'Producto')) + '">' +
+          '<img src="' + inventarioEscape(imageUrl) + '" alt="' + inventarioEscape(inventarioValor(row.producto,'Producto')) + '" onerror="this.onerror=null;this.src=\'' + fallback + '\';">' +
+          '<span class="transferencia-image-overlay"><span class="transferencia-image-overlay-icon"><i class="fas fa-search-plus"></i></span><span class="transferencia-image-overlay-text">Ver imagen</span></span>' +
+        '</a>' +
+        '<div class="transferencia-summary-copy">' +
+          '<h4>' + inventarioEscape(inventarioValor(row.producto,'Sin producto')) + '</h4>' +
+          '<p><i class="fas fa-barcode mr-1"></i>' + inventarioEscape(inventarioValor(row.barCode,'Sin código')) + '</p>' +
+          '<div class="transferencia-summary-meta">' +
+            '<span><b>Categoría:</b> ' + inventarioEscape(row.categoria) + '</span>' +
+            '<span><b>Bodega:</b> ' + inventarioEscape(row.bodega) + '</span>' +
+            '<span><b>Precio:</b> ' + formatMoney(row.precio_usado) + '</span>' +
+            '<span><b>Existencia:</b> ' + formatNumber(row.existencia) + '</span>' +
+            '<span class="transferencia-summary-total"><b>Valor:</b> ' + formatMoney(row.valor_disponible) + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</article>';
+  });
+
+  html += '</div>';
+
+  if (!detalle.length) {
+    html = '<div class="transferencia-state"><i class="fas fa-box-open"></i><strong>Sin existencias</strong><span>No hay productos con existencia disponible.</span></div>';
   }
 
-  construirHeaderDataTableResumenInventario();
-
-  $("#dataTablaResumenInventario").DataTable({
-    destroy: true,
-    stateSave: false,
-    orderMulti: false,
-    autoWidth: false,
-    scrollX: false,
-    data: detalle,
-    columns: [
-      {
-        data: null,
-        className: "align-middle inventario-producto-cell",
-        render: function(data, type, row){
-          var producto = inventarioEscape(row.producto);
-          var barcode = inventarioEscape(inventarioValor(row.barCode, 'Sin código'));
-
-          if (type !== 'display') {
-            return producto + ' ' + barcode;
-          }
-
-          return '' +
-            '<div class="inventario-detail-list">' +
-              '<div class="inventario-detail-item">' +
-                '<span class="inventario-detail-icon inventario-icon-doc"><i class="fas fa-box"></i></span>' +
-                '<span><strong>' + producto + '</strong></span>' +
-              '</div>' +
-              '<div class="inventario-detail-item">' +
-                '<span class="inventario-detail-icon inventario-icon-lote"><i class="fas fa-barcode"></i></span>' +
-                '<span>' + barcode + '</span>' +
-              '</div>' +
-            '</div>';
-        }
-      },
-      {
-        data: "categoria",
-        className: "align-middle",
-        render: function(data, type){
-          return type === 'display' ? inventarioEscape(inventarioValor(data, 'Sin categoría')) : inventarioValor(data, '');
-        }
-      },
-      {
-        data: "bodega",
-        className: "align-middle",
-        render: function(data, type){
-          return type === 'display' ? inventarioEscape(inventarioValor(data, 'Sin bodega')) : inventarioValor(data, '');
-        }
-      },
-      {
-        data: "precio_usado",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type){
-          if (type !== 'display') {
-            return toNumber(data);
-          }
-
-          return inventarioDineroBadge(data, 'precio');
-        }
-      },
-      {
-        data: "existencia",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type){
-          if (type !== 'display') {
-            return toNumber(data);
-          }
-
-          return inventarioNumeroBadge(data, 'saldo');
-        }
-      },
-      {
-        data: "valor_disponible",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type){
-          if (type !== 'display') {
-            return toNumber(data);
-          }
-
-          return inventarioDineroBadge(data, 'valor');
-        }
-      }
-    ],
-    order: [[5, 'desc']],
-    lengthMenu: lengthMenu10,
-    language: idioma_español,
-    dom: dom,
-    buttons: [
-      {
-        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-        titleAttr: 'Actualizar Resumen',
-        className: 'table_actualizar btn btn-secondary ocultar',
-        action: function(){
-          cargarResumenInventario();
-        }
-      },
-      {
-        extend: 'excelHtml5',
-        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-        titleAttr: 'Exportar Resumen',
-        title: 'Resumen de Inventario',
-        className: 'table_reportes btn btn-success ocultar',
-        exportOptions: {
-          columns: [0, 1, 2, 3, 4, 5]
-        }
-      },
-      {
-        extend: 'pdfHtml5',
-        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-        titleAttr: 'Exportar Resumen',
-        orientation: 'landscape',
-        pageSize: 'LEGAL',
-        title: 'Resumen de Inventario',
-        className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: {
-          columns: [0, 1, 2, 3, 4, 5]
-        },
-        customize: function(doc){
-          if (typeof imagen !== 'undefined' && imagen){
-            doc.content.splice(0, 0, {
-              image: imagen,
-              width: 100,
-              height: 45,
-              margin: [0, 0, 0, 12]
-            });
-          }
-        }
-      }
-    ],
-    footerCallback: function(){
-      $('#resumen-footer-existencia').html(formatNumber(totalUnidades));
-      $('#resumen-footer-valor').html(formatMoney(totalValor));
-    },
-    drawCallback: function(){
-      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-      $('[data-toggle="tooltip"]').tooltip();
-    }
-  });
+  $('#resumenInventarioListado').html(html);
+  $('#resumenInventarioInfo').text(detalle.length + ' registro(s)');
+  $('#resumenInventarioPaginacion').empty();
 }
 
 /* =========================================================
@@ -942,119 +1405,35 @@ function construirTablaHistoricoVendidoInventario(rows) {
     totalVendido += toNumber(row.total_vendido);
   });
 
-  if ($.fn.DataTable.isDataTable("#dataTablaHistoricoVendidoInventario")) {
-    $("#dataTablaHistoricoVendidoInventario").DataTable().clear().destroy();
+  var html = '<div class="transferencia-historico-grid">';
+
+  rows.forEach(function(row) {
+    html += '' +
+      '<article class="transferencia-historico-card">' +
+        '<div class="transferencia-historico-icon"><i class="fas fa-receipt"></i></div>' +
+        '<div class="transferencia-historico-copy">' +
+          '<h4>' + inventarioEscape(inventarioValor(row.producto,'Sin producto')) + '</h4>' +
+          '<div class="transferencia-historico-meta">' +
+            '<span><b>Código:</b> ' + inventarioEscape(inventarioValor(row.barCode,'Sin código')) + '</span>' +
+            '<span><b>Categoría:</b> ' + inventarioEscape(inventarioValor(row.categoria,'Sin categoría')) + '</span>' +
+            '<span><b>Cantidad:</b> ' + formatNumber(toNumber(row.cantidad_vendida)) + '</span>' +
+            '<span class="transferencia-historico-total"><b>Total:</b> ' + formatMoney(toNumber(row.total_vendido)) + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</article>';
+  });
+
+  html += '</div>';
+
+  if (!rows.length) {
+    html = '<div class="transferencia-state"><i class="fas fa-receipt"></i><strong>Sin histórico</strong><span>No se encontraron productos vendidos.</span></div>';
   }
 
-  construirHeaderDataTableHistoricoVendidoInventario();
+  $('#historicoInventarioListado').html(html);
+  $('#historicoInventarioInfo').text(rows.length + ' registro(s)');
+  $('#historicoInventarioPaginacion').empty();
 
-  $("#dataTablaHistoricoVendidoInventario").DataTable({
-    destroy: true,
-    stateSave: false,
-    orderMulti: false,
-    autoWidth: false,
-    scrollX: false,
-    data: rows,
-    columns: [
-      {
-        data: "producto",
-        className: "align-middle",
-        render: function(data, type){
-          return type === 'display' ? inventarioEscape(data) : inventarioValor(data, '');
-        }
-      },
-      {
-        data: "barCode",
-        className: "align-middle",
-        render: function(data, type){
-          return type === 'display' ? inventarioEscape(inventarioValor(data, 'Sin código')) : inventarioValor(data, '');
-        }
-      },
-      {
-        data: "categoria",
-        className: "align-middle",
-        render: function(data, type){
-          return type === 'display' ? inventarioEscape(inventarioValor(data, 'Sin categoría')) : inventarioValor(data, '');
-        }
-      },
-      {
-        data: "cantidad_vendida",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type){
-          if (type !== 'display') {
-            return toNumber(data);
-          }
-
-          return inventarioNumeroBadge(data, 'salida');
-        }
-      },
-      {
-        data: "total_vendido",
-        className: "text-center align-middle inventario-numero-cell",
-        render: function(data, type){
-          if (type !== 'display') {
-            return toNumber(data);
-          }
-
-          return inventarioDineroBadge(data, 'valor');
-        }
-      }
-    ],
-    order: [[4, 'desc']],
-    lengthMenu: lengthMenu10,
-    language: idioma_español,
-    dom: dom,
-    buttons: [
-      {
-        text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-        titleAttr: 'Actualizar Histórico',
-        className: 'table_actualizar btn btn-secondary ocultar',
-        action: function(){
-          cargarHistoricoVendidoInventario();
-        }
-      },
-      {
-        extend: 'excelHtml5',
-        text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-        titleAttr: 'Exportar Histórico',
-        title: 'Histórico de Productos Vendidos',
-        className: 'table_reportes btn btn-success ocultar',
-        exportOptions: {
-          columns: [0, 1, 2, 3, 4]
-        }
-      },
-      {
-        extend: 'pdfHtml5',
-        text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-        titleAttr: 'Exportar Histórico',
-        orientation: 'landscape',
-        pageSize: 'LEGAL',
-        title: 'Histórico de Productos Vendidos',
-        className: 'table_reportes btn btn-danger ocultar',
-        exportOptions: {
-          columns: [0, 1, 2, 3, 4]
-        },
-        customize: function(doc){
-          if (typeof imagen !== 'undefined' && imagen){
-            doc.content.splice(0, 0, {
-              image: imagen,
-              width: 100,
-              height: 45,
-              margin: [0, 0, 0, 12]
-            });
-          }
-        }
-      }
-    ],
-    footerCallback: function(){
-      $('#historico-footer-cantidad').html(formatNumber(totalCantidad));
-      $('#historico-footer-total').html(formatMoney(totalVendido));
-    },
-    drawCallback: function(){
-      getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-      $('[data-toggle="tooltip"]').tooltip();
-    }
-  });
+  $('#resumen_total_historico_vendido').text(formatMoney(totalVendido));
 }
 
 /* =========================================================

@@ -1,3 +1,61 @@
+####11 de septiembre 2026####
+-- ============================================================
+-- IZZY 6.0 | MÓDULO DE CHEQUES
+-- Ejecutar UNA VEZ antes de publicar el módulo.
+-- Compatible con la tabla cheque entregada por el proyecto.
+-- ============================================================
+
+START TRANSACTION;
+
+ALTER TABLE `cheque`
+    MODIFY `factura` VARCHAR(50) COLLATE utf8mb4_spanish_ci NOT NULL DEFAULT '',
+    MODIFY `observacion` VARCHAR(255) COLLATE utf8mb4_spanish_ci NOT NULL DEFAULT '',
+    ADD COLUMN `numero_cheque` VARCHAR(30) COLLATE utf8mb4_spanish_ci NULL AFTER `cheque_id`,
+    ADD COLUMN `tipo_pago_id` INT NOT NULL DEFAULT 4 AFTER `empresa_id`,
+    ADD COLUMN `egresos_id` INT NULL AFTER `tipo_pago_id`,
+    ADD COLUMN `categoria_gastos_id` INT NULL AFTER `egresos_id`,
+    ADD COLUMN `movimientos_cuentas_id` INT NULL AFTER `categoria_gastos_id`,
+    ADD COLUMN `movimiento_reintegro_id` INT NULL AFTER `movimientos_cuentas_id`,
+    ADD COLUMN `estado` TINYINT NOT NULL DEFAULT 1 COMMENT '1 Activo / 0 Anulado' AFTER `observacion`,
+    ADD COLUMN `fecha_anulacion` DATETIME NULL AFTER `fecha_registro`,
+    ADD COLUMN `colaboradores_anula_id` INT NULL AFTER `fecha_anulacion`,
+    ADD COLUMN `motivo_anulacion` VARCHAR(255) COLLATE utf8mb4_spanish_ci NULL AFTER `colaboradores_anula_id`;
+
+-- Los cheques históricos que existan antes de esta migración se consideran activos.
+UPDATE `cheque` SET `estado` = 1 WHERE `estado` IS NULL;
+
+-- Índices útiles.
+ALTER TABLE `cheque`
+    ADD INDEX `idx_cheque_empresa_fecha` (`empresa_id`,`fecha`),
+    ADD INDEX `idx_cheque_cuenta` (`cuentas_id`),
+    ADD INDEX `idx_cheque_proveedor` (`proveedores_id`),
+    ADD INDEX `idx_cheque_categoria` (`categoria_gastos_id`),
+    ADD INDEX `idx_cheque_egreso` (`egresos_id`),
+    ADD INDEX `idx_cheque_estado` (`estado`);
+
+-- Evita repetir número de cheque dentro de la misma empresa.
+-- Los registros históricos con numero_cheque NULL no chocan entre sí.
+ALTER TABLE `cheque`
+    ADD UNIQUE INDEX `ux_cheque_empresa_numero` (`empresa_id`,`numero_cheque`);
+
+-- Asegurar que el tipo de pago Cheque exista.
+INSERT INTO `tipo_pago` (`tipo_pago_id`,`tipo_cuenta_id`,`nombre`,`cuentas_id`,`estado`,`fecha_registro`)
+SELECT 4,4,'Cheque',0,1,NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `tipo_pago` WHERE `tipo_pago_id`=4);
+
+-- Normalizar nombre sin cambiar la cuenta actual.
+UPDATE `tipo_pago`
+SET `nombre`='Cheque',
+    `estado`=1
+WHERE `tipo_pago_id`=4;
+
+COMMIT;
+
+-- IMPORTANTE:
+-- Después de ejecutar este SQL entre al módulo Cheques y use
+-- "Cuenta de Cheques" para asignar la cuenta contable correcta.
+
+
 ####04 de septiembre 2026####
 -- ============================================================
 -- IZZY | FASE 3 - NOTA DE CRÉDITO

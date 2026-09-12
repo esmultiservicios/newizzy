@@ -1,0 +1,885 @@
+/* =========================================================
+   IZZY 6.0 | EGRESOS CONTABILIDAD
+   ========================================================= */
+.egresos-page{--ig-navy:#17324d;--ig-blue:#2f9ddd;--ig-teal:#0ea5a8;--ig-green:#22a06b;--ig-red:#c9372c;--ig-purple:#6554c0;--ig-border:#dfe6ee;--ig-soft:#f7f9fc;--ig-text:#172b4d;--ig-muted:#6b778c;overflow-x:hidden}.egresos-page *{box-sizing:border-box;min-width:0}.egresos-section-card{border:1px solid var(--ig-border);border-radius:10px;background:#fff;box-shadow:0 2px 8px rgba(23,50,77,.06);overflow:visible}.egresos-section-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid #e4eaf0;background:#fff}.egresos-section-title{display:flex;align-items:center;gap:11px;min-width:0}.egresos-section-icon{width:40px;height:40px;flex:0 0 40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9e7f3;border-radius:10px;background:#eef6ff;color:#2675b9}.egresos-section-title h5{margin:0;color:var(--ig-text);font-size:16px;font-weight:800}.egresos-section-title small{display:block;margin-top:2px;color:var(--ig-muted);font-size:12px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}.egresos-toggle-btn,.egresos-filtro-actions .btn,.egresos-toolbar-left .btn{min-height:38px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700}.egresos-toggle-btn{min-width:104px}.egresos-filtro-card label{color:#253858;font-size:12px!important;font-weight:700}.egresos-filtro-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.egresos-filtro-card .form-control,.egresos-filtro-card .bootstrap-select,.egresos-filtro-card .bootstrap-select>.dropdown-toggle{width:100%!important;max-width:100%!important;min-height:40px}.egresos-resumen-card{min-height:106px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border:1px solid var(--ig-border);border-left:4px solid #2684ff;border-radius:10px;background:#fff!important;opacity:1!important;filter:none!important;transition:transform .16s ease,box-shadow .16s ease}.egresos-resumen-card:hover{transform:translateY(-3px);box-shadow:0 7px 16px rgba(23,50,77,.10);background:#fff!important}.egresos-resumen-registros{border-left-color:#2684ff!important}.egresos-resumen-subtotal{border-left-color:#22a06b!important}.egresos-resumen-impuesto{border-left-color:#0ea5a8!important}.egresos-resumen-total{border-left-color:#6554c0!important}.egresos-resumen-label{color:#5e6c84;font-size:11px;font-weight:800;text-transform:uppercase}.egresos-resumen-card h3{margin:4px 0 0;color:#172b4d;font-size:21px;line-height:1.15;overflow-wrap:anywhere}.egresos-resumen-card p{margin:5px 0 0;color:#7a869a;font-size:11px}.egresos-resumen-icon{width:44px;height:44px;flex:0 0 44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--ig-border);border-radius:10px;background:#f7f9fc;color:#35526f}.egresos-list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}.egresos-toolbar-left,.egresos-toolbar-right{display:flex;align-items:center;gap:10px;min-width:0}.egresos-toolbar-left{flex-wrap:wrap}.egresos-toolbar-right{margin-left:auto;justify-content:flex-end}.egresos-page-size{display:inline-flex;align-items:center;gap:8px;color:#46556b;font-size:13px;white-space:nowrap}#egresosPageSize{width:86px!important;min-width:86px!important;height:38px!important;border-radius:8px!important}.egresos-view-switch{display:inline-flex;padding:3px;border:1px solid #d7e1eb;border-radius:9px;background:#f5f8fb}.egresos-view-btn{min-height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border:0;border-radius:7px;background:transparent;color:#52627a;font-size:12px;font-weight:700}.egresos-view-btn.active{background:#2f9ddd;color:#fff;box-shadow:0 2px 7px rgba(47,157,221,.24)}.egresos-search-wrap{position:relative;width:300px;height:38px;display:flex;border:1px solid #ced4da;border-radius:8px;overflow:hidden;background:#fff}.egresos-search-icon{width:42px;flex:0 0 42px;display:inline-flex;align-items:center;justify-content:center;border-right:1px solid #ced4da;background:#f7f9fc;color:#233b55}.egresos-search-wrap .form-control{min-width:0;height:36px;border:0;padding-right:34px;box-shadow:none!important}.egresos-search-clear{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:27px;height:27px;border:0;border-radius:6px;background:transparent;color:#7a869a}.egresos-listado,.egresos-listado *{min-width:0;box-sizing:border-box}.egresos-detail-header,.egresos-detail-row{display:grid;grid-template-columns:120px minmax(165px,1.05fr) minmax(160px,1fr) minmax(230px,1.35fr) 110px 105px 105px 115px 100px;gap:9px;align-items:center;width:100%}.egresos-detail-header{min-height:44px;padding:0 12px;border-radius:8px;background:#193b5a;color:#fff;font-size:14px;font-weight:800;line-height:1.2}.egresos-detail-row{margin-top:10px;padding:11px 12px;border:1px solid #dfe6ee;border-top:3px solid #28d6a1;border-radius:9px;background:#fff;box-shadow:0 2px 7px rgba(31,47,67,.05);transition:transform .16s ease,box-shadow .16s ease}.egresos-detail-row:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(23,50,77,.09)}.egresos-cell{max-width:100%;color:#172b4d;font-size:14px;line-height:1.4;white-space:normal;overflow-wrap:anywhere;word-break:normal}.egresos-cell-label{display:none;margin-bottom:5px;color:#6b778c;font-size:10px;font-weight:800;text-transform:uppercase}.egresos-primary{display:flex;flex-direction:column;gap:3px}.egresos-primary strong{font-size:14px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}.egresos-primary span{font-size:13px;line-height:1.35;overflow-wrap:anywhere}.egresos-primary small,.egresos-block-muted{display:block;color:#7a869a;font-size:11px;line-height:1.3;overflow-wrap:anywhere}.egresos-money{display:block;font-size:14px;font-weight:700;line-height:1.35;white-space:normal;overflow-wrap:anywhere}.egresos-money-info{color:#0ea5a8}.egresos-money-warning{color:#b7791f}.egresos-money-success{color:#14804a}.egresos-center{text-align:center}.egresos-type-badge,.egresos-status-badge{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;line-height:1.2;white-space:normal;text-align:center}.egresos-type-badge{border:1px solid #d7e1eb;background:#f5f8fb;color:#52627a}.egresos-type-ventas{border-color:#cfe2f3;background:#eef6ff;color:#176fae}.egresos-type-manual{border-color:#d9d3f5;background:#f3f0ff;color:#6554c0}.egresos-status-active{border:1px solid #c2efd3;background:#e8f9ef;color:#14804a}.egresos-status-inactive{border:1px solid #f1c8c4;background:#fff0ef;color:#c9372c}.egresos-actions-cell .btn-acciones,.egresos-mini-footer .btn-acciones{min-width:112px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;white-space:nowrap!important;flex-wrap:nowrap!important}.egresos-actions-cell .btn-acciones span,.egresos-mini-footer .btn-acciones span{white-space:nowrap!important;overflow-wrap:normal!important;word-break:keep-all!important}.egresos-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}.egresos-mini-card{max-width:100%;border:1px solid #dfe6ee;border-radius:10px;background:#fff;overflow:hidden;box-shadow:0 2px 8px rgba(23,50,77,.06);transition:transform .16s ease,box-shadow .16s ease}.egresos-mini-card:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(23,50,77,.09)}.egresos-mini-topline{height:3px;background:#1fc79a}.egresos-mini-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px;border-bottom:1px solid #edf1f6;background:#fbfdff}.egresos-mini-title{min-width:0;flex:1}.egresos-mini-title h4{margin:0;color:#172b4d;font-size:15px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}.egresos-mini-title span{display:block;margin-top:4px;color:#6b778c;font-size:12px;line-height:1.35;overflow-wrap:anywhere}.egresos-mini-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid #edf1f6;color:#52627a;font-size:12px}.egresos-mini-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.egresos-mini-field{padding:9px 10px;border-right:1px solid #edf1f6;border-bottom:1px solid #edf1f6}.egresos-mini-field:nth-child(2n){border-right:0}.egresos-mini-field-full{grid-column:1/-1;border-right:0!important}.egresos-mini-field span,.egresos-mini-field strong{display:block;max-width:100%}.egresos-mini-field span{margin-bottom:3px;color:#6b778c;font-size:10px;font-weight:800;text-transform:uppercase}.egresos-mini-field strong{color:#172b4d;font-size:14px;font-weight:500;line-height:1.35;white-space:normal;overflow-wrap:anywhere}.egresos-mini-footer{min-height:46px;display:flex;align-items:center;justify-content:flex-end;padding:7px 11px}.egresos-totales-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}.egresos-total-card{padding:10px 12px;border:1px solid #dfe6ee;border-radius:8px;background:#f7f9fc}.egresos-total-card span,.egresos-total-card strong{display:block}.egresos-total-card span{color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}.egresos-total-card strong{margin-top:3px;color:#172b4d;font-size:14px;line-height:1.3;overflow-wrap:anywhere}.egresos-total-info strong{color:#0ea5a8}.egresos-total-warning strong{color:#b7791f}.egresos-total-current{border-color:#cfe2f3;background:#eef6ff}.egresos-total-current strong{color:#14804a}.egresos-list-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;color:#667085;font-size:12px}.egresos-pagination{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}.egresos-page-btn{min-height:34px;padding:5px 9px;border:1px solid #d7e1eb;border-radius:7px;background:#f5f8fb;color:#42526e;font-size:11px;font-weight:700}.egresos-page-btn.active{border-color:#2f9ddd;background:#2f9ddd;color:#fff}.egresos-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:24px;border:1px dashed #cfd8e3;border-radius:9px;background:#fff;color:#7a869a;text-align:center}.egresos-state i{font-size:25px;color:#98a2b3}.egresos-state strong{color:#42526e}
+@media(max-width:1399.98px){.egresos-list-toolbar{flex-wrap:wrap}.egresos-toolbar-right{flex:1 1 100%;justify-content:flex-end}.egresos-detail-header{display:none}.egresos-detail-row{grid-template-columns:repeat(3,minmax(0,1fr))}.egresos-cell-label{display:block}.egresos-actions-cell{grid-column:1/-1}}
+@media(max-width:1199.98px){.egresos-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.egresos-detail-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:991.98px){.egresos-list-toolbar{flex-direction:column;align-items:stretch}.egresos-toolbar-right{width:100%;margin-left:0;justify-content:flex-start;flex-wrap:wrap}.egresos-search-wrap{flex:1 1 100%;width:100%}}
+@media(max-width:767.98px){.egresos-section-header,.egresos-list-footer{flex-direction:column;align-items:stretch}.egresos-toggle-btn{width:100%}.egresos-filtro-actions,.egresos-toolbar-left{width:100%}.egresos-filtro-actions .btn,.egresos-toolbar-left .btn{flex:1 1 calc(50% - 4px);min-width:0}.egresos-toolbar-right{flex-direction:column;align-items:stretch;gap:8px;min-height:0!important;height:auto!important}.egresos-page-size{width:100%}.egresos-view-switch{width:100%}.egresos-view-btn[data-view="detalle"]{display:none!important}.egresos-view-btn[data-view="miniatura"]{width:100%;flex:1 1 100%}.egresos-search-wrap{flex:0 0 auto!important;flex-basis:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:38px!important;min-height:38px!important;max-height:38px!important;margin:0!important}.egresos-mini-grid{grid-template-columns:1fr!important;gap:10px}.egresos-totales-grid{grid-template-columns:1fr}.egresos-pagination{justify-content:center}}
+@media(max-width:575.98px){.egresos-filtro-actions .btn,.egresos-toolbar-left .btn{flex:1 1 100%;width:100%}}
+
+/* =========================================================
+   EGRESOS | KPI UNIFORMES COMO REPORTE VENTAS
+   Mismo lenguaje visual: borde, icono y color por indicador.
+   Hover solo movimiento/sombra; no altera colores.
+   ========================================================= */
+
+.egresos-resumen-card {
+    position: relative !important;
+    min-width: 0 !important;
+    min-height: 112px !important;
+    padding: 16px 16px 15px 18px !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    border: 1px solid #d9e2ec !important;
+    border-left-width: 4px !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    box-shadow: 0 4px 12px rgba(23,43,77,.06) !important;
+    opacity: 1 !important;
+    filter: none !important;
+    overflow: hidden !important;
+    transition: transform .18s ease, box-shadow .18s ease !important;
+}
+
+.egresos-resumen-card:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 10px 22px rgba(23,43,77,.11) !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.egresos-resumen-card > div:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+.egresos-resumen-label {
+    display: block !important;
+    margin: 0 0 6px !important;
+    color: #53627a !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .35px !important;
+}
+
+.egresos-resumen-card h3 {
+    display: block !important;
+    margin: 0 !important;
+    color: #102a56 !important;
+    font-size: clamp(1.28rem, 1.55vw, 1.65rem) !important;
+    line-height: 1.12 !important;
+    font-weight: 800 !important;
+    letter-spacing: -.35px !important;
+    font-variant-numeric: tabular-nums lining-nums !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.egresos-resumen-card p {
+    display: block !important;
+    margin: 8px 0 0 !important;
+    color: #768399 !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+}
+
+.egresos-resumen-icon {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #dce6ef !important;
+    border-radius: 11px !important;
+    background: #f7f9fc !important;
+    color: #274f72 !important;
+    font-size: 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.75) !important;
+    transition: none !important;
+}
+
+.egresos-resumen-card:hover .egresos-resumen-icon {
+    transform: none !important;
+}
+
+/* REGISTROS — azul */
+.egresos-resumen-registros,
+.egresos-resumen-registros:hover {
+    border-left-color: #2f80ed !important;
+}
+.egresos-resumen-registros .egresos-resumen-icon {
+    color: #216ac4 !important;
+    background: #f2f7fd !important;
+    border-color: #d9e7f6 !important;
+}
+
+/* SUBTOTAL — teal */
+.egresos-resumen-subtotal,
+.egresos-resumen-subtotal:hover {
+    border-left-color: #16a3b6 !important;
+}
+.egresos-resumen-subtotal .egresos-resumen-icon {
+    color: #128496 !important;
+    background: #f1fafb !important;
+    border-color: #d6eef1 !important;
+}
+
+/* IMPUESTO — púrpura */
+.egresos-resumen-impuesto,
+.egresos-resumen-impuesto:hover {
+    border-left-color: #6c5dd3 !important;
+}
+.egresos-resumen-impuesto .egresos-resumen-icon {
+    color: #5949ba !important;
+    background: #f5f3fd !important;
+    border-color: #e2def8 !important;
+}
+
+/* TOTAL — verde destacado, igual al Total Ventas */
+.egresos-resumen-total,
+.egresos-resumen-total:hover {
+    border-color: #c8e9dd !important;
+    border-left-color: #21a875 !important;
+    background: #fbfffd !important;
+}
+.egresos-resumen-total .egresos-resumen-label {
+    color: #347763 !important;
+}
+.egresos-resumen-total h3 {
+    color: #087f5b !important;
+}
+.egresos-resumen-total .egresos-resumen-icon {
+    color: #087f5b !important;
+    background: #eefaf5 !important;
+    border-color: #ccebdd !important;
+}
+
+/* Responsive: evita que montos largos dañen la tarjeta */
+@media (max-width: 575.98px) {
+    .egresos-resumen-card {
+        min-height: 104px !important;
+    }
+
+    .egresos-resumen-card h3 {
+        font-size: 1.35rem !important;
+    }
+}
+
+/* =========================================================
+   EGRESOS | KPI EXACTAMENTE UNIFORMES CON REPORTE VENTAS
+   Se replica el mismo lenguaje visual del bloque #rvKpisSection.
+   ========================================================= */
+
+#egresosKpisSection #egresosKpisContenido {
+    padding: 16px !important;
+    background: #fbfcfe !important;
+}
+
+#egresosKpisSection .row {
+    margin-left: -7px !important;
+    margin-right: -7px !important;
+}
+
+#egresosKpisSection .row > [class*="col-"] {
+    padding-left: 7px !important;
+    padding-right: 7px !important;
+    margin-bottom: 0 !important;
+}
+
+#egresosKpisSection .egresos-resumen-card {
+    position: relative !important;
+    min-width: 0 !important;
+    min-height: 122px !important;
+    height: 100% !important;
+    padding: 16px 16px 15px 18px !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+
+    background: #fff !important;
+    border: 1px solid #d9e2ec !important;
+    border-left: 4px solid #2f80c9 !important;
+    border-radius: 12px !important;
+
+    box-shadow: 0 4px 12px rgba(23, 43, 77, .06) !important;
+    overflow: hidden !important;
+
+    opacity: 1 !important;
+    filter: none !important;
+
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease !important;
+}
+
+/* Elimina cualquier decoración previa que pueda producir doble barra */
+#egresosKpisSection .egresos-resumen-card::before,
+#egresosKpisSection .egresos-resumen-card::after {
+    content: none !important;
+    display: none !important;
+}
+
+#egresosKpisSection .egresos-resumen-card:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 24px rgba(23, 43, 77, .12) !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+#egresosKpisSection .egresos-resumen-card > div:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+
+#egresosKpisSection .egresos-resumen-label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    max-width: 100% !important;
+    margin: 0 0 6px !important;
+
+    color: #53627a !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .35px !important;
+    line-height: 1.2 !important;
+}
+
+#egresosKpisSection .egresos-resumen-card h3 {
+    display: block !important;
+    margin: 0 !important;
+
+    color: #102a56 !important;
+    font-size: clamp(1.28rem, 1.55vw, 1.65rem) !important;
+    line-height: 1.12 !important;
+    font-weight: 800 !important;
+    letter-spacing: -.35px !important;
+
+    font-variant-numeric: tabular-nums lining-nums !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    text-shadow: none !important;
+}
+
+#egresosKpisSection .egresos-resumen-card p {
+    display: block !important;
+    margin: 8px 0 0 !important;
+
+    color: #768399 !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+}
+
+#egresosKpisSection .egresos-resumen-icon {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: 1px solid #dce6ef !important;
+    border-radius: 11px !important;
+    background: #f7f9fc !important;
+    color: #274f72 !important;
+
+    font-size: 18px !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.75) !important;
+
+    transition:
+        transform .18s ease,
+        background-color .18s ease !important;
+}
+
+#egresosKpisSection .egresos-resumen-card:hover .egresos-resumen-icon {
+    transform: scale(1.06) !important;
+}
+
+/* REGISTROS */
+#egresosKpisSection .egresos-resumen-registros,
+#egresosKpisSection .egresos-resumen-registros:hover {
+    border-left-color: #2f80ed !important;
+}
+#egresosKpisSection .egresos-resumen-registros .egresos-resumen-icon {
+    color: #216ac4 !important;
+    background: #f2f7fd !important;
+    border-color: #d9e7f6 !important;
+}
+
+/* SUBTOTAL */
+#egresosKpisSection .egresos-resumen-subtotal,
+#egresosKpisSection .egresos-resumen-subtotal:hover {
+    border-left-color: #16a3b6 !important;
+}
+#egresosKpisSection .egresos-resumen-subtotal .egresos-resumen-icon {
+    color: #128496 !important;
+    background: #f1fafb !important;
+    border-color: #d6eef1 !important;
+}
+
+/* IMPUESTO / ISV */
+#egresosKpisSection .egresos-resumen-impuesto,
+#egresosKpisSection .egresos-resumen-impuesto:hover {
+    border-left-color: #6c5dd3 !important;
+}
+#egresosKpisSection .egresos-resumen-impuesto .egresos-resumen-icon {
+    color: #5949ba !important;
+    background: #f5f3fd !important;
+    border-color: #e2def8 !important;
+}
+
+/* TOTAL */
+#egresosKpisSection .egresos-resumen-total,
+#egresosKpisSection .egresos-resumen-total:hover {
+    border-color: #c8e9dd !important;
+    border-left-color: #21a875 !important;
+    background: #fbfffd !important;
+}
+#egresosKpisSection .egresos-resumen-total h3 {
+    color: #087f5b !important;
+}
+#egresosKpisSection .egresos-resumen-total .egresos-resumen-label {
+    color: #347763 !important;
+}
+#egresosKpisSection .egresos-resumen-total .egresos-resumen-icon {
+    color: #087f5b !important;
+    background: #eefaf5 !important;
+    border-color: #ccebdd !important;
+}
+
+/* Responsive equivalente al reporte de ventas */
+@media (max-width: 1199.98px) {
+    #egresosKpisSection .row > [class*="col-"] {
+        margin-bottom: 14px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #egresosKpisSection #egresosKpisContenido {
+        padding: 12px !important;
+    }
+
+    #egresosKpisSection .egresos-resumen-card {
+        min-height: 112px !important;
+    }
+
+    #egresosKpisSection .egresos-resumen-card h3 {
+        font-size: 1.35rem !important;
+    }
+}
+
+
+
+/* =========================================================
+   EGRESOS | AJUSTES ESPECÍFICOS DEL MÓDULO
+   ========================================================= */
+
+.egresos-page {
+    overflow-x:hidden;
+}
+
+.egresos-page *,
+.egresos-page *::before,
+.egresos-page *::after {
+    box-sizing:border-box;
+    min-width:0;
+}
+
+/* KPI TOTAL: semántica de egreso en rojo, estructura idéntica */
+#egresosKpisSection .egresos-resumen-total,
+#egresosKpisSection .egresos-resumen-total:hover {
+    border-color:#f0d4d1 !important;
+    border-left-color:#c9372c !important;
+    background:#fffafa !important;
+}
+
+#egresosKpisSection .egresos-resumen-total .egresos-resumen-label {
+    color:#8f4b45 !important;
+}
+
+#egresosKpisSection .egresos-resumen-total h3 {
+    color:#c9372c !important;
+}
+
+#egresosKpisSection .egresos-resumen-total .egresos-resumen-icon {
+    color:#c9372c !important;
+    background:#fff2f1 !important;
+    border-color:#f0d4d1 !important;
+}
+
+/* Detalle: 8 columnas legibles y sin desbordes */
+.egresos-detail-header,
+.egresos-detail-row {
+    display:grid;
+    grid-template-columns:
+        118px
+        minmax(150px,.9fr)
+        minmax(135px,.82fr)
+        minmax(125px,.72fr)
+        minmax(190px,1.05fr)
+        minmax(185px,1fr)
+        minmax(190px,1.05fr)
+        105px;
+    gap:9px;
+    align-items:center;
+    width:100%;
+    min-width:0;
+}
+
+.egresos-detail-header {
+    min-height:44px;
+    padding:0 12px;
+    border-radius:8px;
+    background:#193b5a;
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    line-height:1.2;
+}
+
+.egresos-detail-row {
+    margin-top:10px;
+    padding:11px 12px;
+    border:1px solid #dfe6ee;
+    border-top:3px solid #28d6a1;
+    border-radius:9px;
+    background:#fff;
+    box-shadow:0 2px 7px rgba(31,47,67,.05);
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.egresos-detail-row:hover {
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(23,50,77,.09);
+}
+
+.egresos-cell {
+    min-width:0;
+    max-width:100%;
+    color:#172b4d;
+    font-size:14px;
+    line-height:1.4;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:normal;
+}
+
+.egresos-cell-label {
+    display:none;
+    margin-bottom:5px;
+    color:#6b778c;
+    font-size:10px;
+    font-weight:800;
+    line-height:1.2;
+    text-transform:uppercase;
+}
+
+.egresos-main-info {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+}
+
+.egresos-main-info > div {
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+}
+
+.egresos-main-info strong,
+.egresos-cell > strong {
+    color:#172b4d;
+    font-size:14px;
+    font-weight:600;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-main-info small {
+    margin-top:3px;
+    color:#6b778c;
+    font-size:11px;
+    line-height:1.3;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-main-icon,
+.egresos-mini-icon {
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #f0d4d1;
+    border-radius:10px;
+    background:#fff2f1;
+    color:#c9372c;
+}
+
+.egresos-stack,
+.egresos-money-stack {
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+}
+
+.egresos-stack strong,
+.egresos-money-stack strong,
+.egresos-money-stack span {
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-money-stack {
+    font-size:12px;
+    line-height:1.35;
+}
+
+.egresos-money-stack strong {
+    color:#c9372c;
+    font-size:13px;
+}
+
+.egresos-factura-inline {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    min-width:0;
+    max-width:100%;
+}
+
+.egresos-factura-inline > span {
+    min-width:0;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-pdf-link {
+    width:30px;
+    height:30px;
+    flex:0 0 30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #f0d4d1;
+    border-radius:7px;
+    background:#fff2f1;
+    color:#c9372c;
+}
+
+.egresos-observacion-text {
+    display:block;
+    margin-top:5px;
+    color:#6b778c;
+    font-size:11px;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-center {
+    text-align:center;
+}
+
+.egresos-status {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    width:max-content;
+    max-width:100%;
+    padding:4px 8px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:800;
+    line-height:1.2;
+    white-space:normal;
+    text-align:center;
+}
+
+.egresos-status-activo {
+    border:1px solid #c2efd3;
+    background:#e8f9ef;
+    color:#14804a;
+}
+
+.egresos-status-inactivo {
+    border:1px solid #f1c8c4;
+    background:#fff0ef;
+    color:#c9372c;
+}
+
+/* Acciones nunca se parten */
+.egresos-actions-cell .btn-acciones,
+.egresos-mini-footer .btn-acciones {
+    min-width:112px !important;
+    width:auto !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:6px !important;
+    flex-wrap:nowrap !important;
+    white-space:nowrap !important;
+}
+
+.egresos-actions-cell .btn-acciones span,
+.egresos-mini-footer .btn-acciones span {
+    white-space:nowrap !important;
+    overflow-wrap:normal !important;
+    word-break:keep-all !important;
+}
+
+/* Miniatura */
+.egresos-mini-grid {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    align-items:start;
+}
+
+.egresos-mini-card {
+    min-width:0;
+    max-width:100%;
+    border:1px solid #dfe6ee;
+    border-radius:10px;
+    background:#fff;
+    overflow:hidden;
+    box-shadow:0 2px 8px rgba(23,50,77,.06);
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.egresos-mini-card:hover {
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(23,50,77,.09);
+}
+
+.egresos-mini-topline {
+    height:3px;
+    background:#c9372c;
+}
+
+.egresos-mini-header {
+    min-height:92px;
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:11px 12px;
+    border-bottom:1px solid #edf1f6;
+    background:#fbfdff;
+}
+
+.egresos-mini-title {
+    flex:1;
+    min-width:0;
+}
+
+.egresos-mini-title h4 {
+    margin:0;
+    color:#172b4d;
+    font-size:15px;
+    font-weight:700;
+    line-height:1.3;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-mini-title span {
+    display:block;
+    margin-top:5px;
+    color:#6b778c;
+    font-size:12px;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-mini-body {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.egresos-mini-field {
+    min-width:0;
+    max-width:100%;
+    padding:8px 10px;
+    border-right:1px solid #edf1f6;
+    border-bottom:1px solid #edf1f6;
+}
+
+.egresos-mini-field:nth-child(2n) {
+    border-right:0;
+}
+
+.egresos-mini-field-full {
+    grid-column:1/-1;
+    border-right:0 !important;
+}
+
+.egresos-mini-field span,
+.egresos-mini-field strong {
+    display:block;
+    max-width:100%;
+}
+
+.egresos-mini-field > span {
+    margin-bottom:2px;
+    color:#6b778c;
+    font-size:10px;
+    font-weight:800;
+    line-height:1.2;
+    text-transform:uppercase;
+}
+
+.egresos-mini-field > strong {
+    color:#172b4d;
+    font-size:14px;
+    font-weight:500;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:normal;
+}
+
+.egresos-mini-total {
+    background:#fff8f7;
+}
+
+.egresos-mini-total strong {
+    color:#c9372c !important;
+    font-weight:800 !important;
+    font-size:16px !important;
+}
+
+.egresos-mini-footer {
+    min-height:46px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    padding:7px 11px;
+}
+
+/* Totales */
+.egresos-totales-grid {
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:8px;
+    margin-top:14px;
+}
+
+.egresos-total-card {
+    min-width:0;
+    padding:10px 12px;
+    border:1px solid #dfe6ee;
+    border-radius:8px;
+    background:#f7f9fc;
+}
+
+.egresos-total-card span,
+.egresos-total-card strong {
+    display:block;
+}
+
+.egresos-total-card span {
+    color:#6b778c;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.egresos-total-card strong {
+    margin-top:3px;
+    color:#172b4d;
+    font-size:14px;
+    line-height:1.3;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.egresos-total-info strong { color:#5949ba; }
+.egresos-total-warning strong { color:#b7791f; }
+.egresos-total-purple strong { color:#6554c0; }
+
+.egresos-total-current {
+    border-color:#f0d4d1;
+    background:#fff2f1;
+}
+
+.egresos-total-current strong {
+    color:#c9372c;
+}
+
+/* PDF/file modal content remains readable */
+#modalEgresosContables .existing-file,
+#modalEgresosContables .pdf-preview {
+    max-width:100%;
+    min-width:0;
+    overflow:hidden;
+}
+
+#modalEgresosContables .existing-file * ,
+#modalEgresosContables .pdf-preview * {
+    max-width:100%;
+    overflow-wrap:anywhere;
+}
+
+/* Responsive */
+@media (max-width:1399.98px) {
+    .egresos-detail-header {
+        display:none;
+    }
+
+    .egresos-detail-row {
+        grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+
+    .egresos-cell-label {
+        display:block;
+    }
+}
+
+@media (max-width:1199.98px) {
+    .egresos-detail-row {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .egresos-mini-grid {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .egresos-totales-grid {
+        grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+}
+
+@media (max-width:991.98px) {
+    .egresos-totales-grid {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width:767.98px) {
+    .egresos-mini-grid {
+        grid-template-columns:1fr !important;
+    }
+
+    .egresos-detail-row {
+        display:none !important;
+    }
+
+    .egresos-view-btn[data-view="detalle"] {
+        display:none !important;
+    }
+
+    .egresos-totales-grid {
+        grid-template-columns:1fr;
+    }
+}

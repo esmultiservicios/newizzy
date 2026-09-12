@@ -29,3 +29,184 @@
 @media(max-width:767.98px){.clientes-view-btn[data-view="detalle"]{display:none!important}.clientes-listado.vista-miniatura{grid-template-columns:minmax(0,1fr)}.clientes-toolbar,.clientes-toolbar-tools{align-items:stretch;flex-direction:column}.clientes-view-switch,.clientes-view-btn[data-view="miniatura"],.clientes-search{width:100%}.clientes-filter-actions{justify-content:flex-start}}
 @media(max-width:575.98px){.clientes-section-header{align-items:flex-start;flex-direction:column}.clientes-toggle-btn{align-self:flex-end}.clientes-mini-body{grid-template-columns:minmax(0,1fr)}.clientes-list-footer{align-items:stretch;flex-direction:column}.clientes-pagination{justify-content:flex-start}.clientes-page-btn span{display:none}.clientes-actions-dropdown>.dropdown-menu{max-width:calc(100vw - 24px)}}
 @media(prefers-reduced-motion:reduce){.clientes-kpi-card,.clientes-kpi-icon,.clientes-mini-card,.clientes-avatar{transition:none}.clientes-kpi-card:hover,.clientes-kpi-card:hover .clientes-kpi-icon,.clientes-mini-card:hover,.clientes-mini-card:hover .clientes-avatar{transform:none}}
+
+/* =========================================================
+   IZZY | AJUSTE UNIFORME DE LEGIBILIDAD 2026-09-10
+   ========================================================= */
+.clientes-page,
+.clientes-page * {
+    min-width: 0;
+}
+
+.clientes-detail-header {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.clientes-detail-row,
+.clientes-detail-cell,
+.clientes-name-cell {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+}
+
+.clientes-detail-row strong,
+.clientes-name-cell strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.clientes-detail-row small,
+.clientes-detail-row p,
+.clientes-detail-row span:not(.clientes-status-badge) {
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.clientes-mini-title-wrap h4,
+.clientes-mini-title-wrap strong {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.clientes-mini-field span {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+}
+
+.clientes-mini-field strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.clientes-mini-card,
+.clientes-mini-card * {
+    max-width: 100%;
+}
+
+.clientes-status-badge {
+    max-width: 100%;
+    white-space: normal !important;
+    text-align: center;
+}
+
+@media (max-width: 767.98px) {
+    .clientes-mini-title-wrap h4,
+    .clientes-mini-title-wrap strong {
+        font-size: 15px !important;
+    }
+
+    .clientes-mini-field strong {
+        font-size: 13px !important;
+    }
+}
+
+/* =========================================================
+   IZZY | CLIENTES
+   FIX BOTÓN ACCIONES - NO PARTIR TEXTO
+   ========================================================= */
+
+/* Mantiene espacio suficiente para Acciones sin deformar el listado. */
+.clientes-listado.vista-detalle .clientes-detail-header,
+.clientes-listado.vista-detalle .clientes-detail-row {
+    grid-template-columns:
+        132px
+        minmax(230px,1.25fr)
+        minmax(120px,.65fr)
+        minmax(210px,1.15fr)
+        minmax(150px,.75fr)
+        minmax(150px,.75fr)
+        minmax(120px,.6fr)
+        minmax(110px,.55fr);
+}
+
+.clientes-listado.vista-detalle.sin-sistema .clientes-detail-header,
+.clientes-listado.vista-detalle.sin-sistema .clientes-detail-row {
+    grid-template-columns:
+        132px
+        minmax(230px,1.25fr)
+        minmax(120px,.65fr)
+        minmax(210px,1.15fr)
+        minmax(150px,.75fr)
+        minmax(150px,.75fr)
+        minmax(110px,.55fr);
+}
+
+/* La celda de acciones necesita un poco menos de padding lateral. */
+.clientes-actions-cell {
+    padding-left:8px !important;
+    padding-right:8px !important;
+}
+
+/* El botón debe verse siempre en una sola línea: icono + Acciones. */
+.clientes-actions-cell .btn-acciones,
+.clientes-mini-footer .btn-acciones,
+.clientes-actions-dropdown > .btn {
+    width:auto !important;
+    min-width:112px !important;
+    max-width:none !important;
+    min-height:36px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:6px !important;
+    flex-wrap:nowrap !important;
+    padding:7px 12px !important;
+    white-space:nowrap !important;
+    line-height:1.2 !important;
+}
+
+/* Evita que el ajuste global de legibilidad parta la palabra "Acciones". */
+.clientes-actions-cell .btn-acciones span,
+.clientes-mini-footer .btn-acciones span,
+.clientes-actions-dropdown > .btn span {
+    display:inline !important;
+    width:auto !important;
+    max-width:none !important;
+    white-space:nowrap !important;
+    overflow-wrap:normal !important;
+    word-break:keep-all !important;
+    line-height:1.2 !important;
+}
+
+.clientes-actions-cell .btn-acciones i,
+.clientes-mini-footer .btn-acciones i,
+.clientes-actions-dropdown > .btn i {
+    flex:0 0 auto !important;
+}
+
+/* Respeta el responsive que ya tenía el módulo. */
+@media (max-width:1399.98px) {
+    .clientes-listado.vista-detalle .clientes-detail-row,
+    .clientes-listado.vista-detalle.sin-sistema .clientes-detail-row {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .clientes-actions-cell {
+        grid-column:1/-1;
+        justify-content:flex-start;
+    }
+}
+
+@media (max-width:767.98px) {
+    .clientes-mini-footer .btn-acciones,
+    .clientes-actions-dropdown > .btn {
+        min-width:112px !important;
+        max-width:100% !important;
+    }
+}
+

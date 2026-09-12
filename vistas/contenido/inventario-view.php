@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/inventario.css">
+
 <div class="container-fluid">
     <!-- Movimientos y Registro -->
     <div class="breadcrumb-container">
@@ -21,230 +23,327 @@
         </ol>
     </div>
 
-    <div id="main_inventario">
+    
+<div id="main_inventario" class="movimientos-page">
 
-        <!-- Filtros -->
-        <div class="card mb-4 movimientos-filtro-card">
-            <div class="card-body">
-                <form id="form_main_movimientos">
-                    <div class="row align-items-end">
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="form-group mb-0">
-                                <label class="small mb-1 movimientos-label-filter">
-                                    <i class="fas fa-tags mr-1"></i> Categoría
-                                </label>
-                                <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
-                                    class="form-control selectpicker" data-live-search="true" data-toggle="tooltip"
-                                    data-placement="top" title="Categoría de Productos">
-                                </select>
+    <!-- FILTROS -->
+    <section class="card movimientos-section-card mb-4" id="movimientosFiltrosSection">
+        <div class="movimientos-section-header">
+            <div class="movimientos-section-title">
+                <span class="movimientos-section-icon"><i class="fas fa-filter"></i></span>
+                <div>
+                    <h5 class="mb-0">Filtros de Movimientos</h5>
+                    <small>Consulte movimientos por categoría, bodega, producto, cliente y fechas.</small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary movimientos-toggle-btn"
+                    id="btnToggleFiltrosMovimientos" aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+
+        <div class="card-body" id="movimientosFiltrosContenido">
+            <form id="form_main_movimientos" autocomplete="off">
+                <div class="row align-items-end">
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                        <label class="movimientos-label-filter" for="inventario_tipo_productos_id">
+                            <i class="fas fa-tags mr-1"></i> Categoría
+                        </label>
+                        <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
+                                class="form-control selectpicker" data-live-search="true"
+                                data-toggle="tooltip" data-placement="top"
+                                title="Categoría de Productos" data-width="100%">
+                        </select>
+                    </div>
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                        <label class="movimientos-label-filter" for="almacen">
+                            <i class="fas fa-warehouse mr-1"></i> Bodega
+                        </label>
+                        <select id="almacen" name="almacen"
+                                class="form-control selectpicker"
+                                data-live-search="true"
+                                title="Bodega" data-width="100%">
+                        </select>
+                    </div>
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                        <label class="movimientos-label-filter" for="producto_movimiento_filtro">
+                            <i class="fas fa-box-open mr-1"></i> Producto
+                        </label>
+                        <select id="producto_movimiento_filtro" name="producto_movimiento_filtro"
+                                class="form-control selectpicker"
+                                data-live-search="true"
+                                title="Producto" data-width="100%">
+                        </select>
+                    </div>
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                        <label class="movimientos-label-filter" for="cliente_movimiento_filtro">
+                            <i class="fas fa-user mr-1"></i> Cliente
+                        </label>
+                        <select id="cliente_movimiento_filtro" name="cliente_movimiento_filtro"
+                                class="form-control selectpicker"
+                                data-live-search="true"
+                                title="Cliente" data-width="100%">
+                        </select>
+                    </div>
+
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                        <label class="movimientos-label-filter" for="fechai">
+                            <i class="fas fa-calendar-alt mr-1"></i> Fecha Inicio
+                        </label>
+                        <div class="input-group movimientos-date-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </span>
                             </div>
+                            <input type="date" class="form-control" id="fechai" name="fechai" value="<?php
+                                $fecha = date("Y-m-d");
+                                $año = date("Y", strtotime($fecha));
+                                $mes = date("m", strtotime($fecha));
+                                $dia = date("d", mktime(0, 0, 0, $mes + 1, 0, $año));
+                                $dia1 = date('d', mktime(0, 0, 0, $mes, 1, $año));
+                                $dia2 = date('d', mktime(0, 0, 0, $mes, $dia, $año));
+                                $fecha_inicial = date("Y-m-d", strtotime($año . "-" . $mes . "-" . $dia1));
+                                echo htmlspecialchars($fecha_inicial, ENT_QUOTES, 'UTF-8');
+                            ?>">
                         </div>
+                    </div>
 
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="form-group mb-0">
-                                <label class="small mb-1 movimientos-label-filter">
-                                    <i class="fas fa-warehouse mr-1"></i> Bodega
-                                </label>
-                                <select id="almacen" name="almacen" class="form-control selectpicker"
-                                    data-live-search="true" title="Bodega">
-                                </select>
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3">
+                        <label class="movimientos-label-filter" for="fechaf">
+                            <i class="fas fa-calendar-check mr-1"></i> Fecha Fin
+                        </label>
+                        <div class="input-group movimientos-date-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="fas fa-calendar-check"></i>
+                                </span>
                             </div>
+                            <input type="date" class="form-control" id="fechaf" name="fechaf"
+                                   value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
+                    </div>
 
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="form-group mb-0">
-                                <label class="small mb-1 movimientos-label-filter">
-                                    <i class="fas fa-box-open mr-1"></i> Producto
-                                </label>
-                                <select id="producto_movimiento_filtro" name="producto_movimiento_filtro"
-                                    class="form-control selectpicker" data-live-search="true" title="Producto">
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="form-group mb-0">
-                                <label class="small mb-1 movimientos-label-filter">
-                                    <i class="fas fa-user mr-1"></i> Cliente
-                                </label>
-                                <select id="cliente_movimiento_filtro" name="cliente_movimiento_filtro"
-                                    class="form-control selectpicker" data-live-search="true" title="Cliente">
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="form-group mb-0">
-                                <label class="small mb-1 movimientos-label-filter">
-                                    <i class="fas fa-calendar-alt mr-1"></i> Fecha Inicio
-                                </label>
-                                <div class="input-group movimientos-date-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-calendar-alt"></i>
-                                        </span>
-                                    </div>
-                                    <input type="date" class="form-control" id="fechai" name="fechai" value="<?php 
-                                        $fecha = date("Y-m-d");
-
-                                        $año = date("Y", strtotime($fecha));
-                                        $mes = date("m", strtotime($fecha));
-                                        $dia = date("d", mktime(0, 0, 0, $mes + 1, 0, $año));
-
-                                        $dia1 = date('d', mktime(0, 0, 0, $mes, 1, $año));
-                                        $dia2 = date('d', mktime(0, 0, 0, $mes, $dia, $año));
-
-                                        $fecha_inicial = date("Y-m-d", strtotime($año . "-" . $mes . "-" . $dia1));
-                                        echo $fecha_inicial;
-                                    ?>">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
-                            <div class="form-group mb-0">
-                                <label class="small mb-1 movimientos-label-filter">
-                                    <i class="fas fa-calendar-check mr-1"></i> Fecha Fin
-                                </label>
-                                <div class="input-group movimientos-date-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-calendar-check"></i>
-                                        </span>
-                                    </div>
-                                    <input type="date" class="form-control" id="fechaf" name="fechaf" value="<?php echo date('Y-m-d'); ?>">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-6 col-md-4 col-sm-12 mb-3 text-right">
-                            <button type="submit" class="btn btn-primary mr-2" id="search">
-                                <i class="fas fa-filter fa-lg"></i> Filtrar
+                    <div class="col-xl-6 col-lg-4 col-md-12 col-12 mb-3">
+                        <div class="movimientos-filter-actions">
+                            <button type="submit" class="btn btn-primary" id="search">
+                                <i class="fas fa-filter mr-1"></i> Filtrar
                             </button>
                             <button type="reset" class="btn btn-secondary">
-                                <i class="fas fa-broom fa-lg"></i> Limpiar
+                                <i class="fas fa-broom mr-1"></i> Limpiar
                             </button>
                         </div>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
+    </section>
 
-        <!-- Cards resumen -->
-        <div class="row movimientos-resumen-row">
-            <div class="col-xl-3 col-md-6 mb-3">
-                <div class="movimientos-resumen-card movimientos-resumen-registros">
-                    <div>
-                        <span class="movimientos-resumen-label">
-                            <i class="fas fa-list mr-1"></i> Movimientos
-                        </span>
-                        <h3 id="movimientos_total_registros">0</h3>
-                        <p>Registros filtrados</p>
-                    </div>
-                    <div class="movimientos-resumen-icon">
-                        <i class="fas fa-exchange-alt"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-3">
-                <div class="movimientos-resumen-card movimientos-resumen-entrada">
-                    <div>
-                        <span class="movimientos-resumen-label">
-                            <i class="fas fa-arrow-down mr-1"></i> Entradas
-                        </span>
-                        <h3 id="movimientos_total_entrada">0.00</h3>
-                        <p>Total de entradas</p>
-                    </div>
-                    <div class="movimientos-resumen-icon">
-                        <i class="fas fa-sign-in-alt"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-3">
-                <div class="movimientos-resumen-card movimientos-resumen-salida">
-                    <div>
-                        <span class="movimientos-resumen-label">
-                            <i class="fas fa-arrow-up mr-1"></i> Salidas
-                        </span>
-                        <h3 id="movimientos_total_salida">0.00</h3>
-                        <p>Total de salidas</p>
-                    </div>
-                    <div class="movimientos-resumen-icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-3">
-                <div class="movimientos-resumen-card movimientos-resumen-saldo">
-                    <div>
-                        <span class="movimientos-resumen-label">
-                            <i class="fas fa-balance-scale mr-1"></i> Balance
-                        </span>
-                        <h3 id="movimientos_total_balance">0.00</h3>
-                        <p>Entrada menos salida</p>
-                    </div>
-                    <div class="movimientos-resumen-icon">
-                        <i class="fas fa-boxes"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabla -->
-        <div class="card mb-4 movimientos-table-card">
-            <div class="card-header movimientos-card-header">
+    <!-- KPIs -->
+    <section class="card movimientos-section-card mb-4" id="movimientosKpisSection">
+        <div class="movimientos-section-header">
+            <div class="movimientos-section-title">
+                <span class="movimientos-section-icon"><i class="fas fa-chart-pie"></i></span>
                 <div>
-                    <i class="fas fa-exchange-alt fa-lg mr-1"></i>
-                    <strong>Movimiento de Productos</strong>
-                    <small class="d-block text-muted mt-1">
-                        Consulta de entradas, salidas, saldo anterior, saldo final, producto, lote, cliente y bodega.
-                    </small>
+                    <h5 class="mb-0">Resumen de Movimientos</h5>
+                    <small>Indicadores calculados sobre los registros filtrados actualmente.</small>
                 </div>
             </div>
+            <button type="button" class="btn btn-primary movimientos-toggle-btn"
+                    id="btnToggleKpisMovimientos" aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
 
-            <div class="card-body">
-                <div class="table-responsive movimientos-table-responsive">
-                    <table id="dataTablaMovimientos" class="table table-header-gradient table-striped table-condensed table-hover movimientos-table" style="width:100%">
-                        <tfoot class="movimientos-table-footer">
-                            <tr>
-                                <td colspan="3"></td>
-                                <td class="text-right movimientos-footer-label">Totales</td>
-                                <td id="anterior-footer-movimiento" class="text-right"></td>
-                                <td id="entrada-footer-movimiento" class="text-right"></td>
-                                <td id="salida-footer-movimiento" class="text-right"></td>
-                                <td id="total-footer-movimiento" class="text-right"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+        <div class="card-body" id="movimientosKpisContenido">
+            <div class="row movimientos-kpi-row">
+                <div class="col-xl-3 col-md-6 col-12 mb-3">
+                    <div class="movimientos-kpi movimientos-kpi-primary">
+                        <div class="movimientos-kpi-copy">
+                            <span class="movimientos-kpi-label">Movimientos</span>
+                            <strong id="movimientos_total_registros">0</strong>
+                            <small>Registros filtrados</small>
+                        </div>
+                        <span class="movimientos-kpi-icon"><i class="fas fa-exchange-alt"></i></span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="card-footer small text-muted">
-                <?php
-                    require_once "./core/mainModel.php";
+                <div class="col-xl-3 col-md-6 col-12 mb-3">
+                    <div class="movimientos-kpi movimientos-kpi-success">
+                        <div class="movimientos-kpi-copy">
+                            <span class="movimientos-kpi-label">Entradas</span>
+                            <strong id="movimientos_total_entrada">0.00</strong>
+                            <small>Total de entradas</small>
+                        </div>
+                        <span class="movimientos-kpi-icon"><i class="fas fa-sign-in-alt"></i></span>
+                    </div>
+                </div>
 
-                    $insMainModel = new mainModel();
-                    $entidad = "movimientos";
+                <div class="col-xl-3 col-md-6 col-12 mb-3">
+                    <div class="movimientos-kpi movimientos-kpi-danger">
+                        <div class="movimientos-kpi-copy">
+                            <span class="movimientos-kpi-label">Salidas</span>
+                            <strong id="movimientos_total_salida">0.00</strong>
+                            <small>Total de salidas</small>
+                        </div>
+                        <span class="movimientos-kpi-icon"><i class="fas fa-sign-out-alt"></i></span>
+                    </div>
+                </div>
 
-                    if ($insMainModel->getlastUpdate($entidad)->num_rows > 0) {
-                        $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
-
-                        $fecha_registro = $consulta_last_update['fecha_registro'];
-                        $hora = date('g:i:s a', strtotime($fecha_registro));
-
-                        echo "Última Actualización " . $insMainModel->getTheDay($fecha_registro, $hora);
-                    } else {
-                        echo "No se encontraron registros ";
-                    }
-                ?>
+                <div class="col-xl-3 col-md-6 col-12 mb-3">
+                    <div class="movimientos-kpi movimientos-kpi-purple">
+                        <div class="movimientos-kpi-copy">
+                            <span class="movimientos-kpi-label">Balance</span>
+                            <strong id="movimientos_total_balance">0.00</strong>
+                            <small>Entradas menos salidas</small>
+                        </div>
+                        <span class="movimientos-kpi-icon"><i class="fas fa-balance-scale"></i></span>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div id="movimiento_inventario" style="display: none;">
+    <!-- LISTADO -->
+    <section class="card movimientos-section-card movimientos-directory-card mb-4" id="movimientosListadoSection">
+        <div class="movimientos-directory-header">
+            <div class="movimientos-section-title">
+                <span class="movimientos-section-icon"><i class="fas fa-exchange-alt"></i></span>
+                <div>
+                    <h5 class="mb-0">Movimiento de Productos</h5>
+                    <small>Entradas, salidas, saldos, producto, documento, lote, cliente y bodega.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body movimientos-directory-body">
+            <div class="movimientos-list-toolbar">
+                <div class="movimientos-toolbar-left">
+                    <button type="button" id="btnActualizarMovimientos"
+                            class="btn btn-secondary table_actualizar ocultar">
+                        <i class="fas fa-sync-alt mr-1"></i> Actualizar
+                    </button>
+
+                    <button type="button" id="btnNuevoMovimiento"
+                            class="btn btn-primary table_crear ocultar">
+                        <i class="fas fa-plus mr-1"></i> Ingresar
+                    </button>
+
+                    <button type="button" id="btnAjusteInventario"
+                            class="btn btn-warning table_crear ocultar">
+                        <i class="fas fa-balance-scale mr-1"></i> Ajuste Inventario
+                    </button>
+
+                    <button type="button" id="btnAuditoriaAjustes"
+                            class="btn btn-info table_crear ocultar">
+                        <i class="fas fa-clipboard-check mr-1"></i> Auditoría Ajustes
+                    </button>
+
+                    <button type="button" id="btnExcelMovimientos"
+                            class="btn btn-success table_reportes ocultar">
+                        <i class="fas fa-file-excel mr-1"></i> Excel
+                    </button>
+
+                    <button type="button" id="btnPdfMovimientos"
+                            class="btn btn-danger table_reportes ocultar">
+                        <i class="fas fa-file-pdf mr-1"></i> PDF
+                    </button>
+                </div>
+
+                <div class="movimientos-list-tools-right">
+                    <label class="movimientos-page-size mb-0">
+                        <span>Mostrar</span>
+                        <select id="movimientosPageSize" class="form-control form-control-sm">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>registros</span>
+                    </label>
+
+                    <div class="movimientos-view-switch" role="group" aria-label="Tipo de vista">
+                        <button type="button" class="movimientos-view-btn active"
+                                data-view="detalle" aria-pressed="true" title="Vista detalle">
+                            <i class="fas fa-list"></i><span>Detalle</span>
+                        </button>
+                        <button type="button" class="movimientos-view-btn"
+                                data-view="miniatura" aria-pressed="false" title="Vista miniatura">
+                            <i class="fas fa-th-large"></i><span>Miniatura</span>
+                        </button>
+                    </div>
+
+                    <div class="movimientos-search">
+                        <span class="movimientos-search-icon"><i class="fas fa-search"></i></span>
+                        <input type="search" id="buscar_movimientos_general"
+                               class="form-control"
+                               placeholder="Buscar movimiento..."
+                               autocomplete="off">
+                        <button type="button" id="limpiarBuscarMovimientos"
+                                class="movimientos-search-clear"
+                                title="Limpiar búsqueda"
+                                aria-label="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="movimientosListado"
+                 class="movimientos-listado vista-detalle"
+                 aria-live="polite"></div>
+
+            <div class="movimientos-totales-strip" id="movimientosTotalesStrip">
+                <div>
+                    <span>Saldo anterior</span>
+                    <strong id="movimientos_total_anterior_listado">0.00</strong>
+                </div>
+                <div>
+                    <span>Entradas</span>
+                    <strong id="movimientos_total_entrada_listado">0.00</strong>
+                </div>
+                <div>
+                    <span>Salidas</span>
+                    <strong id="movimientos_total_salida_listado">0.00</strong>
+                </div>
+                <div>
+                    <span>Saldo final</span>
+                    <strong id="movimientos_total_saldo_listado">0.00</strong>
+                </div>
+            </div>
+
+            <div class="movimientos-list-footer">
+                <span id="movimientosInfo" class="movimientos-list-info">0 registros</span>
+                <div id="movimientosPaginacion" class="movimientos-pagination"></div>
+            </div>
+        </div>
+
+        <div class="card-footer small text-muted">
+            <?php
+                require_once "./core/mainModel.php";
+
+                $insMainModel = new mainModel();
+                $entidad = "movimientos";
+
+                if ($insMainModel->getlastUpdate($entidad)->num_rows > 0) {
+                    $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
+                    $fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
+                    $hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
+
+                    echo "Última Actualización " .
+                        htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
+                } else {
+                    echo "No se encontraron registros";
+                }
+            ?>
+        </div>
+    </section>
+</div>
+
+<div id="movimiento_inventario" style="display: none;">
         <div class="card mb-4">
             <div class="card-header">
                 <i class="fab fa-servicestack mr-1"></i>

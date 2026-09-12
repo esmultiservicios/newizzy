@@ -661,18 +661,18 @@
                             <h5 class="mb-0"><i class="fas fa-history mr-2"></i>Historial de Vales</h5>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="DatatableVale" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-user-tie mr-1"></i>Empleado</th>
-                                            <th><i class="fas fa-coins mr-1"></i>Monto</th>
-                                            <th><i class="fas fa-comment-alt mr-1"></i>Notas</th>
-                                            <th><i class="fas fa-ban mr-1"></i>Anular</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
+                            <div class="nomina-vales-toolbar">
+                                    <div class="nomina-search nomina-search-vales">
+                                        <span class="nomina-search-icon"><i class="fas fa-search"></i></span>
+                                        <input type="search" id="buscarVales" class="form-control" placeholder="Buscar vale..." autocomplete="off">
+                                        <button type="button" id="limpiarBuscarVales" class="nomina-search-clear"><i class="fas fa-times"></i></button>
+                                    </div>
+                                </div>
+                                <div id="nominaValesListado" class="nomina-vales-listado"></div>
+                                <div class="nomina-list-footer">
+                                    <span id="nominaValesInfo">0 registros</span>
+                                    <div id="nominaValesPaginacion" class="nomina-pagination"></div>
+                                </div>
                         </div>
                     </div>
                 </form>

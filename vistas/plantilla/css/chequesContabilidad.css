@@ -1,0 +1,134 @@
+/* =========================================================
+   IZZY 6.0 | CHEQUES CONTABILIDAD
+   ========================================================= */
+.cheques-page{--navy:#17324d;--blue:#2f9ddd;--teal:#0ea5a8;--green:#22a06b;--red:#c9372c;--purple:#6554c0;--amber:#d99700;--border:#dfe6ee;--soft:#f7f9fc;--text:#172b4d;--muted:#6b778c;overflow-x:hidden}
+.cheques-page *,.cheques-page *::before,.cheques-page *::after{box-sizing:border-box;min-width:0}
+.cheques-section-card{border:1px solid var(--border);border-radius:10px;background:#fff;box-shadow:0 2px 8px rgba(23,50,77,.06);overflow:visible}
+.cheques-section-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid #e4eaf0;background:#fff}
+.cheques-section-title{display:flex;align-items:center;gap:11px;min-width:0}
+.cheques-section-icon{width:40px;height:40px;flex:0 0 40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9e7f3;border-radius:10px;background:#eef6ff;color:#2675b9}
+.cheques-section-title h5{margin:0;color:var(--text);font-size:16px;font-weight:800;line-height:1.3}
+.cheques-section-title small{display:block;margin-top:2px;color:var(--muted);font-size:12px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+.cheques-toggle-btn{min-width:104px;min-height:38px;border-radius:8px;font-size:12px;font-weight:700}
+.cheques-page label{color:#253858;font-size:12px;font-weight:700}
+.cheques-page .form-control,.cheques-page .bootstrap-select>.dropdown-toggle{min-height:40px;border-radius:8px}
+.cheques-input-group{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;width:100%!important}
+.cheques-input-group .input-group-prepend{display:flex!important;flex:0 0 42px!important;width:42px!important;margin:0!important}
+.cheques-input-group .input-group-text{width:42px!important;min-width:42px!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;border-radius:8px 0 0 8px!important;border-right:0!important}
+.cheques-input-group>.form-control{flex:1 1 auto!important;width:1%!important;min-width:0!important;border-radius:0 8px 8px 0!important}
+.cheques-filter-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.cheques-filter-actions .btn{min-height:38px;border-radius:8px;font-size:12px;font-weight:700}
+
+/* KPIs */
+.cheques-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cheques-kpi{position:relative;min-height:122px;padding:16px 16px 15px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:#fff;border:1px solid #d9e2ec;border-left:4px solid #2f80ed;border-radius:12px;box-shadow:0 4px 12px rgba(23,43,77,.06);transition:transform .18s ease,box-shadow .18s ease}
+.cheques-kpi:hover{transform:translateY(-4px);box-shadow:0 12px 24px rgba(23,43,77,.12)}
+.cheques-kpi-copy{display:flex;flex-direction:column;min-width:0}
+.cheques-kpi-copy>span{color:#53627a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.35px}
+.cheques-kpi-copy strong{margin-top:5px;color:#102a56;font-size:clamp(1.28rem,1.55vw,1.65rem);line-height:1.12;font-weight:800;white-space:normal;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.cheques-kpi-copy small{margin-top:8px;color:#768399;font-size:10px}
+.cheques-kpi-icon{width:44px;height:44px;flex:0 0 44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #dce6ef;border-radius:11px;background:#f7f9fc;color:#274f72;font-size:18px}
+.cheques-kpi-activos{border-left-color:#22a06b}.cheques-kpi-activos .cheques-kpi-icon{color:#14804a;background:#eefaf5;border-color:#ccebdd}
+.cheques-kpi-anulados{border-left-color:#c9372c}.cheques-kpi-anulados .cheques-kpi-icon{color:#c9372c;background:#fff2f1;border-color:#f0d4d1}
+.cheques-kpi-total{border-color:#cfe2f3;border-left-color:#6554c0;background:#fcfbff}.cheques-kpi-total .cheques-kpi-icon{color:#6554c0;background:#f5f3fd;border-color:#e2def8}.cheques-kpi-total strong{color:#6554c0}
+
+/* Toolbar */
+.cheques-list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.cheques-toolbar-left,.cheques-toolbar-right{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.cheques-toolbar-right{margin-left:auto;justify-content:flex-end}
+.cheques-toolbar-left .btn{min-height:38px;border-radius:8px;font-size:12px;font-weight:700}
+.cheques-page-size{display:inline-flex;align-items:center;gap:8px;color:#46556b;font-size:12px;white-space:nowrap}
+#chequesPageSize{width:86px!important;min-width:86px!important;height:38px!important;border-radius:8px!important}
+.cheques-view-switch{display:inline-flex;align-items:center;padding:3px;border:1px solid #d7e1eb;border-radius:9px;background:#f5f8fb}
+.cheques-view-btn{min-height:34px;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:7px;background:transparent;color:#52627a;font-size:12px;font-weight:700;transition:transform .16s ease}
+.cheques-view-btn:hover{transform:translateY(-1px)}
+.cheques-view-btn.active{color:#fff;background:#2f9ddd;box-shadow:0 2px 7px rgba(47,157,221,.24)}
+.cheques-search-wrap{position:relative;width:300px;height:38px;display:flex;border:1px solid #ced4da;border-radius:8px;overflow:hidden;background:#fff}
+.cheques-search-icon{width:42px;flex:0 0 42px;display:inline-flex;align-items:center;justify-content:center;border-right:1px solid #ced4da;background:#f7f9fc;color:#233b55}
+.cheques-search-wrap .form-control{height:36px;min-height:36px;border:0;border-radius:0;padding-right:34px;box-shadow:none!important}
+.cheques-search-clear{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:27px;height:27px;border:0;border-radius:6px;background:transparent;color:#7a869a}
+
+/* Detail */
+.cheques-detail-header,.cheques-detail-row{display:grid;grid-template-columns:118px 115px minmax(190px,1.15fr) minmax(170px,1fr) minmax(155px,.9fr) 115px 120px 95px;gap:9px;align-items:center;width:100%}
+.cheques-detail-header{min-height:44px;padding:0 12px;border-radius:8px;background:#193b5a;color:#fff;font-size:13px;font-weight:800}
+.cheques-detail-row{margin-top:10px;padding:11px 12px;border:1px solid #dfe6ee;border-top:3px solid #28d6a1;border-radius:9px;background:#fff;box-shadow:0 2px 7px rgba(31,47,67,.05);transition:transform .16s ease,box-shadow .16s ease}
+.cheques-detail-row:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(23,50,77,.09)}
+.cheques-cell{min-width:0;color:#172b4d;font-size:13px;line-height:1.4;white-space:normal;overflow-wrap:anywhere}
+.cheques-cell-label{display:none;margin-bottom:5px;color:#6b778c;font-size:10px;font-weight:800;text-transform:uppercase}
+.cheques-main{display:flex;align-items:center;gap:9px}.cheques-main-icon{width:40px;height:40px;flex:0 0 40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9e7f3;border-radius:9px;background:#eef6ff;color:#2675b9}
+.cheques-main>div{min-width:0;display:flex;flex-direction:column}.cheques-main strong{font-size:14px;color:#172b4d}.cheques-main small{margin-top:3px;color:#6b778c;font-size:11px}
+.cheques-money{font-size:14px;font-weight:800;color:#172b4d}.cheques-money-anulado{text-decoration:line-through;color:#8c98a8}
+.cheques-status{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:max-content;max-width:100%;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:800}
+.cheques-status-activo{border:1px solid #c2efd3;background:#e8f9ef;color:#14804a}.cheques-status-anulado{border:1px solid #f1c8c4;background:#fff0ef;color:#c9372c}
+.cheques-actions-cell .btn-acciones,.cheques-mini-footer .btn-acciones{min-width:112px!important;width:auto!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;white-space:nowrap!important}
+
+/* Miniatura */
+.cheques-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.cheques-mini-card{border:1px solid #dfe6ee;border-radius:10px;background:#fff;overflow:hidden;box-shadow:0 2px 8px rgba(23,50,77,.06);transition:transform .16s ease,box-shadow .16s ease}
+.cheques-mini-card:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(23,50,77,.09)}
+.cheques-mini-line{height:3px;background:#28d6a1}.cheques-mini-card.anulado .cheques-mini-line{background:#c9372c}
+.cheques-mini-header{display:flex;align-items:center;gap:11px;padding:12px;border-bottom:1px solid #edf1f6;background:#fbfdff}
+.cheques-mini-title{flex:1;min-width:0}.cheques-mini-title h4{margin:0;color:#172b4d;font-size:15px;font-weight:800;overflow-wrap:anywhere}.cheques-mini-title span{display:block;margin-top:4px;color:#6b778c;font-size:11px;overflow-wrap:anywhere}
+.cheques-mini-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.cheques-mini-field{padding:9px 10px;border-right:1px solid #edf1f6;border-bottom:1px solid #edf1f6}.cheques-mini-field:nth-child(2n){border-right:0}.cheques-mini-full{grid-column:1/-1;border-right:0!important}.cheques-mini-field span{display:block;margin-bottom:3px;color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}.cheques-mini-field strong{display:block;color:#172b4d;font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.cheques-mini-total{background:#f7f9fc}.cheques-mini-total strong{font-size:16px;color:#14804a}.cheques-mini-card.anulado .cheques-mini-total strong{color:#c9372c;text-decoration:line-through}
+.cheques-mini-footer{min-height:48px;display:flex;align-items:center;justify-content:flex-end;padding:7px 11px}
+
+/* totals & pagination */
+.cheques-totales{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.cheques-totales>div{padding:10px 12px;border:1px solid #dfe6ee;border-radius:8px;background:#f7f9fc}.cheques-totales span,.cheques-totales strong{display:block}.cheques-totales span{color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}.cheques-totales strong{margin-top:3px;color:#172b4d;font-size:14px}.cheques-total-destacado{border-color:#cfe2f3!important;background:#eef6ff!important}.cheques-total-destacado strong{color:#176fae}
+.cheques-list-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;color:#667085;font-size:12px}
+.cheques-pagination{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}.cheques-page-btn{min-height:34px;padding:5px 9px;border:1px solid #d7e1eb;border-radius:7px;background:#f5f8fb;color:#42526e;font-size:11px;font-weight:700}.cheques-page-btn.active{border-color:#2f9ddd;background:#2f9ddd;color:#fff}
+.cheques-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:24px;border:1px dashed #cfd8e3;border-radius:9px;color:#7a869a;text-align:center}.cheques-state i{font-size:25px}.cheques-state strong{color:#42526e}
+
+/* modals */
+.cheques-modal{border:0;border-radius:12px;overflow:hidden}.cheques-modal .modal-header{background:#17324d;color:#fff;border-bottom:3px solid #0ea5a8}.cheques-modal .modal-title{font-weight:800}.cheques-modal .modal-body{background:#fff}.cheques-modal label{font-size:12px;font-weight:700;color:#253858}.cheques-modal .form-control,.cheques-modal .bootstrap-select>.dropdown-toggle{min-height:40px;border-radius:8px}
+.cheques-modal-alert{display:flex;align-items:flex-start;gap:9px;margin-bottom:16px;padding:11px 12px;border:1px solid #cfe2f3;border-radius:9px;background:#eef6ff;color:#35526f;font-size:12px;line-height:1.45}.cheques-modal-alert-warning{border-color:#f0dfb5;background:#fff9ea;color:#775f1b}
+.cheques-select-action{display:flex;align-items:stretch;gap:7px}.cheques-select-action>.bootstrap-select,.cheques-select-action>select{flex:1 1 auto}.cheques-select-action>.btn{flex:0 0 42px;width:42px}
+.cheques-account-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:5px}.cheques-account-summary>div{padding:10px 12px;border:1px solid #dfe6ee;border-radius:8px;background:#f7f9fc}.cheques-account-summary span,.cheques-account-summary strong{display:block}.cheques-account-summary span{color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}.cheques-account-summary strong{margin-top:4px;color:#172b4d;font-size:13px;overflow-wrap:anywhere}
+
+@media(max-width:1399.98px){.cheques-detail-header{display:none}.cheques-detail-row{grid-template-columns:repeat(4,minmax(0,1fr))}.cheques-cell-label{display:block}}
+@media(max-width:1199.98px){.cheques-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cheques-detail-row{grid-template-columns:repeat(2,minmax(0,1fr))}.cheques-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:991.98px){.cheques-list-toolbar{flex-direction:column;align-items:stretch}.cheques-toolbar-right{width:100%;margin-left:0;justify-content:flex-start}.cheques-search-wrap{flex:1 1 100%;width:100%}}
+@media(max-width:767.98px){
+ .cheques-section-header{flex-direction:column;align-items:stretch}.cheques-toggle-btn{width:100%}.cheques-kpi-grid{grid-template-columns:1fr}.cheques-toolbar-right{flex-direction:column;align-items:stretch;min-height:0!important;height:auto!important}.cheques-page-size{width:100%}.cheques-search-wrap{flex:0 0 auto!important;flex-basis:auto!important;width:100%!important;height:38px!important;min-height:38px!important;max-height:38px!important}.cheques-view-btn[data-view="detalle"]{display:none!important}.cheques-view-switch{width:100%}.cheques-view-btn[data-view="miniatura"]{width:100%;justify-content:center}.cheques-detail-row{display:none!important}.cheques-mini-grid{grid-template-columns:1fr!important}.cheques-totales,.cheques-account-summary{grid-template-columns:1fr}.cheques-list-footer{flex-direction:column;align-items:stretch}.cheques-pagination{justify-content:center}.cheques-input-group{flex-direction:row!important;flex-wrap:nowrap!important}
+}
+
+
+/* CHEQUES | CONFIGURACIÓN DE CUENTA */
+.cheques-config-dialog{max-width:980px}
+.cheques-config-modal{overflow:visible!important}
+.cheques-config-modal .modal-body{overflow:visible!important;padding:18px}
+.cheques-config-modal .modal-footer{border-top:1px solid #e4eaf0;background:#f8fafc}
+.cheques-config-hero{display:flex;align-items:flex-start;gap:12px;margin-bottom:15px;padding:13px 14px;border:1px solid #cfe2f3;border-radius:11px;background:#f3f8fd}
+.cheques-config-hero-icon{width:42px;height:42px;flex:0 0 42px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #cfe2f3;border-radius:10px;background:#fff;color:#176fae;font-size:18px}
+.cheques-config-hero h6{margin:1px 0 3px;color:#17324d;font-size:14px;font-weight:800}
+.cheques-config-hero p{margin:0;color:#607089;font-size:12px;line-height:1.5}
+.cheques-config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.cheques-config-card{min-width:0;padding:15px;border:1px solid #dfe6ee;border-radius:12px;background:#fff}
+.cheques-config-current{border-left:4px solid #2f9ddd;background:#fbfdff}
+.cheques-config-new{border-left:4px solid #22a06b}
+.cheques-config-card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid #edf1f6}
+.cheques-config-card-icon{width:38px;height:38px;flex:0 0 38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9e7f3;border-radius:9px;background:#eef6ff;color:#2675b9}
+.cheques-config-card-head>div{min-width:0}
+.cheques-config-card-head span:not(.cheques-config-card-icon){display:block;color:#172b4d;font-size:13px;font-weight:800}
+.cheques-config-card-head small{display:block;margin-top:2px;color:#6b778c;font-size:10px;line-height:1.35}
+.cheques-config-account{min-height:70px;padding:12px;border:1px solid #dfe6ee;border-radius:9px;background:#f7f9fc}
+.cheques-config-account strong,.cheques-config-account span,.cheques-config-selected span,.cheques-config-selected strong{display:block;overflow-wrap:anywhere}
+.cheques-config-account strong{color:#172b4d;font-size:15px}
+.cheques-config-account span{margin-top:4px;color:#6b778c;font-size:11px}
+.cheques-config-balance{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:10px 12px;border-radius:9px;background:#eef6ff;color:#17324d}
+.cheques-config-balance span{font-size:10px;font-weight:800;text-transform:uppercase}
+.cheques-config-balance strong{font-size:15px;font-weight:800}
+.cheques-config-selected{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(130px,.6fr);gap:8px;margin-top:11px}
+.cheques-config-selected>div{min-width:0;padding:10px 11px;border:1px solid #dfe6ee;border-radius:9px;background:#f7f9fc}
+.cheques-config-selected span{margin-bottom:4px;color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}
+.cheques-config-selected strong{color:#172b4d;font-size:12px;line-height:1.35}
+.cheques-config-modal .bootstrap-select{width:100%!important}
+.cheques-config-modal .bootstrap-select>.dropdown-toggle{width:100%!important;min-height:42px!important;border-radius:8px!important}
+.cheques-config-modal .bootstrap-select .dropdown-menu{z-index:1085!important;width:100%!important;min-width:100%!important;max-height:310px!important;overflow:hidden!important}
+.cheques-config-modal .bootstrap-select .bs-searchbox{padding:8px!important}
+.cheques-config-modal .bootstrap-select .bs-searchbox .form-control{height:38px!important;min-height:38px!important}
+.cheques-config-modal .bootstrap-select .inner{max-height:235px!important;overflow-y:auto!important;overflow-x:hidden!important}
+.cheques-config-modal .bootstrap-select .dropdown-item{white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.35!important}
+@media(max-width:767.98px){.cheques-config-dialog{max-width:calc(100% - 18px);margin-left:auto;margin-right:auto}.cheques-config-grid{grid-template-columns:1fr}.cheques-config-selected{grid-template-columns:1fr}.cheques-config-modal .modal-body{padding:12px}}

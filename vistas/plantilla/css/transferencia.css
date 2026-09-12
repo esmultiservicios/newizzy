@@ -1,0 +1,963 @@
+/* =========================================================
+   IZZY 6.0 | TRANSFERENCIA / INVENTARIO
+   ========================================================= */
+
+.inventario-transferencia-page {
+    --tr-navy:#17324d;
+    --tr-blue:#2f9ddd;
+    --tr-teal:#0ea5a8;
+    --tr-green:#22a06b;
+    --tr-red:#c9372c;
+    --tr-purple:#6554c0;
+    --tr-border:#dfe6ee;
+    --tr-soft:#f7f9fc;
+    --tr-text:#172b4d;
+    --tr-muted:#6b778c;
+    overflow-x:hidden;
+}
+
+.inventario-transferencia-page *,
+.inventario-transferencia-page *::before,
+.inventario-transferencia-page *::after { box-sizing:border-box; }
+
+.transferencia-section-card {
+    border:1px solid var(--tr-border);
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(23,50,77,.06);
+    overflow:visible;
+}
+
+.transferencia-section-header,
+.transferencia-directory-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:16px 18px;
+    border-bottom:1px solid #e4eaf0;
+    background:#fff;
+}
+
+.transferencia-section-title {
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-width:0;
+}
+
+.transferencia-section-icon {
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #d9e7f3;
+    border-radius:10px;
+    background:#eef6ff;
+    color:#2675b9;
+}
+
+.transferencia-section-title h5 {
+    color:var(--tr-text);
+    font-size:1rem;
+    font-weight:800;
+}
+
+.transferencia-section-title small {
+    display:block;
+    margin-top:2px;
+    color:var(--tr-muted);
+}
+
+.transferencia-toggle-btn,
+.transferencia-filter-actions .btn,
+.transferencia-toolbar-left .btn {
+    min-height:38px;
+    padding:7px 14px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.transferencia-toggle-btn { min-width:104px; }
+
+.transferencia-label-filter {
+    display:block;
+    margin-bottom:6px;
+    color:#253858;
+    font-size:.84rem;
+    font-weight:700;
+}
+
+.transferencia-filter-actions {
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.transferencia-filter-actions .btn { min-width:112px; }
+
+/* KPI */
+.transferencia-kpi-row { margin-left:-8px; margin-right:-8px; }
+.transferencia-kpi-row > [class*="col-"] { padding-left:8px; padding-right:8px; }
+
+.transferencia-kpi {
+    min-height:106px;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:16px 18px;
+    border:1px solid var(--tr-border);
+    border-left:4px solid #2684ff;
+    border-radius:10px;
+    background:#fff;
+    opacity:1 !important;
+    filter:none !important;
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.transferencia-kpi-primary,
+.transferencia-kpi-primary:hover { border-left-color:#2684ff !important; }
+.transferencia-kpi-success,
+.transferencia-kpi-success:hover { border-left-color:#22a06b !important; }
+.transferencia-kpi-danger,
+.transferencia-kpi-danger:hover { border-left-color:#c9372c !important; }
+.transferencia-kpi-purple,
+.transferencia-kpi-purple:hover { border-left-color:#6554c0 !important; }
+
+.transferencia-kpi:hover {
+    transform:translateY(-3px);
+    background:#fff !important;
+    opacity:1 !important;
+    filter:none !important;
+    box-shadow:0 7px 16px rgba(23,50,77,.10);
+}
+
+.transferencia-kpi-copy { display:flex; flex-direction:column; min-width:0; }
+.transferencia-kpi-copy > span {
+    color:#5e6c84;
+    font-size:.77rem;
+    font-weight:700;
+    text-transform:uppercase;
+}
+.transferencia-kpi-copy strong {
+    margin-top:4px;
+    color:var(--tr-text);
+    font-size:1.55rem;
+    line-height:1;
+}
+.transferencia-kpi-copy small { margin-top:6px; color:#7a869a; }
+
+.transferencia-kpi-icon {
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--tr-border);
+    border-radius:10px;
+    background:#f7f9fc;
+    color:#35526f;
+}
+
+.transferencia-kpi:hover .transferencia-kpi-icon {
+    transform:none !important;
+    opacity:1 !important;
+    filter:none !important;
+}
+
+/* Toolbar */
+.transferencia-list-toolbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:14px;
+    min-width:0;
+}
+
+.transferencia-toolbar-left,
+.transferencia-toolbar-right {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+}
+
+.transferencia-toolbar-left { flex-wrap:wrap; }
+.transferencia-toolbar-right { margin-left:auto; justify-content:flex-end; }
+
+.transferencia-page-size {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    white-space:nowrap;
+    color:#46556b;
+    font-size:13px;
+}
+
+#transferenciaPageSize {
+    width:86px !important;
+    min-width:86px !important;
+    height:38px !important;
+    border-radius:8px !important;
+}
+
+.transferencia-view-switch {
+    display:inline-flex;
+    padding:3px;
+    border:1px solid #d7e1eb;
+    border-radius:9px;
+    background:#f5f8fb;
+}
+
+.transferencia-view-btn {
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:6px 12px;
+    border:0;
+    border-radius:7px;
+    background:transparent;
+    color:#52627a;
+    font-size:12px;
+    font-weight:700;
+}
+
+.transferencia-view-btn.active {
+    background:#2f9ddd;
+    color:#fff;
+    box-shadow:0 2px 7px rgba(47,157,221,.24);
+}
+
+.transferencia-search {
+    position:relative;
+    width:300px;
+    height:38px;
+    display:flex;
+    border:1px solid #ced4da;
+    border-radius:8px;
+    overflow:hidden;
+    background:#fff;
+}
+
+.transferencia-search-icon {
+    width:42px;
+    flex:0 0 42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-right:1px solid #ced4da;
+    background:#f7f9fc;
+    color:#233b55;
+}
+
+.transferencia-search .form-control {
+    min-width:0;
+    height:36px;
+    border:0;
+    padding-right:34px;
+    box-shadow:none !important;
+}
+
+.transferencia-search-clear {
+    position:absolute;
+    right:5px;
+    top:50%;
+    transform:translateY(-50%);
+    width:27px;
+    height:27px;
+    border:0;
+    border-radius:6px;
+    background:transparent;
+    color:#7a869a;
+}
+
+/* Detalle */
+.transferencia-detail-header,
+.transferencia-detail-row {
+    display:grid;
+    grid-template-columns:minmax(260px,1.8fr) minmax(170px,1fr) minmax(160px,1fr) 92px 92px 92px 92px 120px;
+    gap:9px;
+    align-items:center;
+    width:100%;
+    min-width:0;
+}
+
+.transferencia-detail-header {
+    min-height:42px;
+    padding:0 12px;
+    border-radius:8px;
+    background:#193b5a;
+    color:#fff;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.transferencia-detail-row {
+    margin-top:10px;
+    padding:11px 12px;
+    border:1px solid #dfe6ee;
+    border-top:3px solid #28d6a1;
+    border-radius:9px;
+    background:#fff;
+    box-shadow:0 2px 7px rgba(31,47,67,.05);
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.transferencia-detail-row:hover {
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(23,50,77,.09);
+}
+
+.transferencia-cell { min-width:0; overflow-wrap:anywhere; color:#172b4d; }
+.transferencia-cell-label {
+    display:none;
+    margin-bottom:4px;
+    color:#6b778c;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.transferencia-product-box {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+}
+
+.transferencia-product-image {
+    position:relative;
+    width:100px;
+    height:78px;
+    flex:0 0 100px;
+    display:block;
+    border:1px solid #c9dbea;
+    border-radius:11px;
+    background:#fff;
+    overflow:hidden;
+    cursor:zoom-in;
+}
+
+.transferencia-product-image img,
+.transferencia-mini-image img,
+.transferencia-summary-image img {
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    object-position:center;
+    padding:4px;
+    background:#fff;
+}
+
+.transferencia-product-info {
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+}
+
+.transferencia-product-info strong {
+    font-size:12px;
+    font-weight:800;
+    color:#172b4d;
+}
+
+.transferencia-product-info small { color:#6b778c; font-size:10px; }
+
+.transferencia-product-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    width:max-content;
+    max-width:100%;
+    padding:3px 7px;
+    border-radius:999px;
+    font-size:9px;
+    font-weight:800;
+}
+
+.transferencia-product-normal {
+    background:#e8f9ef;
+    border:1px solid #c2efd3;
+    color:#14804a;
+}
+
+.transferencia-product-compuesto {
+    background:#f2edff;
+    border:1px solid #d9cdfd;
+    color:#6554c0;
+}
+
+.transferencia-stack {
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:10px;
+}
+
+.transferencia-number-cell,
+.transferencia-actions-cell { text-align:center; }
+
+/* Reusar badges existentes del JS con estilo consistente */
+.inventario-number-badge {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:70px;
+    padding:4px 7px;
+    border:1px solid #dfe6ee;
+    border-radius:999px;
+    background:#f7f9fc;
+    font-size:10px;
+    font-weight:800;
+}
+
+/* Miniatura */
+.transferencia-mini-grid {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    align-items:start;
+}
+
+.transferencia-mini-card {
+    min-width:0;
+    border:1px solid #dfe6ee;
+    border-radius:10px;
+    background:#fff;
+    overflow:hidden;
+    box-shadow:0 2px 8px rgba(23,50,77,.06);
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.transferencia-mini-card:hover {
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(23,50,77,.09);
+}
+
+.transferencia-mini-topline { height:3px; background:#1fc79a; }
+
+.transferencia-mini-header {
+    min-height:112px;
+    height:112px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:9px 12px;
+    border-bottom:1px solid #edf1f6;
+    background:#fbfdff;
+}
+
+.transferencia-mini-image {
+    position:relative;
+    width:138px;
+    height:92px;
+    flex:0 0 138px;
+    display:block;
+    border:1px solid #c9dbea;
+    border-radius:12px;
+    background:#fff;
+    overflow:hidden;
+    cursor:zoom-in;
+}
+
+.transferencia-mini-identity { min-width:0; flex:1 1 auto; }
+.transferencia-mini-identity h4 {
+    margin:0;
+    color:#172b4d;
+    font-size:14px;
+    line-height:1.2;
+    font-weight:800;
+    overflow-wrap:anywhere;
+}
+
+.transferencia-mini-meta {
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 10px;
+    margin:7px 0;
+    color:#6b778c;
+    font-size:9.5px;
+}
+
+.transferencia-mini-meta span { display:inline-flex; align-items:center; gap:4px; }
+
+.transferencia-mini-body {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.transferencia-mini-field {
+    min-width:0;
+    padding:8px 10px;
+    border-right:1px solid #edf1f6;
+    border-bottom:1px solid #edf1f6;
+}
+
+.transferencia-mini-field:nth-child(2n) { border-right:0; }
+
+.transferencia-mini-field span,
+.transferencia-mini-field strong { display:block; }
+
+.transferencia-mini-field span {
+    margin-bottom:2px;
+    color:#6b778c;
+    font-size:8.5px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.transferencia-mini-field strong {
+    color:#172b4d;
+    font-size:10.5px;
+    line-height:1.2;
+    overflow-wrap:anywhere;
+}
+
+.transferencia-text-success { color:#14804a !important; }
+.transferencia-text-danger { color:#b8321a !important; }
+
+.transferencia-mini-footer {
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    padding:7px 11px;
+}
+
+/* Lupa */
+.transferencia-image-overlay {
+    position:absolute;
+    inset:0;
+    z-index:5;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    background:rgba(23,50,77,.56);
+    opacity:0;
+    visibility:hidden;
+    transform:scale(.97);
+    transition:opacity .16s ease, visibility .16s ease, transform .16s ease;
+    pointer-events:none;
+}
+
+.transferencia-image-overlay-icon {
+    width:36px;
+    height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid rgba(255,255,255,.75);
+    border-radius:50%;
+    background:rgba(255,255,255,.16);
+    color:#fff;
+}
+
+.transferencia-image-overlay-text {
+    padding:3px 8px;
+    border-radius:999px;
+    background:#fff;
+    color:#17324d;
+    font-size:9px;
+    font-weight:800;
+}
+
+.transferencia-product-image:hover .transferencia-image-overlay,
+.transferencia-mini-image:hover .transferencia-image-overlay,
+.transferencia-summary-image:hover .transferencia-image-overlay {
+    opacity:1;
+    visibility:visible;
+    transform:scale(1);
+}
+
+/* Totales */
+.transferencia-totales-strip {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px;
+    margin-top:14px;
+}
+
+.transferencia-totales-strip > div {
+    padding:10px 12px;
+    border:1px solid #dfe6ee;
+    border-radius:8px;
+    background:#f7f9fc;
+}
+
+.transferencia-totales-strip span,
+.transferencia-totales-strip strong { display:block; }
+.transferencia-totales-strip span {
+    color:#6b778c;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+.transferencia-totales-strip strong {
+    margin-top:3px;
+    color:#172b4d;
+    font-size:13px;
+}
+
+/* Footer paginación */
+.transferencia-list-footer {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:14px;
+    color:#667085;
+    font-size:12px;
+}
+
+.transferencia-pagination {
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:5px;
+    flex-wrap:wrap;
+}
+
+.transferencia-page-btn {
+    min-height:34px;
+    padding:5px 9px;
+    border:1px solid #d7e1eb;
+    border-radius:7px;
+    background:#f5f8fb;
+    color:#42526e;
+    font-size:11px;
+    font-weight:700;
+}
+
+.transferencia-page-btn.active {
+    background:#2f9ddd;
+    border-color:#2f9ddd;
+    color:#fff;
+}
+
+/* Estado vacío */
+.transferencia-state {
+    min-height:150px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:24px;
+    border:1px dashed #cfd8e3;
+    border-radius:9px;
+    background:#fff;
+    color:#7a869a;
+    text-align:center;
+}
+
+.transferencia-state i { font-size:25px; color:#98a2b3; }
+.transferencia-state strong { color:#42526e; }
+
+/* Resumen inventario DIV */
+.transferencia-summary-grid,
+.transferencia-historico-grid {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+}
+
+.transferencia-summary-card,
+.transferencia-historico-card {
+    min-width:0;
+    display:flex;
+    gap:13px;
+    padding:12px;
+    border:1px solid #dfe6ee;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(23,50,77,.05);
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.transferencia-summary-card:hover,
+.transferencia-historico-card:hover {
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(23,50,77,.08);
+}
+
+.transferencia-summary-image {
+    position:relative;
+    width:110px;
+    height:86px;
+    flex:0 0 110px;
+    border:1px solid #c9dbea;
+    border-radius:10px;
+    overflow:hidden;
+    background:#fff;
+    cursor:zoom-in;
+}
+
+.transferencia-summary-copy,
+.transferencia-historico-copy { min-width:0; flex:1; }
+
+.transferencia-summary-copy h4,
+.transferencia-historico-copy h4 {
+    margin:0;
+    color:#172b4d;
+    font-size:13px;
+    font-weight:800;
+}
+
+.transferencia-summary-copy p {
+    margin:4px 0 7px;
+    color:#6b778c;
+    font-size:9.5px;
+}
+
+.transferencia-summary-meta,
+.transferencia-historico-meta {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px 10px;
+    font-size:10px;
+    color:#42526e;
+}
+
+.transferencia-summary-total,
+.transferencia-historico-total {
+    color:#14804a;
+    font-weight:800;
+}
+
+.transferencia-historico-icon {
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    background:#eef6ff;
+    color:#2675b9;
+}
+
+/* Responsive */
+@media (max-width:1399.98px) {
+    .transferencia-list-toolbar { flex-wrap:wrap; }
+    .transferencia-toolbar-right {
+        flex:1 1 100%;
+        justify-content:flex-end;
+    }
+    .transferencia-detail-header { display:none; }
+    .transferencia-detail-row {
+        grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+    .transferencia-cell-label { display:block; }
+}
+
+@media (max-width:1199.98px) {
+    .transferencia-mini-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .transferencia-detail-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width:991.98px) {
+    .transferencia-list-toolbar { flex-direction:column; align-items:stretch; }
+    .transferencia-toolbar-right {
+        width:100%;
+        margin-left:0;
+        justify-content:flex-start;
+        flex-wrap:wrap;
+    }
+    .transferencia-search {
+        flex:1 1 100%;
+        width:100%;
+    }
+    .transferencia-summary-grid,
+    .transferencia-historico-grid { grid-template-columns:1fr; }
+}
+
+@media (max-width:767.98px) {
+    .transferencia-section-header,
+    .transferencia-directory-header,
+    .transferencia-list-footer {
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .transferencia-toggle-btn { width:100%; }
+
+    .transferencia-filter-actions,
+    .transferencia-toolbar-left {
+        width:100%;
+    }
+
+    .transferencia-filter-actions .btn,
+    .transferencia-toolbar-left .btn {
+        flex:1 1 calc(50% - 4px);
+        min-width:0;
+    }
+
+    .transferencia-toolbar-right {
+        flex-direction:column;
+        align-items:stretch;
+        gap:8px;
+        min-height:0 !important;
+        height:auto !important;
+    }
+
+    .transferencia-page-size { width:100%; }
+
+    .transferencia-view-switch { width:100%; }
+    .transferencia-view-btn[data-view="detalle"] { display:none !important; }
+    .transferencia-view-btn[data-view="miniatura"] {
+        width:100%;
+        flex:1 1 100%;
+    }
+
+    .transferencia-search {
+        flex:0 0 auto !important;
+        flex-basis:auto !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:none !important;
+        height:38px !important;
+        min-height:38px !important;
+        max-height:38px !important;
+        margin:0 !important;
+    }
+
+    .transferencia-mini-grid {
+        grid-template-columns:1fr !important;
+        gap:10px;
+    }
+
+    .transferencia-mini-header {
+        min-height:104px;
+        height:104px;
+        padding:8px 10px;
+    }
+
+    .transferencia-mini-image {
+        width:120px;
+        height:86px;
+        flex-basis:120px;
+    }
+
+    .transferencia-totales-strip {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .transferencia-pagination { justify-content:center; }
+
+    .transferencia-summary-meta,
+    .transferencia-historico-meta { grid-template-columns:1fr; }
+}
+
+@media (max-width:575.98px) {
+    .transferencia-filter-actions .btn,
+    .transferencia-toolbar-left .btn {
+        flex:1 1 100%;
+        width:100%;
+    }
+
+    .transferencia-mini-image {
+        width:104px;
+        height:82px;
+        flex-basis:104px;
+    }
+
+    .transferencia-totales-strip { grid-template-columns:1fr; }
+
+    .transferencia-summary-card {
+        flex-direction:column;
+    }
+
+    .transferencia-summary-image {
+        width:100%;
+        height:180px;
+        flex-basis:180px;
+    }
+}
+
+/* =========================================================
+   TRANSFERENCIA / INVENTARIO | TEXTO UNIFORME
+   DETALLE + MINIATURA
+   ========================================================= */
+.transferencia-detail-header {
+    font-size:14px !important;
+    font-weight:800 !important;
+    line-height:1.2 !important;
+    text-transform:none !important;
+    letter-spacing:0 !important;
+}
+.transferencia-detail-row,
+.transferencia-detail-row .transferencia-cell {
+    font-size:14px !important;
+    line-height:1.35 !important;
+}
+.transferencia-product-info strong {
+    font-size:14px !important;
+    font-weight:500 !important;
+    line-height:1.35 !important;
+}
+.transferencia-product-info small {
+    font-size:12px !important;
+    line-height:1.3 !important;
+}
+.transferencia-detail-row .transferencia-stack {
+    font-size:14px !important;
+    line-height:1.35 !important;
+}
+.transferencia-detail-row .transferencia-cell-label {
+    font-size:11px !important;
+    font-weight:800 !important;
+}
+.transferencia-detail-row .inventario-number-badge,
+.transferencia-detail-row .transferencia-product-badge {
+    font-size:12px !important;
+}
+.transferencia-detail-row .btn-acciones {
+    font-size:13px !important;
+    font-weight:700 !important;
+}
+.transferencia-mini-identity h4 {
+    font-size:15px !important;
+    font-weight:700 !important;
+    line-height:1.3 !important;
+}
+.transferencia-mini-meta,
+.transferencia-mini-meta span {
+    font-size:12px !important;
+    line-height:1.35 !important;
+}
+.transferencia-mini-field span {
+    font-size:10px !important;
+    font-weight:800 !important;
+}
+.transferencia-mini-field strong {
+    font-size:14px !important;
+    font-weight:500 !important;
+    line-height:1.35 !important;
+}
+.transferencia-mini-card .transferencia-product-badge {
+    font-size:11px !important;
+}
+.transferencia-mini-card .btn-acciones {
+    font-size:13px !important;
+    font-weight:700 !important;
+}
+@media (max-width:767.98px) {
+    .transferencia-mini-identity h4 { font-size:15px !important; }
+    .transferencia-mini-meta,
+    .transferencia-mini-field strong { font-size:13px !important; }
+    .transferencia-mini-field span { font-size:10px !important; }
+}

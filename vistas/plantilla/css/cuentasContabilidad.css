@@ -1,0 +1,803 @@
+/* =========================================================
+   IZZY 6.0 | CUENTAS CONTABILIDAD
+   Miniatura existente preservada.
+   Se agrega formato uniforme + Vista Detalle.
+   ========================================================= */
+
+.cuentas-premium-page {
+    --cc-navy:#17324d;
+    --cc-blue:#2f9ddd;
+    --cc-teal:#0ea5a8;
+    --cc-green:#22a06b;
+    --cc-red:#c9372c;
+    --cc-purple:#6554c0;
+    --cc-border:#dfe6ee;
+    --cc-soft:#f7f9fc;
+    --cc-text:#172b4d;
+    --cc-muted:#6b778c;
+    overflow-x:hidden;
+}
+
+.cuentas-premium-page *,
+.cuentas-premium-page *::before,
+.cuentas-premium-page *::after {
+    box-sizing:border-box;
+    min-width:0;
+}
+
+.cuentas-section-card {
+    border:1px solid var(--cc-border);
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(23,50,77,.06);
+    overflow:visible;
+}
+
+.cuentas-section-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:16px 18px;
+    border-bottom:1px solid #e4eaf0;
+    background:#fff;
+}
+
+.cuentas-section-title {
+    display:flex;
+    align-items:center;
+    gap:11px;
+    min-width:0;
+}
+
+.cuentas-section-title > div {
+    min-width:0;
+}
+
+.cuentas-section-icon {
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #d9e7f3;
+    border-radius:10px;
+    background:#eef6ff;
+    color:#2675b9;
+}
+
+.cuentas-section-title h5 {
+    margin:0;
+    color:var(--cc-text);
+    font-size:16px;
+    font-weight:800;
+    line-height:1.3;
+}
+
+.cuentas-section-title small {
+    display:block;
+    margin-top:2px;
+    color:var(--cc-muted);
+    font-size:12px;
+    line-height:1.4;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-toggle-btn,
+.cuentas-toolbar-left .btn {
+    min-height:38px;
+    padding:7px 14px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.cuentas-toggle-btn {
+    min-width:104px;
+}
+
+/* Filtros */
+.cuentas-filter-card .form-group,
+.cuentas-filter-card .input-group,
+.cuentas-filter-card .bootstrap-select {
+    width:100% !important;
+    max-width:100% !important;
+}
+
+.cuentas-filter-card label {
+    color:#253858;
+    font-size:12px !important;
+    font-weight:700;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-filter-card .form-control,
+.cuentas-filter-card .bootstrap-select > .dropdown-toggle {
+    min-height:40px;
+    border-radius:8px;
+}
+
+.cuentas-toolbar {
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+/* Toolbar listado */
+.cuentas-list-toolbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:14px;
+}
+
+.cuentas-toolbar-left,
+.cuentas-toolbar-right {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.cuentas-toolbar-right {
+    margin-left:auto;
+    justify-content:flex-end;
+}
+
+.cuentas-view-switch {
+    display:inline-flex;
+    padding:3px;
+    border:1px solid #d7e1eb;
+    border-radius:9px;
+    background:#f5f8fb;
+}
+
+.cuentas-view-btn {
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:6px 12px;
+    border:0;
+    border-radius:7px;
+    background:transparent;
+    color:#52627a;
+    font-size:12px;
+    font-weight:700;
+}
+
+.cuentas-view-btn.active {
+    background:#2f9ddd;
+    color:#fff;
+    box-shadow:0 2px 7px rgba(47,157,221,.24);
+}
+
+/* =========================================================
+   VISTA DETALLE
+   ========================================================= */
+.cuentas-detalle-container {
+    width:100%;
+    min-width:0;
+}
+
+.cuentas-detail-header,
+.cuentas-detail-row {
+    display:grid;
+    grid-template-columns:minmax(220px,1.45fr) 120px 115px 115px 120px 125px minmax(135px,.9fr) 110px;
+    gap:9px;
+    align-items:center;
+    width:100%;
+}
+
+.cuentas-detail-header {
+    min-height:44px;
+    padding:0 12px;
+    border-radius:8px;
+    background:#193b5a;
+    color:#fff;
+    font-size:14px;
+    font-weight:800;
+    line-height:1.2;
+}
+
+.cuentas-detail-row {
+    margin-top:10px;
+    padding:11px 12px;
+    border:1px solid #dfe6ee;
+    border-top:3px solid #28d6a1;
+    border-radius:9px;
+    background:#fff;
+    box-shadow:0 2px 7px rgba(31,47,67,.05);
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.cuentas-detail-row:hover {
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(23,50,77,.09);
+}
+
+.cuentas-detail-cell {
+    min-width:0;
+    max-width:100%;
+    color:#172b4d;
+    font-size:14px;
+    line-height:1.4;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:normal;
+}
+
+.cuentas-detail-label {
+    display:none;
+    margin-bottom:5px;
+    color:#6b778c;
+    font-size:10px;
+    font-weight:800;
+    line-height:1.2;
+    text-transform:uppercase;
+}
+
+.cuentas-detail-main {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+}
+
+.cuentas-detail-main > div {
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+}
+
+.cuentas-detail-main strong {
+    color:#172b4d;
+    font-size:14px;
+    font-weight:600;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-detail-main small {
+    margin-top:3px;
+    color:#6b778c;
+    font-size:11px;
+    line-height:1.3;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-detail-icon {
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #cfe2f3;
+    border-radius:10px;
+    background:#eef6ff;
+    color:#176fae;
+}
+
+.cuentas-money {
+    display:block;
+    font-size:14px;
+    font-weight:700;
+    line-height:1.35;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-current-trace {
+    display:block;
+    margin-top:3px;
+    color:#7a869a;
+    font-size:9px;
+    line-height:1.25;
+}
+
+.cuentas-detail-badges {
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+}
+
+.cuentas-detail-badges > span,
+.badge-cuenta-activa,
+.badge-cuenta-inactiva,
+.badge-cuenta-inversion,
+.badge-cuenta-normal {
+    max-width:100%;
+    white-space:normal !important;
+    text-align:center;
+    line-height:1.2;
+}
+
+.cuentas-detail-actions {
+    text-align:center;
+}
+
+.cuentas-empty-state {
+    min-height:150px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:24px;
+    border:1px dashed #cfd8e3;
+    border-radius:9px;
+    background:#fff;
+    color:#7a869a;
+    text-align:center;
+}
+
+.cuentas-empty-state i {
+    font-size:25px;
+    color:#98a2b3;
+}
+
+.cuentas-empty-state strong {
+    color:#42526e;
+}
+
+/* =========================================================
+   MINIATURA EXISTENTE
+   NO se cambia diseño. Solo protección de texto/overflow.
+   ========================================================= */
+#cuentas-container .card-account,
+#cuentas-container .card-account * {
+    min-width:0;
+    max-width:100%;
+}
+
+#cuentas-container .cuenta-card-title,
+#cuentas-container .cuenta-row-label,
+#cuentas-container .cuenta-row-value,
+#cuentas-container .cuenta-total-label,
+#cuentas-container .cuenta-total-value {
+    overflow-wrap:anywhere;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width:1399.98px) {
+    .cuentas-detail-header {
+        display:none;
+    }
+
+    .cuentas-detail-row {
+        grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+
+    .cuentas-detail-label {
+        display:block;
+    }
+}
+
+@media (max-width:1199.98px) {
+    .cuentas-detail-row {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width:991.98px) {
+    .cuentas-list-toolbar {
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .cuentas-toolbar-right {
+        width:100%;
+        margin-left:0;
+        justify-content:flex-start;
+    }
+}
+
+@media (max-width:767.98px) {
+    .cuentas-section-header {
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .cuentas-toggle-btn {
+        width:100%;
+    }
+
+    .cuentas-toolbar {
+        width:100%;
+    }
+
+    .cuentas-toolbar .btn,
+    .cuentas-toolbar-left .btn {
+        flex:1 1 calc(50% - 4px);
+        min-width:0;
+    }
+
+    .cuentas-view-switch {
+        width:100%;
+    }
+
+    .cuentas-view-btn[data-view="detalle"] {
+        display:none !important;
+    }
+
+    .cuentas-view-btn[data-view="miniatura"] {
+        width:100%;
+        flex:1 1 100%;
+    }
+
+    .cuentas-detalle-container {
+        display:none !important;
+    }
+
+    #cuentas-container {
+        display:flex !important;
+    }
+}
+
+@media (max-width:575.98px) {
+    .cuentas-toolbar .btn,
+    .cuentas-toolbar-left .btn {
+        flex:1 1 100%;
+        width:100%;
+    }
+}
+
+
+/* =========================================================
+   CUENTAS | COMPLEMENTO ESTÁNDAR IZZY 6.0
+   KPIs + Excel/PDF + Mostrar X + Buscar + Paginación + Totales
+   ========================================================= */
+
+.cuentas-kpi-section {
+    border:1px solid #dfe6ee;
+    border-radius:10px;
+    background:#fff;
+    overflow:visible;
+}
+
+.cuentas-kpi-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    padding:14px 16px;
+    border-bottom:1px solid #e4eaf0;
+}
+
+.cuentas-kpi-content {
+    padding:14px 16px 0;
+}
+
+.cuentas-kpi-row {
+    margin-left:-7px;
+    margin-right:-7px;
+}
+
+.cuentas-kpi-row > [class*="col-"] {
+    padding-left:7px;
+    padding-right:7px;
+}
+
+.cuentas-kpi {
+    min-height:104px;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:15px 17px;
+    border:1px solid #dfe6ee;
+    border-left:4px solid #2684ff;
+    border-radius:10px;
+    background:#fff;
+    opacity:1 !important;
+    filter:none !important;
+    transition:transform .16s ease, box-shadow .16s ease;
+}
+
+.cuentas-kpi-primary,
+.cuentas-kpi-primary:hover { border-left-color:#2684ff !important; }
+
+.cuentas-kpi-success,
+.cuentas-kpi-success:hover { border-left-color:#22a06b !important; }
+
+.cuentas-kpi-danger,
+.cuentas-kpi-danger:hover { border-left-color:#c9372c !important; }
+
+.cuentas-kpi-purple,
+.cuentas-kpi-purple:hover { border-left-color:#6554c0 !important; }
+
+.cuentas-kpi:hover {
+    transform:translateY(-3px);
+    background:#fff !important;
+    opacity:1 !important;
+    filter:none !important;
+    box-shadow:0 7px 16px rgba(23,50,77,.10);
+}
+
+.cuentas-kpi-copy {
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+}
+
+.cuentas-kpi-copy > span {
+    color:#5e6c84;
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.cuentas-kpi-copy strong {
+    margin-top:4px;
+    color:#172b4d;
+    font-size:21px;
+    line-height:1.15;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-kpi-copy small {
+    margin-top:5px;
+    color:#7a869a;
+    font-size:11px;
+}
+
+.cuentas-kpi-icon {
+    width:44px;
+    height:44px;
+    flex:0 0 44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #dfe6ee;
+    border-radius:10px;
+    background:#f7f9fc;
+    color:#35526f;
+}
+
+.cuentas-kpi:hover .cuentas-kpi-icon {
+    transform:none !important;
+}
+
+.cuentas-page-size {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    color:#46556b;
+    font-size:13px;
+    white-space:nowrap;
+}
+
+#cuentasPageSize {
+    width:86px !important;
+    min-width:86px !important;
+    height:38px !important;
+    border-radius:8px !important;
+}
+
+.cuentas-search-wrap {
+    position:relative;
+    width:300px;
+    height:38px;
+    display:flex;
+    border:1px solid #ced4da;
+    border-radius:8px;
+    overflow:hidden;
+    background:#fff;
+}
+
+.cuentas-search-icon {
+    width:42px;
+    flex:0 0 42px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-right:1px solid #ced4da;
+    background:#f7f9fc;
+    color:#233b55;
+}
+
+.cuentas-search-wrap .form-control {
+    min-width:0;
+    height:36px;
+    border:0;
+    padding-right:34px;
+    box-shadow:none !important;
+}
+
+.cuentas-search-clear {
+    position:absolute;
+    right:5px;
+    top:50%;
+    transform:translateY(-50%);
+    width:27px;
+    height:27px;
+    border:0;
+    border-radius:6px;
+    background:transparent;
+    color:#7a869a;
+}
+
+.cuentas-totales-grid {
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:8px;
+    margin-top:14px;
+}
+
+.cuentas-total-card {
+    min-width:0;
+    padding:10px 12px;
+    border:1px solid #dfe6ee;
+    border-radius:8px;
+    background:#f7f9fc;
+}
+
+.cuentas-total-card span,
+.cuentas-total-card strong {
+    display:block;
+}
+
+.cuentas-total-card span {
+    color:#6b778c;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.cuentas-total-card strong {
+    margin-top:3px;
+    color:#172b4d;
+    font-size:14px;
+    line-height:1.3;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.cuentas-total-success strong { color:#14804a; }
+.cuentas-total-danger strong { color:#c9372c; }
+.cuentas-total-current {
+    border-color:#cfe2f3;
+    background:#eef6ff;
+}
+.cuentas-total-current strong { color:#176fae; }
+
+.cuentas-list-footer {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:14px;
+    color:#667085;
+    font-size:12px;
+}
+
+.cuentas-pagination {
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:5px;
+    flex-wrap:wrap;
+}
+
+.cuentas-page-btn {
+    min-height:34px;
+    padding:5px 9px;
+    border:1px solid #d7e1eb;
+    border-radius:7px;
+    background:#f5f8fb;
+    color:#42526e;
+    font-size:11px;
+    font-weight:700;
+}
+
+.cuentas-page-btn.active {
+    border-color:#2f9ddd;
+    background:#2f9ddd;
+    color:#fff;
+}
+
+@media (max-width:1199.98px) {
+    .cuentas-totales-grid {
+        grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+}
+
+@media (max-width:991.98px) {
+    .cuentas-toolbar-right {
+        width:100%;
+        margin-left:0;
+        justify-content:flex-start;
+        flex-wrap:wrap;
+    }
+
+    .cuentas-search-wrap {
+        flex:1 1 100%;
+        width:100%;
+    }
+
+    .cuentas-totales-grid {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width:767.98px) {
+    .cuentas-kpi-header,
+    .cuentas-list-footer {
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .cuentas-toolbar-right {
+        flex-direction:column;
+        align-items:stretch;
+        gap:8px;
+        min-height:0 !important;
+        height:auto !important;
+    }
+
+    .cuentas-page-size {
+        width:100%;
+    }
+
+    .cuentas-search-wrap {
+        flex:0 0 auto !important;
+        flex-basis:auto !important;
+        width:100% !important;
+        min-width:0 !important;
+        max-width:none !important;
+        height:38px !important;
+        min-height:38px !important;
+        max-height:38px !important;
+        margin:0 !important;
+    }
+
+    .cuentas-totales-grid {
+        grid-template-columns:1fr;
+    }
+
+    .cuentas-pagination {
+        justify-content:center;
+    }
+}
+
+
+/* =========================================================
+   CUENTAS | RESTAURAR SALDO TOTAL EN POSICIÓN ORIGINAL
+   ========================================================= */
+#cuentas-container .cuenta-total-box {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:space-between !important;
+    gap:12px !important;
+    width:100% !important;
+    min-width:0 !important;
+}
+
+#cuentas-container .cuenta-total-box .cuenta-total-label,
+#cuentas-container .cuenta-total-box .cuenta-total-value {
+    display:block !important;
+    width:auto !important;
+    min-width:0 !important;
+    margin:0 !important;
+}
+
+#cuentas-container .cuenta-total-box .cuenta-total-value {
+    margin-left:auto !important;
+    text-align:right !important;
+    white-space:nowrap !important;
+}

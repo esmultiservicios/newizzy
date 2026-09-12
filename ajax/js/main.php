@@ -638,6 +638,18 @@ function actualizarPermisos() {
         })
         .always(function() {
             $('#sidenavAccordion, .sb-topnav').removeClass('nav-loading');
+
+            /*
+             * El menú principal móvil se construye a partir de los enlaces
+             * permitidos del navbar superior. Debe refrescarse DESPUÉS
+             * de terminar de aplicar permisos para no quedar vacío.
+             */
+            if (
+                window.IZZYMobileMainMenu &&
+                typeof window.IZZYMobileMainMenu.refresh === 'function'
+            ) {
+                window.IZZYMobileMainMenu.refresh();
+            }
         });
 }
 
@@ -13642,4 +13654,763 @@ function anular(facturas_id, comentario, opciones) {
   });
 }
   //FIN METODO ANULAR FACTURAS
+
+// =========================================================
+// CATEGORÍAS DE GASTOS | PÚBLICO GLOBAL
+// Integrado en main.php para Cheques, Egresos y futuros módulos.
+// El HTML del modal vive en vistasModals.php.
+// =========================================================
+(function($){
+    'use strict';
+
+    if (window.CategoriasGastosPublico && window.CategoriasGastosPublico.inicializado) {
+        return;
+    }
+
+    var CAT = {
+        rows: [],
+        filtered: [],
+        page: 1,
+        pageSize: 5,
+        pageSizeDetalle: 5,
+        pageSizeMiniatura: 6,
+        search: '',
+        view: 'detalle',
+        preferredView: 'detalle',
+        editing: false,
+        inicializado: true
+    };
+
+    window.CategoriasGastosPublico = CAT;
+    var CAT_SERVERURL = '<?php echo SERVERURL;?>';
+
+    function catUrl(path) {
+        return CAT_SERVERURL + String(path || '').replace(/^\/+/, '');
+    }
+
+function esc(v) {
+        return $('<div>').text(v == null ? '' : String(v)).html();
+    }
+
+    function notifyFromResponse(r, fallbackTitle, fallbackText) {
+        if (r && r.success) {
+            showNotify('success', r.title || fallbackTitle || 'Éxito', r.text || r.message || fallbackText || 'Operación realizada correctamente.');
+            return true;
+        }
+        showNotify('error', r && r.title ? r.title : (fallbackTitle || 'Error'), r && (r.text || r.message) ? (r.text || r.message) : (fallbackText || 'No se pudo completar la operación.'));
+        return false;
+    }
+
+    function resetForm() {
+        var form = document.getElementById('formCategoriaEgresos');
+        if (form) form.reset();
+
+        $('#formCategoriaEgresos')
+            .attr('action', catUrl('ajax/addCategoriaEgresos.php'))
+            .attr('data-form', 'save');
+
+        $('#categoria_gastos_id').val('');
+        $('#es_inversion').prop('checked', false);
+        $('#categoriaFormTitulo').text('Nueva Categoría');
+        $('#categoriaEditandoBadge').addClass('d-none');
+        $('#regCategoriaEgresos').removeClass('btn-primary').addClass('btn-success')
+            .html('<i class="fas fa-save mr-1"></i><span>Registrar</span>');
+
+        CAT.editing = false;
+    }
+
+    function abrirEdicion(row) {
+        if (!row) return;
+
+        CAT.editing = true;
+
+        $('#formCategoriaEgresos')
+            .attr('action', catUrl('ajax/modificarCategoriaEgresos.php'))
+            .attr('data-form', 'update');
+
+        $('#categoria_gastos_id').val(row.categoria_gastos_id);
+        $('#categoria').val(row.nombre || '');
+        $('#es_inversion').prop('checked', parseInt(row.es_inversion || 0, 10) === 1);
+
+        $('#categoriaFormTitulo').text('Editar Categoría');
+        $('#categoriaEditandoBadge').removeClass('d-none');
+        $('#regCategoriaEgresos').removeClass('btn-success').addClass('btn-primary')
+            .html('<i class="fas fa-sync-alt mr-1"></i><span>Actualizar</span>');
+
+        $('#modalCategoriasEgresos .modal-body').animate({scrollTop:0},160);
+        setTimeout(function(){$('#categoria').focus().select();},180);
+    }
+
+    function acciones(row, idx) {
+        var inversion = parseInt(row.es_inversion || 0,10) === 1;
+        var activa = parseInt(row.estado || 0,10) === 1;
+
+        var html =
+            '<button type="button" class="dropdown-item accion-item js-cat-editar" data-index="'+idx+'">'+
+                '<span class="accion-icon accion-icon-primary"><i class="fas fa-edit"></i></span>'+
+                '<span class="accion-label">Editar</span>'+
+            '</button>';
+
+        html +=
+            '<button type="button" class="dropdown-item accion-item js-cat-inversion" data-index="'+idx+'">'+
+                '<span class="accion-icon '+(inversion?'accion-icon-eliminar':'accion-icon-success')+'">'+
+                    '<i class="fas '+(inversion?'fa-times-circle':'fa-seedling')+'"></i>'+
+                '</span>'+
+                '<span class="accion-label">'+(inversion?'Quitar inversión':'Marcar inversión')+'</span>'+
+            '</button>';
+
+        html +=
+            '<button type="button" class="dropdown-item accion-item js-cat-estado" data-index="'+idx+'">'+
+                '<span class="accion-icon '+(activa?'accion-icon-warning':'accion-icon-success')+'">'+
+                    '<i class="fas '+(activa?'fa-toggle-off':'fa-toggle-on')+'"></i>'+
+                '</span>'+
+                '<span class="accion-label">'+(activa?'Inactivar':'Activar')+'</span>'+
+            '</button>';
+
+        html +=
+            '<button type="button" class="dropdown-item accion-item js-cat-eliminar" data-index="'+idx+'">'+
+                '<span class="accion-icon accion-icon-danger"><i class="fas fa-trash-alt"></i></span>'+
+                '<span class="accion-label">Eliminar</span>'+
+            '</button>';
+
+        return '<div class="dropdown acciones-dropdown">'+
+            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">'+
+                '<i class="fas fa-cog"></i><span>Acciones</span>'+
+            '</button>'+
+            '<div class="dropdown-menu dropdown-menu-right acciones-menu">'+html+'</div>'+
+        '</div>';
+    }
+
+    function badgeTipo(row) {
+        return parseInt(row.es_inversion || 0,10) === 1
+            ? '<span class="badge-cat-inversion"><i class="fas fa-seedling"></i> Inversión</span>'
+            : '<span class="badge-cat-normal"><i class="fas fa-receipt"></i> Gasto normal</span>';
+    }
+
+    function badgeEstado(row) {
+        return parseInt(row.estado || 0,10) === 1
+            ? '<span class="badge-cat-activa"><i class="fas fa-check-circle"></i> Activo</span>'
+            : '<span class="badge-cat-inactiva"><i class="fas fa-times-circle"></i> Inactivo</span>';
+    }
+
+    function actualizarResumen() {
+        var total = CAT.filtered.length;
+        var activas = 0, inactivas = 0, inversion = 'Ninguna';
+
+        CAT.filtered.forEach(function(r){
+            if (parseInt(r.estado || 0,10) === 1) activas++; else inactivas++;
+            if (parseInt(r.es_inversion || 0,10) === 1) inversion = r.nombre || 'Asignada';
+        });
+
+        $('#catFooterTotal').text(total);
+        $('#catFooterActivas').text(activas);
+        $('#catFooterInactivas').text(inactivas);
+        $('#catFooterInversion').text(inversion);
+    }
+
+
+    var CAT_STORAGE_VISTA = 'izzy.categorias.gastos.vista';
+
+    function categoriaEsMovil() {
+        return window.matchMedia
+            ? window.matchMedia('(max-width: 767.98px)').matches
+            : $(window).width() <= 767;
+    }
+
+    function categoriaSincronizarVista() {
+        if (categoriaEsMovil()) CAT.view = 'miniatura';
+
+        $('.categoria-view-btn[data-view="detalle"]')
+            .toggleClass('d-none', categoriaEsMovil())
+            .prop('disabled', categoriaEsMovil())
+            .attr('aria-hidden', categoriaEsMovil() ? 'true' : 'false');
+
+        $('.categoria-view-btn').removeClass('active').attr('aria-pressed','false');
+        $('.categoria-view-btn[data-view="'+CAT.view+'"]').addClass('active').attr('aria-pressed','true');
+
+        $('#categoriasGastosListadoPublico')
+            .removeClass('vista-detalle vista-miniatura')
+            .addClass('vista-'+CAT.view);
+    }
+
+    function categoriaSincronizarPageSize() {
+        var mini = CAT.view === 'miniatura';
+        var opciones = mini ? [6,12,18,30] : [5,10,25,50];
+        var preferido = mini ? CAT.pageSizeMiniatura : CAT.pageSizeDetalle;
+
+        if (opciones.indexOf(preferido) === -1) preferido = opciones[0];
+        CAT.pageSize = preferido;
+
+        var $size = $('#categoriaPageSizePublico').empty();
+        opciones.forEach(function(n){ $size.append($('<option>').val(n).text(n)); });
+        $size.val(String(preferido));
+    }
+
+    function filtrar() {
+        var q = $.trim(CAT.search || '').toLowerCase();
+
+        CAT.filtered = !q ? CAT.rows.slice() : CAT.rows.filter(function(r){
+            var text = [
+                r.nombre,
+                parseInt(r.es_inversion || 0,10) === 1 ? 'inversion inversión reposicion reposición' : 'gasto normal',
+                parseInt(r.estado || 0,10) === 1 ? 'activo activa' : 'inactivo inactiva',
+                r.date_write
+            ].map(function(v){return String(v == null ? '' : v).toLowerCase();}).join(' ');
+
+            return text.indexOf(q) !== -1;
+        });
+
+        CAT.page = 1;
+        actualizarResumen();
+        render();
+    }
+
+    function renderPaginacion(totalPages) {
+        var c = CAT.page, html = '';
+
+        function b(label, page, disabled, active, icon) {
+            return '<button type="button" class="categoria-page-btn'+(active?' active':'')+'" data-page="'+page+'" '+(disabled?'disabled':'')+'>'+
+                (icon?'<i class="'+icon+' mr-1"></i>':'')+label+
+            '</button>';
+        }
+
+        html += b('Inicio',1,c===1,false,'fas fa-angle-double-left');
+        html += b('Anterior',c-1,c===1,false,'fas fa-angle-left');
+
+        var from = Math.max(1,c-2);
+        var to = Math.min(totalPages,from+4);
+        from = Math.max(1,to-4);
+
+        for (var p=from;p<=to;p++) html += b(String(p),p,false,p===c,'');
+
+        html += b('Siguiente',c+1,c===totalPages,false,'fas fa-angle-right');
+        html += b('Final',totalPages,c===totalPages,false,'fas fa-angle-double-right');
+
+        $('#categoriasPublicoPaginacion').html(html);
+    }
+
+    function renderDetalleCategorias(pageRows, offset) {
+        var html = '';
+
+        pageRows.forEach(function(row,i){
+            var idx = offset+i;
+            html +=
+                '<article class="categoria-div-row">'+
+                    '<div class="categoria-cell categoria-name-cell">'+
+                        '<span class="categoria-cell-label">Categoría</span>'+
+                        '<span class="categoria-name-icon"><i class="fas fa-tag"></i></span>'+
+                        '<strong>'+esc(row.nombre)+'</strong>'+
+                    '</div>'+
+                    '<div class="categoria-cell"><span class="categoria-cell-label">Tipo</span>'+badgeTipo(row)+'</div>'+
+                    '<div class="categoria-cell"><span class="categoria-cell-label">Estado</span>'+badgeEstado(row)+'</div>'+
+                    '<div class="categoria-cell"><span class="categoria-cell-label">Fecha</span><span>'+esc(row.date_write || 'Sin fecha')+'</span></div>'+
+                    '<div class="categoria-cell categoria-actions-cell"><span class="categoria-cell-label">Acciones</span>'+acciones(row,idx)+'</div>'+
+                '</article>';
+        });
+
+        return html;
+    }
+
+    function renderMiniaturaCategorias(pageRows, offset) {
+        var html = '<div class="categoria-mini-grid">';
+
+        pageRows.forEach(function(row,i){
+            var idx = offset+i;
+
+            html +=
+                '<article class="categoria-mini-card">'+
+                    '<div class="categoria-mini-line"></div>'+
+                    '<div class="categoria-mini-head">'+
+                        '<span class="categoria-name-icon"><i class="fas fa-tag"></i></span>'+
+                        '<div class="categoria-mini-title">'+
+                            '<h4>'+esc(row.nombre)+'</h4>'+
+                            '<span>'+esc(row.date_write || 'Sin fecha')+'</span>'+
+                        '</div>'+
+                        badgeEstado(row)+
+                    '</div>'+
+                    '<div class="categoria-mini-body">'+
+                        '<div class="categoria-mini-field">'+
+                            '<span>Clasificación</span>'+
+                            badgeTipo(row)+
+                        '</div>'+
+                        '<div class="categoria-mini-field">'+
+                            '<span>Estado</span>'+
+                            badgeEstado(row)+
+                        '</div>'+
+                    '</div>'+
+                    '<div class="categoria-mini-footer">'+acciones(row,idx)+'</div>'+
+                '</article>';
+        });
+
+        return html + '</div>';
+    }
+
+    function render() {
+        var rows = CAT.filtered || [];
+
+        categoriaSincronizarVista();
+        $('.categoria-div-header').toggle(CAT.view === 'detalle' && !categoriaEsMovil());
+
+        if (!rows.length) {
+            $('#categoriasGastosListadoPublico').html(
+                '<div class="categoria-empty">'+
+                    '<i class="fas fa-tags"></i>'+
+                    '<strong>Sin categorías</strong>'+
+                    '<span>No se encontraron categorías con la búsqueda actual.</span>'+
+                '</div>'
+            );
+            $('#categoriasPublicoInfo').text('0 registros');
+            $('#categoriasPublicoPaginacion').empty();
+            return;
+        }
+
+        var pages = Math.max(1,Math.ceil(rows.length/CAT.pageSize));
+        if (CAT.page > pages) CAT.page = pages;
+
+        var offset = (CAT.page-1)*CAT.pageSize;
+        var pageRows = rows.slice(offset,offset+CAT.pageSize);
+
+        $('#categoriasGastosListadoPublico').html(
+            CAT.view === 'miniatura'
+                ? renderMiniaturaCategorias(pageRows,offset)
+                : renderDetalleCategorias(pageRows,offset)
+        );
+
+        $('#categoriasPublicoInfo').text(
+            'Mostrando '+(offset+1)+' a '+Math.min(offset+pageRows.length,rows.length)+' de '+rows.length+' registros'
+        );
+
+        renderPaginacion(pages);
+
+        if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+            typeof getPrivilegioTipoUsuario === 'function') {
+            try { getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario()); } catch(e){}
+        }
+    }
+
+    function listar_categoria_egresos() {
+        $('#categoriasGastosListadoPublico').html(
+            '<div class="categoria-empty"><i class="fas fa-spinner fa-spin"></i><strong>Cargando categorías</strong><span>Consultando información...</span></div>'
+        );
+
+        $.ajax({
+            type:'POST',
+            url:catUrl('core/llenarDataTableCategoriaEgresos.php'),
+            dataType:'json'
+        }).done(function(resp){
+            CAT.rows = resp && Array.isArray(resp.data) ? resp.data : [];
+            CAT.search = $('#buscarCategoriasPublico').val() || '';
+            filtrar();
+        }).fail(function(xhr){
+            CAT.rows = [];
+            CAT.filtered = [];
+            actualizarResumen();
+            render();
+            showNotify('error','Error de comunicación','No se pudieron cargar las categorías de gastos.');
+            console.error(xhr.responseText);
+        });
+    }
+
+    window.listar_categoria_egresos = listar_categoria_egresos;
+
+    window.modal_categorias_contabilidad = function() {
+        resetForm();
+        CAT.search = '';
+        $('#buscarCategoriasPublico').val('');
+
+        var saved = 'detalle';
+        try { saved = localStorage.getItem(CAT_STORAGE_VISTA) || 'detalle'; } catch(e){}
+        CAT.preferredView = saved === 'miniatura' ? 'miniatura' : 'detalle';
+        CAT.view = categoriaEsMovil() ? 'miniatura' : CAT.preferredView;
+        categoriaSincronizarPageSize();
+        categoriaSincronizarVista();
+
+        listar_categoria_egresos();
+
+        $('#modalCategoriasEgresos').modal({
+            show:true,
+            keyboard:true,
+            backdrop:'static'
+        });
+
+        $('#modalCategoriasEgresos').one('shown.bs.modal',function(){
+            $('#categoria').focus();
+        });
+    };
+
+    function refrescarDependencias() {
+        $(document).trigger('categoriasGastos:actualizadas');
+
+        if (typeof window.getCategoriaGastos === 'function') {
+            try { window.getCategoriaGastos(); } catch(e){}
+        }
+    }
+
+    function postJson(url, data, successTitle, successText, after) {
+        $.ajax({
+            type:'POST',
+            url:url,
+            data:data,
+            dataType:'json'
+        }).done(function(r){
+            if (notifyFromResponse(r,successTitle,successText)) {
+                listar_categoria_egresos();
+                refrescarDependencias();
+                if (typeof after === 'function') after(r);
+            }
+        }).fail(function(xhr){
+            showNotify('error','Error de comunicación','No se pudo completar la operación.');
+            console.error(xhr.responseText);
+        });
+    }
+
+    function guardarCategoria() {
+        var categoria = $.trim($('#categoria').val() || '');
+        if (!categoria) {
+            showNotify('warning','Campo requerido','Debe ingresar el nombre de la categoría.');
+            $('#categoria').focus();
+            return;
+        }
+
+        var form = $('#formCategoriaEgresos');
+        var editar = !!$('#categoria_gastos_id').val();
+        var url = editar
+            ? catUrl('ajax/modificarCategoriaEgresos.php')
+            : catUrl('ajax/addCategoriaEgresos.php');
+
+        swal({
+            title: editar ? '¿Actualizar categoría?' : '¿Registrar categoría?',
+            text: editar
+                ? 'Se actualizará la categoría '+categoria+'.'
+                : 'Se registrará la categoría '+categoria+'.',
+            icon:'warning',
+            buttons:{
+                cancel:{text:'Cancelar',visible:true},
+                confirm:{text:editar?'Sí, actualizar':'Sí, registrar'}
+            },
+            closeOnEsc:false,
+            closeOnClickOutside:false
+        }).then(function(ok){
+            if (!ok) return;
+
+            var $btn = $('#regCategoriaEgresos')
+                .prop('disabled',true)
+                .html('<i class="fas fa-spinner fa-spin mr-1"></i><span>Guardando...</span>');
+
+            $.ajax({
+                type:'POST',
+                url:url,
+                data:form.serialize(),
+                dataType:'json'
+            }).done(function(r){
+                if (notifyFromResponse(
+                    r,
+                    editar ? 'Categoría actualizada' : 'Categoría registrada',
+                    editar ? 'La categoría fue actualizada correctamente.' : 'La categoría fue registrada correctamente.'
+                )) {
+                    resetForm();
+                    listar_categoria_egresos();
+                    refrescarDependencias();
+                    $('#categoria').focus();
+                }
+            }).fail(function(xhr){
+                showNotify('error','Error de comunicación','No se pudo guardar la categoría.');
+                console.error(xhr.responseText);
+            }).always(function(){
+                $btn.prop('disabled',false);
+                if (CAT.editing) {
+                    $btn.removeClass('btn-success').addClass('btn-primary').html('<i class="fas fa-sync-alt mr-1"></i><span>Actualizar</span>');
+                } else {
+                    $btn.removeClass('btn-primary').addClass('btn-success').html('<i class="fas fa-save mr-1"></i><span>Registrar</span>');
+                }
+            });
+        });
+    }
+
+    function cambiarInversion(row) {
+        var actual = parseInt(row.es_inversion || 0,10) === 1;
+        var nuevo = actual ? 0 : 1;
+
+        swal({
+            title:'Confirmar cambio',
+            text:nuevo === 1
+                ? '¿Marcar '+row.nombre+' como inversión/reposición? Si otra categoría está marcada, se quitará automáticamente.'
+                : '¿Quitar la marca de inversión/reposición a '+row.nombre+'?',
+            icon:'warning',
+            buttons:{cancel:{text:'Cancelar',visible:true},confirm:{text:'Sí, confirmar'}},
+            closeOnEsc:false,closeOnClickOutside:false
+        }).then(function(ok){
+            if (!ok) return;
+            postJson(
+                catUrl('core/setInversionCategoriaGastos.php'),
+                {categoria_gastos_id:row.categoria_gastos_id,es_inversion:nuevo},
+                'Clasificación actualizada',
+                'La clasificación especial fue actualizada.'
+            );
+        });
+    }
+
+    function cambiarEstado(row) {
+        var actual = parseInt(row.estado || 0,10);
+        var nuevo = actual === 1 ? 0 : 1;
+
+        swal({
+            title:'Confirmar cambio',
+            text:'¿Desea '+(nuevo === 1 ? 'activar' : 'inactivar')+' la categoría '+row.nombre+'?',
+            icon:'warning',
+            buttons:{cancel:{text:'Cancelar',visible:true},confirm:{text:'Sí, confirmar'}},
+            closeOnEsc:false,closeOnClickOutside:false
+        }).then(function(ok){
+            if (!ok) return;
+            postJson(
+                catUrl('core/cambiarEstadoCategoriaGastos.php'),
+                {categoria_gastos_id:row.categoria_gastos_id,estado:nuevo},
+                'Estado actualizado',
+                'El estado de la categoría fue actualizado.'
+            );
+        });
+    }
+
+    function eliminar(row) {
+        swal({
+            title:'¿Eliminar categoría?',
+            text:'Se intentará eliminar la categoría '+row.nombre+'.',
+            icon:'warning',
+            buttons:{cancel:{text:'Cancelar',visible:true},confirm:{text:'Sí, eliminar'}},
+            dangerMode:true,
+            closeOnEsc:false,
+            closeOnClickOutside:false
+        }).then(function(ok){
+            if (!ok) return;
+            postJson(
+                catUrl('core/deleteCategoriaGastos.php'),
+                {categoria_gastos_id:row.categoria_gastos_id,categoria:row.nombre},
+                'Categoría eliminada',
+                'La categoría fue eliminada correctamente.',
+                function(){ if (String($('#categoria_gastos_id').val()) === String(row.categoria_gastos_id)) resetForm(); }
+            );
+        });
+    }
+
+    function excel() {
+        var rows = CAT.filtered || [];
+
+        if (!rows.length) {
+            showNotify('warning','Sin datos','No hay categorías para exportar.');
+            return;
+        }
+
+        if (typeof JSZip === 'undefined') {
+            showNotify('error','Excel no disponible','JSZip no está disponible.');
+            return;
+        }
+
+        function xe(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+        function xc(i){var n='';while(i>=0){n=String.fromCharCode((i%26)+65)+n;i=Math.floor(i/26)-1;}return n;}
+        function cell(ref,v,s){return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t>'+xe(v)+'</t></is></c>';}
+
+        var rs=[];
+        rs.push('<row r="1" ht="30" customHeight="1">'+cell('A1','IZZY • CATEGORÍAS DE GASTOS',1)+'</row>');
+        rs.push('<row r="2">'+cell('A2','Registros: '+rows.length+' • Generado: '+new Date().toLocaleDateString('es-HN'),2)+'</row>');
+        var headers=['Categoría','Tipo','Estado','Fecha'];
+        rs.push('<row r="4" ht="26" customHeight="1">'+headers.map(function(h,i){return cell(xc(i)+'4',h,3);}).join('')+'</row>');
+
+        rows.forEach(function(r,i){
+            var rr=5+i;
+            var vals=[
+                r.nombre,
+                parseInt(r.es_inversion||0,10)===1?'Inversión/reposición':'Gasto normal',
+                parseInt(r.estado||0,10)===1?'Activo':'Inactivo',
+                r.date_write||''
+            ];
+            rs.push('<row r="'+rr+'">'+vals.map(function(v,c){return cell(xc(c)+rr,v,4);}).join('')+'</row>');
+        });
+
+        var last=4+rows.length;
+        var sheet='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+            '<dimension ref="A1:D'+last+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
+            '<cols><col min="1" max="1" width="34" customWidth="1"/><col min="2" max="4" width="22" customWidth="1"/></cols>'+
+            '<sheetData>'+rs.join('')+'</sheetData><autoFilter ref="A4:D'+last+'"/><mergeCells count="2"><mergeCell ref="A1:D1"/><mergeCell ref="A2:D2"/></mergeCells></worksheet>';
+
+        var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+        var wb='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Categorías" sheetId="1" r:id="rId1"/></sheets></workbook>';
+        var wr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        var rr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+        var ct='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+
+        var zip=new JSZip();
+        zip.file('[Content_Types].xml',ct);
+        zip.folder('_rels').file('.rels',rr);
+        zip.folder('xl').file('workbook.xml',wb);
+        zip.folder('xl').file('styles.xml',styles);
+        zip.folder('xl').folder('_rels').file('workbook.xml.rels',wr);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml',sheet);
+
+        var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
+        var promise=typeof zip.generateAsync==='function'?zip.generateAsync(opts):Promise.resolve(zip.generate(opts));
+
+        promise.then(function(blob){
+            var url=URL.createObjectURL(blob), a=document.createElement('a');
+            a.href=url;a.download='Categorias_Gastos.xlsx';document.body.appendChild(a);a.click();a.remove();
+            setTimeout(function(){URL.revokeObjectURL(url);},1000);
+        }).catch(function(e){
+            console.error(e);
+            showNotify('error','Excel','No se pudo generar el Excel.');
+        });
+    }
+
+    function logo(callback) {
+        if (typeof imagen === 'string' && imagen.indexOf('data:image/') === 0) {
+            callback(imagen);
+            return;
+        }
+
+        $.ajax({
+            type:'GET',
+            url:catUrl('core/get_image.php'),
+            dataType:'text',
+            timeout:15000
+        }).done(function(src){
+            src=$.trim(src||'');
+            if(!src){callback(null);return;}
+            var img=new Image();img.crossOrigin='Anonymous';
+            img.onload=function(){
+                try{
+                    var c=document.createElement('canvas');
+                    c.width=img.naturalWidth||img.width;c.height=img.naturalHeight||img.height;
+                    c.getContext('2d').drawImage(img,0,0);
+                    callback(c.toDataURL('image/png'));
+                }catch(e){callback(null);}
+            };
+            img.onerror=function(){callback(null);};
+            img.src=src;
+        }).fail(function(){callback(null);});
+    }
+
+    function pdf() {
+        var rows=CAT.filtered||[];
+
+        if(!rows.length){
+            showNotify('warning','Sin datos','No hay categorías para exportar.');
+            return;
+        }
+
+        if(typeof pdfMake==='undefined'||typeof abrirModalPdfPublico!=='function'){
+            showNotify('error','PDF no disponible','No están disponibles los componentes del PDF.');
+            return;
+        }
+
+        logo(function(logoData){
+            var body=[[{text:'CATEGORÍA',style:'th'},{text:'TIPO',style:'th'},{text:'ESTADO',style:'th'},{text:'FECHA',style:'th'}]];
+
+            rows.forEach(function(r,i){
+                var fill=i%2===0?'#FFFFFF':'#F7F9FC';
+                body.push([
+                    {text:String(r.nombre||''),style:'td',fillColor:fill},
+                    {text:parseInt(r.es_inversion||0,10)===1?'Inversión/reposición':'Gasto normal',style:'td',fillColor:fill},
+                    {text:parseInt(r.estado||0,10)===1?'Activo':'Inactivo',style:'td',fillColor:fill,color:parseInt(r.estado||0,10)===1?'#14804A':'#C9372C'},
+                    {text:String(r.date_write||''),style:'td',fillColor:fill}
+                ]);
+            });
+
+            var plate=logoData
+                ? {table:{widths:['*'],body:[[{image:logoData,fit:[74,44],alignment:'center',margin:[7,5,7,5],fillColor:'#FFFFFF'}]]},layout:'noBorders',fillColor:'#17324D',margin:[8,7,8,7]}
+                : {text:'IZZY',bold:true,fontSize:18,color:'#17324D',alignment:'center',fillColor:'#FFFFFF',margin:[8,14,8,14]};
+
+            var doc={
+                pageSize:'LETTER',
+                pageOrientation:'landscape',
+                pageMargins:[28,28,28,34],
+                header:function(){return{margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},
+                footer:function(page,pages){return{margin:[28,8,28,0],columns:[{text:'IZZY • Categorías de Gastos',fontSize:7,color:'#7A869A'},{text:'Página '+page+' de '+pages,fontSize:7,color:'#7A869A',alignment:'right'}]};},
+                content:[
+                    {table:{widths:[100,'*',145],body:[[plate,{stack:[{text:'CATEGORÍAS DE GASTOS',bold:true,fontSize:16,color:'#FFFFFF'},{text:'Catálogo administrativo de egresos',fontSize:8,color:'#D8E5F0',margin:[0,2,0,0]}],fillColor:'#17324D',margin:[0,10,0,10]},{stack:[{text:'REPORTE EJECUTIVO',bold:true,fontSize:6.5,color:'#72E2E5',alignment:'right'},{text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},{text:rows.length+' registro(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right'}],fillColor:'#17324D',margin:[0,10,12,10]}]]},layout:'noBorders',margin:[0,0,0,10]},
+                    {table:{headerRows:1,widths:[240,170,140,146],body:body},layout:{hLineColor:function(){return'#DDE3EA';},vLineColor:function(){return'#DDE3EA';},hLineWidth:function(){return.55;},vLineWidth:function(){return.55;},paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 5;},paddingBottom:function(){return 5;}}}
+                ],
+                styles:{th:{fontSize:6.5,bold:true,color:'#FFFFFF',fillColor:'#17324D',alignment:'center'},td:{fontSize:7,color:'#253858',noWrap:false}}
+            };
+
+            pdfMake.createPdf(doc).getDataUrl(function(url){
+                abrirModalPdfPublico(url,'Categorías de Gastos','Categorias_Gastos.pdf');
+            });
+        });
+    }
+
+    $(document)
+        .off('click.catPublico','#btnLimpiarCategoriaEgresos')
+        .on('click.catPublico','#btnLimpiarCategoriaEgresos',function(){resetForm();$('#categoria').focus();})
+        .off('submit.catPublico','#formCategoriaEgresos')
+        .on('submit.catPublico','#formCategoriaEgresos',function(e){e.preventDefault();guardarCategoria();})
+        .off('click.catPublico','#btnActualizarCategoriasPublico')
+        .on('click.catPublico','#btnActualizarCategoriasPublico',listar_categoria_egresos)
+        .off('click.catPublico','#btnExcelCategoriasPublico')
+        .on('click.catPublico','#btnExcelCategoriasPublico',excel)
+        .off('click.catPublico','#btnPdfCategoriasPublico')
+        .on('click.catPublico','#btnPdfCategoriasPublico',pdf)
+        .off('input.catPublico','#buscarCategoriasPublico')
+        .on('input.catPublico','#buscarCategoriasPublico',function(){CAT.search=this.value||'';filtrar();})
+        .off('click.catPublico','#limpiarBuscarCategoriasPublico')
+        .on('click.catPublico','#limpiarBuscarCategoriasPublico',function(){$('#buscarCategoriasPublico').val('').focus();CAT.search='';filtrar();})
+        .off('change.catPublico','#categoriaPageSizePublico')
+        .on('change.catPublico','#categoriaPageSizePublico',function(){
+            var n=parseInt(this.value,10);
+            if(!n)return;
+            CAT.pageSize=n;
+            if(CAT.view==='miniatura') CAT.pageSizeMiniatura=n;
+            else CAT.pageSizeDetalle=n;
+            CAT.page=1;
+            render();
+        })
+        .off('click.catPublico','.categoria-view-btn')
+        .on('click.catPublico','.categoria-view-btn',function(){
+            var v=$(this).data('view');
+            CAT.view=categoriaEsMovil()?'miniatura':(v==='miniatura'?'miniatura':'detalle');
+            if(!categoriaEsMovil()){
+                CAT.preferredView=CAT.view;
+                try{localStorage.setItem(CAT_STORAGE_VISTA,CAT.preferredView);}catch(e){}
+            }
+            CAT.page=1;
+            categoriaSincronizarPageSize();
+            categoriaSincronizarVista();
+            render();
+        })
+        .off('click.catPublico','#categoriasPublicoPaginacion .categoria-page-btn')
+        .on('click.catPublico','#categoriasPublicoPaginacion .categoria-page-btn',function(){if(this.disabled)return;var p=parseInt($(this).data('page'),10);if(p){CAT.page=p;render();}})
+        .off('click.catPublico','#categoriasGastosListadoPublico .js-cat-editar')
+        .on('click.catPublico','#categoriasGastosListadoPublico .js-cat-editar',function(){var r=CAT.filtered[parseInt($(this).data('index'),10)];abrirEdicion(r);})
+        .off('click.catPublico','#categoriasGastosListadoPublico .js-cat-inversion')
+        .on('click.catPublico','#categoriasGastosListadoPublico .js-cat-inversion',function(){var r=CAT.filtered[parseInt($(this).data('index'),10)];if(r)cambiarInversion(r);})
+        .off('click.catPublico','#categoriasGastosListadoPublico .js-cat-estado')
+        .on('click.catPublico','#categoriasGastosListadoPublico .js-cat-estado',function(){var r=CAT.filtered[parseInt($(this).data('index'),10)];if(r)cambiarEstado(r);})
+        .off('click.catPublico','#categoriasGastosListadoPublico .js-cat-eliminar')
+        .on('click.catPublico','#categoriasGastosListadoPublico .js-cat-eliminar',function(){var r=CAT.filtered[parseInt($(this).data('index'),10)];if(r)eliminar(r);});
+
+    $(function(){
+        var saved='detalle';
+        try{saved=localStorage.getItem(CAT_STORAGE_VISTA)||'detalle';}catch(e){}
+        CAT.preferredView=saved==='miniatura'?'miniatura':'detalle';
+        CAT.view=categoriaEsMovil()?'miniatura':CAT.preferredView;
+        categoriaSincronizarPageSize();
+        categoriaSincronizarVista();
+
+        $('#modalCategoriasEgresos').on('hidden.bs.modal',function(){resetForm();});
+
+        $(window)
+            .off('resize.catPublico orientationchange.catPublico')
+            .on('resize.catPublico orientationchange.catPublico',function(){
+                var target=categoriaEsMovil()?'miniatura':CAT.preferredView;
+                if(CAT.view!==target){
+                    CAT.view=target;
+                    CAT.page=1;
+                    categoriaSincronizarPageSize();
+                    render();
+                }
+                categoriaSincronizarVista();
+            });
+    });
+
+})(jQuery);
 </script>

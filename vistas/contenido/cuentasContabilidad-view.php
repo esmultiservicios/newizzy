@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/cuentasContabilidad.css">
+
 <div class="container-fluid cuentas-premium-page">
     <!-- Cuentas -->
     <div class="breadcrumb-container">
@@ -18,8 +20,20 @@
         </ol>
     </div>
     
-    <div class="card mb-4 cuentas-filter-card">
-        <div class="card-body">
+    <div class="card mb-4 cuentas-filter-card cuentas-section-card">
+        <div class="cuentas-section-header">
+            <div class="cuentas-section-title">
+                <span class="cuentas-section-icon"><i class="fas fa-filter"></i></span>
+                <div>
+                    <h5 class="mb-0">Filtros de Cuentas</h5>
+                    <small>Consulte cuentas por estado, tipo, saldo, orden y período contable.</small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary cuentas-toggle-btn" id="btnToggleFiltrosCuentas" aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+        <div class="card-body" id="cuentasFiltrosContenido">
             <form id="formMainCuentasContabilidad">
                 <div class="row align-items-end">
                     <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-3">
@@ -156,26 +170,160 @@
         </div>
     </div>
 
-    <div class="card mb-4 cuentas-summary-card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="cuentas-summary-title">
-                <i class="fas fa-wallet"></i>
-                Resumen de Cuentas
-            </h5>
-
-            <div class="cuentas-summary-actions">
-                <button class="btn btn-sm btn-primary" onclick="modal_cuentas_contables()">
-                    <i class="fas fa-plus mr-1"></i> Nueva Cuenta
-                </button>
-
-                <button class="btn btn-sm btn-secondary" onclick="listar_cuentas_contabilidad()">
-                    <i class="fas fa-sync-alt mr-1"></i> Actualizar
-                </button>
+    <div class="card mb-4 cuentas-summary-card cuentas-section-card">
+        <div class="cuentas-section-header">
+            <div class="cuentas-section-title">
+                <span class="cuentas-section-icon"><i class="fas fa-wallet"></i></span>
+                <div>
+                    <h5 class="mb-0">Resumen de Cuentas</h5>
+                    <small>Saldos, movimientos del período y saldo actual real.</small>
+                </div>
             </div>
         </div>
 
         <div class="card-body">
+            <!-- KPIs -->
+            <section class="cuentas-kpi-section mb-3" id="cuentasKpisSection">
+                <div class="cuentas-kpi-header">
+                    <div class="cuentas-section-title">
+                        <span class="cuentas-section-icon"><i class="fas fa-chart-pie"></i></span>
+                        <div>
+                            <h5 class="mb-0">Indicadores de Cuentas</h5>
+                            <small>Resumen financiero del resultado filtrado.</small>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary cuentas-toggle-btn"
+                            id="btnToggleKpisCuentas" aria-expanded="true">
+                        <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+                    </button>
+                </div>
+
+                <div class="cuentas-kpi-content" id="cuentasKpisContenido">
+                    <div class="row cuentas-kpi-row">
+                        <div class="col-xl-3 col-md-6 col-12 mb-3">
+                            <div class="cuentas-kpi cuentas-kpi-primary">
+                                <div class="cuentas-kpi-copy">
+                                    <span>Cuentas</span>
+                                    <strong id="cuentasKpiTotal">0</strong>
+                                    <small>Registros filtrados</small>
+                                </div>
+                                <span class="cuentas-kpi-icon"><i class="fas fa-wallet"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 col-12 mb-3">
+                            <div class="cuentas-kpi cuentas-kpi-success">
+                                <div class="cuentas-kpi-copy">
+                                    <span>Ingresos</span>
+                                    <strong id="cuentasKpiIngresos">L. 0.00</strong>
+                                    <small>Total del período</small>
+                                </div>
+                                <span class="cuentas-kpi-icon"><i class="fas fa-arrow-down"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 col-12 mb-3">
+                            <div class="cuentas-kpi cuentas-kpi-danger">
+                                <div class="cuentas-kpi-copy">
+                                    <span>Egresos</span>
+                                    <strong id="cuentasKpiEgresos">L. 0.00</strong>
+                                    <small>Total del período</small>
+                                </div>
+                                <span class="cuentas-kpi-icon"><i class="fas fa-arrow-up"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 col-12 mb-3">
+                            <div class="cuentas-kpi cuentas-kpi-purple">
+                                <div class="cuentas-kpi-copy">
+                                    <span>Saldo Total</span>
+                                    <strong id="cuentasKpiSaldoActual">L. 0.00</strong>
+                                    <small>Saldo actual real</small>
+                                </div>
+                                <span class="cuentas-kpi-icon"><i class="fas fa-balance-scale"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="cuentas-list-toolbar">
+                <div class="cuentas-toolbar-left">
+                    <button type="button" class="btn btn-primary table_crear ocultar" onclick="modal_cuentas_contables()">
+                        <i class="fas fa-plus mr-1"></i> Nueva Cuenta
+                    </button>
+
+                    <button type="button" class="btn btn-secondary table_actualizar ocultar" onclick="listar_cuentas_contabilidad()">
+                        <i class="fas fa-sync-alt mr-1"></i> Actualizar
+                    </button>
+
+                    <button type="button" class="btn btn-success table_reportes ocultar" id="btnCuentasExcel">
+                        <i class="fas fa-file-excel mr-1"></i> Excel
+                    </button>
+
+                    <button type="button" class="btn btn-danger table_reportes ocultar" id="btnCuentasPdf">
+                        <i class="fas fa-file-pdf mr-1"></i> PDF
+                    </button>
+                </div>
+
+                <div class="cuentas-toolbar-right">
+                    <label class="cuentas-page-size mb-0">
+                        <span>Mostrar</span>
+                        <select id="cuentasPageSize" class="form-control form-control-sm"></select>
+                        <span>registros</span>
+                    </label>
+
+                    <div class="cuentas-view-switch">
+                        <button type="button" class="cuentas-view-btn" data-view="detalle">
+                            <i class="fas fa-list"></i><span>Detalle</span>
+                        </button>
+                        <button type="button" class="cuentas-view-btn active" data-view="miniatura">
+                            <i class="fas fa-th-large"></i><span>Miniatura</span>
+                        </button>
+                    </div>
+
+                    <div class="cuentas-search-wrap">
+                        <span class="cuentas-search-icon"><i class="fas fa-search"></i></span>
+                        <input type="search" id="buscarCuentasListado" class="form-control"
+                               placeholder="Buscar cuenta..." autocomplete="off">
+                        <button type="button" id="limpiarBuscarCuentasListado" class="cuentas-search-clear">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cuentas-detalle-container" class="cuentas-detalle-container d-none"></div>
             <div id="cuentas-container" class="row"></div>
+
+            <div class="cuentas-totales-grid" id="cuentasTotales">
+                <div class="cuentas-total-card">
+                    <span>Saldo Anterior</span>
+                    <strong id="cuentasTotalSaldoAnterior">L. 0.00</strong>
+                </div>
+                <div class="cuentas-total-card cuentas-total-success">
+                    <span>Ingresos</span>
+                    <strong id="cuentasTotalIngresos">L. 0.00</strong>
+                </div>
+                <div class="cuentas-total-card cuentas-total-danger">
+                    <span>Egresos</span>
+                    <strong id="cuentasTotalEgresos">L. 0.00</strong>
+                </div>
+                <div class="cuentas-total-card">
+                    <span>Saldo Cierre</span>
+                    <strong id="cuentasTotalSaldoCierre">L. 0.00</strong>
+                </div>
+                <div class="cuentas-total-card cuentas-total-current">
+                    <span>Saldo Total</span>
+                    <strong id="cuentasTotalSaldoActual">L. 0.00</strong>
+                </div>
+            </div>
+
+            <div class="cuentas-list-footer">
+                <span id="cuentasInfo">0 registros</span>
+                <div id="cuentasPaginacion" class="cuentas-pagination"></div>
+            </div>
         </div>
 
         <div class="card-footer small text-muted">

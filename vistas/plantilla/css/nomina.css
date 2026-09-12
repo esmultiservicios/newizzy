@@ -1,0 +1,168 @@
+
+/* =========================================================
+   IZZY 6.0 | NÓMINA DE EMPLEADOS
+   ========================================================= */
+#nomina_principal,#nomina_detalles{--nm-navy:#17324d;--nm-blue:#2f9ddd;--nm-teal:#0ea5a8;--nm-green:#22a06b;--nm-red:#c9372c;--nm-yellow:#e6a700;--nm-purple:#6554c0;--nm-border:#dfe6ee;--nm-soft:#f7f9fc;--nm-text:#172b4d;--nm-muted:#6b778c;overflow-x:hidden}
+#nomina_principal *,#nomina_detalles *{box-sizing:border-box}
+.nomina-section-card{border:1px solid var(--nm-border);border-radius:10px;background:#fff;box-shadow:0 2px 8px rgba(23,50,77,.06);overflow:visible}
+.nomina-section-header,.nomina-directory-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid #e4eaf0;background:#fff}
+.nomina-section-title{display:flex;align-items:center;gap:11px;min-width:0}
+.nomina-section-icon{width:40px;height:40px;flex:0 0 40px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9e7f3;border-radius:10px;background:#eef6ff;color:#2675b9}
+.nomina-section-title h5{margin:0;color:var(--nm-text);font-size:1rem;font-weight:800}
+.nomina-section-title small{display:block;margin-top:2px;color:var(--nm-muted);overflow-wrap:anywhere}
+.nomina-toggle-btn,.nomina-filter-actions .btn,.nomina-toolbar-left .btn{min-height:38px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700}
+.nomina-toggle-btn{min-width:104px}
+.nomina-filter-label{display:block;margin-bottom:6px;color:#253858;font-size:.84rem;font-weight:700}
+.nomina-filter-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.nomina-filter-actions .btn{min-width:112px}
+
+/* KPI: conserva color; hover solo movimiento */
+.nomina-kpi-row{margin-left:-8px;margin-right:-8px}.nomina-kpi-row>[class*="col-"]{padding-left:8px;padding-right:8px}
+.nomina-kpi{min-height:106px;height:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 18px;border:1px solid var(--nm-border);border-left:4px solid #2684ff;border-radius:10px;background:#fff;opacity:1!important;filter:none!important;transition:transform .16s ease,box-shadow .16s ease}
+.nomina-kpi-primary,.nomina-kpi-primary:hover{border-left-color:#2684ff!important}.nomina-kpi-success,.nomina-kpi-success:hover{border-left-color:#22a06b!important}.nomina-kpi-danger,.nomina-kpi-danger:hover{border-left-color:#c9372c!important}.nomina-kpi-warning,.nomina-kpi-warning:hover{border-left-color:#e6a700!important}.nomina-kpi-purple,.nomina-kpi-purple:hover{border-left-color:#6554c0!important}
+.nomina-kpi:hover{transform:translateY(-3px);background:#fff!important;opacity:1!important;filter:none!important;box-shadow:0 7px 16px rgba(23,50,77,.10)}
+.nomina-kpi-copy{display:flex;flex-direction:column;min-width:0}.nomina-kpi-copy>span{color:#5e6c84;font-size:.77rem;font-weight:700;text-transform:uppercase}.nomina-kpi-copy strong{margin-top:4px;color:var(--nm-text);font-size:1.5rem;line-height:1}.nomina-kpi-copy small{margin-top:6px;color:#7a869a}
+.nomina-kpi-icon{width:44px;height:44px;flex:0 0 44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--nm-border);border-radius:10px;background:#f7f9fc;color:#35526f}
+.nomina-kpi:hover .nomina-kpi-icon{transform:none!important;opacity:1!important;filter:none!important}
+
+/* Toolbar */
+.nomina-list-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;min-width:0}
+.nomina-toolbar-left,.nomina-toolbar-right{display:flex;align-items:center;gap:10px;min-width:0}.nomina-toolbar-left{flex-wrap:wrap}.nomina-toolbar-right{margin-left:auto;justify-content:flex-end}
+.nomina-page-size{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;color:#46556b;font-size:13px}.nomina-page-size select{width:86px!important;min-width:86px!important;height:38px!important;border-radius:8px!important}
+.nomina-view-switch{display:inline-flex;padding:3px;border:1px solid #d7e1eb;border-radius:9px;background:#f5f8fb}
+.nomina-view-btn,.nomina-detalle-view-btn{min-height:34px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border:0;border-radius:7px;background:transparent;color:#52627a;font-size:12px;font-weight:700}
+.nomina-view-btn.active,.nomina-detalle-view-btn.active{background:#2f9ddd;color:#fff;box-shadow:0 2px 7px rgba(47,157,221,.24)}
+.nomina-search{position:relative;width:300px;height:38px;display:flex;border:1px solid #ced4da;border-radius:8px;overflow:hidden;background:#fff}.nomina-search-icon{width:42px;flex:0 0 42px;display:inline-flex;align-items:center;justify-content:center;border-right:1px solid #ced4da;background:#f7f9fc;color:#233b55}.nomina-search .form-control{min-width:0;height:36px;border:0;padding-right:34px;box-shadow:none!important}.nomina-search-clear{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:27px;height:27px;border:0;border-radius:6px;background:transparent;color:#7a869a}
+
+/* List detail */
+.nomina-detail-header,.nomina-detail-row{display:grid;grid-template-columns:minmax(250px,1.55fr) minmax(220px,1.2fr) 130px minmax(220px,1.25fr) 130px 120px;gap:10px;align-items:center;width:100%;min-width:0}
+.nomina-detail-header,.nomina-employee-header{min-height:42px;padding:0 12px;border-radius:8px;background:#193b5a;color:#fff;font-size:10px;font-weight:800;text-transform:uppercase}
+.nomina-detail-row,.nomina-employee-row{margin-top:10px;padding:11px 12px;border:1px solid #dfe6ee;border-top:3px solid #28d6a1;border-radius:9px;background:#fff;box-shadow:0 2px 7px rgba(31,47,67,.05);transition:transform .16s ease,box-shadow .16s ease}
+.nomina-detail-row:hover,.nomina-employee-row:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(23,50,77,.09)}
+.nomina-cell{min-width:0;color:#172b4d;overflow-wrap:anywhere}.nomina-cell-label{display:none;margin-bottom:4px;color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}
+.nomina-main-title,.nomina-employee-identity{display:flex;align-items:center;gap:11px;min-width:0}.nomina-main-title>div,.nomina-employee-identity>div{display:flex;flex-direction:column;min-width:0}.nomina-main-title strong,.nomina-employee-identity strong{font-size:12px;color:#172b4d}.nomina-main-title small,.nomina-employee-identity small{margin-top:3px;color:#7a869a;font-size:10px}
+.nomina-code{min-width:48px;height:38px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:#eef6ff;color:#176fae;font-size:11px;font-weight:800}
+.nomina-stack{display:flex;flex-direction:column;gap:4px;font-size:10px}.nomina-money-cell strong{color:#176fae}.nomina-money-success,.nomina-money-success strong{color:#14804a!important}.nomina-money-danger,.nomina-money-danger strong{color:#c9372c!important}.nomina-center{text-align:center}.nomina-notes{font-size:10px;color:#52627a}
+.nomina-status{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800}.nomina-status-ok{background:#e8f9ef;border:1px solid #c2efd3;color:#14804a}.nomina-status-pending{background:#fff4e5;border:1px solid #f4d6a0;color:#8a5a00}
+
+/* Employees detail */
+.nomina-employee-header,.nomina-employee-row{display:grid;grid-template-columns:minmax(230px,1.45fr) minmax(150px,.9fr) minmax(150px,.9fr) 115px 115px 115px 120px 110px;gap:9px;align-items:center;width:100%;min-width:0}
+.nomina-avatar{width:40px;height:40px;flex:0 0 40px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#eef6ff;border:1px solid #cfe2f3;color:#176fae;font-size:11px;font-weight:800}.nomina-avatar-large{width:58px;height:58px;flex-basis:58px;font-size:14px}
+
+/* Mini */
+.nomina-mini-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}.nomina-mini-card{min-width:0;border:1px solid #dfe6ee;border-radius:10px;background:#fff;overflow:hidden;box-shadow:0 2px 8px rgba(23,50,77,.06);transition:transform .16s ease,box-shadow .16s ease}.nomina-mini-card:hover{transform:translateY(-2px);box-shadow:0 7px 16px rgba(23,50,77,.09)}.nomina-mini-topline{height:3px;background:#1fc79a}
+.nomina-mini-header{min-height:92px;display:flex;align-items:center;gap:11px;padding:11px 12px;border-bottom:1px solid #edf1f6;background:#fbfdff}.nomina-mini-icon{width:52px;height:52px;flex:0 0 52px;display:inline-flex;align-items:center;justify-content:center;border-radius:11px;background:#eef6ff;color:#176fae;font-size:18px}.nomina-mini-title{min-width:0;flex:1}.nomina-mini-title h4{margin:0;color:#172b4d;font-size:14px;font-weight:800;line-height:1.2}.nomina-mini-title span{display:block;margin-top:5px;color:#6b778c;font-size:10px}
+.nomina-mini-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.nomina-mini-field{min-width:0;padding:8px 10px;border-right:1px solid #edf1f6;border-bottom:1px solid #edf1f6}.nomina-mini-field:nth-child(2n){border-right:0}.nomina-mini-field-full{grid-column:1/-1;border-right:0!important}.nomina-mini-field span,.nomina-mini-field strong{display:block}.nomina-mini-field span{margin-bottom:2px;color:#6b778c;font-size:8.5px;font-weight:800;text-transform:uppercase}.nomina-mini-field strong{color:#172b4d;font-size:10.5px;line-height:1.2;overflow-wrap:anywhere}.nomina-mini-footer{min-height:44px;display:flex;align-items:center;justify-content:flex-end;padding:7px 11px}
+
+/* Totals/pagination */
+.nomina-total-strip{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:14px;padding:10px 12px;border:1px solid #dfe6ee;border-radius:8px;background:#f7f9fc}.nomina-total-strip span{color:#6b778c;font-size:9px;font-weight:800;text-transform:uppercase}.nomina-total-strip strong{color:#172b4d;font-size:14px}.nomina-total-strip-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.nomina-total-strip-3>div{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nomina-list-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;color:#667085;font-size:12px}.nomina-pagination{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}.nomina-page-btn{min-height:34px;padding:5px 9px;border:1px solid #d7e1eb;border-radius:7px;background:#f5f8fb;color:#42526e;font-size:11px;font-weight:700}.nomina-page-btn.active{background:#2f9ddd;border-color:#2f9ddd;color:#fff}
+.nomina-state{min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:24px;border:1px dashed #cfd8e3;border-radius:9px;background:#fff;color:#7a869a;text-align:center}.nomina-state i{font-size:25px;color:#98a2b3}.nomina-state strong{color:#42526e}.nomina-state-compact{min-height:100px}
+
+/* Vales */
+.nomina-vales-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}.nomina-search-vales{width:100%;max-width:360px}.nomina-vales-grid{display:grid;grid-template-columns:1fr;gap:8px}.nomina-vale-card{display:grid;grid-template-columns:44px minmax(0,1fr) 120px 90px;gap:10px;align-items:center;padding:10px 12px;border:1px solid #dfe6ee;border-radius:9px;background:#fff}.nomina-vale-card:hover{box-shadow:0 5px 12px rgba(23,50,77,.07)}.nomina-vale-icon{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:#eef6ff;color:#176fae}.nomina-vale-copy{min-width:0;display:flex;flex-direction:column}.nomina-vale-copy strong{color:#172b4d;font-size:11px}.nomina-vale-copy span{margin-top:2px;color:#6b778c;font-size:9.5px}.nomina-vale-amount{color:#14804a;font-size:11px;font-weight:800;text-align:right}
+
+/* Modals */
+#modal_registrar_nomina .modal-content,#modal_registrar_nomina_detalles .modal-content,#modalRegistrarVales .modal-content{border:0;border-radius:12px;box-shadow:0 18px 44px rgba(23,50,77,.18);overflow:hidden;opacity:1!important;filter:none!important}
+#modal_registrar_nomina .modal-header,#modal_registrar_nomina_detalles .modal-header,#modalRegistrarVales .modal-header{background:#17324d!important;border-bottom:4px solid #1fc79a!important}
+#modal_registrar_nomina .card,#modal_registrar_nomina_detalles .card,#modalRegistrarVales .card{border:1px solid #dfe6ee!important;border-radius:10px!important;box-shadow:none!important}
+#modal_registrar_nomina .card-header,#modal_registrar_nomina_detalles .card-header,#modalRegistrarVales .card-header{background:#f7f9fc!important;color:#17324d!important;border-bottom:1px solid #dfe6ee!important}
+#modal_registrar_nomina .modal-footer,#modal_registrar_nomina_detalles .modal-footer,#modalRegistrarVales .modal-footer{background:#fff;border-top:1px solid #e4eaf0}
+.modal-backdrop.show{opacity:.28}
+
+/* Responsive */
+@media(max-width:1399.98px){.nomina-list-toolbar{flex-wrap:wrap}.nomina-toolbar-right{flex:1 1 100%;justify-content:flex-end}.nomina-detail-header,.nomina-employee-header{display:none}.nomina-detail-row,.nomina-employee-row{grid-template-columns:repeat(3,minmax(0,1fr))}.nomina-cell-label{display:block}}
+@media(max-width:1199.98px){.nomina-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nomina-detail-row,.nomina-employee-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:991.98px){.nomina-list-toolbar{flex-direction:column;align-items:stretch}.nomina-toolbar-right{width:100%;margin-left:0;justify-content:flex-start;flex-wrap:wrap}.nomina-search{width:100%;max-width:none;flex:1 1 100%}}
+@media(max-width:767.98px){
+.nomina-section-header,.nomina-directory-header,.nomina-list-footer{flex-direction:column;align-items:stretch}.nomina-toggle-btn{width:100%}.nomina-filter-actions,.nomina-toolbar-left{width:100%}.nomina-filter-actions .btn,.nomina-toolbar-left .btn{flex:1 1 calc(50% - 4px);min-width:0}
+.nomina-toolbar-right{flex-direction:column;align-items:stretch;gap:8px;min-height:0!important;height:auto!important}.nomina-page-size{width:100%}.nomina-view-switch{width:100%}.nomina-view-btn[data-view="detalle"],.nomina-detalle-view-btn[data-view="detalle"]{display:none!important}.nomina-view-btn[data-view="miniatura"],.nomina-detalle-view-btn[data-view="miniatura"]{width:100%;flex:1 1 100%}
+.nomina-search{flex:0 0 auto!important;flex-basis:auto!important;width:100%!important;min-width:0!important;max-width:none!important;height:38px!important;min-height:38px!important;max-height:38px!important;margin:0!important}
+.nomina-mini-grid{grid-template-columns:1fr!important;gap:10px}.nomina-listado{min-height:0!important;height:auto!important;margin-top:0!important}.nomina-pagination{justify-content:center}.nomina-total-strip-3{grid-template-columns:1fr}
+.nomina-vale-card{grid-template-columns:40px minmax(0,1fr);}.nomina-vale-amount{text-align:left;grid-column:2}.nomina-vale-card .btn{grid-column:2;width:max-content}
+}
+@media(max-width:575.98px){.nomina-filter-actions .btn,.nomina-toolbar-left .btn{flex:1 1 100%;width:100%}.nomina-mini-header{align-items:flex-start}.nomina-status{flex:0 0 auto}}
+
+/* =========================================================
+   NÓMINA | TEXTO UNIFORME DETALLE + MINIATURA
+   Incluye períodos y empleados de nómina.
+   ========================================================= */
+.nomina-detail-header,
+.nomina-employee-header {
+    font-size:14px !important;
+    font-weight:800 !important;
+    line-height:1.2 !important;
+    text-transform:none !important;
+    letter-spacing:0 !important;
+}
+.nomina-detail-row,
+.nomina-employee-row,
+.nomina-detail-row .nomina-cell,
+.nomina-employee-row .nomina-cell {
+    font-size:14px !important;
+    line-height:1.35 !important;
+}
+.nomina-main-title strong,
+.nomina-employee-identity strong {
+    font-size:14px !important;
+    font-weight:500 !important;
+    line-height:1.35 !important;
+}
+.nomina-main-title small,
+.nomina-employee-identity small {
+    font-size:12px !important;
+    line-height:1.3 !important;
+}
+.nomina-detail-row .nomina-stack,
+.nomina-employee-row .nomina-stack {
+    font-size:14px !important;
+    line-height:1.35 !important;
+}
+.nomina-cell-label {
+    font-size:11px !important;
+    font-weight:800 !important;
+}
+.nomina-notes {
+    font-size:13px !important;
+    line-height:1.35 !important;
+}
+.nomina-status {
+    font-size:12px !important;
+    font-weight:800 !important;
+}
+.nomina-detail-row .btn-acciones,
+.nomina-employee-row .btn-acciones {
+    font-size:13px !important;
+    font-weight:700 !important;
+}
+.nomina-mini-title h4 {
+    font-size:15px !important;
+    font-weight:700 !important;
+    line-height:1.3 !important;
+}
+.nomina-mini-title span {
+    font-size:12px !important;
+    line-height:1.35 !important;
+}
+.nomina-mini-field span {
+    font-size:10px !important;
+    font-weight:800 !important;
+}
+.nomina-mini-field strong {
+    font-size:14px !important;
+    font-weight:500 !important;
+    line-height:1.35 !important;
+}
+.nomina-mini-card .nomina-status {
+    font-size:11px !important;
+}
+.nomina-mini-card .btn-acciones {
+    font-size:13px !important;
+    font-weight:700 !important;
+}
+@media (max-width:767.98px) {
+    .nomina-mini-title h4 { font-size:15px !important; }
+    .nomina-mini-title span,
+    .nomina-mini-field strong { font-size:13px !important; }
+    .nomina-mini-field span { font-size:10px !important; }
+}

@@ -67,286 +67,622 @@ $(() => {
    LISTADO DE NÓMINAS
    ============================ */
 
+
+/* =========================================================
+   IZZY 6.0 | NÓMINA UI DIVS
+   ========================================================= */
+var NOMINA_MOBILE_QUERY = '(max-width: 767.98px)';
+
+var nominaUI = {rows:[],filtered:[],page:1,pageSize:10,pageSizeDetalle:10,pageSizeMiniatura:6,view:'detalle',preferredView:'detalle',search:'',loading:false};
+var nominaDetalleUI = {rows:[],filtered:[],page:1,pageSize:10,pageSizeDetalle:10,pageSizeMiniatura:6,view:'detalle',preferredView:'detalle',search:'',loading:false};
+var nominaValesUI = {rows:[],filtered:[],page:1,pageSize:6,search:'',loading:false};
+
+function nominaNum(v){ return parseFloat(String(v == null ? 0 : v).replace(/[^\d.-]/g,'')) || 0; }
+function nominaMoney(v){ return 'L ' + nominaNum(v).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function nominaVal(v,d){ if(v===null||v===undefined||String(v).trim()==='') return d===undefined?'No registrado':d; return String(v).trim(); }
+function nominaEsc(v){ return nominaVal(v,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function nominaEsMovil(){ return window.matchMedia ? window.matchMedia(NOMINA_MOBILE_QUERY).matches : $(window).width()<=767; }
+
+function nominaPanel(btn, body, key){
+    var visible=true;
+    try{ var s=localStorage.getItem(key); if(s!==null) visible=s==='1'; }catch(e){}
+    function sync(){
+        $(body).toggle(visible);
+        $(btn).attr('aria-expanded',visible?'true':'false');
+        $(btn).find('span').text(visible?'Ocultar':'Mostrar');
+        $(btn).find('i').toggleClass('fa-chevron-up',visible).toggleClass('fa-chevron-down',!visible);
+    }
+    sync();
+    $(btn).off('click.nominaPanel').on('click.nominaPanel',function(){
+        visible=!visible;
+        $(body).stop(true,true)[visible?'slideDown':'slideUp'](160);
+        sync();
+        try{localStorage.setItem(key,visible?'1':'0');}catch(e){}
+    });
+}
+
+function nominaOpcionesPage($select, ui){
+    var mini=ui.view==='miniatura';
+    var ops=mini?[6,12,18,30]:[10,25,50,100];
+    var pref=mini?ui.pageSizeMiniatura:ui.pageSizeDetalle;
+    if(ops.indexOf(pref)<0) pref=ops[0];
+    $select.empty();
+    ops.forEach(function(n){$select.append($('<option></option>').val(n).text(n));});
+    ui.pageSize=pref;
+    $select.val(String(pref));
+}
+
+function nominaEstadoBadge(estado){
+    return Number(estado)===1
+        ? '<span class="nomina-status nomina-status-ok"><i class="fas fa-check-circle"></i> Generada</span>'
+        : '<span class="nomina-status nomina-status-pending"><i class="fas fa-clock"></i> Sin Generar</span>';
+}
+
+function nominaInitials(nombre){
+    var p=nominaVal(nombre,'?').split(/\s+/).filter(Boolean).slice(0,2);
+    return p.map(function(x){return x.charAt(0).toUpperCase();}).join('') || '?';
+}
+
+function nominaPaginacion(container,totalPages,current){
+    var h='';
+    function b(label,p,disabled,active,icon){
+        return '<button type="button" class="nomina-page-btn'+(active?' active':'')+'" data-page="'+p+'"'+(disabled?' disabled':'')+'>'+(icon?'<i class="'+icon+' mr-1"></i>':'')+label+'</button>';
+    }
+    h+=b('Inicio',1,current===1,false,'fas fa-angle-double-left');
+    h+=b('Anterior',current-1,current===1,false,'fas fa-angle-left');
+    var from=Math.max(1,current-2),to=Math.min(totalPages,from+4); from=Math.max(1,to-4);
+    for(var p=from;p<=to;p++) h+=b(String(p),p,false,p===current,'');
+    h+=b('Siguiente',current+1,current===totalPages,false,'fas fa-angle-right');
+    h+=b('Final',totalPages,current===totalPages,false,'fas fa-angle-double-right');
+    $(container).html(h);
+}
+
+function nominaMainActions(row,index){
+    return '<div class="dropdown acciones-dropdown">'+
+      '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle"><i class="fas fa-cog"></i><span>Acciones</span></button>'+
+      '<div class="dropdown-menu dropdown-menu-right acciones-menu">'+
+        '<button type="button" class="dropdown-item accion-item nomina-ui-generar ocultar" data-index="'+index+'"><span class="accion-icon"><i class="fas fa-users-cog"></i></span><span class="accion-label">Generar Nómina</span></button>'+
+        '<button type="button" class="dropdown-item accion-item nomina-ui-voucher ocultar" data-index="'+index+'"><span class="accion-icon"><i class="fas fa-file-invoice-dollar"></i></span><span class="accion-label">Voucher de Pago</span></button>'+
+        '<button type="button" class="dropdown-item accion-item nomina-ui-libro ocultar" data-index="'+index+'"><span class="accion-icon"><i class="fas fa-book"></i></span><span class="accion-label">Libro de Salarios</span></button>'+
+        '<div class="dropdown-divider"></div>'+
+        '<button type="button" class="dropdown-item accion-item nomina-ui-crear ocultar" data-index="'+index+'"><span class="accion-icon"><i class="fas fa-folder-plus"></i></span><span class="accion-label">Crear / Empleados</span></button>'+
+        '<button type="button" class="dropdown-item accion-item accion-editar table_editar nomina-ui-editar ocultar" data-index="'+index+'"><span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span><span class="accion-label">Editar</span></button>'+
+        '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar nomina-ui-eliminar ocultar" data-index="'+index+'"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span><span class="accion-label">Eliminar</span></button>'+
+      '</div></div>';
+}
+
+function nominaDetalleActions(row,index){
+    return '<div class="dropdown acciones-dropdown">'+
+      '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle"><i class="fas fa-cog"></i><span>Acciones</span></button>'+
+      '<div class="dropdown-menu dropdown-menu-right acciones-menu">'+
+        '<button type="button" class="dropdown-item accion-item accion-editar table_editar nomina-detalle-ui-editar ocultar" data-index="'+index+'"><span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span><span class="accion-label">Editar</span></button>'+
+        '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar nomina-detalle-ui-eliminar ocultar" data-index="'+index+'"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span><span class="accion-label">Eliminar</span></button>'+
+      '</div></div>';
+}
+
+function nominaActualizarKpis(rows){
+    var gen=0,pend=0,total=0;
+    rows.forEach(function(r){ Number(r.estado)===1?gen++:pend++; total+=nominaNum(r.importe); });
+    $('#nominaKpiRegistros').text(rows.length);
+    $('#nominaKpiGeneradas').text(gen);
+    $('#nominaKpiPendientes').text(pend);
+    $('#nominaKpiImporte,#nominaTotalListado').text(nominaMoney(total));
+}
+
+function nominaDetalleActualizarKpis(rows){
+    var ing=0,egr=0,net=0;
+    rows.forEach(function(r){ ing+=nominaNum(r.neto_ingresos); egr+=nominaNum(r.neto_egresos); net+=nominaNum(r.neto); });
+    $('#nominaDetalleKpiRegistros').text(rows.length);
+    $('#nominaDetalleKpiIngresos,#nominaDetalleTotalIngresos').text(nominaMoney(ing));
+    $('#nominaDetalleKpiEgresos,#nominaDetalleTotalEgresos').text(nominaMoney(egr));
+    $('#nominaDetalleKpiNeto,#nominaDetalleTotalNeto').text(nominaMoney(net));
+}
+
+function nominaFiltrarMain(){
+    var q=$.trim(nominaUI.search||'').toLowerCase();
+    nominaUI.filtered=!q?nominaUI.rows.slice():nominaUI.rows.filter(function(r){
+        return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,r.importe,r.notas,Number(r.estado)===1?'generada':'sin generar']
+            .map(function(v){return nominaVal(v,'').toLowerCase();}).join(' ').indexOf(q)!==-1;
+    });
+    nominaActualizarKpis(nominaUI.filtered);
+}
+
+function nominaFiltrarDetalle(){
+    var q=$.trim(nominaDetalleUI.search||'').toLowerCase();
+    nominaDetalleUI.filtered=!q?nominaDetalleUI.rows.slice():nominaDetalleUI.rows.filter(function(r){
+        return [r.nomina_id,r.contrato,r.empresa,r.empleado,r.neto_ingresos,r.neto_egresos,r.neto,r.notas,Number(r.estado)===1?'generada':'sin generar']
+            .map(function(v){return nominaVal(v,'').toLowerCase();}).join(' ').indexOf(q)!==-1;
+    });
+    nominaDetalleActualizarKpis(nominaDetalleUI.filtered);
+}
+
+function nominaRenderMain(){
+    var rows=nominaUI.filtered||[];
+    if(nominaUI.loading){ $('#nominaListado').html('<div class="nomina-state"><i class="fas fa-spinner fa-spin"></i><strong>Cargando nóminas</strong><span>Consultando información...</span></div>'); return; }
+    if(!rows.length){ $('#nominaListado').html('<div class="nomina-state"><i class="fas fa-file-invoice-dollar"></i><strong>Sin nóminas</strong><span>No hay registros con los criterios actuales.</span></div>'); $('#nominaInfo').text('0 registros'); $('#nominaPaginacion').empty(); return; }
+
+    var pages=Math.max(1,Math.ceil(rows.length/nominaUI.pageSize)); if(nominaUI.page>pages)nominaUI.page=pages;
+    var start=(nominaUI.page-1)*nominaUI.pageSize, pageRows=rows.slice(start,start+nominaUI.pageSize), html='';
+
+    if(nominaUI.view==='detalle'){
+        html='<div class="nomina-detail-header"><div>Nómina</div><div>Empresa / Período</div><div>Importe</div><div>Notas</div><div>Estado</div><div>Acciones</div></div>';
+        pageRows.forEach(function(r,i){
+            var idx=start+i;
+            html+='<article class="nomina-detail-row">'+
+              '<div class="nomina-cell"><span class="nomina-cell-label">Nómina</span><div class="nomina-main-title"><span class="nomina-code">#'+nominaEsc(r.nomina_id)+'</span><div><strong>'+nominaEsc(nominaVal(r.detalle,'Sin detalle'))+'</strong><small>Código de nómina '+nominaEsc(r.nomina_id)+'</small></div></div></div>'+
+              '<div class="nomina-cell"><span class="nomina-cell-label">Empresa / Período</span><div class="nomina-stack"><strong>'+nominaEsc(nominaVal(r.empresa,'Sin empresa'))+'</strong><span><i class="fas fa-calendar-alt mr-1"></i>'+nominaEsc(nominaVal(r.fecha_inicio,'N/A'))+' → '+nominaEsc(nominaVal(r.fecha_fin,'N/A'))+'</span></div></div>'+
+              '<div class="nomina-cell nomina-money-cell"><span class="nomina-cell-label">Importe</span><strong>'+nominaMoney(r.importe)+'</strong></div>'+
+              '<div class="nomina-cell"><span class="nomina-cell-label">Notas</span><span class="nomina-notes">'+nominaEsc(nominaVal(r.notas,'Sin notas'))+'</span></div>'+
+              '<div class="nomina-cell nomina-center"><span class="nomina-cell-label">Estado</span>'+nominaEstadoBadge(r.estado)+'</div>'+
+              '<div class="nomina-cell nomina-center"><span class="nomina-cell-label">Acciones</span>'+nominaMainActions(r,idx)+'</div>'+
+            '</article>';
+        });
+    }else{
+        html='<div class="nomina-mini-grid">';
+        pageRows.forEach(function(r,i){
+            var idx=start+i;
+            html+='<article class="nomina-mini-card"><div class="nomina-mini-topline"></div>'+
+              '<div class="nomina-mini-header"><span class="nomina-mini-icon"><i class="fas fa-file-invoice-dollar"></i></span><div class="nomina-mini-title"><h4>'+nominaEsc(nominaVal(r.detalle,'Sin detalle'))+'</h4><span>#'+nominaEsc(r.nomina_id)+'</span></div>'+nominaEstadoBadge(r.estado)+'</div>'+
+              '<div class="nomina-mini-body">'+
+                '<div class="nomina-mini-field"><span>Empresa</span><strong>'+nominaEsc(nominaVal(r.empresa,'Sin empresa'))+'</strong></div>'+
+                '<div class="nomina-mini-field"><span>Importe</span><strong>'+nominaMoney(r.importe)+'</strong></div>'+
+                '<div class="nomina-mini-field"><span>Fecha Inicio</span><strong>'+nominaEsc(nominaVal(r.fecha_inicio,'N/A'))+'</strong></div>'+
+                '<div class="nomina-mini-field"><span>Fecha Fin</span><strong>'+nominaEsc(nominaVal(r.fecha_fin,'N/A'))+'</strong></div>'+
+                '<div class="nomina-mini-field nomina-mini-field-full"><span>Notas</span><strong>'+nominaEsc(nominaVal(r.notas,'Sin notas'))+'</strong></div>'+
+              '</div><div class="nomina-mini-footer">'+nominaMainActions(r,idx)+'</div></article>';
+        });
+        html+='</div>';
+    }
+
+    $('#nominaListado').removeClass('vista-detalle vista-miniatura').addClass('vista-'+nominaUI.view).html(html);
+    $('#nominaInfo').text('Mostrando '+(start+1)+' a '+Math.min(start+pageRows.length,rows.length)+' de '+rows.length+' registros');
+    nominaPaginacion('#nominaPaginacion',pages,nominaUI.page);
+    if(typeof getPermisosTipoUsuarioAccesosTable==='function'&&typeof getPrivilegioTipoUsuario==='function') getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+}
+
+function nominaRenderDetalle(){
+    var rows=nominaDetalleUI.filtered||[];
+    if(nominaDetalleUI.loading){ $('#nominaDetalleListado').html('<div class="nomina-state"><i class="fas fa-spinner fa-spin"></i><strong>Cargando empleados</strong><span>Consultando detalle de nómina...</span></div>'); return; }
+    if(!rows.length){ $('#nominaDetalleListado').html('<div class="nomina-state"><i class="fas fa-users"></i><strong>Sin empleados</strong><span>No hay registros con los filtros actuales.</span></div>'); $('#nominaDetalleInfo').text('0 registros'); $('#nominaDetallePaginacion').empty(); return; }
+
+    var pages=Math.max(1,Math.ceil(rows.length/nominaDetalleUI.pageSize)); if(nominaDetalleUI.page>pages)nominaDetalleUI.page=pages;
+    var start=(nominaDetalleUI.page-1)*nominaDetalleUI.pageSize,pageRows=rows.slice(start,start+nominaDetalleUI.pageSize),html='';
+
+    if(nominaDetalleUI.view==='detalle'){
+        html='<div class="nomina-employee-header"><div>Empleado</div><div>Nómina / Contrato</div><div>Empresa</div><div>Ingresos</div><div>Egresos</div><div>Neto</div><div>Estado</div><div>Acciones</div></div>';
+        pageRows.forEach(function(r,i){
+            var idx=start+i;
+            html+='<article class="nomina-employee-row">'+
+              '<div class="nomina-cell"><span class="nomina-cell-label">Empleado</span><div class="nomina-employee-identity"><span class="nomina-avatar">'+nominaEsc(nominaInitials(r.empleado))+'</span><div><strong>'+nominaEsc(nominaVal(r.empleado,'Sin empleado'))+'</strong><small>'+nominaEsc(nominaVal(r.notas,'Sin notas'))+'</small></div></div></div>'+
+              '<div class="nomina-cell"><span class="nomina-cell-label">Nómina / Contrato</span><div class="nomina-stack"><strong>Nómina #'+nominaEsc(r.nomina_id)+'</strong><span>'+nominaEsc(nominaVal(r.contrato,'Sin contrato'))+'</span></div></div>'+
+              '<div class="nomina-cell"><span class="nomina-cell-label">Empresa</span>'+nominaEsc(nominaVal(r.empresa,'Sin empresa'))+'</div>'+
+              '<div class="nomina-cell nomina-money-success"><span class="nomina-cell-label">Ingresos</span><strong>'+nominaMoney(r.neto_ingresos)+'</strong></div>'+
+              '<div class="nomina-cell nomina-money-danger"><span class="nomina-cell-label">Egresos</span><strong>'+nominaMoney(r.neto_egresos)+'</strong></div>'+
+              '<div class="nomina-cell nomina-money-cell"><span class="nomina-cell-label">Neto</span><strong>'+nominaMoney(r.neto)+'</strong></div>'+
+              '<div class="nomina-cell nomina-center"><span class="nomina-cell-label">Estado</span>'+nominaEstadoBadge(r.estado)+'</div>'+
+              '<div class="nomina-cell nomina-center"><span class="nomina-cell-label">Acciones</span>'+nominaDetalleActions(r,idx)+'</div>'+
+            '</article>';
+        });
+    }else{
+        html='<div class="nomina-mini-grid">';
+        pageRows.forEach(function(r,i){
+            var idx=start+i;
+            html+='<article class="nomina-mini-card nomina-employee-mini"><div class="nomina-mini-topline"></div>'+
+              '<div class="nomina-mini-header"><span class="nomina-avatar nomina-avatar-large">'+nominaEsc(nominaInitials(r.empleado))+'</span><div class="nomina-mini-title"><h4>'+nominaEsc(nominaVal(r.empleado,'Sin empleado'))+'</h4><span>'+nominaEsc(nominaVal(r.contrato,'Sin contrato'))+'</span></div>'+nominaEstadoBadge(r.estado)+'</div>'+
+              '<div class="nomina-mini-body">'+
+                '<div class="nomina-mini-field"><span>Empresa</span><strong>'+nominaEsc(nominaVal(r.empresa,'Sin empresa'))+'</strong></div>'+
+                '<div class="nomina-mini-field"><span>Nómina</span><strong>#'+nominaEsc(r.nomina_id)+'</strong></div>'+
+                '<div class="nomina-mini-field"><span>Ingresos</span><strong class="nomina-money-success">'+nominaMoney(r.neto_ingresos)+'</strong></div>'+
+                '<div class="nomina-mini-field"><span>Egresos</span><strong class="nomina-money-danger">'+nominaMoney(r.neto_egresos)+'</strong></div>'+
+                '<div class="nomina-mini-field nomina-mini-field-full"><span>Neto</span><strong>'+nominaMoney(r.neto)+'</strong></div>'+
+                '<div class="nomina-mini-field nomina-mini-field-full"><span>Notas</span><strong>'+nominaEsc(nominaVal(r.notas,'Sin notas'))+'</strong></div>'+
+              '</div><div class="nomina-mini-footer">'+nominaDetalleActions(r,idx)+'</div></article>';
+        });
+        html+='</div>';
+    }
+
+    $('#nominaDetalleListado').removeClass('vista-detalle vista-miniatura').addClass('vista-'+nominaDetalleUI.view).html(html);
+    $('#nominaDetalleInfo').text('Mostrando '+(start+1)+' a '+Math.min(start+pageRows.length,rows.length)+' de '+rows.length+' registros');
+    nominaPaginacion('#nominaDetallePaginacion',pages,nominaDetalleUI.page);
+    if(typeof getPermisosTipoUsuarioAccesosTable==='function'&&typeof getPrivilegioTipoUsuario==='function') getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+}
+
+
 var listar_nominas = function() {
     var estado = $("#form_main_nominas #estado_nomina").val() || 0;
     var tipo_contrato_id = $("#form_main_nominas #tipo_contrato_nomina").val() || 0;
 
-    if ($.fn.DataTable.isDataTable("#dataTableNomina")) {
-        $("#dataTableNomina").DataTable().clear().destroy();
-    }
+    nominaUI.loading=true;
+    nominaRenderMain();
 
-    construirHeaderFooterDataTableNomina();
-
-    var table_nominas = $("#dataTableNomina").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableNomina.php",
-            "data": {
-                "estado": estado,
-                "tipo_contrato_id": tipo_contrato_id
-            }
-        },
-        "columns": [
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
-
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
-
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
-
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item nomina_generar ocultar">' +
-                                    '<span class="accion-icon">' +
-                                        '<i class="fas fa-users-cog"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Generar Nómina</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item voucher_pago ocultar">' +
-                                    '<span class="accion-icon">' +
-                                        '<i class="fas fa-file-invoice-dollar"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Voucher de Pago</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item consolidado ocultar">' +
-                                    '<span class="accion-icon">' +
-                                        '<i class="fas fa-book"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Libro de Salarios</span>' +
-                                '</button>' +
-
-                                '<div class="dropdown-divider"></div>' +
-
-                                '<button type="button" class="dropdown-item accion-item nomina_agregar ocultar">' +
-                                    '<span class="accion-icon">' +
-                                        '<i class="fas fa-folder-plus"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Crear</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar nomina_editar ocultar">' +
-                                    '<span class="accion-icon accion-icon-editar">' +
-                                        '<i class="fas fa-edit"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Editar</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar nomina_eliminar ocultar">' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-trash-alt"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Eliminar</span>' +
-                                '</button>' +
-
-                            '</div>' +
-
-                        '</div>';
-                }
-            },
-            {
-                "data": "nomina_id"
-            },
-            {
-                "data": "detalle"
-            },
-            {
-                "data": "empresa"
-            },
-            {
-                "data": "fecha_inicio"
-            },
-            {
-                "data": "fecha_fin"
-            },
-            {
-                "data": "importe",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = (data < 0) ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
-            },
-            {
-                "data": "notas"
-            },
-            {
-                "data": "estado",
-                "render": function(data, type) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
-                        var icon = data == 1 ?
-                            '<i class="fas fa-check-circle mr-1"></i>' :
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ?
-                            'badge badge-pill badge-success' :
-                            'badge badge-pill badge-danger';
-
-                        return '<span class="' + badgeClass +
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
-                    }
-
-                    return data;
-                }
-            }
-        ],
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            {
-                width: "11%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "6%",
-                targets: 1
-            },
-            {
-                width: "20%",
-                targets: 2
-            },
-            {
-                width: "12%",
-                targets: 3
-            },
-            {
-                width: "10%",
-                targets: 4
-            },
-            {
-                width: "10%",
-                targets: 5
-            },
-            {
-                width: "10%",
-                targets: 6,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "15%",
-                targets: 7
-            },
-            {
-                width: "6%",
-                targets: 8,
-                className: "text-center text-nowrap align-middle"
-            }
-        ],
-        "fnRowCallback": function(nRow, aData) {
-            var number = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['neto_importe']);
-
-            $('#neto_importe').html(number);
-        },
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar listar_nominas',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_nominas();
-                }
-            },
-            {
-                text: '<i class="fas fas fa-plus fa-lg"></i> Registrar Nomina',
-                titleAttr: 'Agregar Nomina',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function() {
-                    modal_nominas();
-                }
-            },
-            {
-                text: '<i class="fas fas fa-plus fa-lg"></i> Registrar Vales',
-                titleAttr: 'Agregar Nomina',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function() {
-                    modal_vales();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Nomina Empleados',
-                messageTop: 'Fecha: ' + convertDateFormat(today()),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7]
-                }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                title: 'Nomina Empleados',
-                messageTop: 'Fecha: ' + convertDateFormat(today()),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7]
-                },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function() {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-        }
+    $.ajax({
+        method:"POST",
+        url:"<?php echo SERVERURL;?>core/llenarDataTableNomina.php",
+        dataType:"json",
+        data:{estado:estado,tipo_contrato_id:tipo_contrato_id}
+    }).done(function(json){
+        nominaUI.rows=(json&&Array.isArray(json.data))?json.data:[];
+        nominaUI.search=$('#buscarNomina').val()||'';
+        nominaUI.page=1;
+        nominaUI.loading=false;
+        nominaFiltrarMain();
+        nominaRenderMain();
+    }).fail(function(xhr){
+        nominaUI.rows=[]; nominaUI.filtered=[]; nominaUI.loading=false;
+        nominaActualizarKpis([]);
+        nominaRenderMain();
+        console.error('Error nómina:',xhr.responseText);
+        showNotify('error','Error','No se pudo cargar la nómina.');
     });
-
-    table_nominas.search('').draw();
-    $('#buscar').focus();
-
-    generar_nominas_dataTable("#dataTableNomina tbody", table_nominas);
-    voucher_nominas_dataTable("#dataTableNomina tbody", table_nominas);
-    libro_salarios_nominas_dataTable("#dataTableNomina tbody", table_nominas);
-    crear_nominas_dataTable("#dataTableNomina tbody", table_nominas);
-    editar_nominas_dataTable("#dataTableNomina tbody", table_nominas);
-    eliminar_nominas_dataTable("#dataTableNomina tbody", table_nominas);
 };
+
+function nominaUIAccionGenerar(data) {
+if ($('#form_main_nominas #estado_nomina').val() == 0) {
+            // CONFIRMACIÓN (sí/no) → swal
+            swal({
+                title: "¿Estas seguro?",
+                text: "¿Desea generar esta nomina?",
+                icon: "warning",
+                buttons: {
+                    cancel: { text: "Cancelar", visible: true },
+                    confirm: { text: "¡Sí, generar la nómina!" }
+                },
+                dangerMode: true,
+                closeOnEsc: false,
+                closeOnClickOutside: false
+            }).then((ok) => {
+                if (ok === true) {
+                    genearNomina(data.nomina_id, data.empresa_id);
+                }
+            });
+        } else {
+            showNotify('error', 'Error', 'Lo sentimos, esta nomina ya ha sido generada');
+        }
+}
+
+function nominaUIAccionCrearDetalle(data) {
+$('#formNominaDetalles #nomina_id').val(data.nomina_id);
+        $('#formNominaDetalles #nominad_numero').val(data.nomina_id);
+        $("#form_main_nominas_detalles #nomina_id").val(data.nomina_id);
+        $('#formNominaDetalles #nominad_detalle').val(data.detalle);
+        $('#formNominaDetalles #pago_planificado_id').val(data.pago_planificado_id);
+        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado).selectpicker('refresh');
+        $('#form_main_nominas_detalles #fecha_inicio').val(data.fecha_inicio);
+        $('#form_main_nominas_detalles #fecha_fin').val(data.fecha_fin);
+
+        $("#nomina_principal").hide();
+        $("#nomina_detalles").show();
+        listar_nominas_detalles();
+}
+
+function nominaUIAccionVoucher(data) {
+if (data.estado == 0) {
+            showNotify('error', 'Error', 'Lo sentimos, la nomina no esta generada no se puede mostrar el reporte');
+        } else {
+            PrintVoucherPago(data.nomina_id);
+        }
+}
+
+function nominaUIAccionLibro(data) {
+if (data.estado == 0) {
+            showNotify('error', 'Error', 'Lo sentimos, la nomina no esta generada no se puede mostrar el reporte');
+        } else {
+            PrintLibroSalarios(data.nomina_id);
+        }
+}
+
+function nominaUIAccionEditar(data) {
+var url = '<?php echo SERVERURL;?>core/editarNominas.php';
+        $('#formNomina #nomina_id').val(data.nomina_id);
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: $('#formNomina').serialize(),
+            success: function(registro) {
+                var valores = eval(registro);
+
+                // Configurar el FORM para UPDATE (se envía por submit ajax abajo)
+                $('#formNomina').attr({'data-form': 'update'});
+                $('#formNomina').attr({'action': '<?php echo SERVERURL;?>ajax/modificarNominaAjax.php'});
+
+                // UI
+                $('#formNomina')[0].reset();
+                $('#reg_nomina').hide();
+                $('#edi_nomina').show();
+                $('#delete_nomina').hide();
+
+                // Cargar valores
+                $('#formNomina #nomina_detale').val(valores[0]);
+                $('#formNomina #nomina_pago_planificado_id').val(valores[1]).selectpicker('refresh');
+                $('#formNomina #nomina_empresa_id').val(valores[2]).selectpicker('refresh');
+                $('#formNomina #nomina_fecha_inicio').val(valores[3]);
+                $('#formNomina #nomina_fecha_fin').val(valores[4]);
+                $('#formNomina #nomina_importe').val(valores[5]);
+                $('#formNomina #nomina_notas').val(valores[6]);
+                $('#formNomina #tipo_nomina').val(valores[8]).selectpicker('refresh');
+                $('#formNomina #pago_nomina').val(valores[9]).selectpicker('refresh');
+
+                if (data.estado == 1) {
+                    $('#edi_nomina').attr('disabled', true);
+                    $('#formNomina #nomina_activo').prop('checked', true);
+                    $('#formNomina #label_nomina_activo').html("Generada");
+                } else {
+                    $('#edi_nomina').attr('disabled', false);
+                    $('#formNomina #nomina_activo').prop('checked', false);
+                    $('#formNomina #label_nomina_activo').html("Sin Generar");
+                }
+
+                // Habilitar campos
+                $('#formNomina #nomina_detale').prop('disabled', false);
+                $('#formNomina #nomina_pago_planificado_id').prop('disabled', false);
+                $('#formNomina #nomina_empresa_id').prop('disabled', false);
+                $('#formNomina #tipo_nomina').prop('disabled', false);
+                $('#formNomina #nomina_fecha_inicio').prop('readonly', false);
+                $('#formNomina #nomina_fecha_fin').prop('readonly', false);
+                $('#formNomina #nomina_importe').prop('readonly', false);
+                $('#formNomina #nomina_notas').prop('disabled', false);
+                $('#formNomina #search_nomina_notas_start').prop('disabled', false);
+                $('#formNomina #search_nomina_notas_stop').prop('disabled', false);
+                $('#formNomina #nomina_activo').prop('disabled', false);
+                $('#formNomina #estado_nomina').show();
+
+                $('#formNomina #proceso_nomina').val("Editar");
+
+                $('#modal_registrar_nomina').modal({
+                    show: true,
+                    keyboard: false,
+                    backdrop: 'static'
+                });
+            }
+        });
+}
+
+function nominaUIAccionEliminar(data) {
+var nomina_id = data.nomina_id;
+        var detalleNomina = data.detalle; 
+        
+        var mensajeHTML = `¿Desea eliminar permanentemente la nomina?<br><br>
+                        <strong>Nomina:</strong> ${detalleNomina}<br>
+                        <strong>Número Nomina:</strong> ${nomina_id}`;
+        
+        // CONFIRMACIÓN → swal
+        swal({
+            title: "Confirmar eliminación",
+            content: { element: "span", attributes: { innerHTML: mensajeHTML } },
+            icon: "warning",
+            buttons: {
+                cancel: { text: "Cancelar", value: null, visible: true, className: "btn-light" },
+                confirm: { text: "Sí, eliminar", value: true, className: "btn-danger", closeModal: false }
+            },
+            dangerMode: true,
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then((confirmar) => {
+            if (confirmar) {
+                $.ajax({
+                    type: 'POST',
+                    url: '<?php echo SERVERURL;?>ajax/eliminarNominaAjax.php',
+                    data: { nomina_id: nomina_id },
+                    dataType: 'json',
+                    beforeSend: function(){
+                        showLoading("Eliminando registro...");
+                    },
+                    success: function(response) {
+                        swal.close();
+                        if(response.status === "success") {
+                            showNotify("success", response.title || "Éxito", response.message || "Eliminado correctamente");
+                            table.ajax.reload(null, false);
+                            table.search('').draw();                    
+                        } else {
+                            showNotify("error", response.title || "Error", response.message || "No se pudo eliminar");
+                        }
+                    },
+                    error: function() {
+                        swal.close();
+                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
+                    }
+                });
+            }
+        });
+}
+
+function nominaDetalleUIAccionEditar(data) {
+var url = '<?php echo SERVERURL;?>core/editarNominasDetalles.php';
+        $('#formNominaDetalles #nomina_detalles_id').val(data.nomina_detalles_id);
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: $('#formNominaDetalles').serialize(),
+            success: function(registro) {
+                var valores = eval(registro);
+
+                // Configurar FORM para UPDATE
+                $('#formNominaDetalles').attr({ 'data-form': 'update' });
+                $('#formNominaDetalles').attr({ 'action': '<?php echo SERVERURL;?>ajax/modificarNominaDetallesAjax.php' });
+
+                $('#formNominaDetalles')[0].reset();
+                $('#reg_nominaD').hide();
+                $('#edi_nominaD').show();
+                $('#delete_nominaD').hide();
+
+                // Mapear valores
+                $('#formNominaDetalles #nomina_id').val(valores[0]);
+                $('#formNominaDetalles #nomina_detalles_id').val(valores[1]);
+                $('#formNominaDetalles #pago_planificado_id').val(valores[2]);
+                $('#formNominaDetalles #colaboradores_id').val(valores[31]);
+
+                $('#formNominaDetalles #nominad_numero').val(valores[0]);
+                $('#formNominaDetalles #nominad_empleados').val(valores[31]).selectpicker('refresh');
+                $('#formNominaDetalles #nominad_puesto').val(valores[5]);
+                $('#formNominaDetalles #nominad_identidad').val(valores[6]);
+                $('#formNominaDetalles #nominad_contrato_id').val(valores[7]);
+                $('#formNominaDetalles #nominad_fecha_ingreso').val(valores[8]);
+                $('#formNominaDetalles #nominad_salario').val(parseFloat(valores[9]).toFixed(2));
+
+                let salario_diario = (valores[9] / 30).toFixed(2);
+                var salario_hora = (valores[37] == 1) ? salario_diario / 8 : salario_diario / 6;
+
+                $('#formNominaDetalles #nominad_sueldo_diario').val(salario_diario);
+                $('#formNominaDetalles #nominad_sueldo_hora').val(parseFloat(salario_hora).toFixed(2));
+
+                $('#formNominaDetalles #nominad_diast').val(valores[10]);
+                $('#formNominaDetalles #nominad_retroactivo').val(valores[11]);
+                $('#formNominaDetalles #nominad_bono').val(valores[12]);
+                $('#formNominaDetalles #nominad_otros_ingresos').val(valores[13]);
+                $('#formNominaDetalles #nominad_horas25').val(valores[14]);
+                $('#formNominaDetalles #nominad_horas50').val(valores[15]);
+                $('#formNominaDetalles #nominad_horas75').val(valores[16]);
+                $('#formNominaDetalles #nominad_horas100').val(valores[17]);
+                $('#formNominaDetalles #nominad_deducciones').val(valores[18]);
+                $('#formNominaDetalles #nominad_prestamo').val(valores[19]);
+                $('#formNominaDetalles #nominad_ihss').val(valores[20]);
+                $('#formNominaDetalles #nominad_rap').val(valores[21]);
+                $('#formNominaDetalles #nominad_isr').val(valores[22]);
+                $('#formNominaDetalles #nominad_vales').val(valores[30]);
+                $('#formNominaDetalles #nominad_incapacidad_ihss').val(valores[23]);
+                $('#formNominaDetalles #nominad_neto_ingreso').val(valores[24]);
+                $('#formNominaDetalles #nominad_neto_egreso').val(valores[25]);
+                $('#formNominaDetalles #nominad_neto').val(valores[26]);
+                $('#formNominaDetalles #nominad_detalle').val(valores[36]);
+                $('#formNominaDetalles #nomina_detalles_notas').val(valores[28]);
+                $('#formNominaDetalles #nominad_vale').val(valores[30]);
+
+                $('#formNominaDetalles #hrse25_valor').val(valores[32]);
+                $('#formNominaDetalles #hrse50_valor').val(valores[33]);
+                $('#formNominaDetalles #hrse75_valor').val(valores[34]);
+                $('#formNominaDetalles #hrse100_valor').val(valores[35]);
+
+                calculoNomina();
+
+                if (valores[29] == 1) {
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', true);
+                    $('#edi_nominaD').attr('disabled', true);
+                } else {
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', false);
+                    $('#edi_nominaD').attr('disabled', false);
+                }
+
+                // Habilitar/Deshabilitar
+                $('#formNominaDetalles #nominad_retroactivo').prop('readonly', false);
+                $('#formNominaDetalles #nominad_bono').prop('readonly', false);
+                $('#formNominaDetalles #nominad_otros_ingresos').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas25').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas50').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas75').prop('readonly', false);
+                $('#formNominaDetalles #nominad_horas100').prop('readonly', false);
+                $('#formNominaDetalles #nominad_deducciones').prop('readonly', false);
+                $('#formNominaDetalles #nominad_prestamo').prop('readonly', false);
+                $('#formNominaDetalles #nominad_ihss').prop('readonly', false);
+                $('#formNominaDetalles #nominad_rap').prop('readonly', false);
+                $('#formNominaDetalles #nominad_isr').prop('readonly', false);
+                $('#formNominaDetalles #nominad_incapacidad_ihss').prop('readonly', false);
+                $('#formNominaDetalles #nomina_detalles_notas').prop('readonly', false);
+                $('#formNominaDetalles #estado_nomina_detalles').show();
+
+                $('#formNominaDetalles #nominad_empleados').prop('disabled', true);
+                $('#formNominaDetalles #nominad_neto_ingreso').prop('readonly', true);
+                $('#formNominaDetalles #nominad_neto_egreso').prop('readonly', true);
+                $('#formNominaDetalles #nominad_neto').prop('readonly', true);
+                $('#formNominaDetalles #nomina_detalles_activo').prop('disabled', true);
+
+                $('#formNominaDetalles #proceso_nomina_detalles').val("Editar");
+
+                $('#modal_registrar_nomina_detalles').modal({
+                    show: true,
+                    keyboard: false,
+                    backdrop: 'static'
+                });
+            }
+        });
+}
+
+function nominaDetalleUIAccionEliminar(data) {
+var url = '<?php echo SERVERURL;?>core/editarNominasDetalles.php';
+        $('#formNominaDetalles #nomina_detalles_id').val(data.nomina_detalles_id);
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            data: $('#formNominaDetalles').serialize(),
+            success: function(registro) {                
+                var valores = eval(registro);
+
+                // Configurar FORM para DELETE
+                $('#formNominaDetalles').attr({ 'data-form': 'delete' });
+                $('#formNominaDetalles').attr({ 'action': '<?php echo SERVERURL;?>ajax/eliminarNominaDetallesAjax.php' });
+
+                $('#formNominaDetalles')[0].reset();
+                $('#reg_nominaD').hide();
+                $('#edi_nominaD').hide();
+                $('#delete_nominaD').show();
+
+                $('#formNominaDetalles #nomina_id').val(valores[0]);
+                $('#formNominaDetalles #nomina_detalles_id').val(valores[1]);
+                $('#formNominaDetalles #pago_planificado_id').val(valores[2]);
+                $('#formNominaDetalles #colaboradores_id').val(valores[3]).selectpicker('refresh');
+                $('#formNominaDetalles #nominad_numero').val(valores[0]);
+                $('#formNominaDetalles #nominad_empleados').val(valores[4]);
+                $('#formNominaDetalles #nominad_puesto').val(valores[5]);
+                $('#formNominaDetalles #nominad_identidad').val(valores[6]);
+                $('#formNominaDetalles #nominad_contrato_id').val(valores[7]);
+                $('#formNominaDetalles #nominad_fecha_ingreso').val(valores[8]);
+                $('#formNominaDetalles #nominad_salario').val(parseFloat(valores[9]).toFixed(2));
+
+                let salario_diario = (valores[9] / 30).toFixed(2);
+                let salario_hora = (parseFloat(salario_diario) / 8).toFixed(2);
+
+                $('#formNominaDetalles #nominad_sueldo_diario').val(salario_diario);
+                $('#formNominaDetalles #nominad_sueldo_hora').val(salario_hora);
+
+                $('#formNominaDetalles #nominad_diast').val(valores[10]);
+                $('#formNominaDetalles #nominad_retroactivo').val(valores[11]);
+                $('#formNominaDetalles #nominad_bono').val(valores[12]);
+                $('#formNominaDetalles #nominad_otros_ingresos').val(valores[13]);
+                $('#formNominaDetalles #nominad_horas25').val(valores[14]);
+                $('#formNominaDetalles #nominad_horas50').val(valores[15]);
+                $('#formNominaDetalles #nominad_horas75').val(valores[16]);
+                $('#formNominaDetalles #nominad_horas100').val(valores[17]);
+                $('#formNominaDetalles #nominad_deducciones').val(valores[18]);
+                $('#formNominaDetalles #nominad_prestamo').val(valores[19]);
+                $('#formNominaDetalles #nominad_ihss').val(valores[20]);
+                $('#formNominaDetalles #nominad_rap').val(valores[21]);
+                $('#formNominaDetalles #nominad_isr').val(valores[22]);
+                $('#formNominaDetalles #nominad_vales').val(valores[30]);
+                $('#formNominaDetalles #nominad_incapacidad_ihss').val(valores[23]);
+                $('#formNominaDetalles #nominad_neto_ingreso').val(parseFloat(valores[24]).toFixed(2));
+                $('#formNominaDetalles #nominad_neto_egreso').val(parseFloat(valores[25]).toFixed(2));
+                $('#formNominaDetalles #nominad_neto').val(parseFloat(valores[26]).toFixed(2));
+                $('#formNominaDetalles #nominad_detalle').val(valores[27]);
+                $('#formNominaDetalles #nomina_detalles_notas').val(valores[28]);
+
+                calculoNomina();
+
+                if (valores[29] == 1) {
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', true);
+                    $('#delete_nominaD').attr('disabled', true);
+                } else {
+                    $('#formNominaDetalles #nomina_detalles_activo').prop('checked', false);
+                    $('#delete_nominaD').attr('disabled', false);
+                }
+
+                $('#formNominaDetalles #estado_nomina_detalles').show();
+
+                // Deshabilitar campos en vista de eliminación
+                $('#formNominaDetalles input, #formNominaDetalles textarea, #formNominaDetalles select').prop('readonly', true).prop('disabled', true);
+                $('#delete_nominaD').prop('disabled', false);
+
+                $('#formNominaDetalles #proceso_nomina_detalles').val("Eliminar");
+
+                $('#modal_registrar_nomina_detalles').modal({
+                    show: true,
+                    keyboard: false,
+                    backdrop: 'static'
+                });
+            }
+        });
+}
 
 // Dentro de tu archivo JS, deja este handler tal cual
 var generar_nominas_dataTable = function(tbody, table) {
@@ -1147,290 +1483,30 @@ var listar_nominas_detalles = function() {
     var empleado = $("#form_main_nominas_detalles #detalle_nomina_empleado").val() || 0;
     var nomina_id = $("#form_main_nominas_detalles #nomina_id").val() || 0;
 
-    $("#nominad_neto_ingreso1").val("");
-    $("#nominad_neto_egreso1").val("");
-    $("#nominad_neto1").val("");
+    $("#nominad_neto_ingreso1,#nominad_neto_egreso1,#nominad_neto1").val("");
 
-    if ($.fn.DataTable.isDataTable("#dataTableNominaDetalles")) {
-        $("#dataTableNominaDetalles").DataTable().clear().destroy();
-    }
+    nominaDetalleUI.loading=true;
+    nominaRenderDetalle();
 
-    construirHeaderFooterDataTableNominaDetalles();
-
-    var table_nominas_detalles = $("#dataTableNominaDetalles").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableNominaDetalles.php",
-            "data": {
-                "estado": estado,
-                "empleado": empleado,
-                "nomina_id": nomina_id
-            }
-        },
-        "columns": [
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function(data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
-
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
-
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
-
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar nomina_detalles_editar ocultar">' +
-                                    '<span class="accion-icon accion-icon-editar">' +
-                                        '<i class="fas fa-edit"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Editar</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar nomina_detalles_eliminar ocultar">' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-trash-alt"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Eliminar</span>' +
-                                '</button>' +
-
-                            '</div>' +
-
-                        '</div>';
-                }
-            },
-            {
-                "data": "nomina_id"
-            },
-            {
-                "data": "contrato"
-            },
-            {
-                "data": "empresa"
-            },
-            {
-                "data": "empleado"
-            },
-            {
-                "data": "neto_ingresos",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = (data < 0) ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
-            },
-            {
-                "data": "neto_egresos",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = (data < 0) ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
-            },
-            {
-                "data": "neto",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render
-                        .number(',', '.', 2, 'L ')
-                        .display(data);
-
-                    if (type === 'display') {
-                        let color = (data < 0) ? 'red' : 'green';
-
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-
-                    return number;
-                }
-            },
-            {
-                "data": "notas"
-            },
-            {
-                "data": "estado",
-                "render": function(data, type) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Generada' : 'Sin Generar';
-                        var icon = data == 1 ?
-                            '<i class="fas fa-check-circle mr-1"></i>' :
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ?
-                            'badge badge-pill badge-success' :
-                            'badge badge-pill badge-danger';
-
-                        return '<span class="' + badgeClass +
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
-                    }
-
-                    return data;
-                }
-            }
-        ],
-        "lengthMenu": lengthMenu,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            {
-                width: "10%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "5%",
-                targets: 1
-            },
-            {
-                width: "8%",
-                targets: 2
-            },
-            {
-                width: "12%",
-                targets: 3
-            },
-            {
-                width: "22%",
-                targets: 4
-            },
-            {
-                width: "10%",
-                targets: 5,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "10%",
-                targets: 6,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "10%",
-                targets: 7,
-                className: "text-right text-nowrap align-middle"
-            },
-            {
-                width: "10%",
-                targets: 8
-            },
-            {
-                width: "3%",
-                targets: 9,
-                className: "text-center text-nowrap align-middle"
-            }
-        ],
-        "fnRowCallback": function(nRow, aData) {
-            var neto_ingreso = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['total_neto_ingreso']);
-
-            var neto_egreso = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['total_neto_egreso']);
-
-            var neto_neto = $.fn.dataTable.render
-                .number(',', '.', 2, 'L ')
-                .display(aData['total_neto']);
-
-            $('#neto_ingreso').html(neto_ingreso);
-            $('#neto_egreso').html(neto_egreso);
-            $('#neto').html(neto_neto);
-        },
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar listar_nominas',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() {
-                    listar_nominas_detalles();
-                }
-            },
-            {
-                text: '<i class="fas fas fa-plus fa-lg"></i> Agregar',
-                titleAttr: 'Agregar Empleados',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function() {
-                    modalNominasDetalles();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Nomina Empleados',
-                messageTop: 'Fecha: ' + convertDateFormat(today()),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                title: 'Nomina Empleados',
-                messageTop: 'Fecha: ' + convertDateFormat(today()),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
-                },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(1, 0, {
-                            margin: [0, 0, 0, 12],
-                            alignment: 'left',
-                            image: imagen,
-                            width: 100,
-                            height: 45
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function() {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
-        }
+    $.ajax({
+        method:"POST",
+        url:"<?php echo SERVERURL;?>core/llenarDataTableNominaDetalles.php",
+        dataType:"json",
+        data:{estado:estado,empleado:empleado,nomina_id:nomina_id}
+    }).done(function(json){
+        nominaDetalleUI.rows=(json&&Array.isArray(json.data))?json.data:[];
+        nominaDetalleUI.search=$('#buscarNominaDetalle').val()||'';
+        nominaDetalleUI.page=1;
+        nominaDetalleUI.loading=false;
+        nominaFiltrarDetalle();
+        nominaRenderDetalle();
+    }).fail(function(xhr){
+        nominaDetalleUI.rows=[]; nominaDetalleUI.filtered=[]; nominaDetalleUI.loading=false;
+        nominaDetalleActualizarKpis([]);
+        nominaRenderDetalle();
+        console.error('Error detalle nómina:',xhr.responseText);
+        showNotify('error','Error','No se pudo cargar el detalle de nómina.');
     });
-
-    table_nominas_detalles.search('').draw();
-    $('#buscar').focus();
-
-    editar_nominas_detalles_dataTable("#dataTableNominaDetalles tbody", table_nominas_detalles);
-    eliminar_nominas_detalles_dataTable("#dataTableNominaDetalles tbody", table_nominas_detalles);
 };
 
 /* ============================
@@ -1815,131 +1891,68 @@ function getCuentaNominas() {
    VALES (tabla + anular)
    ============================ */
 var listar_vales = function() {
-    var table_vales = $("#DatatableVale").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL;?>core/llenarDataTableVales.php"
-        },
-        "columns": [
-            {"data": "empleado"},
-            {
-                "data": "monto",
-                render: function(data, type) {
-                    var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(data);
-                    if (type === 'display') {
-                        let color = (data < 0) ? 'red' : 'green';
-                        return '<span style="color:' + color + '">' + number + '</span>';
-                    }
-                    return number;
-                },
-            },
-            {"data": "nota"},
-            {"defaultContent": "<button class='btn btn-danger anular_vale ocultar'><span class='fas fa-ban fa-lg'></span>Anular</button>"}
-        ],
-        "lengthMenu": lengthMenu10,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            { width: "45%", targets: 0 },
-            { width: "10%", targets: 1 },
-            { width: "35%", targets: 2 },
-            { width: "2%",  targets: 3 }
-        ],
-        "fnRowCallback": function(nRow, aData) {
-            var number = $.fn.dataTable.render.number(',', '.', 2, 'L ').display(aData['neto_importe']);
-            $('#neto_importe').html(number);
-        },
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Vales',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function() { listar_vales(); }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Nomina Empleados',
-                messageTop: 'Fecha: ' + convertDateFormat(today()),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: { columns: [0,1,2,3] }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                title: 'Nomina Empleados',
-                messageTop: 'Fecha: ' + convertDateFormat(today()),
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: { columns: [0,1,2,3] },
-                customize: function(doc) {
-                    if (imagen) {
-                        doc.content.splice(1, 0, {
-                            margin: [0, 0, 0, 12],
-                            alignment: 'left',
-                            image: imagen,
-                            width: 100,
-                            height: 45
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function() {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-        }
-    });
-    table_vales.search('').draw();
-    $('#buscar').focus();
+    nominaValesUI.loading=true;
+    nominaRenderVales();
 
-    anular_vale_nominas_dataTable("#DatatableVale tbody", table_vales);
-};
-
-var anular_vale_nominas_dataTable = function (tbody, table) {
-    $(tbody).off("click", "button.anular_vale");
-    $(tbody).on("click", "button.anular_vale", function (e) {
-        e.preventDefault();
-
-        var data = table.row($(this).parents("tr")).data();
-
-        if (!data || !data.vale_id) {
-            showNotify('error', 'Error', 'No se pudo obtener el vale seleccionado');
-            return false;
-        }
-
-        if (typeof validarAdminSistema !== 'function') {
-            showNotify('error', 'Validación no disponible', 'No está cargado el JS de autenticación administrativa.');
-            return false;
-        }
-
-        var valeId = data.vale_id;
-        var empleado = data.empleado || 'Empleado no especificado';
-
-        validarAdminSistema(function (permitido) {
-            if (permitido !== true) {
-                return;
-            }
-
-            anularVale(valeId, empleado);
-        }, {
-            mensaje: 'Para anular este vale debe validar un administrador.',
-            modulo: 'Nómina',
-            accion: 'Anular vale de nómina',
-            referencia_id: valeId,
-            referencia_texto: empleado,
-            motivo: 'Validación requerida para anular vale de nómina'
-        });
-
-        return false;
+    $.ajax({
+        method:"POST",
+        url:"<?php echo SERVERURL;?>core/llenarDataTableVales.php",
+        dataType:"json"
+    }).done(function(json){
+        nominaValesUI.rows=(json&&Array.isArray(json.data))?json.data:[];
+        nominaValesUI.search=$('#buscarVales').val()||'';
+        nominaValesUI.page=1;
+        nominaValesUI.loading=false;
+        nominaFiltrarVales();
+        nominaRenderVales();
+    }).fail(function(xhr){
+        nominaValesUI.rows=[]; nominaValesUI.filtered=[]; nominaValesUI.loading=false;
+        nominaRenderVales();
+        console.error('Error vales:',xhr.responseText);
+        showNotify('error','Error','No se pudo cargar el historial de vales.');
     });
 };
+
+function nominaFiltrarVales(){
+    var q=$.trim(nominaValesUI.search||'').toLowerCase();
+    nominaValesUI.filtered=!q?nominaValesUI.rows.slice():nominaValesUI.rows.filter(function(r){
+        return [r.empleado,r.monto,r.nota].map(function(v){return nominaVal(v,'').toLowerCase();}).join(' ').indexOf(q)!==-1;
+    });
+}
+
+function nominaRenderVales(){
+    var rows=nominaValesUI.filtered||[];
+    if(nominaValesUI.loading){ $('#nominaValesListado').html('<div class="nomina-state nomina-state-compact"><i class="fas fa-spinner fa-spin"></i><strong>Cargando vales</strong></div>'); return; }
+    if(!rows.length){ $('#nominaValesListado').html('<div class="nomina-state nomina-state-compact"><i class="fas fa-ticket-alt"></i><strong>Sin vales</strong><span>No hay registros disponibles.</span></div>'); $('#nominaValesInfo').text('0 registros'); $('#nominaValesPaginacion').empty(); return; }
+    var pages=Math.max(1,Math.ceil(rows.length/nominaValesUI.pageSize)); if(nominaValesUI.page>pages)nominaValesUI.page=pages;
+    var start=(nominaValesUI.page-1)*nominaValesUI.pageSize,pageRows=rows.slice(start,start+nominaValesUI.pageSize);
+    var html='<div class="nomina-vales-grid">';
+    pageRows.forEach(function(r,i){
+        var idx=start+i;
+        html+='<article class="nomina-vale-card"><span class="nomina-vale-icon"><i class="fas fa-ticket-alt"></i></span><div class="nomina-vale-copy"><strong>'+nominaEsc(nominaVal(r.empleado,'Sin empleado'))+'</strong><span>'+nominaEsc(nominaVal(r.nota,'Sin notas'))+'</span></div><div class="nomina-vale-amount">'+nominaMoney(r.monto)+'</div><button type="button" class="btn btn-danger btn-sm anular_vale ocultar" data-index="'+idx+'"><i class="fas fa-ban mr-1"></i>Anular</button></article>';
+    });
+    html+='</div>';
+    $('#nominaValesListado').html(html);
+    $('#nominaValesInfo').text('Mostrando '+(start+1)+' a '+Math.min(start+pageRows.length,rows.length)+' de '+rows.length+' registros');
+    nominaPaginacion('#nominaValesPaginacion',pages,nominaValesUI.page);
+    if(typeof getPermisosTipoUsuarioAccesosTable==='function'&&typeof getPrivilegioTipoUsuario==='function') getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+}
+
+function nominaUIAnularVale(data){
+    if(!data||!data.vale_id){ showNotify('error','Error','No se pudo obtener el vale seleccionado'); return; }
+    if(typeof validarAdminSistema!=='function'){ showNotify('error','Validación no disponible','No está cargado el JS de autenticación administrativa.'); return; }
+    var valeId=data.vale_id, empleado=data.empleado||'Empleado no especificado';
+    validarAdminSistema(function(permitido){
+        if(permitido===true) anularVale(valeId,empleado);
+    },{
+        mensaje:'Para anular este vale debe validar un administrador.',
+        modulo:'Nómina',
+        accion:'Anular vale de nómina',
+        referencia_id:valeId,
+        referencia_texto:empleado,
+        motivo:'Validación requerida para anular vale de nómina'
+    });
+}
 
 function anularVale(vale_id, empleado) {
     if (!vale_id) {
@@ -2115,4 +2128,116 @@ $(() => {
         inicializarSpeechRecognition(limites);
     });
 });
+
+/* =========================================================
+   EVENTOS UI NÓMINA 6.0
+   ========================================================= */
+$(() => {
+    nominaPanel('#btnToggleFiltrosNomina','#nominaFiltrosContenido','izzy.nomina.filtros.visible');
+    nominaPanel('#btnToggleKpisNomina','#nominaKpisContenido','izzy.nomina.kpis.visible');
+    nominaPanel('#btnToggleFiltrosNominaDetalle','#nominaDetalleFiltrosContenido','izzy.nomina.detalle.filtros.visible');
+    nominaPanel('#btnToggleKpisNominaDetalle','#nominaDetalleKpisContenido','izzy.nomina.detalle.kpis.visible');
+
+    function initView(ui,storage,btnClass,$select){
+        var saved='detalle'; try{saved=localStorage.getItem(storage)||'detalle';}catch(e){}
+        ui.preferredView=saved==='miniatura'?'miniatura':'detalle';
+        ui.view=nominaEsMovil()?'miniatura':ui.preferredView;
+        nominaOpcionesPage($select,ui);
+        $(btnClass).removeClass('active');
+        $(btnClass+'[data-view="'+ui.view+'"]').addClass('active');
+        $(btnClass+'[data-view="detalle"]').toggleClass('d-none',nominaEsMovil()).prop('disabled',nominaEsMovil());
+    }
+
+    initView(nominaUI,'izzy.nomina.vista','.nomina-view-btn',$('#nominaPageSize'));
+    initView(nominaDetalleUI,'izzy.nomina.detalle.vista','.nomina-detalle-view-btn',$('#nominaDetallePageSize'));
+
+    $('#buscarNomina').off('input.nominaUI').on('input.nominaUI',function(){nominaUI.search=this.value;nominaUI.page=1;nominaFiltrarMain();nominaRenderMain();});
+    $('#limpiarBuscarNomina').off('click.nominaUI').on('click.nominaUI',function(){$('#buscarNomina').val('').focus();nominaUI.search='';nominaUI.page=1;nominaFiltrarMain();nominaRenderMain();});
+    $('#nominaPageSize').off('change.nominaUI').on('change.nominaUI',function(){var n=parseInt(this.value,10)||10;nominaUI.pageSize=n;if(nominaUI.view==='miniatura')nominaUI.pageSizeMiniatura=n;else nominaUI.pageSizeDetalle=n;nominaUI.page=1;nominaRenderMain();});
+    $('.nomina-view-btn').off('click.nominaUI').on('click.nominaUI',function(){var v=nominaEsMovil()?'miniatura':($(this).data('view')==='miniatura'?'miniatura':'detalle');nominaUI.view=v;if(!nominaEsMovil()){nominaUI.preferredView=v;try{localStorage.setItem('izzy.nomina.vista',v);}catch(e){}}nominaUI.page=1;nominaOpcionesPage($('#nominaPageSize'),nominaUI);$('.nomina-view-btn').removeClass('active');$('.nomina-view-btn[data-view="'+v+'"]').addClass('active');nominaRenderMain();});
+    $('#nominaPaginacion').off('click.nominaUI','.nomina-page-btn').on('click.nominaUI','.nomina-page-btn',function(){if(this.disabled)return;nominaUI.page=parseInt($(this).data('page'),10)||1;nominaRenderMain();});
+
+    $('#buscarNominaDetalle').off('input.nominaUI').on('input.nominaUI',function(){nominaDetalleUI.search=this.value;nominaDetalleUI.page=1;nominaFiltrarDetalle();nominaRenderDetalle();});
+    $('#limpiarBuscarNominaDetalle').off('click.nominaUI').on('click.nominaUI',function(){$('#buscarNominaDetalle').val('').focus();nominaDetalleUI.search='';nominaDetalleUI.page=1;nominaFiltrarDetalle();nominaRenderDetalle();});
+    $('#nominaDetallePageSize').off('change.nominaUI').on('change.nominaUI',function(){var n=parseInt(this.value,10)||10;nominaDetalleUI.pageSize=n;if(nominaDetalleUI.view==='miniatura')nominaDetalleUI.pageSizeMiniatura=n;else nominaDetalleUI.pageSizeDetalle=n;nominaDetalleUI.page=1;nominaRenderDetalle();});
+    $('.nomina-detalle-view-btn').off('click.nominaUI').on('click.nominaUI',function(){var v=nominaEsMovil()?'miniatura':($(this).data('view')==='miniatura'?'miniatura':'detalle');nominaDetalleUI.view=v;if(!nominaEsMovil()){nominaDetalleUI.preferredView=v;try{localStorage.setItem('izzy.nomina.detalle.vista',v);}catch(e){}}nominaDetalleUI.page=1;nominaOpcionesPage($('#nominaDetallePageSize'),nominaDetalleUI);$('.nomina-detalle-view-btn').removeClass('active');$('.nomina-detalle-view-btn[data-view="'+v+'"]').addClass('active');nominaRenderDetalle();});
+    $('#nominaDetallePaginacion').off('click.nominaUI','.nomina-page-btn').on('click.nominaUI','.nomina-page-btn',function(){if(this.disabled)return;nominaDetalleUI.page=parseInt($(this).data('page'),10)||1;nominaRenderDetalle();});
+
+    $('#btnNominaActualizar').on('click.nominaUI',listar_nominas);
+    $('#btnNominaRegistrar').on('click.nominaUI',modal_nominas);
+    $('#btnNominaVales').on('click.nominaUI',modal_vales);
+    $('#btnNominaDetalleActualizar').on('click.nominaUI',listar_nominas_detalles);
+    $('#btnNominaDetalleAgregar').on('click.nominaUI',modalNominasDetalles);
+    $('#btnNominaDetalleFiltrar').on('click.nominaUI',listar_nominas_detalles);
+    $('#btnNominaDetalleLimpiar').on('click.nominaUI',function(){$('#detalle_nomina_empleado').val('').selectpicker('refresh');listar_nominas_detalles();});
+
+    $('#nominaListado')
+      .on('click.nominaUI','.nomina-ui-generar',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionGenerar(r);})
+      .on('click.nominaUI','.nomina-ui-voucher',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionVoucher(r);})
+      .on('click.nominaUI','.nomina-ui-libro',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionLibro(r);})
+      .on('click.nominaUI','.nomina-ui-crear',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionCrearDetalle(r);})
+      .on('click.nominaUI','.nomina-ui-editar',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionEditar(r);})
+      .on('click.nominaUI','.nomina-ui-eliminar',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionEliminar(r);});
+
+    $('#nominaDetalleListado')
+      .on('click.nominaUI','.nomina-detalle-ui-editar',function(){var r=nominaDetalleUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaDetalleUIAccionEditar(r);})
+      .on('click.nominaUI','.nomina-detalle-ui-eliminar',function(){var r=nominaDetalleUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaDetalleUIAccionEliminar(r);});
+
+    $('#buscarVales').on('input.nominaUI',function(){nominaValesUI.search=this.value;nominaValesUI.page=1;nominaFiltrarVales();nominaRenderVales();});
+    $('#limpiarBuscarVales').on('click.nominaUI',function(){$('#buscarVales').val('').focus();nominaValesUI.search='';nominaValesUI.page=1;nominaFiltrarVales();nominaRenderVales();});
+    $('#nominaValesPaginacion').on('click.nominaUI','.nomina-page-btn',function(){if(this.disabled)return;nominaValesUI.page=parseInt($(this).data('page'),10)||1;nominaRenderVales();});
+    $('#nominaValesListado').on('click.nominaUI','.anular_vale',function(){var r=nominaValesUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAnularVale(r);});
+
+    $(window).off('resize.nominaUI orientationchange.nominaUI').on('resize.nominaUI orientationchange.nominaUI',function(){
+        var mobile=nominaEsMovil();
+        [
+          {ui:nominaUI,btn:'.nomina-view-btn',sel:$('#nominaPageSize'),render:nominaRenderMain},
+          {ui:nominaDetalleUI,btn:'.nomina-detalle-view-btn',sel:$('#nominaDetallePageSize'),render:nominaRenderDetalle}
+        ].forEach(function(x){
+            var target=mobile?'miniatura':x.ui.preferredView;
+            $(x.btn+'[data-view="detalle"]').toggleClass('d-none',mobile).prop('disabled',mobile);
+            if(x.ui.view!==target){x.ui.view=target;x.ui.page=1;nominaOpcionesPage(x.sel,x.ui);$(x.btn).removeClass('active');$(x.btn+'[data-view="'+target+'"]').addClass('active');x.render();}
+        });
+    });
+});
+
+</script>
+
+<script>
+/* Exportadores premium se enlazan sobre los datos filtrados actuales. */
+(function(){
+function escXml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function colName(i){var n='';while(i>=0){n=String.fromCharCode((i%26)+65)+n;i=Math.floor(i/26)-1;}return n;}
+function cell(ref,v,s,numeric){if(numeric){var x=nominaNum(v);return '<c r="'+ref+'" s="'+s+'" t="n"><v>'+x+'</v></c>';}return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t>'+escXml(v)+'</t></is></c>';}
+function xlsx(rows,headers,map,file,sheet){
+    if(typeof JSZip==='undefined'){showNotify('error','Excel no disponible','JSZip no está disponible.');return;}
+    var sr=[];
+    sr.push('<row r="1" ht="30" customHeight="1">'+cell('A1','IZZY • '+sheet.toUpperCase(),1,false)+'</row>');
+    sr.push('<row r="2">'+cell('A2','Generado: '+new Date().toLocaleDateString('es-HN')+' • '+rows.length+' registro(s)',2,false)+'</row>');
+    sr.push('<row r="4" ht="26" customHeight="1">'+headers.map(function(h,i){return cell(colName(i)+'4',h,3,false);}).join('')+'</row>');
+    rows.forEach(function(r,i){var rr=5+i;sr.push('<row r="'+rr+'">'+map(r).map(function(v,c){return cell(colName(c)+rr,v,4,false);}).join('')+'</row>');});
+    var last=colName(headers.length-1),lastRow=Math.max(4,4+rows.length);
+    var sheetXml='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+last+lastRow+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>'+sr.join('')+'</sheetData><autoFilter ref="A4:'+last+lastRow+'"/><mergeCells count="2"><mergeCell ref="A1:'+last+'1"/><mergeCell ref="A2:'+last+'2"/></mergeCells></worksheet>';
+    var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    var wb='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+escXml(sheet)+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    var wr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+    var rr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+    var ct='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+    var z=new JSZip();z.file('[Content_Types].xml',ct);z.folder('_rels').file('.rels',rr);z.folder('xl').file('workbook.xml',wb);z.folder('xl').file('styles.xml',styles);z.folder('xl').folder('_rels').file('workbook.xml.rels',wr);z.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+    var opt={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
+    var p=typeof z.generateAsync==='function'?z.generateAsync(opt):Promise.resolve(z.generate(opt));
+    p.then(function(blob){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=file;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},1000);}).catch(function(e){console.error(e);showNotify('error','Excel','No se pudo generar el archivo.');});
+}
+function pdf(rows,title,headers,map,file){
+    if(typeof pdfMake==='undefined'||typeof abrirModalPdfPublico!=='function'){showNotify('error','PDF no disponible','No están disponibles los componentes del PDF.');return;}
+    var body=[headers.map(function(h){return {text:h,bold:true,color:'#fff',fillColor:'#17324D',fontSize:7,alignment:'center'};})];
+    rows.forEach(function(r,i){var fill=i%2?'#F7F9FC':'#FFFFFF';body.push(map(r).map(function(v){return {text:String(v==null?'':v),fontSize:7,color:'#253858',fillColor:fill};}));});
+    var doc={pageSize:'LETTER',pageOrientation:'landscape',pageMargins:[28,30,28,34],header:function(){return {margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},footer:function(p,pc){return {margin:[28,8,28,0],columns:[{text:'IZZY • Nómina',fontSize:7,color:'#7A869A'},{text:'Página '+p+' de '+pc,fontSize:7,color:'#7A869A',alignment:'right'}]};},content:[{table:{widths:[110,'*',120],body:[[{text:'IZZY',bold:true,fontSize:18,color:'#17324D',fillColor:'#FFFFFF',margin:[10,9,10,9]},{stack:[{text:title.toUpperCase(),bold:true,fontSize:16,color:'#FFFFFF'},{text:'Reporte ejecutivo de nómina',fontSize:8,color:'#D8E5F0'}],fillColor:'#17324D',margin:[8,10,8,10]},{stack:[{text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},{text:rows.length+' registro(s)',fontSize:7,color:'#D8E5F0',alignment:'right'}],fillColor:'#17324D',margin:[8,10,10,10]}]]},layout:'noBorders',margin:[0,0,0,12]},{table:{headerRows:1,widths:Array(headers.length).fill('*'),body:body},layout:'lightHorizontalLines'}]};
+    pdfMake.createPdf(doc).getDataUrl(function(url){abrirModalPdfPublico(url,title,file);});
+}
+$('#btnNominaExcel').off('click.nominaExport').on('click.nominaExport',function(){xlsx(nominaUI.filtered||[],['Código','Detalle','Empresa','Inicio','Fin','Importe','Notas','Estado'],function(r){return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,nominaMoney(r.importe),r.notas,Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Empleados.xlsx','Nómina');});
+$('#btnNominaPdf').off('click.nominaExport').on('click.nominaExport',function(){pdf(nominaUI.filtered||[],'Reporte de Nómina',['Código','Detalle','Empresa','Inicio','Fin','Importe','Estado'],function(r){return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,nominaMoney(r.importe),Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Empleados.pdf');});
+$('#btnNominaDetalleExcel').off('click.nominaExport').on('click.nominaExport',function(){xlsx(nominaDetalleUI.filtered||[],['Nómina','Contrato','Empresa','Empleado','Ingresos','Egresos','Neto','Notas','Estado'],function(r){return [r.nomina_id,r.contrato,r.empresa,r.empleado,nominaMoney(r.neto_ingresos),nominaMoney(r.neto_egresos),nominaMoney(r.neto),r.notas,Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Detalle_Empleados.xlsx','Detalle Nómina');});
+$('#btnNominaDetallePdf').off('click.nominaExport').on('click.nominaExport',function(){pdf(nominaDetalleUI.filtered||[],'Detalle de Nómina',['Empleado','Contrato','Empresa','Ingresos','Egresos','Neto','Estado'],function(r){return [r.empleado,r.contrato,r.empresa,nominaMoney(r.neto_ingresos),nominaMoney(r.neto_egresos),nominaMoney(r.neto),Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Detalle_Empleados.pdf');});
+})();
 </script>

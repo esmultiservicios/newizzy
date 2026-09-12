@@ -24,7 +24,6 @@
       <button id="mobile-mainmenu-btn"
               class="btn btn-light btn-md px-3"
               type="button"
-              data-toggle="dropdown"
               aria-haspopup="true"
               aria-expanded="false">
         <i class="fas fa-bars mr-2"></i> Menú principal

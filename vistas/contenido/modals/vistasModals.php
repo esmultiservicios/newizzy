@@ -7160,3 +7160,218 @@
 <!-- =========================================================
      FIN MODAL PRIVILEGIOS
 ========================================================= -->
+
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/categoriasGastosPublico.css">
+
+<!-- =========================================================
+     MODAL PÚBLICO | CATEGORÍAS DE GASTOS
+     Sin DataTables: listado 100% DIVs
+     ========================================================= -->
+
+<div class="modal fade modal-categorias-premium" id="modalCategoriasEgresos"
+     data-backdrop="static" data-keyboard="true" tabindex="-1" role="dialog"
+     aria-labelledby="modalCategoriasEgresosTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="modalCategoriasEgresosTitulo">
+                    <i class="fas fa-layer-group mr-2"></i>
+                    Categorías de Gastos
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="categoria-hero">
+                    <div class="categoria-hero-copy">
+                        <h5 class="categoria-hero-title">
+                            <i class="fas fa-tags mr-1"></i>
+                            Administración de categorías
+                        </h5>
+                        <p class="categoria-hero-text">
+                            Registre, edite, active, inactive o elimine categorías.
+                            Solo una categoría puede quedar marcada como inversión/reposición.
+                        </p>
+                    </div>
+
+                    <span class="badge-cat-inversion">
+                        <i class="fas fa-seedling"></i>
+                        Inversión única
+                    </span>
+                </div>
+
+                <!-- FORMULARIO -->
+                <section class="card categoria-premium-card mb-4">
+                    <div class="card-header categoria-form-header">
+                        <span>
+                            <i class="fas fa-plus-circle mr-1"></i>
+                            <span id="categoriaFormTitulo">Nueva Categoría</span>
+                        </span>
+                        <span class="categoria-form-mode d-none" id="categoriaEditandoBadge">
+                            <i class="fas fa-edit"></i> Editando
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <form class="form-horizontal" id="formCategoriaEgresos"
+                              action="<?php echo SERVERURL;?>ajax/addCategoriaEgresos.php"
+                              method="POST" data-form="save">
+                            <input type="hidden" readonly id="categoria_gastos_id" name="categoria_gastos_id">
+
+                            <div class="row">
+                                <div class="col-lg-6 col-md-12 mb-3">
+                                    <label for="categoria">
+                                        <i class="fas fa-tag mr-1"></i>
+                                        Categoría
+                                    </label>
+                                    <input type="text" required id="categoria" name="categoria"
+                                           placeholder="Ej: Combustible" class="form-control"
+                                           maxlength="30" autocomplete="off">
+                                    <small class="form-text text-muted">
+                                        Máximo 30 caracteres.
+                                    </small>
+                                </div>
+
+                                <div class="col-lg-6 col-md-12 mb-3">
+                                    <label for="es_inversion">
+                                        <i class="fas fa-seedling mr-1"></i>
+                                        Clasificación especial
+                                    </label>
+
+                                    <div class="categoria-invest-box">
+                                        <div>
+                                            <div class="categoria-invest-title">
+                                                Marcar como inversión/reposición
+                                            </div>
+                                            <p class="categoria-invest-help">
+                                                Si activa esta opción, cualquier otra categoría marcada como inversión
+                                                se desactivará automáticamente.
+                                            </p>
+                                        </div>
+
+                                        <label class="categoria-switch mb-0">
+                                            <input type="checkbox" id="es_inversion" name="es_inversion" value="1">
+                                            <span class="categoria-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="RespuestaAjax"></div>
+                        </form>
+                    </div>
+
+                    <div class="card-footer bg-white categoria-form-actions">
+                        <button class="btn btn-secondary" type="button" id="btnLimpiarCategoriaEgresos">
+                            <i class="fas fa-broom mr-1"></i> Limpiar
+                        </button>
+
+                        <button class="guardar btn btn-success" type="submit"
+                                id="regCategoriaEgresos" form="formCategoriaEgresos">
+                            <i class="fas fa-save mr-1"></i>
+                            <span>Registrar</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- LISTADO DIV -->
+                <section class="card categoria-premium-card">
+                    <div class="card-header categoria-list-header">
+                        <div>
+                            <i class="fas fa-list mr-1"></i>
+                            Categorías registradas
+                        </div>
+                        <small>
+                            Use Acciones para editar, activar/inactivar, cambiar inversión o eliminar.
+                        </small>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="categoria-toolbar">
+                            <div class="categoria-toolbar-left">
+                                <button type="button" class="btn btn-secondary" id="btnActualizarCategoriasPublico">
+                                    <i class="fas fa-sync-alt mr-1"></i> Actualizar
+                                </button>
+                                <button type="button" class="btn btn-success" id="btnExcelCategoriasPublico">
+                                    <i class="fas fa-file-excel mr-1"></i> Excel
+                                </button>
+                                <button type="button" class="btn btn-danger" id="btnPdfCategoriasPublico">
+                                    <i class="fas fa-file-pdf mr-1"></i> PDF
+                                </button>
+                            </div>
+
+                            <div class="categoria-toolbar-right">
+                                <label class="categoria-page-size mb-0">
+                                    <span>Mostrar</span>
+                                    <select id="categoriaPageSizePublico" class="form-control form-control-sm"></select>
+                                    <span>registros</span>
+                                </label>
+
+                                <div class="categoria-view-switch" role="group" aria-label="Vista de categorías">
+                                    <button type="button" class="categoria-view-btn active" data-view="detalle" aria-pressed="true">
+                                        <i class="fas fa-list"></i><span>Detalle</span>
+                                    </button>
+                                    <button type="button" class="categoria-view-btn" data-view="miniatura" aria-pressed="false">
+                                        <i class="fas fa-th-large"></i><span>Miniatura</span>
+                                    </button>
+                                </div>
+
+                                <div class="categoria-search-wrap">
+                                    <span class="categoria-search-icon"><i class="fas fa-search"></i></span>
+                                    <input type="search" id="buscarCategoriasPublico" class="form-control"
+                                           placeholder="Buscar categoría..." autocomplete="off">
+                                    <button type="button" id="limpiarBuscarCategoriasPublico"
+                                            class="categoria-search-clear" aria-label="Limpiar búsqueda">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="categoria-div-header" aria-hidden="true">
+                            <div>Categoría</div>
+                            <div>Tipo</div>
+                            <div>Estado</div>
+                            <div>Fecha</div>
+                            <div>Acciones</div>
+                        </div>
+
+                        <div id="categoriasGastosListadoPublico" class="categoria-div-list"></div>
+
+                        <div class="categoria-resumen-footer">
+                            <span>
+                                <i class="fas fa-layer-group"></i>
+                                Total: <strong id="catFooterTotal">0</strong>
+                            </span>
+                            <span class="text-success">
+                                <i class="fas fa-check-circle"></i>
+                                Activas: <strong id="catFooterActivas">0</strong>
+                            </span>
+                            <span class="text-danger">
+                                <i class="fas fa-times-circle"></i>
+                                Inactivas: <strong id="catFooterInactivas">0</strong>
+                            </span>
+                            <span class="text-primary">
+                                <i class="fas fa-seedling"></i>
+                                Inversión: <strong id="catFooterInversion">Ninguna</strong>
+                            </span>
+                        </div>
+
+                        <div class="categoria-list-footer">
+                            <span id="categoriasPublicoInfo">0 registros</span>
+                            <div id="categoriasPublicoPaginacion" class="categoria-pagination"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="modal-footer bg-light">
+                <button class="btn btn-danger" type="button" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

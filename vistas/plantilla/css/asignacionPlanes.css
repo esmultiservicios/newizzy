@@ -3825,3 +3825,128 @@ body > .modal-backdrop.ap-pdf-backdrop {
     .asignacion-view-btn[data-view="detalle"] { display:none !important; }
     .asignacion-view-btn[data-view="miniatura"] { flex:1 1 100% !important; width:100% !important; }
 }
+
+/* =========================================================
+   IZZY | AJUSTE UNIFORME DE LEGIBILIDAD 2026-09-10
+   Solo tipografía, lectura y protección contra desbordes.
+   ========================================================= */
+.asignacion-planes-page,
+.asignacion-planes-page * {
+    min-width: 0;
+}
+
+.asignacion-detail-header,
+.ap-company-detail-head,
+.ap-sequence-detail-head {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.asignacion-record-card,
+.ap-company-detail-row,
+.ap-sequence-detail-row,
+.ap-access-row,
+.ap-collab-detail {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+}
+
+.asignacion-record-card *,
+.ap-company-detail-row *,
+.ap-sequence-detail-row *,
+.ap-access-row *,
+.ap-collab-detail *,
+.asignacion-mini-card *,
+.ap-sequence-mini-card *,
+.ap-company-card * {
+    max-width: 100%;
+}
+
+.asignacion-record-title,
+.asignacion-client-title,
+.ap-access-title,
+.ap-sequence-card-title,
+.ap-sequence-mini-title,
+.ap-collab-name-row,
+.ap-company-card-main strong,
+.ap-company-detail-main strong,
+.ap-sequence-detail-main strong {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+}
+
+.asignacion-detail-line,
+.ap-client-meta,
+.ap-company-meta,
+.ap-access-meta-line,
+.ap-document-meta,
+.ap-sequence-card-grid,
+.ap-sequence-card-body,
+.asignacion-mini-stats,
+.asignacion-mini-identidad {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.ap-field-label,
+.asignacion-mini-stats span,
+.asignacion-mini-card .ap-field-label {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+}
+
+.asignacion-mini-card,
+.ap-sequence-mini-card,
+.ap-company-card {
+    overflow: hidden;
+}
+
+.asignacion-mini-card strong,
+.ap-sequence-mini-card strong,
+.ap-company-card strong {
+    font-size: 14px !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.asignacion-status-badge,
+.ap-status-badge,
+.ap-company-status,
+.ap-sequence-status,
+.ap-user-status,
+.ap-document-status {
+    flex: 0 0 auto;
+    max-width: 100%;
+    white-space: normal !important;
+    text-align: center;
+    line-height: 1.2 !important;
+}
+
+@media (max-width: 767.98px) {
+    .asignacion-record-title,
+    .asignacion-client-title,
+    .ap-sequence-mini-title,
+    .ap-access-title {
+        font-size: 14px !important;
+    }
+
+    .asignacion-detail-line,
+    .ap-client-meta,
+    .ap-company-meta,
+    .ap-access-meta-line,
+    .ap-document-meta {
+        font-size: 12.5px !important;
+    }
+}
+

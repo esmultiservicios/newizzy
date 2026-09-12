@@ -1,0 +1,1481 @@
+/* =========================================================
+   IZZY 6.0 | PROVEEDORES
+   Formato corporativo premium, sin tablas visibles.
+   ========================================================= */
+.proveedores-page {
+    --prov-navy: #17324d;
+    --prov-blue: #2f80ed;
+    --prov-blue-soft: #eef6ff;
+    --prov-green: #22a06b;
+    --prov-red: #de350b;
+    --prov-purple: #6554c0;
+    --prov-border: #dfe6ee;
+    --prov-soft: #f7f9fc;
+    --prov-text: #172b4d;
+    --prov-muted: #6b778c;
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+.proveedores-page *,
+.proveedores-page *::before,
+.proveedores-page *::after {
+    box-sizing: border-box;
+}
+
+.proveedores-section-card {
+    border: 1px solid var(--prov-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    overflow: visible;
+}
+
+.proveedores-section-header,
+.proveedores-directory-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    background: #fff;
+    border-bottom: 1px solid #e7edf3;
+    border-radius: 10px 10px 0 0;
+}
+
+.proveedores-section-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.proveedores-section-icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9e7f3;
+    border-radius: 10px;
+    background: var(--prov-blue-soft);
+    color: #2675b9;
+}
+
+.proveedores-section-title h5 {
+    color: var(--prov-text);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.proveedores-section-title small {
+    display: block;
+    margin-top: 2px;
+    color: var(--prov-muted);
+    overflow-wrap: anywhere;
+}
+
+.proveedores-toggle-btn,
+.proveedores-filter-actions .btn,
+.proveedores-toolbar-left .btn {
+    min-height: 34px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.proveedores-toggle-btn {
+    min-width: 104px;
+}
+
+.proveedores-filter-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #253858;
+    font-size: .84rem;
+    font-weight: 700;
+}
+
+.proveedores-filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.proveedores-filter-actions .btn {
+    min-width: 112px;
+}
+
+/* KPI */
+.proveedores-kpi-row {
+    margin-left: -7px;
+    margin-right: -7px;
+}
+
+.proveedores-kpi-row > [class*="col-"] {
+    padding-left: 7px;
+    padding-right: 7px;
+}
+
+.proveedores-kpi {
+    position: relative;
+    min-height: 105px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 15px 16px;
+    background: #fff;
+    border: 1px solid var(--prov-border);
+    border-left: 4px solid var(--prov-blue);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.proveedores-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 16px rgba(23, 50, 77, .08);
+}
+
+.proveedores-kpi-success { border-left-color: var(--prov-green); }
+.proveedores-kpi-info { border-left-color: #00a3bf; }
+.proveedores-kpi-purple { border-left-color: var(--prov-purple); }
+
+.proveedores-kpi-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.proveedores-kpi-label {
+    color: #5e6c84;
+    font-size: .72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .035em;
+}
+
+.proveedores-kpi-copy strong {
+    margin-top: 4px;
+    color: var(--prov-text);
+    font-size: 1.55rem;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.proveedores-kpi-copy small {
+    margin-top: 6px;
+    color: #7a869a;
+    font-size: .76rem;
+}
+
+.proveedores-kpi-icon {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: var(--prov-soft);
+    color: #35526f;
+    font-size: 1.1rem;
+}
+
+/* Toolbar */
+.proveedores-directory-body {
+    padding-top: 15px;
+}
+
+.proveedores-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    min-width: 0;
+}
+
+.proveedores-toolbar-left,
+.proveedores-list-tools-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.proveedores-toolbar-left {
+    flex-wrap: wrap;
+}
+
+.proveedores-list-tools-right {
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.proveedores-page-size {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #46556b;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.proveedores-page-size select {
+    width: 70px;
+    min-width: 70px;
+    height: 34px;
+    min-height: 34px;
+    border-radius: 7px;
+}
+
+.proveedores-view-switch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #f5f8fb;
+}
+
+.proveedores-view-btn {
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 9px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #53657b;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.proveedores-view-btn.active {
+    background: #fff;
+    color: #167fc0;
+    box-shadow: 0 1px 4px rgba(31, 47, 67, .10);
+}
+
+.proveedores-search {
+    flex: 0 1 300px;
+    width: 300px;
+    min-width: 220px;
+    height: 34px;
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+}
+
+.proveedores-search-icon {
+    flex: 0 0 38px;
+    width: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7f9fc;
+    color: #53657b;
+    border-right: 1px solid #d7e1eb;
+}
+
+.proveedores-search .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 32px;
+    border: 0;
+    box-shadow: none !important;
+}
+
+.proveedores-search-clear {
+    flex: 0 0 34px;
+    width: 34px;
+    border: 0;
+    background: #fff;
+    color: #7a869a;
+    cursor: pointer;
+}
+
+.proveedores-search-clear:hover {
+    color: #de350b;
+    background: #fff5f3;
+}
+
+/* Estados del listado */
+.proveedores-listado {
+    min-width: 0;
+}
+
+.proveedores-state {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 22px;
+    border: 1px dashed #d5dee8;
+    border-radius: 10px;
+    background: #f9fbfd;
+    color: #6b778c;
+    text-align: center;
+}
+
+.proveedores-state i {
+    font-size: 1.7rem;
+    color: #2f80ed;
+}
+
+/* Detalle */
+.proveedores-detail-header,
+.proveedores-detail-row {
+    display: grid;
+    grid-template-columns:
+        minmax(180px, 1.35fr)
+        minmax(130px, .85fr)
+        minmax(130px, .85fr)
+        minmax(200px, 1.35fr)
+        minmax(145px, .9fr)
+        minmax(120px, .8fr)
+        100px
+        110px;
+    gap: 10px;
+    align-items: center;
+}
+
+.proveedores-detail-header {
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #17324d;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+.proveedores-detail-row {
+    position: relative;
+    margin-bottom: 8px;
+    padding: 12px;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .05);
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.proveedores-detail-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(9, 30, 66, .09);
+}
+
+.proveedores-cell {
+    min-width: 0;
+    color: #172b4d;
+    overflow-wrap: anywhere;
+}
+
+.proveedores-cell-label {
+    display: none;
+    margin-bottom: 3px;
+    color: #6b778c;
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.proveedores-name {
+    font-weight: 800;
+}
+
+.proveedores-muted {
+    color: #7a869a;
+    font-size: .78rem;
+}
+
+/* Miniatura */
+.proveedores-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.proveedores-mini-card {
+    position: relative;
+    min-width: 0;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(23, 50, 77, .05);
+    overflow: visible;
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.proveedores-mini-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 18px rgba(23, 50, 77, .09);
+}
+
+.proveedores-mini-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 14px 10px;
+}
+
+.proveedores-mini-title {
+    min-width: 0;
+}
+
+.proveedores-mini-title h6 {
+    margin: 0;
+    color: #172b4d;
+    font-size: .95rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.proveedores-mini-title small {
+    display: block;
+    margin-top: 3px;
+    color: #7a869a;
+}
+
+.proveedores-mini-body {
+    flex: 1 1 auto;
+    padding: 4px 14px 12px;
+}
+
+.proveedores-mini-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 8px;
+    min-width: 0;
+    color: #42526e;
+    font-size: .82rem;
+}
+
+.proveedores-mini-item i {
+    flex: 0 0 16px;
+    width: 16px;
+    margin-top: 2px;
+    color: #5e6c84;
+    text-align: center;
+}
+
+.proveedores-mini-item span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.proveedores-mini-footer {
+    padding: 10px 14px 14px;
+    border-top: 1px solid #edf1f5;
+}
+
+/* Estado y acciones */
+.proveedores-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.proveedores-status-activo {
+    border: 1px solid #c2efd3;
+    background: #e8f9ef;
+    color: #13834a;
+}
+
+.proveedores-status-inactivo {
+    border: 1px solid #f2c8bf;
+    background: #fff0ed;
+    color: #b8321a;
+}
+
+.proveedores-actions {
+    position: relative;
+}
+
+.proveedores-actions .btn-acciones {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #f7f9fc;
+    color: #27445f;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.proveedores-actions .btn-acciones:hover,
+.proveedores-actions .btn-acciones:focus {
+    background: #edf3f8;
+    color: #17324d;
+    opacity: 1;
+}
+
+.proveedores-actions .dropdown-menu {
+    z-index: 1085;
+    min-width: 170px;
+}
+
+/* Footer / paginación */
+.proveedores-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.proveedores-list-info {
+    color: #6b778c;
+    font-size: 12px;
+}
+
+.proveedores-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.proveedores-page-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 9px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #fff;
+    color: #42526e;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.proveedores-page-btn:hover:not(:disabled),
+.proveedores-page-btn.active {
+    border-color: #2f80ed;
+    background: #2f80ed;
+    color: #fff;
+}
+
+.proveedores-page-btn:disabled {
+    cursor: default;
+    opacity: .45;
+}
+
+/* Tabla técnica para Excel: jamás visible */
+.proveedores-export-host {
+    position: fixed !important;
+    left: -100000px !important;
+    top: -100000px !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Responsive */
+@media (max-width: 1199.98px) {
+    .proveedores-detail-header {
+        display: none;
+    }
+
+    .proveedores-detail-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .proveedores-cell-label {
+        display: block;
+    }
+
+    .proveedores-mini-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .proveedores-list-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .proveedores-list-tools-right {
+        width: 100%;
+        justify-content: space-between;
+        margin-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .proveedores-search {
+        flex: 1 1 280px;
+        width: auto;
+        max-width: none;
+    }
+}
+
+/* MÓVIL: SOLO MINIATURA */
+@media (max-width: 767.98px) {
+    .proveedores-section-header,
+    .proveedores-directory-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .proveedores-toggle-btn {
+        width: 100%;
+    }
+
+    .proveedores-filter-actions {
+        justify-content: stretch;
+    }
+
+    .proveedores-filter-actions .btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+    }
+
+    .proveedores-list-toolbar,
+    .proveedores-list-tools-right {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .proveedores-toolbar-left {
+        width: 100%;
+    }
+
+    .proveedores-toolbar-left .btn {
+        flex: 1 1 calc(50% - 4px);
+    }
+
+    .proveedores-list-tools-right {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .proveedores-page-size {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .proveedores-view-switch {
+        width: 100%;
+    }
+
+    .proveedores-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .proveedores-view-btn[data-view="miniatura"] {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .proveedores-search {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 34px !important;
+        min-height: 34px !important;
+        max-height: 34px !important;
+        margin: 0 !important;
+    }
+
+    .proveedores-listado {
+        min-height: 0 !important;
+        height: auto !important;
+        margin-top: 0 !important;
+    }
+
+    .proveedores-mini-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .proveedores-mini-card {
+        min-height: 0;
+        height: auto;
+    }
+
+    .proveedores-list-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .proveedores-pagination {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .proveedores-toolbar-left .btn {
+        flex: 1 1 100%;
+    }
+
+    .proveedores-filter-actions {
+        flex-direction: column;
+    }
+
+    .proveedores-filter-actions .btn {
+        width: 100%;
+    }
+
+    .proveedores-kpi {
+        min-height: 94px;
+    }
+}
+
+
+/* ============================================================
+   IZZY 6.0 | FIX TOOLBAR PROVEEDORES
+   Mostrar X registros siempre legible y alineado.
+   ============================================================ */
+.proveedores-page-size {
+    min-width: max-content;
+    min-height: 34px;
+}
+
+.proveedores-page-size > span {
+    line-height: 34px;
+}
+
+.proveedores-page-size #proveedoresPageSize {
+    display: inline-block !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 4px 24px 4px 9px !important;
+    border: 1px solid #d7e1eb !important;
+    border-radius: 7px !important;
+    background-color: #fff !important;
+    color: #172b4d !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 24px !important;
+    box-shadow: none !important;
+}
+
+/* Si algún script global convierte el select a bootstrap-select. */
+.proveedores-page-size .bootstrap-select {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 34px !important;
+    margin: 0 !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle {
+    width: 72px !important;
+    min-width: 72px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 4px 25px 4px 9px !important;
+    border: 1px solid #d7e1eb !important;
+    border-radius: 7px !important;
+    background: #fff !important;
+    color: #172b4d !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 24px !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle .filter-option {
+    display: flex !important;
+    align-items: center !important;
+    height: 24px !important;
+    overflow: visible !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle .filter-option-inner,
+.proveedores-page-size .bootstrap-select > .dropdown-toggle .filter-option-inner-inner {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    color: #172b4d !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle::after {
+    margin-left: 5px !important;
+}
+
+/* Orden de toolbar estable: Mostrar -> Vista -> Búsqueda */
+.proveedores-list-tools-right {
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .proveedores-list-tools-right {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .proveedores-page-size {
+        min-width: 0;
+        justify-content: flex-start;
+    }
+
+    .proveedores-page-size > span {
+        line-height: 34px;
+    }
+}
+/* =========================================================
+   PROVEEDORES | TOOLBAR + DETALLE / MINIATURA
+   Uniformado EXACTAMENTE con el patrón visual de Usuarios.
+   ========================================================= */
+
+.proveedores-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+    flex-wrap: nowrap;
+}
+
+.proveedores-list-tools-right {
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+    margin-left: auto;
+}
+
+/* Mostrar X registros */
+.proveedores-page-size {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 38px;
+    margin: 0;
+    white-space: nowrap;
+    color: #46556b;
+    font-size: 13px;
+}
+
+.proveedores-page-size > span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    line-height: 1;
+}
+
+.proveedores-page-size #proveedoresPageSize {
+    display: block !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 6px 28px 6px 10px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    color: #172033 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    line-height: 1.25 !important;
+    box-shadow: none !important;
+    vertical-align: middle;
+}
+
+/* Compatibilidad si algún JS global lo transforma en bootstrap-select. */
+.proveedores-page-size .bootstrap-select {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 6px 27px 6px 10px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #172033 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    line-height: 1.25 !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle .filter-option {
+    display: flex !important;
+    align-items: center !important;
+    height: 24px !important;
+    overflow: hidden !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle .filter-option-inner,
+.proveedores-page-size .bootstrap-select > .dropdown-toggle .filter-option-inner-inner {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    color: #172033 !important;
+}
+
+/* Detalle / Miniatura - mismo estilo de Usuarios */
+.proveedores-view-switch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+    box-shadow: 0 2px 7px rgba(31, 47, 67, .04);
+}
+
+.proveedores-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: none;
+    transition:
+        background-color .15s ease,
+        color .15s ease,
+        box-shadow .15s ease;
+}
+
+.proveedores-view-btn:hover {
+    color: #176fae;
+    background: #eaf4fc;
+    opacity: 1;
+}
+
+.proveedores-view-btn.active {
+    color: #fff;
+    background: #2f9ddd;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24);
+}
+
+.proveedores-view-btn:focus,
+.proveedores-view-btn:active {
+    outline: 0;
+    opacity: 1;
+}
+
+/* Buscador a la misma altura visual */
+.proveedores-search {
+    height: 38px;
+    min-height: 38px;
+    border-radius: 8px;
+}
+
+.proveedores-search-icon {
+    min-height: 38px;
+}
+
+.proveedores-search .form-control {
+    min-height: 36px;
+    height: 36px;
+}
+
+.proveedores-search-clear {
+    min-height: 36px;
+}
+
+/* Responsive */
+@media (max-width: 1399.98px) {
+    .proveedores-list-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .proveedores-list-tools-right {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .proveedores-list-tools-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .proveedores-search {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .proveedores-list-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .proveedores-list-tools-right {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .proveedores-page-size {
+        width: 100%;
+    }
+
+    .proveedores-view-switch {
+        width: 100%;
+    }
+
+    .proveedores-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .proveedores-view-btn[data-view="miniatura"] {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+    }
+
+    .proveedores-search {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        margin: 0 !important;
+    }
+}
+
+/* =========================================================
+   PROVEEDORES | FIX DEFINITIVO "MOSTRAR X REGISTROS"
+   Solo CSS. No modifica JavaScript ni lógica del módulo.
+   ========================================================= */
+.proveedores-page-size {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-height: 38px !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+}
+
+.proveedores-page-size > span {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 38px !important;
+    line-height: 1 !important;
+    overflow: visible !important;
+}
+
+/* Select nativo: ancho suficiente para 10 / 25 / 50 / 100 + flecha */
+.proveedores-page-size #proveedoresPageSize {
+    box-sizing: border-box !important;
+    display: inline-block !important;
+    flex: 0 0 86px !important;
+    width: 86px !important;
+    min-width: 86px !important;
+    max-width: 86px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 6px 30px 6px 12px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    color: #172033 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 24px !important;
+    text-align: left !important;
+    text-align-last: left !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+}
+
+/* Si Bootstrap Select transforma el control, mantener exactamente el mismo ancho */
+.proveedores-page-size .bootstrap-select {
+    box-sizing: border-box !important;
+    flex: 0 0 86px !important;
+    width: 86px !important;
+    min-width: 86px !important;
+    max-width: 86px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    overflow: visible !important;
+}
+
+.proveedores-page-size .bootstrap-select > .dropdown-toggle {
+    box-sizing: border-box !important;
+    width: 86px !important;
+    min-width: 86px !important;
+    max-width: 86px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 6px 29px 6px 12px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #172033 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 24px !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+}
+
+.proveedores-page-size .bootstrap-select .filter-option,
+.proveedores-page-size .bootstrap-select .filter-option-inner,
+.proveedores-page-size .bootstrap-select .filter-option-inner-inner {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    color: #172033 !important;
+}
+
+/* Evita que estilos globales reduzcan el control dentro de la toolbar */
+.proveedores-list-tools-right .proveedores-page-size {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content !important;
+}
+
+/* =========================================================
+   IZZY 6.0 | PROVEEDORES TOOLBAR UNIFORME FINAL
+   Referencia visual exacta: Usuarios.
+   ========================================================= */
+.proveedores-list-tools-right {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+}
+
+.proveedores-page-size {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: max-content !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    color: #46556b !important;
+    font-size: 13px !important;
+    overflow: visible !important;
+}
+
+.proveedores-page-size > span {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 38px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+.proveedores-page-size #proveedoresPageSize,
+.proveedores-page-size .form-control,
+.proveedores-page-size .form-control-sm {
+    box-sizing: border-box !important;
+    flex: 0 0 86px !important;
+    width: 86px !important;
+    min-width: 86px !important;
+    max-width: 86px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    padding: 6px 30px 6px 12px !important;
+    border: 1px solid #ced4da !important;
+    border-radius: 8px !important;
+    background-color: #fff !important;
+    color: #172033 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 24px !important;
+    text-align: left !important;
+    text-align-last: left !important;
+    box-shadow: none !important;
+}
+
+.proveedores-view-switch {
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 3px !important;
+    border: 1px solid #d7e1eb !important;
+    border-radius: 9px !important;
+    background: #f5f8fb !important;
+    box-shadow: 0 2px 7px rgba(31,47,67,.04) !important;
+}
+
+.proveedores-view-btn {
+    min-height: 34px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 6px 12px !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: #52627a !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+}
+
+.proveedores-view-btn:hover:not(.active) {
+    color: #176fae !important;
+    background: #eaf4fc !important;
+    opacity: 1 !important;
+}
+
+.proveedores-view-btn.active,
+.proveedores-view-btn.active:hover,
+.proveedores-view-btn.active:focus {
+    color: #fff !important;
+    background: #2f9ddd !important;
+    box-shadow: 0 2px 7px rgba(47,157,221,.24) !important;
+    opacity: 1 !important;
+}
+
+.proveedores-search,
+.proveedores-search-icon {
+    min-height: 38px !important;
+    height: 38px !important;
+}
+
+.proveedores-search .form-control {
+    min-height: 36px !important;
+    height: 36px !important;
+}
+
+@media (max-width: 767.98px) {
+    .proveedores-list-toolbar,
+    .proveedores-list-tools-right {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .proveedores-list-tools-right {
+        width: 100% !important;
+        align-items: stretch !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        margin-left: 0 !important;
+    }
+
+    .proveedores-page-size {
+        width: 100% !important;
+        min-width: 0 !important;
+        justify-content: flex-start !important;
+    }
+
+    .proveedores-view-switch {
+        width: 100% !important;
+    }
+
+    .proveedores-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .proveedores-view-btn[data-view="miniatura"] {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+    }
+
+    .proveedores-search {
+        flex: 0 0 auto !important;
+        flex-basis: auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        margin: 0 !important;
+    }
+
+    .proveedores-listado,
+    .proveedores-mini-grid,
+    .proveedores-mini-card {
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .proveedores-mini-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: start !important;
+    }
+}
+
+/* =========================================================
+   IZZY | AJUSTE UNIFORME DE LEGIBILIDAD 2026-09-10
+   ========================================================= */
+.proveedores-page,
+.proveedores-page * {
+    min-width: 0;
+}
+
+.proveedores-detail-header {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.proveedores-detail-row,
+.proveedores-cell {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+}
+
+.proveedores-name,
+.proveedores-detail-row strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.proveedores-detail-row span:not(.proveedores-status),
+.proveedores-detail-row small {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.35 !important;
+}
+
+.proveedores-cell-label {
+    font-size: 11px !important;
+    font-weight: 800 !important;
+}
+
+.proveedores-mini-title {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.proveedores-mini-item span {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+}
+
+.proveedores-mini-item strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+.proveedores-mini-card,
+.proveedores-mini-card * {
+    max-width: 100%;
+}
+
+.proveedores-status {
+    max-width: 100%;
+    white-space: normal !important;
+    text-align: center;
+}
+
+@media (max-width: 767.98px) {
+    .proveedores-mini-title {
+        font-size: 15px !important;
+    }
+
+    .proveedores-mini-item strong {
+        font-size: 13px !important;
+    }
+}
+

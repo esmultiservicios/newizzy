@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/ingresosContabilidad.css">
+
 <div class="container-fluid ingresos-page">
 	<!-- Ingresos -->
 	<div class="breadcrumb-container">
@@ -17,8 +19,20 @@
 	</div>
 
 	<!-- Filtros -->
-	<div class="card mb-4 ingresos-filtro-card">
-		<div class="card-body">
+	<div class="card mb-4 ingresos-filtro-card ingresos-section-card">
+        <div class="ingresos-section-header">
+            <div class="ingresos-section-title">
+                <span class="ingresos-section-icon"><i class="fas fa-filter"></i></span>
+                <div>
+                    <h5 class="mb-0">Filtros de Ingresos</h5>
+                    <small>Consulte ingresos por estado y período sin alterar los registros.</small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary ingresos-toggle-btn" id="btnToggleFiltrosIngresos" aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+        <div class="card-body" id="ingresosFiltrosContenido">
 			<form id="formMainIngresosContabilidad">
 				<div class="row">
 					<div class="col-md-3 col-sm-6 mb-3">
@@ -89,7 +103,21 @@
 		</div>
 	</div>
 
-	<!-- Cards resumen -->
+	<!-- KPIs -->
+    <section class="card ingresos-section-card mb-4" id="ingresosKpisSection">
+        <div class="ingresos-section-header">
+            <div class="ingresos-section-title">
+                <span class="ingresos-section-icon"><i class="fas fa-chart-pie"></i></span>
+                <div>
+                    <h5 class="mb-0">Resumen de Ingresos</h5>
+                    <small>Indicadores calculados sobre el resultado filtrado.</small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary ingresos-toggle-btn" id="btnToggleKpisIngresos" aria-expanded="true">
+                <i class="fas fa-chevron-up mr-1"></i><span>Ocultar</span>
+            </button>
+        </div>
+        <div class="card-body pb-0" id="ingresosKpisContenido">
 	<div class="row mb-4">
 		<div class="col-xl-3 col-md-6 mb-3">
 			<div class="ingresos-resumen-card ingresos-resumen-registros">
@@ -144,61 +172,76 @@
 		</div>
 	</div>
 
-	<!-- Tabla -->
-	<div class="card mb-4 ingresos-table-card">
-		<div class="card-header ingresos-card-header">
-			<div class="d-flex flex-wrap justify-content-between align-items-center">
-				<div>
-					<strong>
-						<i class="fas fa-hand-holding-usd fa-lg mr-1"></i>
-						Ingresos
-					</strong>
-					<br>
-					<small class="text-muted">
-						Registro de ingresos contables filtrados por período y estado
-					</small>
-				</div>
-			</div>
-		</div>
+        </div>
+    </section>
 
-		<div class="card-body">
-			<div class="table-responsive ingresos-table-responsive">
-				<table id="dataTableIngresosContabilidad"
-					class="table table-header-gradient table-striped table-condensed table-hover"
-					style="width:100%">
-					<thead>
-						<tr>
-							<th>Acciones</th>
-							<th>Fecha Registro</th>
-							<th>Tipo</th>
-							<th>Ingreso #</th>
-							<th>Fecha Factura</th>
-							<th>Forma de Pago</th>
-							<th>Recibí de</th>
-							<th>Número Factura</th>
-							<th>Subtotal</th>
-							<th>Impuesto</th>
-							<th>Descuento</th>
-							<th>Total</th>
-							<th>Observación</th>
-							<th>Estado</th>
-						</tr>
-					</thead>
+	<!-- LISTADO -->
+    <div class="card mb-4 ingresos-table-card ingresos-section-card">
+        <div class="ingresos-section-header">
+            <div class="ingresos-section-title">
+                <span class="ingresos-section-icon"><i class="fas fa-hand-holding-usd"></i></span>
+                <div>
+                    <h5 class="mb-0">Ingresos</h5>
+                    <small>Registro de ingresos contables filtrados por período y estado.</small>
+                </div>
+            </div>
+        </div>
 
-					<tfoot class="bg-secondary text-white font-weight-bold">
-						<tr>
-							<td colspan="1">Total</td>
-							<td colspan="7"></td>
-							<td id="subtotal-i"></td>
-							<td id="impuesto-i"></td>
-							<td id="descuento-i"></td>
-							<td id="total-footer-ingreso"></td>
-							<td colspan="2"></td>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-		</div>
+        <div class="card-body">
+            <div class="ingresos-list-toolbar">
+                <div class="ingresos-toolbar-left">
+                    <button type="button" class="btn btn-secondary table_actualizar ocultar" id="btnIngresosActualizar">
+                        <i class="fas fa-sync-alt mr-1"></i> Actualizar
+                    </button>
+                    <button type="button" class="btn btn-primary table_crear ocultar" id="btnIngresosIngresar">
+                        <i class="fas fa-plus mr-1"></i> Ingresar
+                    </button>
+                    <button type="button" class="btn btn-success table_reportes ocultar" id="btnIngresosExcel">
+                        <i class="fas fa-file-excel mr-1"></i> Excel
+                    </button>
+                    <button type="button" class="btn btn-danger table_reportes ocultar" id="btnIngresosPdf">
+                        <i class="fas fa-file-pdf mr-1"></i> PDF
+                    </button>
+                </div>
+
+                <div class="ingresos-toolbar-right">
+                    <label class="ingresos-page-size mb-0">
+                        <span>Mostrar</span>
+                        <select id="ingresosPageSize" class="form-control form-control-sm"></select>
+                        <span>registros</span>
+                    </label>
+
+                    <div class="ingresos-view-switch">
+                        <button type="button" class="ingresos-view-btn active" data-view="detalle">
+                            <i class="fas fa-list"></i><span>Detalle</span>
+                        </button>
+                        <button type="button" class="ingresos-view-btn" data-view="miniatura">
+                            <i class="fas fa-th-large"></i><span>Miniatura</span>
+                        </button>
+                    </div>
+
+                    <div class="ingresos-search-wrap">
+                        <span class="ingresos-search-icon"><i class="fas fa-search"></i></span>
+                        <input type="search" id="buscarIngresosListado" class="form-control" placeholder="Buscar ingreso..." autocomplete="off">
+                        <button type="button" id="limpiarBuscarIngresosListado" class="ingresos-search-clear"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ingresosListado" class="ingresos-listado vista-detalle"></div>
+
+            <div class="ingresos-totales-grid">
+                <div class="ingresos-total-card"><span>Subtotal</span><strong id="ingresosTotalSubtotal">L 0.00</strong></div>
+                <div class="ingresos-total-card ingresos-total-info"><span>Impuesto</span><strong id="ingresosTotalImpuesto">L 0.00</strong></div>
+                <div class="ingresos-total-card ingresos-total-warning"><span>Descuento</span><strong id="ingresosTotalDescuento">L 0.00</strong></div>
+                <div class="ingresos-total-card ingresos-total-current"><span>Total</span><strong id="ingresosTotalGeneral">L 0.00</strong></div>
+            </div>
+
+            <div class="ingresos-list-footer">
+                <span id="ingresosInfo">0 registros</span>
+                <div id="ingresosPaginacion" class="ingresos-pagination"></div>
+            </div>
+        </div>
 
 		<div class="card-footer small ingresos-card-footer">
 			<div class="row">

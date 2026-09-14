@@ -199,6 +199,13 @@
                                    class="form-control"
                                    placeholder="Buscar usuario..."
                                    autocomplete="off">
+                            <button type="button"
+                                    id="limpiarBuscarUsuarios"
+                                    class="usuarios-search-clear"
+                                    title="Limpiar búsqueda"
+                                    aria-label="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

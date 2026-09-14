@@ -1,0 +1,1040 @@
+/* =========================================================
+   IZZY 6.0 | CONFIGURACIÓN DE ALMACÉN
+   Estilos propios del módulo. Select2 permanece global.
+   ========================================================= */
+
+.almacen-page {
+    --alm-navy: #17324d;
+    --alm-blue: #2f9ddd;
+    --alm-teal: #0ea5a8;
+    --alm-green: #22a06b;
+    --alm-red: #c9372c;
+    --alm-purple: #6554c0;
+    --alm-orange: #f59e0b;
+    --alm-border: #dfe6ee;
+    --alm-soft: #f7f9fc;
+    --alm-text: #172b4d;
+    --alm-muted: #6b778c;
+    min-width: 0;
+}
+
+.almacen-page *,
+.almacen-page *::before,
+.almacen-page *::after {
+    box-sizing: border-box;
+}
+
+.almacen-section-card {
+    border: 1px solid var(--alm-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    overflow: visible;
+}
+
+.almacen-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #e4eaf0;
+    background: #fff;
+}
+
+.almacen-section-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.almacen-section-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9e7f3;
+    border-radius: 10px;
+    background: #eef6ff;
+    color: #2675b9;
+}
+
+.almacen-section-title h5 {
+    margin: 0;
+    color: var(--alm-text);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.almacen-section-title small {
+    display: block;
+    margin-top: 2px;
+    color: var(--alm-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.almacen-toggle-btn,
+.almacen-filtro-actions .btn,
+.almacen-toolbar-left .btn {
+    min-height: 38px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.almacen-toggle-btn {
+    min-width: 104px;
+}
+
+.almacen-filtro-card label {
+    color: #253858;
+    font-size: 12px !important;
+    font-weight: 700;
+}
+
+.almacen-filtro-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* =========================================================
+   KPIs
+   ========================================================= */
+
+.almacen-resumen-card {
+    position: relative;
+    min-width: 0;
+    min-height: 118px;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 15px 18px;
+    border: 1px solid #d9e2ec;
+    border-left: 4px solid #2f80ed;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(23, 43, 77, .06);
+    overflow: hidden;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.almacen-resumen-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(23, 43, 77, .11);
+}
+
+.almacen-resumen-card > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.almacen-resumen-total {
+    border-left-color: #2f80ed;
+}
+
+.almacen-resumen-activos {
+    border-left-color: #22a06b;
+}
+
+.almacen-resumen-cero {
+    border-left-color: #0ea5a8;
+}
+
+.almacen-resumen-empresas {
+    border-left-color: #6554c0;
+}
+
+.almacen-resumen-label {
+    display: block;
+    margin: 0 0 6px;
+    color: #53627a;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+}
+
+.almacen-resumen-card h3 {
+    display: block;
+    margin: 0;
+    color: #102a56;
+    font-size: clamp(1.28rem, 1.55vw, 1.65rem);
+    line-height: 1.12;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums lining-nums;
+}
+
+.almacen-resumen-card p {
+    display: block;
+    margin: 8px 0 0;
+    color: #768399;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.25;
+}
+
+.almacen-resumen-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dce6ef;
+    border-radius: 11px;
+    background: #f7f9fc;
+    color: #274f72;
+    font-size: 18px;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        background-color .18s ease;
+}
+
+.almacen-resumen-card:hover .almacen-resumen-icon {
+    transform: translateY(-1px) scale(1.05);
+    background: #fff;
+    box-shadow: 0 5px 12px rgba(31, 47, 67, .10);
+}
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.almacen-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.almacen-toolbar-left,
+.almacen-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.almacen-toolbar-left {
+    flex-wrap: wrap;
+}
+
+.almacen-toolbar-right {
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.almacen-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #46556b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+#almacenPageSize {
+    width: 86px !important;
+    min-width: 86px !important;
+    height: 38px !important;
+    border-radius: 8px !important;
+}
+
+.almacen-view-switch {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+}
+
+.almacen-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.almacen-view-btn:hover {
+    color: #176fae;
+    background: #eaf4fc;
+}
+
+.almacen-view-btn.active {
+    background: var(--alm-blue);
+    color: #fff;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24);
+}
+
+.almacen-search-wrap {
+    position: relative;
+    width: 300px;
+    height: 38px;
+    display: flex;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.almacen-search-icon {
+    width: 42px;
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #ced4da;
+    background: #f7f9fc;
+    color: #233b55;
+}
+
+.almacen-search-wrap .form-control {
+    min-width: 0;
+    height: 36px;
+    border: 0;
+    padding-right: 34px;
+    box-shadow: none !important;
+}
+
+.almacen-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 27px;
+    height: 27px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+}
+
+/* =========================================================
+   DETALLE
+   ========================================================= */
+
+.almacen-listado,
+.almacen-listado * {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.almacen-listado.vista-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.almacen-detail-header,
+.almacen-detail-row {
+    display: grid;
+    grid-template-columns:
+        126px
+        minmax(190px, 1.10fr)
+        minmax(180px, 1fr)
+        minmax(140px, .70fr)
+        minmax(230px, 1.35fr)
+        112px;
+    gap: 0;
+    width: 100%;
+    align-items: stretch;
+}
+
+.almacen-detail-header {
+    min-height: 44px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #193b5a;
+    color: #fff;
+}
+
+.almacen-detail-header > div {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.almacen-detail-header > div:last-child {
+    border-right: 0;
+}
+
+.almacen-detail-row {
+    position: relative;
+    z-index: 0;
+    min-height: 88px;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #28d6a1;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(31, 47, 67, .05);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.almacen-cell {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-right: 1px solid #edf1f6;
+    color: #172b4d;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.almacen-cell:last-child {
+    border-right: 0;
+}
+
+.almacen-cell-label {
+    display: none;
+    margin-bottom: 5px;
+    color: #6b778c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.almacen-actions-cell {
+    justify-content: center;
+    overflow: visible;
+}
+
+.almacen-main-info,
+.almacen-name-box,
+.almacen-location-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+
+.almacen-main-info {
+    align-items: center;
+}
+
+.almacen-main-icon {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e7f4;
+    border-radius: 9px;
+    background: #eef6ff;
+    color: #2479b8;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+.almacen-main-info strong,
+.almacen-name-box strong {
+    min-width: 0;
+    max-width: 100%;
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.almacen-name-box i,
+.almacen-location-box i {
+    flex: 0 0 15px;
+    width: 15px;
+    margin-top: 2px;
+    color: #2878bb;
+    text-align: center;
+}
+
+.almacen-location-box span {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.almacen-center {
+    justify-content: center;
+    text-align: center;
+}
+
+.almacen-status-badge,
+.almacen-zero-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: max-content;
+    max-width: 100%;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.almacen-status-active,
+.almacen-zero-active {
+    border: 1px solid #c2efd3;
+    background: #e8f9ef;
+    color: #14804a;
+}
+
+.almacen-status-inactive {
+    border: 1px solid #f1c8c4;
+    background: #fff0ef;
+    color: #c9372c;
+}
+
+.almacen-zero-inactive {
+    border: 1px solid #dfe3e7;
+    background: #f1f3f5;
+    color: #66707a;
+}
+
+/* Acciones nunca se parten en dos líneas. */
+.almacen-actions-cell .acciones-dropdown,
+.almacen-mini-footer .acciones-dropdown {
+    width: auto;
+    max-width: 100%;
+}
+
+.almacen-actions-cell .btn-acciones,
+.almacen-mini-footer .btn-acciones {
+    width: auto !important;
+    min-width: 112px !important;
+    max-width: 100% !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 7px 10px !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+}
+
+.almacen-actions-cell .btn-acciones span,
+.almacen-mini-footer .btn-acciones span {
+    display: inline-block !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+}
+
+/* =========================================================
+   MINIATURA
+   ========================================================= */
+
+.almacen-listado.vista-miniatura {
+    display: block;
+}
+
+.almacen-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    align-items: stretch;
+}
+
+.almacen-mini-card {
+    position: relative;
+    z-index: 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.almacen-mini-topline {
+    height: 3px;
+    flex: 0 0 3px;
+    background: #20c997;
+    border-radius: 10px 10px 0 0;
+}
+
+.almacen-mini-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.almacen-mini-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e7f4;
+    border-radius: 10px;
+    background: #eef6ff;
+    color: #2479b8;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+.almacen-mini-title {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.almacen-mini-title h4 {
+    margin: 0;
+    color: #172b4d;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.almacen-mini-title > span {
+    display: block;
+    margin-top: 4px;
+    color: #6b778c;
+    font-size: 11px;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.almacen-mini-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.almacen-mini-field {
+    min-width: 0;
+    padding: 12px 14px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.almacen-mini-field:nth-child(2n) {
+    border-right: 0;
+}
+
+.almacen-mini-field-full {
+    grid-column: 1 / -1;
+    border-right: 0 !important;
+}
+
+.almacen-mini-field > span,
+.almacen-mini-field > strong {
+    display: block;
+    max-width: 100%;
+}
+
+.almacen-mini-field > span {
+    margin-bottom: 4px;
+    color: #6b778c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.almacen-mini-field > span i {
+    width: 14px;
+    margin-right: 4px;
+    color: #2878bb;
+    text-align: center;
+}
+
+.almacen-mini-field > strong {
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.almacen-mini-footer {
+    margin-top: auto;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    overflow: visible;
+}
+
+/* Movimiento sutil en Detalle y Miniatura. */
+@media (hover: hover) and (pointer: fine) {
+    .almacen-listado.vista-detalle .almacen-detail-row:hover,
+    .almacen-mini-card:hover {
+        transform: translateY(-3px);
+        border-color: #cfdbe7;
+        box-shadow: 0 10px 24px rgba(23, 50, 77, .12);
+        z-index: 2;
+    }
+
+    .almacen-listado.vista-detalle .almacen-detail-row:hover .almacen-main-icon,
+    .almacen-mini-card:hover .almacen-mini-icon {
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 6px 14px rgba(23, 50, 77, .10);
+    }
+}
+
+/* Dropdown por encima de las demás tarjetas. */
+.almacen-detail-row.almacen-dropdown-open,
+.almacen-mini-card.almacen-dropdown-open {
+    z-index: 40 !important;
+}
+
+.almacen-listado,
+.almacen-detail-row,
+.almacen-cell,
+.almacen-mini-card,
+.almacen-mini-footer {
+    overflow: visible;
+}
+
+.almacen-actions-dropdown,
+.almacen-actions-dropdown .dropdown-menu {
+    position: relative;
+}
+
+.almacen-actions-dropdown .dropdown-menu {
+    min-width: 200px;
+    z-index: 45 !important;
+}
+
+/* =========================================================
+   ESTADOS / PAGINACIÓN
+   ========================================================= */
+
+.almacen-state {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 24px;
+    border: 1px dashed #cfd8e3;
+    border-radius: 9px;
+    background: #fff;
+    color: #7a869a;
+    text-align: center;
+}
+
+.almacen-state i {
+    font-size: 25px;
+    color: #98a2b3;
+}
+
+.almacen-state strong {
+    color: #42526e;
+}
+
+.almacen-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    color: #667085;
+    font-size: 12px;
+}
+
+.almacen-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.almacen-page-btn {
+    min-height: 34px;
+    padding: 5px 9px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #f5f8fb;
+    color: #42526e;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.almacen-page-btn:hover:not(:disabled):not(.active) {
+    background: #eaf4fc;
+    color: #176fae;
+}
+
+.almacen-page-btn.active {
+    border-color: var(--alm-blue);
+    background: var(--alm-blue);
+    color: #fff;
+}
+
+.almacen-page-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.almacen-card-footer {
+    color: #6b778c;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1399.98px) {
+    .almacen-list-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .almacen-toolbar-right {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+
+    .almacen-detail-header {
+        display: none;
+    }
+
+    .almacen-detail-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .almacen-cell {
+        display: block;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .almacen-cell-label {
+        display: block;
+    }
+
+    .almacen-actions-cell {
+        grid-column: 1 / -1;
+        text-align: right;
+    }
+
+    .almacen-actions-cell .acciones-dropdown {
+        display: inline-block;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .almacen-mini-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .almacen-detail-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .almacen-list-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .almacen-toolbar-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .almacen-search-wrap {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .almacen-section-header,
+    .almacen-list-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .almacen-toggle-btn {
+        width: 100%;
+    }
+
+    .almacen-filtro-actions,
+    .almacen-toolbar-left {
+        width: 100%;
+    }
+
+    .almacen-filtro-actions .btn,
+    .almacen-toolbar-left .btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+    }
+
+    .almacen-toolbar-right {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .almacen-page-size,
+    .almacen-view-switch {
+        width: 100%;
+    }
+
+    .almacen-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .almacen-view-btn[data-view="miniatura"] {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .almacen-search-wrap {
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        margin: 0 !important;
+    }
+
+    .almacen-mini-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+
+    .almacen-mini-card {
+        min-height: 0;
+        height: auto;
+    }
+
+    .almacen-detail-row {
+        grid-template-columns: 1fr;
+    }
+
+    .almacen-cell {
+        border-right: 0;
+    }
+
+    .almacen-pagination {
+        justify-content: center;
+    }
+
+    .almacen-mini-footer .btn-acciones {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .almacen-filtro-actions .btn,
+    .almacen-toolbar-left .btn {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .almacen-mini-body {
+        grid-template-columns: 1fr;
+    }
+
+    .almacen-mini-field,
+    .almacen-mini-field:nth-child(2n),
+    .almacen-mini-field-full {
+        grid-column: auto;
+        border-right: 0;
+    }
+
+    .almacen-mini-header {
+        flex-wrap: wrap;
+    }
+
+    .almacen-status-badge,
+    .almacen-zero-badge {
+        white-space: normal;
+    }
+
+    .almacen-page-btn span {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .almacen-resumen-card,
+    .almacen-resumen-icon,
+    .almacen-detail-row,
+    .almacen-main-icon,
+    .almacen-mini-card,
+    .almacen-mini-icon {
+        transition: none !important;
+    }
+
+    .almacen-resumen-card:hover,
+    .almacen-resumen-card:hover .almacen-resumen-icon,
+    .almacen-detail-row:hover,
+    .almacen-detail-row:hover .almacen-main-icon,
+    .almacen-mini-card:hover,
+    .almacen-mini-card:hover .almacen-mini-icon {
+        transform: none !important;
+    }
+}

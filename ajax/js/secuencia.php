@@ -226,6 +226,18 @@
             aplicarFiltrosYRender();
         }, 180));
 
+        $('#limpiar_filtro_secuencia_general')
+            .off('click.secuenciaBusqueda')
+            .on('click.secuenciaBusqueda', function () {
+                $('#filtro_secuencia_general').val('').focus().trigger('input');
+            });
+
+        $('#limpiar_secuencia_buscar_listado')
+            .off('click.secuenciaBusqueda')
+            .on('click.secuenciaBusqueda', function () {
+                $('#secuencia_buscar_listado').val('').focus().trigger('input');
+            });
+
         $('#btn_toggle_secuencia_filtros').off('click.secuenciaPanel').on('click.secuenciaPanel', function () {
             alternarPanelSecuencia('#secuencia_filtros_body', $(this), SECUENCIA_STORAGE_FILTROS);
         });
@@ -262,8 +274,8 @@
         });
 
         $(window)
-            .off('resize.secuenciaResponsive')
-            .on('resize.secuenciaResponsive', secuenciaDebounce(function () {
+            .off('resize.secuenciaResponsive orientationchange.secuenciaResponsive')
+            .on('resize.secuenciaResponsive orientationchange.secuenciaResponsive', secuenciaDebounce(function () {
                 aplicarVistaResponsiveSecuencia(false);
             }, 120));
 

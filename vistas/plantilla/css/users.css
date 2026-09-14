@@ -948,3 +948,108 @@
         max-width: none !important;
     }
 }
+
+/* =========================================================
+   IZZY | Usuarios - X dentro de todos los inputs de búsqueda
+   ========================================================= */
+.usuarios-search .input-group {
+    position: relative;
+}
+
+.usuarios-search .form-control {
+    padding-right: 38px !important;
+}
+
+.usuarios-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 4;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    cursor: pointer;
+}
+
+.usuarios-search-clear:hover {
+    background: #f1f4f8;
+    color: #42526e;
+}
+
+#buscarUsuarios::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+
+/* =========================================================
+   IZZY | USUARIOS - Buscador unificado
+   Icono + input + X como un solo control.
+   ========================================================= */
+.usuarios-search .input-group {
+    position: relative;
+    width: 100%;
+    height: 38px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.usuarios-search .input-group:focus-within {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10);
+}
+
+.usuarios-search .input-group-prepend {
+    display: flex;
+    margin-right: 0;
+}
+
+.usuarios-search .input-group-text {
+    width: 42px;
+    min-width: 42px;
+    height: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0 !important;
+    border-right: 1px solid #ced4da !important;
+    border-radius: 0 !important;
+    background: #f7f9fc;
+    color: #233b55;
+}
+
+.usuarios-search .form-control {
+    min-width: 0;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 6px 38px 6px 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+    box-shadow: none !important;
+}
+
+.usuarios-search .form-control:focus {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.usuarios-search-clear {
+    right: 5px;
+    z-index: 6;
+}

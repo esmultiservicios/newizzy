@@ -55,6 +55,12 @@ $(document).ready(function () {
         aplicarFiltroUsuarios();
     });
 
+    $('#limpiarBuscarUsuarios')
+        .off('click.usuariosBusqueda')
+        .on('click.usuariosBusqueda', function () {
+            $('#buscarUsuarios').val('').focus().trigger('input');
+        });
+
     $('#usuariosPageSize').on('change', function () {
         var valor = parseInt($(this).val(), 10);
 

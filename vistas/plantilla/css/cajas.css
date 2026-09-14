@@ -1130,3 +1130,123 @@
     }
 }
 
+/* =========================================================
+   IZZY 6.0 | CAJAS - UNIFORMIDAD FINAL
+   Reporte de Ventas: movimiento + buscador con X interna.
+   ========================================================= */
+.cajas-page-size {
+    margin-right: 8px !important;
+}
+
+.cajas-search-box .input-group {
+    position: relative !important;
+}
+
+.cajas-search-box .form-control {
+    padding-right: 38px !important;
+}
+
+.cajas-search-box .form-control::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.cajas-search-clear {
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 6 !important;
+    width: 26px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    color: #7a869a !important;
+    box-shadow: none !important;
+}
+
+.cajas-search-clear:hover,
+.cajas-search-clear:focus {
+    background: #eaf4fc !important;
+    color: #176fae !important;
+    outline: 0 !important;
+}
+
+.cajas-kpi-card,
+.cajas-detail-row,
+.cajas-mini-card {
+    position: relative;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    .cajas-kpi-card:hover {
+        transform: translateY(-4px) !important;
+        border-color: #bfd4e8 !important;
+        box-shadow: 0 12px 24px rgba(23,43,77,.12) !important;
+    }
+
+    .cajas-listado.vista-detalle .cajas-detail-row:hover {
+        transform: translateY(-3px) !important;
+        border-color: #b9ded5 !important;
+        border-top-color: #20c997 !important;
+        background: #fcfffe !important;
+        box-shadow: 0 10px 22px rgba(23,43,77,.10) !important;
+        z-index: 2;
+    }
+
+    .cajas-listado.vista-miniatura .cajas-mini-card:hover {
+        transform: translateY(-4px) !important;
+        border-color: #b9ded5 !important;
+        border-top-color: #20c997 !important;
+        background: #fcfffe !important;
+        box-shadow: 0 12px 26px rgba(23,43,77,.11) !important;
+        z-index: 2;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .cajas-page-size {
+        margin-right: 0 !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cajas-kpi-card,
+    .cajas-detail-row,
+    .cajas-mini-card {
+        transition: none !important;
+    }
+
+    .cajas-kpi-card:hover,
+    .cajas-listado.vista-detalle .cajas-detail-row:hover,
+    .cajas-listado.vista-miniatura .cajas-mini-card:hover {
+        transform: none !important;
+    }
+}
+
+/* =========================================================
+   IZZY 6.0 | CAJAS - TOOLBAR UNIFORME
+   Separación real entre Mostrar registros / Vista / Buscador.
+   ========================================================= */
+.cajas-list-tools {
+    gap: 16px !important;
+}
+
+.cajas-page-size {
+    margin-right: 0 !important;
+}
+
+@media (max-width: 991.98px) {
+    .cajas-list-tools {
+        gap: 12px !important;
+    }
+}
+

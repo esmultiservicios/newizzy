@@ -1479,3 +1479,187 @@
     }
 }
 
+/* =========================================================
+   IZZY 6.0 | PROVEEDORES
+   DIRECTORIO UNIFORME CON CLIENTES - FIX FINAL
+   ========================================================= */
+
+/* Mismo patrón de columnas de Clientes, dejando Acciones con
+   espacio real suficiente dentro de la fila. */
+.proveedores-detail-header,
+.proveedores-detail-row {
+    grid-template-columns:
+        minmax(230px, 1.25fr)
+        minmax(150px, .75fr)
+        minmax(150px, .75fr)
+        minmax(210px, 1.15fr)
+        minmax(150px, .75fr)
+        minmax(150px, .75fr)
+        minmax(110px, .55fr)
+        132px !important;
+    gap: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+/* Encabezado igual de compacto que Clientes. */
+.proveedores-detail-header {
+    min-height: 39px !important;
+    margin-bottom: 11px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+.proveedores-detail-header > div {
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 13px 14px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0 !important;
+}
+
+/* Fila con exactamente la misma presencia visual que Clientes. */
+.proveedores-detail-row {
+    min-height: 102px !important;
+    margin-bottom: 11px !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+    border: 1px solid #dfe6ee !important;
+    border-top: 3px solid #0ea5a8 !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    box-shadow: 0 2px 8px rgba(23,50,77,.05) !important;
+    overflow: visible !important;
+}
+
+.proveedores-detail-row > .proveedores-cell {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 99px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 16px 14px !important;
+    border-right: 1px solid #edf1f6 !important;
+    color: #46556b !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+}
+
+.proveedores-detail-row > .proveedores-cell:last-child {
+    border-right: 0 !important;
+}
+
+/* La columna Acciones queda contenida dentro de la fila. */
+.proveedores-detail-row > .proveedores-actions,
+.proveedores-detail-row .proveedores-actions {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    overflow: visible !important;
+}
+
+/* Botón con el mismo tamaño real del módulo Clientes, sin salirse. */
+.proveedores-actions .btn-acciones {
+    width: auto !important;
+    min-width: 112px !important;
+    max-width: 100% !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    padding: 7px 12px !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: #2f80ed !important;
+    color: #fff !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 6px rgba(47,128,237,.20) !important;
+}
+
+.proveedores-actions .btn-acciones span,
+.proveedores-actions .btn-acciones i {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+}
+
+.proveedores-actions .btn-acciones:hover,
+.proveedores-actions .btn-acciones:focus {
+    background: #236fce !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+
+/* Texto igual de legible que Clientes. */
+.proveedores-name,
+.proveedores-detail-row strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+}
+
+.proveedores-muted,
+.proveedores-detail-row small {
+    margin-top: 4px !important;
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+}
+
+.proveedores-status {
+    padding: 5px 9px !important;
+    font-size: 10.5px !important;
+    line-height: 1.2 !important;
+}
+
+/* Conserva el responsive original del módulo. */
+@media (max-width: 1199.98px) {
+    .proveedores-detail-header {
+        display: none !important;
+    }
+
+    .proveedores-detail-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        min-height: 0 !important;
+    }
+
+    .proveedores-detail-row > .proveedores-cell {
+        min-height: 72px !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid #edf1f6 !important;
+    }
+
+    .proveedores-detail-row > .proveedores-cell:last-child {
+        border-bottom: 0 !important;
+    }
+
+    .proveedores-detail-row > .proveedores-actions,
+    .proveedores-detail-row .proveedores-actions {
+        justify-content: flex-start !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .proveedores-actions .btn-acciones {
+        min-width: 112px !important;
+        max-width: 100% !important;
+    }
+}
+

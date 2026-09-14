@@ -5633,7 +5633,9 @@ body.modal-open .user-dropdown {
   z-index: 2010 !important;
 }
 body.modal-open .sb-topnav {
-  z-index: 1000 !important;
+  /* Mantiene el topbar visible por encima del backdrop (1990)
+     y por debajo del modal (2000). */
+  z-index: 1995 !important;
   pointer-events: none;
 }
 

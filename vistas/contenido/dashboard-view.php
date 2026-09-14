@@ -199,9 +199,11 @@
 					</div>
 				</div>
                 <div id="dashboard_chart_ventas_body" class="dashboard-chart-body">
-				    <div class="chart-container bar-chart">
-					    <canvas id="graphVentas" height="250"></canvas>
-				    </div>
+				    <div class="chart-container bar-chart dashboard-chart-scroll">
+                        <div class="dashboard-chart-canvas">
+                            <canvas id="graphVentas" height="250"></canvas>
+                        </div>
+                    </div>
 				    <div class="chart-legend" id="ventas-legend">
 					    <!-- Leyenda generada dinámicamente -->
 				    </div>
@@ -246,9 +248,11 @@
 					</div>
 				</div>
                 <div id="dashboard_chart_compras_body" class="dashboard-chart-body">
-				    <div class="chart-container bar-chart">
-					    <canvas id="graphCompras" height="250"></canvas>
-				    </div>
+				    <div class="chart-container bar-chart dashboard-chart-scroll">
+                        <div class="dashboard-chart-canvas">
+                            <canvas id="graphCompras" height="250"></canvas>
+                        </div>
+                    </div>
 				    <div class="chart-legend" id="compras-legend">
 					    <!-- Leyenda generada dinámicamente -->
 				    </div>
@@ -293,9 +297,11 @@
 					</div>
 				</div>
                 <div id="dashboard_chart_productos_body" class="dashboard-chart-body">
-				    <div class="chart-container bar-chart">
-					    <canvas id="graphTopProductosporAno" height="120"></canvas>
-				    </div>
+				    <div class="chart-container bar-chart dashboard-chart-scroll">
+                        <div class="dashboard-chart-canvas">
+                            <canvas id="graphTopProductosporAno" height="120"></canvas>
+                        </div>
+                    </div>
 				    <div class="chart-legend" id="top-products-legend">
 					    <!-- La leyenda se generará dinámicamente con JavaScript -->
 				    </div>
@@ -408,6 +414,13 @@
                                            class="form-control"
                                            placeholder="Buscar secuencia..."
                                            autocomplete="off">
+                                    <button type="button"
+                                            id="dashboard_fiscales_buscar_limpiar"
+                                            class="dashboard-fiscales-search-clear"
+                                            aria-label="Limpiar búsqueda"
+                                            title="Limpiar búsqueda">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>

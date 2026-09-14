@@ -277,7 +277,7 @@
                                 <div class="tab-pane fade show active" id="existente" role="tabpanel">
                                     <div class="form-group">
                                         <label for="colaboradores_id">Buscar Colaborador <span class="priority">*</span></label>
-                                        <select id="colaboradores_id" name="colaboradores_id" class="selectpicker form-control" data-live-search="true" data-size="7" data-width="100%" title="Seleccione un colaborador de la lista">
+                                        <select id="colaboradores_id" name="colaboradores_id" class="form-control izzy-select2" data-width="100%" title="Seleccione un colaborador de la lista" data-placeholder="Seleccione un colaborador de la lista">
                                         </select>
                                         <small class="form-text text-muted">Seleccione un colaborador existente para asignarle credenciales de usuario</small>
                                     </div>
@@ -340,8 +340,8 @@
                                         </div>
                                         <div class="col-md-6 form-group">
                                             <label for="puesto_colaborador">Puesto</label>
-                                            <select class="selectpicker form-control" id="puesto_colaborador" name="puesto_colaborador" 
-                                                data-live-search="true" title="Seleccione un puesto">
+                                            <select class="form-control izzy-select2" id="puesto_colaborador" name="puesto_colaborador" 
+ title="Seleccione un puesto" data-placeholder="Seleccione un puesto">
                                             </select>
                                             <small class="form-text text-muted">Cargo o posición del colaborador</small>
                                             <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btnNuevoPuesto">
@@ -373,15 +373,15 @@
                                 </div>
                                 <div class="col-md-3 form-group">
                                     <label for="empresa_usuario">Empresa Asignada <span class="priority">*</span></label>
-                                    <select id="empresa_usuario" name="empresa_usuario" class="selectpicker form-control" 
-                                        data-live-search="true" title="Seleccione una empresa" required>
+                                    <select id="empresa_usuario" name="empresa_usuario" class="form-control izzy-select2" 
+ title="Seleccione una empresa" required data-placeholder="Seleccione una empresa">
                                     </select>
                                     <small class="form-text text-muted">Empresa principal del usuario</small>
                                 </div>
                                 <div class="col-md-3 form-group">
                                     <label for="privilegio_id">Nivel de Privilegio <span class="priority">*</span></label>
-                                    <select id="privilegio_id" name="privilegio_id" class="selectpicker form-control" 
-                                        data-live-search="true" title="Seleccione un privilegio" required>
+                                    <select id="privilegio_id" name="privilegio_id" class="form-control izzy-select2" 
+ title="Seleccione un privilegio" required data-placeholder="Seleccione un privilegio">
                                     </select>
                                     <small class="form-text text-muted">Determina el nivel de acceso en el sistema</small>
                                 </div>
@@ -390,8 +390,8 @@
                             <div class="form-row">
                                 <div class="col-md-6 form-group">
                                     <label for="tipo_user">Tipo de Permisos <span class="priority">*</span></label>
-                                    <select id="tipo_user" name="tipo_user" class="selectpicker form-control" 
-                                        data-live-search="true" title="Seleccione permisos" required>
+                                    <select id="tipo_user" name="tipo_user" class="form-control izzy-select2" 
+ title="Seleccione permisos" required data-placeholder="Seleccione permisos">
                                     </select>
                                     <small class="form-text text-muted">Define las funciones específicas disponibles</small>
                                 </div>
@@ -594,7 +594,7 @@
   <div class="fm-toolbar-left"><button type="button" id="btnActualizarClientesFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnNuevoClienteFm" class="btn table_crear btn-primary ocultar btn-sm mr-2 mb-2"><i class="fas fa-plus mr-1"></i>Ingresar</button></div>
   <div class="fm-toolbar-right">
     <label class="fm-page-size">Mostrar
-      <select id="clientesFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+      <select id="clientesFacturaPageSize" class="form-control form-control-sm fm-page-size-select izzy-select2">
         <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
       </select>
       registros
@@ -869,10 +869,10 @@
                                                                 <label>Método de Pago</label>
                                                                 <div class="input-group">
                                                                     <select id="metodopago_efectivo_compras"
-                                                                        name="metodopago_efectivo_compras"
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="Método de Pago" required>
+ name="metodopago_efectivo_compras"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Método de Pago" required data-placeholder="Método de Pago">
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -909,10 +909,10 @@
                                                                 <label>Quien Paga</label>
                                                                 <div class="input-group">
                                                                     <select id="usuario_efectivo_compras"
-                                                                        name="usuario_efectivo_compras"
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="Usuario que Paga">
+ name="usuario_efectivo_compras"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Paga" data-placeholder="Usuario que Paga">
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -994,10 +994,10 @@
                                                                 <label>Quien Paga</label>
                                                                 <div class="input-group">
                                                                     <select id="usuario_tarjeta_compras"
-                                                                        name="usuario_tarjeta_compras"
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="Usuario que Paga">
+ name="usuario_tarjeta_compras"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Paga" data-placeholder="Usuario que Paga">
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -1045,9 +1045,9 @@
                                                                         id="compras_id_transferencia"
                                                                         placeholder="Compra Codigo">
                                                                     <select id="bk_nm" name="bk_nm" required
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="banco">
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="banco" data-placeholder="banco">
                                                                     </select>
                                                                     <input type="hidden" class="multiple_pago"
                                                                         name="multiple_pago" value="0">
@@ -1087,10 +1087,10 @@
                                                                 <label>Quien Paga</label>
                                                                 <div class="input-group">
                                                                     <select id="usuario_transferencia_compras"
-                                                                        name="usuario_transferencia_compras"
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="Usuario que Paga">
+ name="usuario_transferencia_compras"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Paga" data-placeholder="Usuario que Paga">
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -1135,9 +1135,9 @@
                                                                     <input type="hidden" name="compras_id_cheque"
                                                                         id="compras_id_cheque">
                                                                     <select id="bk_nm_chk" name="bk_nm_chk" required
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="banco">
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="banco" data-placeholder="banco">
                                                                     </select>
                                                                     <input type="hidden" class="multiple_pago"
                                                                         name="multiple_pago" value="0">
@@ -1168,10 +1168,10 @@
                                                                 <label>Quien Paga</label>
                                                                 <div class="input-group">
                                                                     <select id="usuario_cheque_compras"
-                                                                        name="usuario_cheque_compras"
-                                                                        class="selectpicker col-12" data-size="5"
-                                                                        data-width="100%" data-live-search="true"
-                                                                        title="Usuario que Paga">
+ name="usuario_cheque_compras"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Paga" data-placeholder="Usuario que Paga">
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -1347,10 +1347,10 @@
                                                                     <label>Quien Recibe</label>
                                                                     <div class="input-group">
                                                                         <select id="usuario_efectivo"
-                                                                            name="usuario_efectivo"
-                                                                            class="selectpicker col-12" data-size="5"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Usuario que Recibe">
+ name="usuario_efectivo"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1440,10 +1440,10 @@
                                                                     <label>Quien Recibe</label>
                                                                     <div class="input-group">
                                                                         <select id="usuario_tarjeta"
-                                                                            name="usuario_tarjeta"
-                                                                            class="selectpicker col-12" data-size="5"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Usuario que Recibe">
+ name="usuario_tarjeta"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1552,10 +1552,10 @@
                                                                     <label>Quien Recibe</label>
                                                                     <div class="input-group">
                                                                         <select id="usuario_pago_mixto"
-                                                                            name="usuario_pago_mixto"
-                                                                            class="selectpicker col-12" data-size="5"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Usuario que Recibe">
+ name="usuario_pago_mixto"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1603,9 +1603,9 @@
                                                                             name="origen_pago" 
                                                                             id="origen_pago" value="0">                                                                            
                                                                         <select id="bk_nm" name="bk_nm" required
-                                                                            class="selectpicker col-12" data-size="5"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Banco">
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Banco" data-placeholder="Banco">
                                                                         </select>
                                                                         <input type="hidden" class="multiple_pago"
                                                                             name="multiple_pago" value="0">
@@ -1644,10 +1644,10 @@
                                                                     <label>Quien Recibe</label>
                                                                     <div class="input-group">
                                                                         <select id="usuario_transferencia"
-                                                                            name="usuario_transferencia"
-                                                                            class="selectpicker col-12" data-size="5"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Usuario que Recibe">
+ name="usuario_transferencia"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1700,9 +1700,9 @@
                                                                         <input type="hidden" name="factura_id_cheque"
                                                                             id="factura_id_cheque">
                                                                         <select id="bk_nm_chk" name="bk_nm_chk" required
-                                                                            data-size="5" class="selectpicker col-12"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Banco">
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Banco" data-placeholder="Banco">
                                                                         </select>
                                                                         <input type="hidden" name="monto_efectivo"
                                                                             id="monto_efectivo" placeholder="0.00">
@@ -1728,10 +1728,10 @@
                                                                     <label>Quien Recibe</label>
                                                                     <div class="input-group">
                                                                         <select id="usuario_cheque"
-                                                                            name="usuario_cheque"
-                                                                            class="selectpicker col-12" data-size="5"
-                                                                            data-width="100%" data-live-search="true"
-                                                                            title="Usuario que Recibe">
+ name="usuario_cheque"
+ class="col-12 izzy-select2"
+ data-width="100%"
+ title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1921,8 +1921,8 @@
                 </div>
 
                 <div class="payment-form-group">
-                  <select id="usuario_efectivo" name="usuario_efectivo" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <select id="usuario_efectivo" name="usuario_efectivo" class="form-control izzy-select2"
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
                   <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -1985,8 +1985,8 @@
                 </div>
 
                 <div class="payment-form-group">
-                  <select id="usuario_tarjeta" name="usuario_tarjeta" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <select id="usuario_tarjeta" name="usuario_tarjeta" class="form-control izzy-select2"
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
                     <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2022,8 +2022,8 @@
 
                 <div class="payment-form-group">
                   <label class="d-block mb-1">Banco</label>
-                  <select id="bk_nm" name="bk_nm" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
+                  <select id="bk_nm" name="bk_nm" class="form-control izzy-select2"
+ title="Banco" data-width="100%" data-placeholder="Banco"></select>
                 </div>
 
                 <div class="payment-form-group">
@@ -2040,8 +2040,8 @@
                 </div>
 
                 <div class="payment-form-group">
-                  <select id="usuario_transferencia" name="usuario_transferencia" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <select id="usuario_transferencia" name="usuario_transferencia" class="form-control izzy-select2"
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
                   <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2077,8 +2077,8 @@
 
                 <div class="payment-form-group">
                   <label class="d-block mb-1">Banco</label>
-                  <select id="bk_nm_chk" name="bk_nm_chk" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Banco" data-width="100%"></select>
+                  <select id="bk_nm_chk" name="bk_nm_chk" class="form-control izzy-select2"
+ title="Banco" data-width="100%" data-placeholder="Banco"></select>
                 </div>
 
                 <div class="payment-form-group">
@@ -2094,8 +2094,8 @@
                 </div>
 
                 <div class="payment-form-group">
-                  <select id="usuario_cheque" name="usuario_cheque" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <select id="usuario_cheque" name="usuario_cheque" class="form-control izzy-select2"
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
                     <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2152,8 +2152,8 @@
                 <input type="hidden" name="importe_puntos" id="importe_puntos" value="0">
 
                 <div class="payment-form-group">
-                  <select id="usuario_puntos" name="usuario_puntos" class="selectpicker form-control"
-                          data-size="5" data-live-search="true" title="Usuario que Recibe" data-width="100%"></select>
+                  <select id="usuario_puntos" name="usuario_puntos" class="form-control izzy-select2"
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
                 <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2312,13 +2312,13 @@
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label><i class="fas fa-map-marked-alt mr-1"></i> Departamento</label>
-                                    <select class="selectpicker form-control" id="departamento_cliente" name="departamento_cliente" data-live-search="true" title="Seleccione un departamento">
+                                    <select class="form-control izzy-select2" id="departamento_cliente" name="departamento_cliente" title="Seleccione un departamento" data-placeholder="Seleccione un departamento">
                                     </select>
                                     <small class="form-text text-muted">Departamento donde reside el cliente</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label><i class="fas fa-map-marker-alt mr-1"></i> Municipio</label>
-                                    <select class="selectpicker form-control" id="municipio_cliente" name="municipio_cliente" data-live-search="true" title="Seleccione un municipio">
+                                    <select class="form-control izzy-select2" id="municipio_cliente" name="municipio_cliente" title="Seleccione un municipio" data-placeholder="Seleccione un municipio">
                                     </select>
                                     <small class="form-text text-muted">Municipio donde reside el cliente</small>
                                 </div>
@@ -2533,13 +2533,13 @@
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="departamento_proveedores"><i class="fas fa-map-marker-alt mr-1"></i>Departamento</label>
-                                    <select class="selectpicker form-control" id="departamento_proveedores" name="departamento_proveedores" data-live-search="true" title="Seleccione departamento">
+                                    <select class="form-control izzy-select2" id="departamento_proveedores" name="departamento_proveedores" title="Seleccione departamento" data-placeholder="Seleccione departamento">
                                     </select>
                                     <small class="form-text text-muted">Departamento donde se ubica el proveedor</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="municipio_proveedores"><i class="fas fa-map-marked-alt mr-1"></i>Municipio</label>
-                                    <select class="selectpicker form-control" id="municipio_proveedores" name="municipio_proveedores" data-live-search="true" title="Seleccione municipio">
+                                    <select class="form-control izzy-select2" id="municipio_proveedores" name="municipio_proveedores" title="Seleccione municipio" data-placeholder="Seleccione municipio">
                                     </select>
                                     <small class="form-text text-muted">Municipio donde se ubica el proveedor</small>
                                 </div>
@@ -2655,7 +2655,7 @@
 <div class="fm-filter-row">
   <div class="fm-filter-field fm-filter-field-wide">
     <label>Bodega</label>
-    <select id="almacen_facturas" name="almacen_facturas" class="form-control selectpicker" title="Bodega" data-width="100%" data-size="5" data-live-search="true"></select>
+    <select id="almacen_facturas" name="almacen_facturas" class="form-control izzy-select2" title="Bodega" data-width="100%" data-placeholder="Bodega"></select>
   </div>
 </div>
   </div>
@@ -2665,7 +2665,7 @@
   <div class="fm-toolbar-left"><button type="button" id="btnActualizarProductosFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnNuevoProductoFm" class="btn table_crear btn-primary ocultar btn-sm mr-2 mb-2"><i class="fas fa-plus mr-1"></i>Ingresar</button></div>
   <div class="fm-toolbar-right">
     <label class="fm-page-size">Mostrar
-      <select id="productosFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+      <select id="productosFacturaPageSize" class="form-control form-control-sm fm-page-size-select izzy-select2">
         <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
       </select>
       registros
@@ -2719,8 +2719,8 @@
                                     <span class="input-group-text">
                                         <div class="sb-nav-link-icon"></div>Bodega
                                     </span>
-                                    <select id="almacen" name="almacen" class="selectpicker" title="Bodega"
-                                        data-width="100%" data-size="5" data-live-search="true">
+                                    <select id="almacen" name="almacen" class="izzy-select2" title="Bodega"
+ data-width="100%" data-placeholder="Bodega">
                                     </select>
                                 </div>
                             </div>
@@ -2868,7 +2868,7 @@
   <div class="fm-toolbar-left"><button type="button" id="btnActualizarColaboradoresFm" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnNuevoColaboradorFm" class="btn table_crear btn-primary ocultar btn-sm mr-2 mb-2"><i class="fas fa-plus mr-1"></i>Ingresar</button></div>
   <div class="fm-toolbar-right">
     <label class="fm-page-size">Mostrar
-      <select id="colaboradoresFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+      <select id="colaboradoresFacturaPageSize" class="form-control form-control-sm fm-page-size-select izzy-select2">
         <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
       </select>
       registros
@@ -2995,16 +2995,16 @@
                             <div class="form-row">
                                 <div class="col-md-6 form-group">
                                     <label><i class="fas fa-briefcase mr-1"></i>Puesto o Cargo <span class="priority">*</span></label>
-                                    <select id="puesto_colaborador" name="puesto_colaborador" class="selectpicker form-control" 
-                                            data-live-search="true" title="Seleccione el puesto" data-required="true">
+                                    <select id="puesto_colaborador" name="puesto_colaborador" class="form-control izzy-select2" 
+ title="Seleccione el puesto" data-required="true" data-placeholder="Seleccione el puesto">
                                         <option value="">Seleccione un puesto</option>
                                     </select>
                                     <small class="form-text text-muted">Posición dentro de la organización</small>
                                 </div>
                                 <div class="col-md-6 form-group">
                                     <label><i class="fas fa-building mr-1"></i>Empresa Asignada <span class="priority">*</span></label>
-                                    <select id="colaborador_empresa_id" name="colaborador_empresa_id" class="selectpicker form-control" 
-                                            data-live-search="true" title="Seleccione la empresa" required>
+                                    <select id="colaborador_empresa_id" name="colaborador_empresa_id" class="form-control izzy-select2" 
+ title="Seleccione la empresa" required data-placeholder="Seleccione la empresa">
                                         <option value="">Seleccione una empresa</option>
                                     </select>
                                     <small class="form-text text-muted">Empresa o sucursal principal</small>
@@ -3701,37 +3701,37 @@
                             <div class="form-row">
                                 <div class="col-md-3 mb-3" style="display: none;">
                                     <label for="producto_empresa_id"><i class="fas fa-building mr-1"></i>Empresa <span class="priority">*</span></label>
-                                    <select id="producto_empresa_id" name="producto_empresa_id" class="selectpicker form-control" data-live-search="true" title="Seleccione una empresa">
+                                    <select id="producto_empresa_id" name="producto_empresa_id" class="form-control izzy-select2" title="Seleccione una empresa" data-placeholder="Seleccione una empresa">
                                     </select>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="producto_superior" data-toggle="tooltip" data-placement="top" title="El campo 'Producto Superior' se emplea cuando estás creando un producto que tiene una conexión con otro. Imagina que estás diseñando un 'Kit de Jardinería', aquí puedes elegir 'Semillas' como el producto superior, indicando que el kit depende de las semillas para su existencia.">
                                         <i class="fas fa-sitemap mr-1"></i>Superior
                                     </label>
-                                    <select class="selectpicker form-control" id="producto_superior" name="producto_superior" data-live-search="true" title="Seleccione producto superior">
+                                    <select class="form-control izzy-select2" id="producto_superior" name="producto_superior" title="Seleccione producto superior" data-placeholder="Seleccione producto superior">
                                     </select>
                                     <small class="form-text text-muted">Producto padre o relacionado</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="tipo_producto"><i class="fas fa-cubes mr-1"></i>Tipo Producto <span class="priority">*</span></label>
-                                    <select id="tipo_producto" name="tipo_producto" required class="selectpicker form-control" data-live-search="true" title="Seleccione tipo de producto">
+                                    <select id="tipo_producto" name="tipo_producto" required class="form-control izzy-select2" title="Seleccione tipo de producto" data-placeholder="Seleccione tipo de producto">
                                     </select>
                                     <small class="form-text text-muted">Tipo o clasificación del producto</small>
                                 </div>
                                 <div class="col-md-3 mb-3 confCategoria">
                                     <label for="producto_categoria"><i class="fas fa-folder mr-1"></i>Categoria</label>
-                                    <select class="selectpicker form-control" id="producto_categoria" name="producto_categoria" required data-live-search="true" title="Seleccione categoría">
+                                    <select class="form-control izzy-select2" id="producto_categoria" name="producto_categoria" required title="Seleccione categoría" data-placeholder="Seleccione categoría">
                                     </select>
                                     <small class="form-text text-muted">Categoría del producto</small>
                                 </div>
                                 <div class="col-md-3 mb-3" style="display: none;">
                                     <label for="almacen"><i class="fas fa-warehouse mr-1"></i>Almacén</label>
-                                    <select id="almacen" name="almacen" class="selectpicker form-control" data-live-search="true" title="Seleccione almacén">
+                                    <select id="almacen" name="almacen" class="form-control izzy-select2" title="Seleccione almacén" data-placeholder="Seleccione almacén">
                                     </select>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="medida"><i class="fas fa-ruler-combined mr-1"></i>Medida <span class="priority">*</span></label>
-                                    <select id="medida" name="medida" required class="selectpicker form-control" data-live-search="true" title="Seleccione medida">
+                                    <select id="medida" name="medida" required class="form-control izzy-select2" title="Seleccione medida" data-placeholder="Seleccione medida">
                                     </select>
                                     <small class="form-text text-muted">Unidad de medida del producto</small>
                                 </div>
@@ -3997,7 +3997,7 @@
                                 <div class="col-md-6 mb-3">
                                     <label for="id_bodega"><i class="fas fa-warehouse mr-1"></i>Bodega Destino <span class="priority">*</span></label>
                                     <div class="input-group">
-                                        <select id="id_bodega" name="id_bodega" class="selectpicker form-control" data-live-search="true" title="Seleccione bodega destino" required>
+                                        <select id="id_bodega" name="id_bodega" class="form-control izzy-select2" title="Seleccione bodega destino" required data-placeholder="Seleccione bodega destino">
                                         </select>
                                         <div class="input-group-append">
                                             <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -4524,7 +4524,7 @@
                             <div class="form-row">
                                 <div class="col-md-6 mb-3">
                                     <label for="asistencia_empleado"><i class="fas fa-users mr-1"></i>Empleado <span class="priority">*</span></label>
-                                    <select id="asistencia_empleado" name="asistencia_empleado" class="selectpicker form-control" data-live-search="true" title="Seleccione un empleado" required>
+                                    <select id="asistencia_empleado" name="asistencia_empleado" class="form-control izzy-select2" title="Seleccione un empleado" required data-placeholder="Seleccione un empleado">
                                     </select>
                                     <small class="form-text text-muted">Seleccione el empleado que registrará asistencia</small>
                                 </div>
@@ -4668,19 +4668,19 @@
                             <div class="form-row">
                                 <div class="col-md-4 mb-3">
                                     <label for="sistema"><i class="fas fa-cube mr-1"></i>Sistema</label>
-                                    <select class="selectpicker form-control" id="sistema" name="sistema" data-live-search="true" title="Seleccione Sistema">
+                                    <select class="form-control izzy-select2" id="sistema" name="sistema" title="Seleccione Sistema" data-placeholder="Seleccione Sistema">
                                     </select>
                                     <small class="form-text text-muted">Tipo de sistema a generar</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label for="plan"><i class="fas fa-layer-group mr-1"></i>Plan</label>
-                                    <select class="selectpicker form-control" id="plan" name="plan" data-live-search="true" title="Seleccione Plan">
+                                    <select class="form-control izzy-select2" id="plan" name="plan" title="Seleccione Plan" data-placeholder="Seleccione Plan">
                                     </select>
                                     <small class="form-text text-muted">Plan de servicio</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
                                     <label for="validar"><i class="fas fa-check-circle mr-1"></i>Validar Facturación</label>
-                                    <select class="selectpicker form-control" id="validar" name="validar" data-live-search="true" title="Seleccione Validación">
+                                    <select class="form-control izzy-select2" id="validar" name="validar" title="Seleccione Validación" data-placeholder="Seleccione Validación">
                                     </select>
                                     <small class="form-text text-muted">Configuración de validación</small>
                                 </div>
@@ -4777,7 +4777,7 @@
   <div id="cajaFacturaFiltrosContenido" class="fm-section-body">
     
 <div class="fm-filter-row">
-  <div class="fm-filter-field"><label>Estado</label><select id="estado_caja_factura" name="estado_caja_factura" class="form-control"><option value="0">Todas</option><option value="1">Activas</option><option value="2">Cerradas</option></select></div>
+  <div class="fm-filter-field"><label>Estado</label><select id="estado_caja_factura" name="estado_caja_factura" class="form-control izzy-select2"><option value="0">Todas</option><option value="1">Activas</option><option value="2">Cerradas</option></select></div>
   <div class="fm-filter-field"><label>Fecha Inicial</label><input type="date" class="form-control" id="fecha_caja_factura_i" name="fecha_caja_factura_i" value="<?php echo date('Y-m-d'); ?>"></div>
   <div class="fm-filter-field"><label>Fecha Final</label><input type="date" class="form-control" id="fecha_caja_factura_f" name="fecha_caja_factura_f" value="<?php echo date('Y-m-d'); ?>"></div>
   <div class="fm-filter-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-filter mr-1"></i>Filtrar</button></div>
@@ -4790,7 +4790,7 @@
   <div class="fm-toolbar-left"><button type="button" id="btnActualizarCajaFactura" class="btn table_actualizar btn-secondary ocultar btn-sm mr-2 mb-2"><i class="fas fa-sync-alt mr-1"></i>Actualizar</button><button type="button" id="btnExcelCajaFacturaFm" class="btn table_reportes btn-success ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-excel mr-1"></i>Excel</button><button type="button" id="btnPdfCajaFacturaFm" class="btn table_reportes btn-danger ocultar btn-sm mr-2 mb-2"><i class="fas fa-file-pdf mr-1"></i>PDF</button></div>
   <div class="fm-toolbar-right">
     <label class="fm-page-size">Mostrar
-      <select id="cajaFacturaPageSize" class="form-control form-control-sm fm-page-size-select">
+      <select id="cajaFacturaPageSize" class="form-control form-control-sm fm-page-size-select izzy-select2">
         <option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option>
       </select>
       registros
@@ -4887,7 +4887,7 @@
     </div>
     <div class="fm-toolbar-right">
       <label class="fm-page-size">Mostrar
-        <select id="retirosDetallePageSize" class="form-control form-control-sm fm-page-size-select"><option>10</option><option>25</option><option>50</option><option>100</option></select>
+        <select id="retirosDetallePageSize" class="form-control form-control-sm fm-page-size-select izzy-select2"><option>10</option><option>25</option><option>50</option><option>100</option></select>
         registros
       </label>
       <div class="btn-group btn-group-sm fm-view-switch">
@@ -5312,7 +5312,7 @@
     </div>
     <div class="fm-toolbar-right">
       <label class="fm-page-size">Mostrar
-        <select id="gananciaDetallePageSize" class="form-control form-control-sm fm-page-size-select"><option>10</option><option>25</option><option>50</option><option>100</option></select>
+        <select id="gananciaDetallePageSize" class="form-control form-control-sm fm-page-size-select izzy-select2"><option>10</option><option>25</option><option>50</option><option>100</option></select>
         registros
       </label>
       <div class="btn-group btn-group-sm fm-view-switch">
@@ -5689,7 +5689,7 @@
 
                     <div class="form-group mt-3">
                         <label>Categoría del retiro <span class="priority">*</span></label>
-                        <select class="form-control selectpicker" id="retiro_categoria_gastos_id" name="retiro_categoria_gastos_id" title="Seleccione" data-live-search="true" required></select>
+                        <select class="form-control izzy-select2" id="retiro_categoria_gastos_id" name="retiro_categoria_gastos_id" title="Seleccione" required data-placeholder="Seleccione"></select>
                     </div>
 
                     <div class="form-group mb-0">
@@ -6448,7 +6448,7 @@
                             <div class="form-row">
                                 <div class="col-12 col-md-6 col-xl-3 mb-3">
                                     <label for="empresa_secuencia"><i class="fas fa-building mr-1"></i>Empresa <span class="priority">*</span></label>
-                                    <select id="empresa_secuencia" name="empresa_secuencia" class="selectpicker" data-live-search="true" data-width="100%" data-container="#modal_registrar_secuencias" title="Seleccione una empresa" required>
+                                    <select id="empresa_secuencia" name="empresa_secuencia" class="izzy-select2" data-width="100%" title="Seleccione una empresa" required data-placeholder="Seleccione una empresa">
                                         <option value="">Seleccione</option>
                                     </select>
                                     <small class="form-text text-muted">Empresa asociada a esta secuencia</small>
@@ -6456,7 +6456,7 @@
 
                                 <div class="col-12 col-md-6 col-xl-3 mb-3">
                                     <label for="documento_secuencia"><i class="fas fa-file-alt mr-1"></i>Documento <span class="priority">*</span></label>
-                                    <select id="documento_secuencia" name="documento_secuencia" class="selectpicker" data-live-search="true" data-width="100%" data-container="#modal_registrar_secuencias" title="Seleccione un documento" required>
+                                    <select id="documento_secuencia" name="documento_secuencia" class="izzy-select2" data-width="100%" title="Seleccione un documento" required data-placeholder="Seleccione un documento">
                                         <option value="">Seleccione</option>
                                     </select>
                                     <div class="secuencia-field-help-row">
@@ -6719,169 +6719,306 @@
 <!--FIN MODAL TIPO USAURIO-->
 
 <!--INICIO MODAL PARA EL INGRESO DE PERMISOS-->
-<div class="modal fade" id="modal_permisos">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+<div class="modal fade tipo-user-permissions-modal" id="modal_permisos" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-key mr-2"></i>Permisos de Usuario</h4>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header tipo-user-permissions-header">
+                <div class="tipo-user-permissions-heading">
+                    <span class="tipo-user-permissions-heading-icon" aria-hidden="true">
+                        <i class="fas fa-user-shield"></i>
+                    </span>
+                    <div>
+                        <h4 class="modal-title">Permisos de Usuario</h4>
+                        <p>Defina de forma clara qué acciones puede realizar este tipo de usuario.</p>
+                    </div>
+                </div>
+                <button type="button" class="close tipo-user-permissions-close" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
+
             <div class="modal-body">
                 <form class="form-horizontal FormularioAjax" id="formPermisos" action="" method="POST" data-form="" enctype="multipart/form-data">
-					<input type="hidden" required readonly id="permisos_tipo_user_id" name="permisos_tipo_user_id">
-					<input type="hidden" required readonly id="permisos_nombre" name="permisos_nombre">
-									                    
+                    <input type="hidden" required readonly id="permisos_tipo_user_id" name="permisos_tipo_user_id">
+                    <input type="hidden" required readonly id="permisos_nombre" name="permisos_nombre">
+
+                    <div class="tipo-user-permissions-intro">
+                        <span class="tipo-user-permissions-intro-icon" aria-hidden="true">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        <div>
+                            <strong>Configuración de acceso</strong>
+                            <span>Active únicamente los permisos que correspondan. Los cambios se guardarán al presionar Registrar.</span>
+                        </div>
+                    </div>
+
                     <!-- Sección de Permisos Básicos -->
-                    <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-user-shield mr-2"></i>Permisos Básicos</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_guardar" name="opcion_guardar" value="1">
-                                        <label class="custom-control-label" for="opcion_guardar"><i class="fas fa-save mr-1"></i>Guardar</label>
-                                    </div>
-                                    <small class="form-text text-muted">Permite guardar registros</small>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_editar" name="opcion_editar" value="1">
-                                        <label class="custom-control-label" for="opcion_editar"><i class="fas fa-edit mr-1"></i>Modificar</label>
-                                    </div>
-                                    <small class="form-text text-muted">Permite editar registros</small>
+                    <section class="tipo-user-permission-section" aria-labelledby="tipoUserPermisosBasicosTitulo">
+                        <div class="tipo-user-permission-section-header">
+                            <div class="tipo-user-permission-section-title">
+                                <span class="tipo-user-permission-section-icon tipo-user-permission-section-icon-blue" aria-hidden="true">
+                                    <i class="fas fa-user-shield"></i>
+                                </span>
+                                <div>
+                                    <h5 id="tipoUserPermisosBasicosTitulo">Permisos Básicos</h5>
+                                    <p>Acciones esenciales para consultar y administrar registros.</p>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_eliminar" name="opcion_eliminar" value="1">
-                                        <label class="custom-control-label" for="opcion_eliminar"><i class="fas fa-trash mr-1"></i>Eliminar</label>
+                            <span class="tipo-user-permission-count">4 permisos</span>
+                        </div>
+
+                        <div class="tipo-user-permission-grid">
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-save"></i></span>
+                                    <div>
+                                        <strong>Guardar</strong>
+                                        <small>Permite guardar registros.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite eliminar registros</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_consultar" name="opcion_consultar" value="1">
-                                        <label class="custom-control-label" for="opcion_consultar"><i class="fas fa-search mr-1"></i>Consultar</label>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_guardar" name="opcion_guardar" value="1">
+                                    <label class="custom-control-label" for="opcion_guardar"><span class="sr-only">Activar permiso Guardar</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-edit"></i></span>
+                                    <div>
+                                        <strong>Modificar</strong>
+                                        <small>Permite editar registros.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite consultar registros</small>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_editar" name="opcion_editar" value="1">
+                                    <label class="custom-control-label" for="opcion_editar"><span class="sr-only">Activar permiso Modificar</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-trash-alt"></i></span>
+                                    <div>
+                                        <strong>Eliminar</strong>
+                                        <small>Permite eliminar registros.</small>
+                                    </div>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_eliminar" name="opcion_eliminar" value="1">
+                                    <label class="custom-control-label" for="opcion_eliminar"><span class="sr-only">Activar permiso Eliminar</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-search"></i></span>
+                                    <div>
+                                        <strong>Consultar</strong>
+                                        <small>Permite consultar registros.</small>
+                                    </div>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_consultar" name="opcion_consultar" value="1">
+                                    <label class="custom-control-label" for="opcion_consultar"><span class="sr-only">Activar permiso Consultar</span></label>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
+                    </section>
+
                     <!-- Sección de Permisos Avanzados -->
-                    <div class="card border-primary mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-user-cog mr-2"></i>Permisos Avanzados</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_imprimir" name="opcion_imprimir" value="1">
-                                        <label class="custom-control-label" for="opcion_imprimir"><i class="fas fa-print mr-1"></i>Imprimir</label>
-                                    </div>
-                                    <small class="form-text text-muted">Permite imprimir documentos</small>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_crear" name="opcion_crear" value="1">
-                                        <label class="custom-control-label" for="opcion_crear"><i class="fas fa-plus-circle mr-1"></i>Crear</label>
-                                    </div>
-                                    <small class="form-text text-muted">Permite crear nuevos registros</small>
+                    <section class="tipo-user-permission-section" aria-labelledby="tipoUserPermisosAvanzadosTitulo">
+                        <div class="tipo-user-permission-section-header">
+                            <div class="tipo-user-permission-section-title">
+                                <span class="tipo-user-permission-section-icon tipo-user-permission-section-icon-teal" aria-hidden="true">
+                                    <i class="fas fa-user-cog"></i>
+                                </span>
+                                <div>
+                                    <h5 id="tipoUserPermisosAvanzadosTitulo">Permisos Avanzados</h5>
+                                    <p>Funciones operativas para impresión, creación, reportes y actualización.</p>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_reportes" name="opcion_reportes" value="1">
-                                        <label class="custom-control-label" for="opcion_reportes"><i class="fas fa-chart-bar mr-1"></i>Reportes</label>
+                            <span class="tipo-user-permission-count">4 permisos</span>
+                        </div>
+
+                        <div class="tipo-user-permission-grid">
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-print"></i></span>
+                                    <div>
+                                        <strong>Imprimir</strong>
+                                        <small>Permite imprimir documentos.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite generar reportes</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_actualizar" name="opcion_actualizar" value="1">
-                                        <label class="custom-control-label" for="opcion_actualizar"><i class="fas fa-sync-alt mr-1"></i>Actualizar</label>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_imprimir" name="opcion_imprimir" value="1">
+                                    <label class="custom-control-label" for="opcion_imprimir"><span class="sr-only">Activar permiso Imprimir</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-plus-circle"></i></span>
+                                    <div>
+                                        <strong>Crear</strong>
+                                        <small>Permite crear nuevos registros.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite actualizar registros</small>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_crear" name="opcion_crear" value="1">
+                                    <label class="custom-control-label" for="opcion_crear"><span class="sr-only">Activar permiso Crear</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-chart-bar"></i></span>
+                                    <div>
+                                        <strong>Reportes</strong>
+                                        <small>Permite generar reportes.</small>
+                                    </div>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_reportes" name="opcion_reportes" value="1">
+                                    <label class="custom-control-label" for="opcion_reportes"><span class="sr-only">Activar permiso Reportes</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-sync-alt"></i></span>
+                                    <div>
+                                        <strong>Actualizar</strong>
+                                        <small>Permite actualizar registros.</small>
+                                    </div>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_actualizar" name="opcion_actualizar" value="1">
+                                    <label class="custom-control-label" for="opcion_actualizar"><span class="sr-only">Activar permiso Actualizar</span></label>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
+                    </section>
+
                     <!-- Sección de Permisos Especiales -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-user-lock mr-2"></i>Permisos Especiales</h5>
+                    <section class="tipo-user-permission-section tipo-user-permission-section-special" aria-labelledby="tipoUserPermisosEspecialesTitulo">
+                        <div class="tipo-user-permission-section-header">
+                            <div class="tipo-user-permission-section-title">
+                                <span class="tipo-user-permission-section-icon tipo-user-permission-section-icon-purple" aria-hidden="true">
+                                    <i class="fas fa-user-lock"></i>
+                                </span>
+                                <div>
+                                    <h5 id="tipoUserPermisosEspecialesTitulo">Permisos Especiales</h5>
+                                    <p>Acciones sensibles o específicas que requieren mayor control.</p>
+                                </div>
+                            </div>
+                            <span class="tipo-user-permission-count">6 permisos</span>
                         </div>
-                        <div class="card-body">
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_view" name="opcion_view" value="1">
-                                        <label class="custom-control-label" for="opcion_view"><i class="fas fa-eye mr-1"></i>Seleccionar</label>
+
+                        <div class="tipo-user-permission-grid">
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-eye"></i></span>
+                                    <div>
+                                        <strong>Seleccionar</strong>
+                                        <small>Permite seleccionar registros.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite seleccionar registros</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_pay" name="opcion_pay" value="1">
-                                        <label class="custom-control-label" for="opcion_pay"><i class="fas fa-money-bill-wave mr-1"></i>Cobrar</label>
-                                    </div>
-                                    <small class="form-text text-muted">Permite realizar cobros y pagos</small>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_view" name="opcion_view" value="1">
+                                    <label class="custom-control-label" for="opcion_view"><span class="sr-only">Activar permiso Seleccionar</span></label>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_cambiar" name="opcion_cambiar" value="1">
-                                        <label class="custom-control-label" for="opcion_cambiar"><i class="fas fa-key mr-1"></i>Cambiar Contraseña</label>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-money-bill-wave"></i></span>
+                                    <div>
+                                        <strong>Cobrar</strong>
+                                        <small>Permite realizar cobros y pagos.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite cambiar la contraseña</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_cancelar" name="opcion_cancelar" value="1">
-                                        <label class="custom-control-label" for="opcion_cancelar"><i class="fas fa-ban mr-1"></i>Cancelar</label>
-                                    </div>
-                                    <small class="form-text text-muted">Permite cancelar transacciones</small>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_pay" name="opcion_pay" value="1">
+                                    <label class="custom-control-label" for="opcion_pay"><span class="sr-only">Activar permiso Cobrar</span></label>
                                 </div>
                             </div>
-                            <div class="form-row">
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_sistema" name="opcion_sistema" value="1">
-                                        <label class="custom-control-label" for="opcion_sistema"><i class="fas fa-desktop mr-1"></i>Sistema</label>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-key"></i></span>
+                                    <div>
+                                        <strong>Cambiar Contraseña</strong>
+                                        <small>Permite cambiar la contraseña.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite ver sistemas del cliente</small>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="opcion_generar" name="opcion_generar" value="1">
-                                        <label class="custom-control-label" for="opcion_generar"><i class="fas fa-cogs mr-1"></i>Generar Sistema</label>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_cambiar" name="opcion_cambiar" value="1">
+                                    <label class="custom-control-label" for="opcion_cambiar"><span class="sr-only">Activar permiso Cambiar Contraseña</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-ban"></i></span>
+                                    <div>
+                                        <strong>Cancelar</strong>
+                                        <small>Permite cancelar transacciones.</small>
                                     </div>
-                                    <small class="form-text text-muted">Permite generar sistemas para clientes</small>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_cancelar" name="opcion_cancelar" value="1">
+                                    <label class="custom-control-label" for="opcion_cancelar"><span class="sr-only">Activar permiso Cancelar</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-desktop"></i></span>
+                                    <div>
+                                        <strong>Sistema</strong>
+                                        <small>Permite ver sistemas del cliente.</small>
+                                    </div>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_sistema" name="opcion_sistema" value="1">
+                                    <label class="custom-control-label" for="opcion_sistema"><span class="sr-only">Activar permiso Sistema</span></label>
+                                </div>
+                            </div>
+
+                            <div class="tipo-user-permission-item">
+                                <div class="tipo-user-permission-copy">
+                                    <span class="tipo-user-permission-item-icon" aria-hidden="true"><i class="fas fa-cogs"></i></span>
+                                    <div>
+                                        <strong>Generar Sistema</strong>
+                                        <small>Permite generar sistemas para clientes.</small>
+                                    </div>
+                                </div>
+                                <div class="custom-control custom-switch tipo-user-permission-switch">
+                                    <input type="checkbox" class="custom-control-input" id="opcion_generar" name="opcion_generar" value="1">
+                                    <label class="custom-control-label" for="opcion_generar"><span class="sr-only">Activar permiso Generar Sistema</span></label>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
+                    </section>
+
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cancelar
-                </button>
-                <button class="btn btn-success" type="submit" id="reg_permisos" form="formPermisos">
-                    <i class="far fa-save fa-lg mr-1"></i> Registrar
-                </button>
+
+            <div class="modal-footer tipo-user-permissions-footer">
+                <span class="tipo-user-permissions-footer-note">
+                    <i class="fas fa-shield-alt"></i>
+                    Los permisos se aplicarán al tipo de usuario seleccionado.
+                </span>
+                <div class="tipo-user-permissions-footer-actions">
+                    <button class="btn btn-danger" type="button" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i> Cancelar
+                    </button>
+                    <button class="btn btn-success" type="submit" id="reg_permisos" form="formPermisos">
+                        <i class="far fa-save mr-1"></i> Registrar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -6963,200 +7100,261 @@
 </div>
 <!--FIN MODAL PRIVILEGIOS-->
 
-<!--INICIO AGREGAR MENUS-->
-<div class="modal fade" id="modal_registrar_menuaccesos">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+<!-- =========================================================
+     ACCESOS DE PRIVILEGIOS | LISTADOS DIV/CARDS
+     Menús / Submenús / Submenús Nivel 2
+========================================================= -->
+
+<!-- MENÚS -->
+<div class="modal fade priv-access-modal" id="modal_registrar_menuaccesos" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Menús</h4>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-bars mr-2"></i>
+                    Privilegios - <span class="priv-access-title-text">Menús</span>
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
-                    
-                    <!-- Sección de Menús -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-bars mr-2"></i>Menús Disponibles</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="dataTableMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
-                                            <th><i class="fas fa-list mr-1"></i>Menú</th>
-                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
-                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
 
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formMenuAccesos" action="" method="POST" data-form="" autocomplete="off">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos">
                     <div class="RespuestaAjax"></div>
                 </form>
+
+                <div class="priv-access-context">
+                    <div class="priv-access-context-copy">
+                        <span class="priv-access-context-label">Privilegio seleccionado</span>
+                        <strong class="priv-access-context-name">—</strong>
+                    </div>
+                    <span class="priv-access-context-count"><i class="fas fa-check-circle"></i>0 asignados</span>
+                </div>
+
+                <div class="priv-access-toolbar">
+                    <div class="priv-access-toolbar-left">
+                        <button type="button" class="btn btn-secondary table_actualizar ocultar" id="menuAccessRefresh">
+                            <i class="fas fa-sync-alt mr-1"></i>Actualizar
+                        </button>
+                        <button type="button" class="btn btn-success table_reportes ocultar" id="menuAccessExcel">
+                            <i class="fas fa-file-excel mr-1"></i>Excel
+                        </button>
+                        <button type="button" class="btn btn-danger table_reportes ocultar" id="menuAccessPdf">
+                            <i class="fas fa-file-pdf mr-1"></i>PDF
+                        </button>
+                    </div>
+
+                    <div class="priv-access-toolbar-right">
+                        <label class="priv-access-page-size mb-0">
+                            <span>Mostrar</span>
+                            <select id="menuAccessPageSize" class="form-control form-control-sm"></select>
+                            <span>registros</span>
+                        </label>
+
+                        <div class="priv-access-view-switch">
+                            <button type="button" class="priv-access-view-btn active" data-view="detalle" aria-pressed="true">
+                                <i class="fas fa-list"></i><span>Detalle</span>
+                            </button>
+                            <button type="button" class="priv-access-view-btn" data-view="miniatura" aria-pressed="false">
+                                <i class="fas fa-th-large"></i><span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="priv-access-search">
+                            <span class="privilegios-search-icon"><i class="fas fa-search"></i></span>
+                            <input type="search" id="menuAccessSearch" class="form-control" placeholder="Buscar menú..." autocomplete="off">
+                            <button type="button" id="menuAccessClear" class="priv-access-search-clear" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="menuAccessListado" class="priv-access-list vista-detalle"></div>
+                <div class="priv-access-footer">
+                    <span id="menuAccessInfo">Mostrando 0 registros</span>
+                    <div id="menuAccessPagination" class="priv-access-pagination"></div>
+                </div>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cerrar
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN AGREGAR MENUS-->
 
-<!--INICIO AGREGAR MENUS-->
-<div class="modal fade" id="modal_registrar_menuaccesos">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+<!-- SUBMENÚS NIVEL 1 -->
+<div class="modal fade priv-access-modal" id="modal_registrar_submenuaccesos" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Menús</h4>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-stream mr-2"></i>
+                    Privilegios - <span class="priv-access-title-text">Submenús</span>
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
-                    
-                    <!-- Sección de Menús -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-bars mr-2"></i>Menús Disponibles</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="dataTableMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
-                                            <th><i class="fas fa-list mr-1"></i>Menú</th>
-                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
-                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
 
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formSubMenuAccesos" action="" method="POST" data-form="" autocomplete="off">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos">
+                    <input type="hidden" id="menu_id_accesos" name="menu_id_accesos">
                     <div class="RespuestaAjax"></div>
                 </form>
+
+                <div class="priv-access-context">
+                    <div class="priv-access-context-copy">
+                        <span class="priv-access-context-label">Privilegio seleccionado</span>
+                        <strong class="priv-access-context-name">—</strong>
+                    </div>
+                    <span class="priv-access-context-count"><i class="fas fa-check-circle"></i>0 asignados</span>
+                </div>
+
+                <div class="priv-access-toolbar">
+                    <div class="priv-access-toolbar-left">
+                        <button type="button" class="btn btn-secondary table_actualizar ocultar" id="submenuAccessRefresh">
+                            <i class="fas fa-sync-alt mr-1"></i>Actualizar
+                        </button>
+                        <button type="button" class="btn btn-success table_reportes ocultar" id="submenuAccessExcel">
+                            <i class="fas fa-file-excel mr-1"></i>Excel
+                        </button>
+                        <button type="button" class="btn btn-danger table_reportes ocultar" id="submenuAccessPdf">
+                            <i class="fas fa-file-pdf mr-1"></i>PDF
+                        </button>
+                    </div>
+
+                    <div class="priv-access-toolbar-right">
+                        <label class="priv-access-page-size mb-0">
+                            <span>Mostrar</span>
+                            <select id="submenuAccessPageSize" class="form-control form-control-sm"></select>
+                            <span>registros</span>
+                        </label>
+
+                        <div class="priv-access-view-switch">
+                            <button type="button" class="priv-access-view-btn active" data-view="detalle" aria-pressed="true">
+                                <i class="fas fa-list"></i><span>Detalle</span>
+                            </button>
+                            <button type="button" class="priv-access-view-btn" data-view="miniatura" aria-pressed="false">
+                                <i class="fas fa-th-large"></i><span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="priv-access-search">
+                            <span class="privilegios-search-icon"><i class="fas fa-search"></i></span>
+                            <input type="search" id="submenuAccessSearch" class="form-control" placeholder="Buscar submenú..." autocomplete="off">
+                            <button type="button" id="submenuAccessClear" class="priv-access-search-clear" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="submenuAccessListado" class="priv-access-list vista-detalle"></div>
+                <div class="priv-access-footer">
+                    <span id="submenuAccessInfo">Mostrando 0 registros</span>
+                    <div id="submenuAccessPagination" class="priv-access-pagination"></div>
+                </div>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cerrar
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN AGREGAR MENUS-->
 
-<!--INICIO AGREGAR SUBMENUS-->
-<div class="modal fade" id="modal_registrar_submenuaccesos">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+<!-- SUBMENÚS NIVEL 2 -->
+<div class="modal fade priv-access-modal" id="modal_registrar_submenu1accesos" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Submenús</h4>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Privilegios - <span class="priv-access-title-text">Submenús Nivel 2</span>
+                </h4>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formSubMenuAccesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
-                    <input type="hidden" id="menu_id_accesos" name="menu_id_accesos" class="form-control">
-                    
-                    <!-- Sección de Submenús -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-list-ul mr-2"></i>Submenús Disponibles</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="dataTableSubMenuAccesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
-                                            <th><i class="fas fa-list mr-1"></i>Menú</th>
-                                            <th><i class="fas fa-list-ul mr-1"></i>Submenú</th>
-                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
-                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
 
+            <div class="modal-body">
+                <form class="FormularioAjax" id="formSubMenu1Accesos" action="" method="POST" data-form="" autocomplete="off">
+                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos">
                     <div class="RespuestaAjax"></div>
                 </form>
+
+                <div class="priv-access-context">
+                    <div class="priv-access-context-copy">
+                        <span class="priv-access-context-label">Privilegio seleccionado</span>
+                        <strong class="priv-access-context-name">—</strong>
+                    </div>
+                    <span class="priv-access-context-count"><i class="fas fa-check-circle"></i>0 asignados</span>
+                </div>
+
+                <div class="priv-access-toolbar">
+                    <div class="priv-access-toolbar-left">
+                        <button type="button" class="btn btn-secondary table_actualizar ocultar" id="submenu1AccessRefresh">
+                            <i class="fas fa-sync-alt mr-1"></i>Actualizar
+                        </button>
+                        <button type="button" class="btn btn-success table_reportes ocultar" id="submenu1AccessExcel">
+                            <i class="fas fa-file-excel mr-1"></i>Excel
+                        </button>
+                        <button type="button" class="btn btn-danger table_reportes ocultar" id="submenu1AccessPdf">
+                            <i class="fas fa-file-pdf mr-1"></i>PDF
+                        </button>
+                    </div>
+
+                    <div class="priv-access-toolbar-right">
+                        <label class="priv-access-page-size mb-0">
+                            <span>Mostrar</span>
+                            <select id="submenu1AccessPageSize" class="form-control form-control-sm"></select>
+                            <span>registros</span>
+                        </label>
+
+                        <div class="priv-access-view-switch">
+                            <button type="button" class="priv-access-view-btn active" data-view="detalle" aria-pressed="true">
+                                <i class="fas fa-list"></i><span>Detalle</span>
+                            </button>
+                            <button type="button" class="priv-access-view-btn" data-view="miniatura" aria-pressed="false">
+                                <i class="fas fa-th-large"></i><span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="priv-access-search">
+                            <span class="privilegios-search-icon"><i class="fas fa-search"></i></span>
+                            <input type="search" id="submenu1AccessSearch" class="form-control" placeholder="Buscar submenú nivel 2..." autocomplete="off">
+                            <button type="button" id="submenu1AccessClear" class="priv-access-search-clear" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="submenu1AccessListado" class="priv-access-list vista-detalle"></div>
+                <div class="priv-access-footer">
+                    <span id="submenu1AccessInfo">Mostrando 0 registros</span>
+                    <div id="submenu1AccessPagination" class="priv-access-pagination"></div>
+                </div>
             </div>
+
             <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
+                <button type="button" class="btn btn-danger" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cerrar
                 </button>
             </div>
         </div>
     </div>
 </div>
-<!--FIN AGREGAR SUBMENUS-->
 
-<!--INICIO AGREGAR SUBMENUS1-->
-<div class="modal fade" id="modal_registrar_submenu1accesos">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-list mr-2"></i>Privilegios - Submenús Nivel 2</h4>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form class="FormularioAjax" id="formSubMenu1Accesos" action="" method="POST" data-form="" autocomplete="off" enctype="multipart/form-data">
-                    <input type="hidden" id="privilegio_id_accesos" name="privilegio_id_accesos" class="form-control">
-                    
-                    <!-- Sección de Submenús Nivel 2 -->
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-list-ol mr-2"></i>Submenús Nivel 2 Disponibles</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="dataTableSubMenu1Accesos" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th><i class="fas fa-hashtag mr-1"></i>#</th>
-                                            <th><i class="fas fa-list-ul mr-1"></i>Submenú</th>
-                                            <th><i class="fas fa-list-ol mr-1"></i>Submenú Nivel 2</th>
-                                            <th><i class="fas fa-power-off mr-1"></i>Estado</th>
-                                            <th><i class="fas fa-cogs mr-1"></i>Acciones</th>
-                                        </tr>
-                                    </thead>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="RespuestaAjax"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" data-dismiss="modal">
-                    <i class="fas fa-times fa-lg mr-1"></i> Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!--FIN AGREGAR SUBMENUS1-->
 <!-- =========================================================
      FIN MODAL PRIVILEGIOS
 ========================================================= -->
@@ -7305,7 +7503,7 @@
                             <div class="categoria-toolbar-right">
                                 <label class="categoria-page-size mb-0">
                                     <span>Mostrar</span>
-                                    <select id="categoriaPageSizePublico" class="form-control form-control-sm"></select>
+                                    <select id="categoriaPageSizePublico" class="form-control form-control-sm izzy-select2"></select>
                                     <span>registros</span>
                                 </label>
 

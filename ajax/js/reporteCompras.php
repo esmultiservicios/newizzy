@@ -69,6 +69,14 @@ $(() => {
             ? 'miniatura'
             : vistaSolicitada;
 
+        if (!rcmpEsMovil()) {
+            RCMP.preferredView = RCMP.view;
+
+            try {
+                localStorage.setItem(RCMP_STORAGE_VISTA, RCMP.preferredView);
+            } catch (e) {}
+        }
+
         rcmpSincronizarBotonesVista();
         RCMP.page = 1;
         renderReporteCompras();
@@ -121,12 +129,15 @@ $(() => {
    ESTADO / HELPERS
    ========================================================= */
 
+var RCMP_STORAGE_VISTA = 'izzy.reporteCompras.tipo_vista';
+
 var RCMP = {
     rows: [],
     filtered: [],
     page: 1,
     pageSize: 10,
     view: 'detalle',
+    preferredView: 'detalle',
     search: ''
 };
 
@@ -151,9 +162,14 @@ function rcmpSincronizarBotonesVista() {
 }
 
 function rcmpAplicarVistaResponsiveInicial() {
-    if (rcmpEsMovil()) {
-        RCMP.view = 'miniatura';
-    }
+    var saved = 'detalle';
+
+    try {
+        saved = localStorage.getItem(RCMP_STORAGE_VISTA) || 'detalle';
+    } catch (e) {}
+
+    RCMP.preferredView = saved === 'miniatura' ? 'miniatura' : 'detalle';
+    RCMP.view = rcmpEsMovil() ? 'miniatura' : RCMP.preferredView;
     rcmpSincronizarBotonesVista();
 }
 
@@ -163,10 +179,17 @@ $(window)
     .on('resize.rcmpResponsive orientationchange.rcmpResponsive', function() {
         clearTimeout(rcmpResponsiveTimer);
         rcmpResponsiveTimer = setTimeout(function() {
-            if (rcmpEsMovil() && RCMP.view !== 'miniatura') {
-                RCMP.view = 'miniatura';
+            var objetivo = rcmpEsMovil() ? 'miniatura' : RCMP.preferredView;
+            var cambio = RCMP.view !== objetivo;
+
+            if (cambio) {
+                RCMP.view = objetivo;
                 RCMP.page = 1;
-                rcmpSincronizarBotonesVista();
+            }
+
+            rcmpSincronizarBotonesVista();
+
+            if (cambio) {
                 renderReporteCompras();
             }
         }, 120);

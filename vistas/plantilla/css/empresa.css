@@ -1501,3 +1501,234 @@
     }
 }
 
+/* =========================================================
+   IZZY | EMPRESA - AJUSTE ACCIONES + HOVER DETALLE
+   Mantiene intacta la lógica y estructura existente.
+   ========================================================= */
+
+/* El botón Acciones siempre debe leerse completo en Detalle y Miniatura. */
+.empresa-detail-actions,
+.empresa-mini-footer {
+    min-width: 0;
+    overflow: visible !important;
+}
+
+.empresa-detail-actions .acciones-dropdown,
+.empresa-mini-footer .acciones-dropdown {
+    width: auto;
+    max-width: 100%;
+    flex: 0 0 auto;
+}
+
+.empresa-detail-actions .btn-acciones,
+.empresa-mini-footer .btn-acciones {
+    width: auto !important;
+    min-width: 112px !important;
+    max-width: 100% !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 7px 11px !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    line-height: 1.15 !important;
+}
+
+.empresa-detail-actions .btn-acciones i,
+.empresa-mini-footer .btn-acciones i {
+    flex: 0 0 auto !important;
+}
+
+.empresa-detail-actions .btn-acciones span,
+.empresa-mini-footer .btn-acciones span {
+    display: inline-block !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+}
+
+/* La columna de acciones conserva espacio suficiente en escritorio amplio. */
+@media (min-width: 1400px) {
+    .empresa-detail-header,
+    .empresa-detail-row {
+        grid-template-columns:
+            128px
+            minmax(230px, 1.22fr)
+            minmax(220px, 1.08fr)
+            minmax(190px, .92fr)
+            minmax(240px, 1.28fr)
+            minmax(220px, 1.10fr)
+            132px;
+    }
+}
+
+/* Movimiento sutil también en la vista Detalle. */
+.empresa-detail-row {
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .empresa-listado.vista-detalle .empresa-detail-row:hover {
+        transform: translateY(-3px);
+        border-color: #cfdbe7;
+        box-shadow: 0 10px 24px rgba(23, 50, 77, .12);
+        z-index: 2;
+    }
+
+    .empresa-listado.vista-detalle .empresa-detail-row:hover .empresa-logo-img {
+        transform: translateY(-1px) scale(1.035);
+        box-shadow: 0 6px 14px rgba(23, 50, 77, .10);
+    }
+}
+
+.empresa-logo-img {
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+/* Si el dropdown está abierto, la fila/tarjeta queda por encima sin saltos raros. */
+.empresa-listado.vista-detalle .empresa-detail-row.empresa-dropdown-open,
+.empresa-listado.vista-miniatura .empresa-mini-card.empresa-dropdown-open {
+    z-index: 40 !important;
+}
+
+/* Miniatura mantiene su efecto ya existente, con el botón Acciones legible. */
+@media (max-width: 767.98px) {
+    .empresa-mini-footer .btn-acciones {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .empresa-detail-row,
+    .empresa-logo-img {
+        transition: none !important;
+    }
+
+    .empresa-listado.vista-detalle .empresa-detail-row:hover,
+    .empresa-listado.vista-detalle .empresa-detail-row:hover .empresa-logo-img {
+        transform: none !important;
+    }
+}
+
+/* =========================================================
+   IZZY | Empresa - X dentro de todos los inputs de búsqueda
+   ========================================================= */
+.empresa-search-group,
+.empresa-search-list .input-group {
+    position: relative;
+}
+
+.empresa-search-group .form-control,
+.empresa-search-list .form-control {
+    padding-right: 38px !important;
+}
+
+.empresa-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    cursor: pointer;
+}
+
+.empresa-search-clear:hover {
+    background: #f1f4f8;
+    color: #42526e;
+}
+
+#buscar_empresa_listado::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+
+/* =========================================================
+   IZZY | EMPRESA - Buscadores unificados
+   Icono + input + X como un solo control.
+   ========================================================= */
+.empresa-search-group,
+.empresa-search-list .input-group {
+    position: relative;
+    height: 38px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.empresa-search-group:focus-within,
+.empresa-search-list .input-group:focus-within {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10);
+}
+
+.empresa-search-group .input-group-prepend,
+.empresa-search-list .input-group-prepend {
+    display: flex;
+    margin-right: 0;
+}
+
+.empresa-search-group .input-group-text,
+.empresa-search-list .input-group-text {
+    width: 42px;
+    min-width: 42px;
+    height: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0 !important;
+    border-right: 1px solid #ced4da !important;
+    border-radius: 0 !important;
+    background: #f7f9fc;
+    color: #233b55;
+}
+
+.empresa-search-group .form-control,
+.empresa-search-list .form-control {
+    min-width: 0;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 6px 38px 6px 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+    box-shadow: none !important;
+}
+
+.empresa-search-group .form-control:focus,
+.empresa-search-list .form-control:focus {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.empresa-search-clear {
+    right: 5px;
+    z-index: 6;
+}

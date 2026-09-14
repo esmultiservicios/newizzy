@@ -37,8 +37,8 @@
                 <div class="row align-items-end">
                     <div class="col-lg-4 col-md-6 mb-3">
                         <label class="clientes-filter-label" for="estado_clientes">Estado</label>
-                        <select id="estado_clientes" name="estado_clientes" class="form-control selectpicker"
-                                title="Estado" data-live-search="true">
+                        <select id="estado_clientes" name="estado_clientes" class="form-control izzy-select2"
+ title="Estado" data-placeholder="Estado">
                         </select>
                     </div>
 
@@ -74,25 +74,25 @@
         <div class="clientes-section-body" id="clientes_kpis_body">
             <div class="row">
                 <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="clientes-kpi-card">
+                    <div class="clientes-kpi-card clientes-kpi-total">
                         <div><span>Total</span><h3 id="clientes_kpi_total">0</h3><p>Clientes filtrados</p></div>
                         <div class="clientes-kpi-icon"><i class="fas fa-users"></i></div>
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="clientes-kpi-card">
+                    <div class="clientes-kpi-card clientes-kpi-activos">
                         <div><span>Activos</span><h3 id="clientes_kpi_activos">0</h3><p>Clientes habilitados</p></div>
                         <div class="clientes-kpi-icon"><i class="fas fa-user-check"></i></div>
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="clientes-kpi-card">
+                    <div class="clientes-kpi-card clientes-kpi-inactivos">
                         <div><span>Inactivos</span><h3 id="clientes_kpi_inactivos">0</h3><p>Clientes deshabilitados</p></div>
                         <div class="clientes-kpi-icon"><i class="fas fa-user-times"></i></div>
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 mb-3">
-                    <div class="clientes-kpi-card">
+                    <div class="clientes-kpi-card clientes-kpi-sistema">
                         <div><span>Con sistema</span><h3 id="clientes_kpi_sistema">0</h3><p>Clientes con plataforma</p></div>
                         <div class="clientes-kpi-icon"><i class="fas fa-laptop-code"></i></div>
                     </div>
@@ -147,12 +147,16 @@
                     </div>
 
                     <div class="clientes-search">
-                        <div class="input-group">
+                        <div class="input-group clientes-search-wrap">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                             </div>
                             <input type="search" id="clientes_buscar" class="form-control"
                                    placeholder="Buscar cliente..." autocomplete="off">
+                            <button type="button" id="clientes_buscar_limpiar" class="clientes-search-clear"
+                                    aria-label="Limpiar búsqueda" title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

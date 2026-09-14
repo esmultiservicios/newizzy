@@ -1,0 +1,2080 @@
+/* =========================================================
+   IZZY 6.0 | CONFIGURAR CORREOS
+   Estilos propios del módulo. Select2 permanece global.
+   ========================================================= */
+
+.correo-config-page {
+    --izzy-modern-navy: #17324d;
+    --izzy-modern-blue: #2f9ddd;
+    --izzy-modern-teal: #0ea5a8;
+    --izzy-modern-green: #22a06b;
+    --izzy-modern-red: #c9372c;
+    --izzy-modern-purple: #6554c0;
+    --izzy-modern-orange: #f59e0b;
+    --izzy-modern-border: #dfe6ee;
+    --izzy-modern-soft: #f7f9fc;
+    --izzy-modern-text: #172b4d;
+    --izzy-modern-muted: #6b778c;
+    min-width: 0;
+}
+
+.correo-config-page *,
+.correo-config-page *::before,
+.correo-config-page *::after {
+    box-sizing: border-box;
+}
+
+.correo-config-section-card {
+    border: 1px solid var(--izzy-modern-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    overflow: visible;
+}
+
+.correo-config-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #e4eaf0;
+    background: #fff;
+}
+
+.correo-config-section-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.correo-config-section-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d9e7f3;
+    border-radius: 10px;
+    background: #eef6ff;
+    color: #2675b9;
+}
+
+.correo-config-section-title h5 {
+    margin: 0;
+    color: var(--izzy-modern-text);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.correo-config-section-title small {
+    display: block;
+    margin-top: 2px;
+    color: var(--izzy-modern-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-toggle-btn,
+.correo-config-filter-actions .btn,
+.correo-config-toolbar-left .btn {
+    min-height: 38px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.correo-config-toggle-btn {
+    min-width: 104px;
+}
+
+.correo-config-label-filter {
+    color: #253858;
+    font-size: 12px !important;
+    font-weight: 700;
+}
+
+.correo-config-filter-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* KPIs */
+.correo-config-kpi-card {
+    position: relative;
+    min-width: 0;
+    min-height: 118px;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 15px 18px;
+    border: 1px solid #d9e2ec;
+    border-left: 4px solid #2f80ed;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(23, 43, 77, .06);
+    overflow: hidden;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.correo-config-kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(23, 43, 77, .11);
+}
+
+.correo-config-kpi-card > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.correo-config-kpi-blue { border-left-color: #2f80ed; }
+.correo-config-kpi-green { border-left-color: #22a06b; }
+.correo-config-kpi-teal { border-left-color: #0ea5a8; }
+.correo-config-kpi-purple { border-left-color: #6554c0; }
+.correo-config-kpi-orange { border-left-color: #f59e0b; }
+
+.correo-config-kpi-label {
+    display: block;
+    margin: 0 0 6px;
+    color: #53627a;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+}
+
+.correo-config-kpi-card h3 {
+    display: block;
+    margin: 0;
+    color: #102a56;
+    font-size: clamp(1.28rem, 1.55vw, 1.65rem);
+    line-height: 1.12;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums lining-nums;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-kpi-card p {
+    display: block;
+    margin: 8px 0 0;
+    color: #768399;
+    font-size: 10px;
+    line-height: 1.25;
+}
+
+.correo-config-kpi-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dce6ef;
+    border-radius: 11px;
+    background: #f7f9fc;
+    color: #274f72;
+    font-size: 18px;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        background-color .18s ease;
+}
+
+.correo-config-kpi-card:hover .correo-config-kpi-icon {
+    transform: translateY(-1px) scale(1.05);
+    background: #fff;
+    box-shadow: 0 5px 12px rgba(31, 47, 67, .10);
+}
+
+/* Toolbar */
+.correo-config-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.correo-config-toolbar-left,
+.correo-config-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.correo-config-toolbar-left {
+    flex-wrap: wrap;
+}
+
+.correo-config-toolbar-right {
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.correo-config-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #46556b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+#correo-config-page-size {
+    width: 86px !important;
+    min-width: 86px !important;
+    height: 38px !important;
+    border-radius: 8px !important;
+}
+
+.correo-config-view-switch {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+}
+
+.correo-config-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.correo-config-view-btn:hover {
+    color: #176fae;
+    background: #eaf4fc;
+}
+
+.correo-config-view-btn.active {
+    color: #fff;
+    background: var(--izzy-modern-blue);
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24);
+}
+
+.correo-config-search-wrap {
+    position: relative;
+    width: 300px;
+    height: 38px;
+    display: flex;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.correo-config-search-icon {
+    width: 42px;
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #ced4da;
+    background: #f7f9fc;
+    color: #233b55;
+}
+
+.correo-config-search-wrap .form-control {
+    min-width: 0;
+    height: 36px;
+    border: 0;
+    padding-right: 34px;
+    box-shadow: none !important;
+}
+
+.correo-config-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 27px;
+    height: 27px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+}
+
+/* DataTable fuente interno: nunca visible. */
+.correo-config-source-table {
+    display: none !important;
+}
+
+/* Detalle */
+.correo-config-listado,
+.correo-config-listado * {
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.correo-config-listado.vista-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.correo-config-detail-header,
+.correo-config-detail-row {
+    display: grid;
+    grid-template-columns: 126px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    align-items: stretch;
+}
+
+.correo-config-detail-header {
+    min-height: 44px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #193b5a;
+    color: #fff;
+}
+
+.correo-config-detail-header > div {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-detail-header > div:last-child {
+    border-right: 0;
+}
+
+.correo-config-detail-row {
+    position: relative;
+    z-index: 0;
+    min-height: 82px;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #28d6a1;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(31, 47, 67, .05);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.correo-config-cell {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-right: 1px solid #edf1f6;
+    color: #172b4d;
+    font-size: 13px;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-cell:last-child {
+    border-right: 0;
+}
+
+.correo-config-cell-label {
+    display: none;
+    margin-bottom: 5px;
+    color: #6b778c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.correo-config-cell-content {
+    width: 100%;
+    min-width: 0;
+}
+
+.correo-config-field-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    min-width: 0;
+}
+
+.correo-config-field-main > i {
+    width: 15px;
+    flex: 0 0 15px;
+    margin-top: 2px;
+    color: #2878bb;
+    text-align: center;
+}
+
+.correo-config-field-main > span,
+.correo-config-field-main > strong,
+.correo-config-field-main > .correo-config-field-value {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.correo-config-actions-cell {
+    justify-content: center;
+    overflow: visible;
+}
+
+.correo-config-status-badge,
+.correo-config-yesno-badge,
+.correo-config-method-badge,
+.correo-config-assigned-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: max-content;
+    max-width: 100%;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+}
+
+.correo-config-status-active,
+.correo-config-yesno-active {
+    border: 1px solid #c2efd3;
+    background: #e8f9ef;
+    color: #14804a;
+}
+
+.correo-config-status-inactive,
+.correo-config-yesno-inactive {
+    border: 1px solid #f1c8c4;
+    background: #fff0ef;
+    color: #c9372c;
+}
+
+.correo-config-method-smtp {
+    border: 1px solid #cfe2f3;
+    background: #eef6ff;
+    color: #176fae;
+}
+
+.correo-config-method-graph {
+    border: 1px solid #d9d3f5;
+    background: #f3f0ff;
+    color: #6554c0;
+}
+
+.correo-config-assigned-badge {
+    border: 1px solid #d7e1eb;
+    background: #f5f8fb;
+    color: #52627a;
+}
+
+/* Acciones legibles y contenidas */
+.correo-config-actions-cell .acciones-dropdown,
+.correo-config-mini-footer .acciones-dropdown {
+    width: auto;
+    max-width: 100%;
+}
+
+.correo-config-actions-cell .btn-acciones,
+.correo-config-mini-footer .btn-acciones {
+    width: auto !important;
+    min-width: 112px !important;
+    max-width: 100% !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 7px 10px !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+}
+
+.correo-config-actions-cell .btn-acciones span,
+.correo-config-mini-footer .btn-acciones span {
+    display: inline-block !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    hyphens: none !important;
+}
+
+/* Miniatura */
+.correo-config-listado.vista-miniatura {
+    display: block;
+}
+
+.correo-config-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    align-items: stretch;
+}
+
+.correo-config-mini-card {
+    position: relative;
+    z-index: 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.correo-config-mini-topline {
+    height: 3px;
+    flex: 0 0 3px;
+    background: #20c997;
+    border-radius: 10px 10px 0 0;
+}
+
+.correo-config-mini-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 14px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.correo-config-mini-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e7f4;
+    border-radius: 10px;
+    background: #eef6ff;
+    color: #2479b8;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+.correo-config-mini-title {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.correo-config-mini-title h4 {
+    margin: 0;
+    color: #172b4d;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-mini-title span {
+    display: block;
+    margin-top: 4px;
+    color: #6b778c;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-mini-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.correo-config-mini-field {
+    min-width: 0;
+    padding: 12px 14px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.correo-config-mini-field:nth-child(2n) {
+    border-right: 0;
+}
+
+.correo-config-mini-field > span,
+.correo-config-mini-field > strong,
+.correo-config-mini-field > div {
+    display: block;
+    max-width: 100%;
+}
+
+.correo-config-mini-field > span {
+    margin-bottom: 4px;
+    color: #6b778c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.correo-config-mini-field > span i {
+    width: 14px;
+    margin-right: 4px;
+    color: #2878bb;
+    text-align: center;
+}
+
+.correo-config-mini-field > strong {
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.correo-config-mini-footer {
+    margin-top: auto;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 12px;
+    overflow: visible;
+}
+
+.correo-config-tech-lines {
+    display: flex !important;
+    flex-direction: column;
+    gap: 3px;
+    color: #46556b;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .correo-config-listado.vista-detalle .correo-config-detail-row:hover,
+    .correo-config-mini-card:hover {
+        transform: translateY(-3px);
+        border-color: #cfdbe7;
+        box-shadow: 0 10px 24px rgba(23, 50, 77, .12);
+        z-index: 2;
+    }
+
+    .correo-config-mini-card:hover .correo-config-mini-icon {
+        transform: translateY(-1px) scale(1.04);
+        box-shadow: 0 6px 14px rgba(23, 50, 77, .10);
+    }
+}
+
+.correo-config-detail-row.modern-dropdown-open,
+.correo-config-mini-card.modern-dropdown-open {
+    z-index: 40 !important;
+}
+
+.correo-config-listado,
+.correo-config-detail-row,
+.correo-config-cell,
+.correo-config-mini-card,
+.correo-config-mini-footer {
+    overflow: visible;
+}
+
+.correo-config-listado .acciones-dropdown {
+    position: relative;
+}
+
+.correo-config-listado .acciones-dropdown > .dropdown-menu {
+    min-width: 205px;
+    z-index: 45 !important;
+}
+
+/* Estado, footer y paginación */
+.correo-config-state {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 24px;
+    border: 1px dashed #cfd8e3;
+    border-radius: 9px;
+    background: #fff;
+    color: #7a869a;
+    text-align: center;
+}
+
+.correo-config-state i {
+    font-size: 25px;
+    color: #98a2b3;
+}
+
+.correo-config-state strong {
+    color: #42526e;
+}
+
+.correo-config-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    color: #667085;
+    font-size: 12px;
+}
+
+.correo-config-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.correo-config-page-btn {
+    min-height: 34px;
+    padding: 5px 9px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #f5f8fb;
+    color: #42526e;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.correo-config-page-btn:hover:not(:disabled):not(.active) {
+    background: #eaf4fc;
+    color: #176fae;
+}
+
+.correo-config-page-btn.active {
+    border-color: var(--izzy-modern-blue);
+    background: var(--izzy-modern-blue);
+    color: #fff;
+}
+
+.correo-config-page-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.izzy-modern-card-footer {
+    color: #6b778c;
+}
+
+@media (max-width: 1399.98px) {
+    .correo-config-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .correo-config-toolbar-right {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+
+    .correo-config-detail-header {
+        display: none;
+    }
+
+    .correo-config-detail-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .correo-config-cell {
+        display: block;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .correo-config-cell-label {
+        display: block;
+    }
+
+    .correo-config-actions-cell {
+        grid-column: 1 / -1;
+        text-align: right;
+    }
+
+    .correo-config-actions-cell .acciones-dropdown {
+        display: inline-block;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .correo-config-mini-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .correo-config-detail-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    .correo-config-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .correo-config-toolbar-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .correo-config-search-wrap {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .correo-config-section-header,
+    .correo-config-list-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .correo-config-toggle-btn {
+        width: 100%;
+    }
+
+    .correo-config-filter-actions,
+    .correo-config-toolbar-left {
+        width: 100%;
+    }
+
+    .correo-config-filter-actions .btn,
+    .correo-config-toolbar-left .btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+    }
+
+    .correo-config-toolbar-right {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+
+    .correo-config-page-size,
+    .correo-config-view-switch {
+        width: 100%;
+    }
+
+    .correo-config-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .correo-config-view-btn[data-view="miniatura"] {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .correo-config-search-wrap {
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        margin: 0 !important;
+    }
+
+    .correo-config-mini-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+
+    .correo-config-mini-card {
+        min-height: 0;
+        height: auto;
+    }
+
+    .correo-config-detail-row {
+        grid-template-columns: 1fr;
+    }
+
+    .correo-config-cell {
+        border-right: 0;
+    }
+
+    .correo-config-pagination {
+        justify-content: center;
+    }
+
+    .correo-config-mini-footer .btn-acciones {
+        width: 100% !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .correo-config-filter-actions .btn,
+    .correo-config-toolbar-left .btn {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .correo-config-mini-body {
+        grid-template-columns: 1fr;
+    }
+
+    .correo-config-mini-field {
+        border-right: 0;
+    }
+
+    .correo-config-mini-header {
+        flex-wrap: wrap;
+    }
+
+    .correo-config-page-btn span {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .correo-config-kpi-card,
+    .correo-config-kpi-icon,
+    .correo-config-detail-row,
+    .correo-config-mini-card,
+    .correo-config-mini-icon {
+        transition: none !important;
+    }
+
+    .correo-config-kpi-card:hover,
+    .correo-config-kpi-card:hover .correo-config-kpi-icon,
+    .correo-config-detail-row:hover,
+    .correo-config-mini-card:hover,
+    .correo-config-mini-card:hover .correo-config-mini-icon {
+        transform: none !important;
+    }
+}
+
+/* =========================================================
+   IZZY | AJUSTE UNIFORME SEGÚN PATRÓN CLIENTES / EMPRESA
+   ========================================================= */
+.correo-config-detail-header,
+.correo-config-detail-row {
+    grid-template-columns: 152px minmax(150px,.9fr) 120px minmax(160px,1fr) minmax(220px,1.25fr) 90px 120px minmax(180px,1fr) !important;
+}
+
+.correo-config-detail-header {
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    background: #1F354E !important;
+}
+
+.correo-config-detail-header > div {
+    padding: 13px 14px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.correo-config-detail-row {
+    min-height: 102px !important;
+    border-top-color: #0EA5A8 !important;
+    border-radius: 10px !important;
+}
+
+.correo-config-cell {
+    padding: 16px 14px !important;
+    color: #46556B !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+}
+
+.correo-config-field-main,
+.correo-config-field-value,
+.correo-config-field-value span,
+.correo-config-field-value strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+}
+
+.correo-config-status-cell {
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+.correo-config-status-only {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.correo-config-status-badge {
+    font-size: 10.5px !important;
+    padding: 5px 9px !important;
+}
+
+.correo-config-mini-title h4 {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+}
+
+.correo-config-mini-title span {
+    font-size: 10.5px !important;
+}
+
+.correo-config-mini-field > span {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+}
+
+.correo-config-mini-field > strong,
+.correo-config-mini-field > div,
+.correo-config-mini-field > div > span,
+.correo-config-mini-field > div > strong {
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+}
+
+.correo-config-mini-status {
+    flex: 0 0 auto;
+    align-self: flex-start;
+}
+
+/* Acciones usa colores/iconos del CSS global de IZZY; aquí solo se contiene y no se parte. */
+.correo-config-actions-cell {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+}
+
+.correo-config-actions-cell .btn-acciones,
+.correo-config-mini-footer .btn-acciones,
+.correo-config-actions-dropdown > .btn {
+    width: auto !important;
+    min-width: 102px !important;
+    max-width: 100% !important;
+    min-height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+}
+
+.correo-config-actions-cell .btn-acciones span,
+.correo-config-mini-footer .btn-acciones span,
+.correo-config-actions-dropdown > .btn span {
+    display: inline !important;
+    width: auto !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+}
+
+.correo-config-actions-cell .btn-acciones i,
+.correo-config-mini-footer .btn-acciones i,
+.correo-config-actions-dropdown > .btn i {
+    flex: 0 0 auto !important;
+}
+
+.correo-config-actions-dropdown > .dropdown-menu {
+    min-width: 210px;
+    z-index: 1985 !important;
+}
+
+@media (max-width: 1399.98px) {
+    .correo-config-detail-header {
+        display: none !important;
+    }
+
+    .correo-config-detail-row {
+        grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    }
+
+    .correo-config-actions-cell {
+        grid-column: 1 / -1;
+        justify-content: flex-start !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .correo-config-mini-title h4 {
+        font-size: 15px !important;
+    }
+
+    .correo-config-mini-field > strong,
+    .correo-config-mini-field > div,
+    .correo-config-mini-field > div > span,
+    .correo-config-mini-field > div > strong {
+        font-size: 13px !important;
+    }
+
+    .correo-config-mini-footer .btn-acciones,
+    .correo-config-actions-dropdown > .btn {
+        min-width: 102px !important;
+        max-width: 100% !important;
+    }
+}
+
+/* =========================================================
+   IZZY | CORREOS
+   DETALLE EXPANDIBLE (+) - FUNCIONALIDAD ORIGINAL RESTAURADA
+   ========================================================= */
+.correo-config-row-actions{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    max-width:100%;
+    overflow:visible;
+}
+
+.correo-config-toggle-detail{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    border:1px solid #cfe2f3;
+    border-radius:8px;
+    background:#edf6fd;
+    color:#1675b8;
+    box-shadow:0 2px 6px rgba(23,50,77,.06);
+    cursor:pointer;
+    transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease;
+}
+
+.correo-config-toggle-detail:hover,
+.correo-config-toggle-detail.abierto{
+    border-color:#a8d4ee;
+    background:#dff1fc;
+    color:#0e6ea8;
+    box-shadow:0 5px 12px rgba(23,50,77,.10);
+}
+
+.correo-config-toggle-detail i{
+    margin:0;
+    font-size:12px;
+    line-height:1;
+}
+
+.correo-config-expanded-detail{
+    margin-top:-2px;
+    padding:0 10px 2px;
+}
+
+.correo-config-mini-expanded{
+    padding:0 14px 12px;
+}
+
+.correo-config-expanded-card{
+    border:1px solid #dfe6ee;
+    border-radius:10px;
+    background:#f8fafc;
+    box-shadow:0 2px 7px rgba(23,50,77,.04);
+    overflow:hidden;
+}
+
+.correo-config-expanded-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    padding:14px 16px;
+    border-bottom:1px solid #e5ebf1;
+    background:#fbfdff;
+}
+
+.correo-config-expanded-header h5{
+    margin:0;
+    color:#172B4D;
+    font-size:14px;
+    font-weight:800;
+    line-height:1.3;
+}
+
+.correo-config-expanded-header p{
+    margin:3px 0 0;
+    color:#6B778C;
+    font-size:12px;
+    line-height:1.35;
+}
+
+.correo-config-expanded-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.correo-config-expanded-item{
+    min-width:0;
+    padding:13px 15px;
+    border-right:1px solid #e8edf2;
+    border-bottom:1px solid #e8edf2;
+}
+
+.correo-config-expanded-item:nth-child(4n){
+    border-right:0;
+}
+
+.correo-config-expanded-item span,
+.correo-config-expanded-item strong{
+    display:block;
+    max-width:100%;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.correo-config-expanded-item span{
+    margin-bottom:4px;
+    color:#6B778C;
+    font-size:10px;
+    font-weight:800;
+    line-height:1.2;
+    text-transform:uppercase;
+}
+
+.correo-config-expanded-item strong{
+    color:#172B4D;
+    font-size:14px;
+    font-weight:500;
+    line-height:1.35;
+}
+
+@media(hover:hover) and (pointer:fine){
+    .correo-config-toggle-detail:hover{
+        transform:translateY(-1px);
+    }
+}
+
+@media(max-width:1199.98px){
+    .correo-config-expanded-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .correo-config-expanded-item:nth-child(4n){
+        border-right:1px solid #e8edf2;
+    }
+
+    .correo-config-expanded-item:nth-child(2n){
+        border-right:0;
+    }
+}
+
+@media(max-width:575.98px){
+    .correo-config-row-actions{
+        width:100%;
+        justify-content:flex-start;
+    }
+
+    .correo-config-expanded-grid{
+        grid-template-columns:minmax(0,1fr);
+    }
+
+    .correo-config-expanded-item,
+    .correo-config-expanded-item:nth-child(2n),
+    .correo-config-expanded-item:nth-child(4n){
+        border-right:0;
+    }
+
+    .correo-config-expanded-header{
+        flex-direction:column;
+    }
+}
+
+/* =========================================================
+   IZZY | CORREOS
+   MODAL DESTINATARIOS - MISMA DINÁMICA CLIENTES / EMPRESA
+   ========================================================= */
+#modalRegistrarDestinatarios .destinatarios-modal-dialog{
+    max-width:1180px;
+}
+
+#modalRegistrarDestinatarios .destinatarios-modal-content{
+    overflow:visible;
+    border:0;
+    border-radius:14px;
+    box-shadow:0 18px 50px rgba(18,38,58,.24);
+}
+
+#modalRegistrarDestinatarios .destinatarios-modal-header{
+    min-height:58px;
+    align-items:center;
+    padding:14px 18px;
+    border:0;
+    border-bottom:4px solid #0EA5A8;
+    border-radius:14px 14px 0 0;
+    background:#132B3F !important;
+}
+
+#modalRegistrarDestinatarios .destinatarios-modal-header .modal-title{
+    margin:0;
+    font-size:18px;
+    font-weight:800;
+}
+
+#modalRegistrarDestinatarios .destinatarios-modal-header .close{
+    width:34px;
+    height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    margin:0;
+    padding:0;
+    opacity:.9;
+}
+
+#modalRegistrarDestinatarios .destinatarios-modal-body{
+    padding:20px;
+    overflow:visible;
+}
+
+.destinatarios-info-box{
+    display:flex;
+    align-items:flex-start;
+    gap:11px;
+    margin-bottom:18px;
+    padding:13px 14px;
+    border:1px solid #b9ddf5;
+    border-radius:9px;
+    background:#eaf6ff;
+    color:#17324D;
+}
+
+.destinatarios-info-icon{
+    width:28px;
+    height:28px;
+    flex:0 0 28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#1675B8;
+}
+
+.destinatarios-info-box strong{
+    display:block;
+    margin:0 0 2px;
+    color:#172B4D;
+    font-size:14px;
+    font-weight:800;
+}
+
+.destinatarios-info-box p{
+    margin:0;
+    color:#52627A;
+    font-size:13px;
+    line-height:1.4;
+}
+
+.destinatarios-form label{
+    color:#172B4D;
+    font-size:14px;
+    font-weight:700;
+}
+
+.destinatarios-form .form-control{
+    min-height:44px;
+    border-radius:8px;
+}
+
+.destinatarios-register-btn{
+    min-height:44px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:800;
+}
+
+.destinatarios-divider{
+    height:1px;
+    margin:10px 0 16px;
+    background:#E3E8EF;
+}
+
+.destinatarios-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:15px;
+    flex-wrap:wrap;
+}
+
+.destinatarios-toolbar-left,
+.destinatarios-toolbar-right{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex-wrap:wrap;
+}
+
+.destinatarios-toolbar-right{
+    min-width:0;
+    margin-left:auto;
+    justify-content:flex-end;
+}
+
+.destinatarios-toolbar .btn{
+    min-height:38px;
+    padding:7px 13px;
+    border-radius:8px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.destinatarios-page-size{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:#52627A;
+    font-size:12px;
+    white-space:nowrap;
+}
+
+#destinatariosPageSize{
+    width:72px !important;
+    min-width:72px !important;
+    height:38px !important;
+    border-radius:8px !important;
+}
+
+.destinatarios-view-switch{
+    display:inline-flex;
+    padding:3px;
+    border:1px solid #D8E2EB;
+    border-radius:9px;
+    background:#F5F8FB;
+}
+
+.destinatarios-view-btn{
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:6px 12px;
+    border:0;
+    border-radius:7px;
+    background:transparent;
+    color:#52627A;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.destinatarios-view-btn.active{
+    background:#2F9DDD;
+    color:#fff;
+}
+
+.destinatarios-search-wrap{
+    position:relative;
+    width:270px;
+    min-width:220px;
+    height:38px;
+    display:flex;
+    border:1px solid #CED4DA;
+    border-radius:8px;
+    background:#fff;
+    overflow:hidden;
+}
+
+.destinatarios-search-icon{
+    width:40px;
+    flex:0 0 40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-right:1px solid #CED4DA;
+    background:#F7F9FC;
+    color:#233B55;
+}
+
+.destinatarios-search-wrap .form-control{
+    height:36px;
+    min-width:0;
+    border:0;
+    padding-right:34px;
+    box-shadow:none !important;
+}
+
+.destinatarios-search-clear{
+    position:absolute;
+    top:50%;
+    right:5px;
+    width:27px;
+    height:27px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform:translateY(-50%);
+    border:0;
+    border-radius:6px;
+    background:transparent;
+    color:#7A869A;
+}
+
+.destinatarios-listado,
+.destinatarios-listado *{
+    box-sizing:border-box;
+    min-width:0;
+}
+
+.destinatarios-listado.vista-detalle{
+    display:flex;
+    flex-direction:column;
+    gap:11px;
+}
+
+.destinatarios-detail-header,
+.destinatarios-detail-row{
+    display:grid;
+    grid-template-columns:120px minmax(260px,1.15fr) minmax(220px,1fr);
+    min-width:0;
+}
+
+.destinatarios-detail-header{
+    overflow:hidden;
+    border-radius:10px;
+    background:#1F354E;
+    color:#fff;
+}
+
+.destinatarios-detail-header>div{
+    min-width:0;
+    padding:13px 14px;
+    font-size:14px;
+    font-weight:800;
+    line-height:1.2;
+}
+
+.destinatarios-detail-row{
+    position:relative;
+    z-index:1;
+    min-height:84px;
+    border:1px solid #DFE6EE;
+    border-top:3px solid #0EA5A8;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(23,50,77,.05);
+    overflow:visible;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+
+.destinatarios-detail-cell{
+    min-width:0;
+    max-width:100%;
+    display:flex;
+    align-items:center;
+    padding:15px 14px;
+    border-right:1px solid #EDF1F6;
+    color:#46556B;
+    font-size:14px;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+    white-space:normal;
+}
+
+.destinatarios-detail-cell:last-child{
+    border-right:0;
+}
+
+.destinatarios-cell-label{
+    display:none;
+    margin-bottom:5px;
+    color:#6B778C;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.destinatarios-actions-cell{
+    justify-content:center;
+    overflow:visible;
+}
+
+.destinatarios-value{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    max-width:100%;
+}
+
+.destinatarios-value i{
+    width:16px;
+    flex:0 0 16px;
+    color:#2878BB;
+    text-align:center;
+}
+
+.destinatarios-value span{
+    min-width:0;
+    max-width:100%;
+    font-size:14px;
+    font-weight:500;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.destinatarios-listado.vista-miniatura{
+    display:block;
+}
+
+.destinatarios-mini-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:16px;
+}
+
+.destinatarios-mini-card{
+    position:relative;
+    z-index:1;
+    min-width:0;
+    min-height:210px;
+    display:flex;
+    flex-direction:column;
+    border:1px solid #DFE6EE;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(23,50,77,.06);
+    overflow:visible;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+
+.destinatarios-mini-topline{
+    height:3px;
+    border-radius:10px 10px 0 0;
+    background:#0EA5A8;
+}
+
+.destinatarios-mini-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:15px 16px;
+    border-bottom:1px solid #EDF1F6;
+    background:#FBFDFF;
+}
+
+.destinatarios-mini-icon{
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid #D7E6F3;
+    border-radius:10px;
+    background:#EDF6FD;
+    color:#167FC0;
+    transition:transform .18s ease;
+}
+
+.destinatarios-mini-title{
+    min-width:0;
+}
+
+.destinatarios-mini-title h4{
+    margin:0;
+    color:#172B4D;
+    font-size:15px;
+    font-weight:700;
+    line-height:1.3;
+    overflow-wrap:anywhere;
+}
+
+.destinatarios-mini-title span{
+    display:block;
+    margin-top:3px;
+    color:#6B778C;
+    font-size:10.5px;
+}
+
+.destinatarios-mini-body{
+    flex:1 1 auto;
+    padding:15px 16px;
+}
+
+.destinatarios-mini-field>span,
+.destinatarios-mini-field>strong{
+    display:block;
+    max-width:100%;
+    white-space:normal;
+    overflow-wrap:anywhere;
+}
+
+.destinatarios-mini-field>span{
+    margin-bottom:5px;
+    color:#6B778C;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+
+.destinatarios-mini-field>strong{
+    color:#172B4D;
+    font-size:14px;
+    font-weight:500;
+    line-height:1.35;
+}
+
+.destinatarios-mini-footer{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:auto;
+    padding:12px 16px;
+    border-top:1px solid #EDF1F6;
+    overflow:visible;
+}
+
+.destinatarios-actions-dropdown{
+    position:relative;
+    display:inline-block;
+    z-index:30;
+}
+
+.destinatarios-actions-dropdown>.dropdown-menu{
+    min-width:190px;
+    z-index:2050 !important;
+}
+
+.destinatarios-actions-cell,
+.destinatarios-mini-footer{
+    overflow:visible !important;
+}
+
+.destinatarios-actions-cell .btn-acciones,
+.destinatarios-mini-footer .btn-acciones{
+    width:auto !important;
+    min-width:102px !important;
+    max-width:100% !important;
+    min-height:34px !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:5px !important;
+    padding:6px 10px !important;
+    font-size:12px !important;
+    line-height:1.2 !important;
+    white-space:nowrap !important;
+    flex-wrap:nowrap !important;
+}
+
+.destinatarios-actions-cell .btn-acciones span,
+.destinatarios-mini-footer .btn-acciones span{
+    white-space:nowrap !important;
+    overflow-wrap:normal !important;
+    word-break:keep-all !important;
+}
+
+.destinatarios-state-box{
+    width:100%;
+    min-height:94px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:18px;
+    border:1px dashed #CAD6E2;
+    border-radius:10px;
+    background:#F8FAFC;
+    color:#6B778C;
+    text-align:center;
+}
+
+.destinatarios-state-box>i{
+    color:#2F9DDD;
+    font-size:22px;
+}
+
+.destinatarios-state-box strong,
+.destinatarios-state-box small{
+    display:block;
+}
+
+.destinatarios-list-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid #EDF1F6;
+    color:#6B778C;
+    font-size:12px;
+}
+
+.destinatarios-pagination{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:5px;
+    flex-wrap:wrap;
+}
+
+.destinatarios-page-btn{
+    min-height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    padding:7px 10px;
+    border:1px solid #D7E1EB;
+    border-radius:7px;
+    background:#fff;
+    color:#405269;
+    font-size:11px;
+    font-weight:700;
+}
+
+.destinatarios-page-btn.active{
+    border-color:#2F9DDD;
+    background:#2F9DDD;
+    color:#fff;
+}
+
+.destinatarios-page-btn:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+
+#modalRegistrarDestinatarios .destinatarios-modal-footer{
+    padding:12px 20px;
+    border-top:1px solid #E5EAF0;
+    background:#FBFCFE;
+    border-radius:0 0 14px 14px;
+}
+
+@media(hover:hover) and (pointer:fine){
+    .destinatarios-detail-row:hover,
+    .destinatarios-mini-card:hover{
+        transform:translateY(-3px);
+        border-color:#CFDBE7;
+        box-shadow:0 10px 24px rgba(31,47,67,.12);
+        z-index:2;
+    }
+
+    .destinatarios-mini-card:hover .destinatarios-mini-icon{
+        transform:scale(1.05);
+    }
+}
+
+@media(max-width:1199.98px){
+    .destinatarios-mini-grid{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+}
+
+@media(max-width:991.98px){
+    .destinatarios-toolbar-right{
+        width:100%;
+        margin-left:0;
+        justify-content:flex-start;
+    }
+
+    .destinatarios-search-wrap{
+        flex:1 1 100%;
+        width:100%;
+        min-width:0;
+    }
+}
+
+@media(max-width:767.98px){
+    #modalRegistrarDestinatarios .destinatarios-modal-body{
+        padding:14px;
+    }
+
+    .destinatarios-toolbar,
+    .destinatarios-toolbar-right{
+        align-items:stretch;
+        flex-direction:column;
+    }
+
+    .destinatarios-toolbar-left{
+        width:100%;
+    }
+
+    .destinatarios-toolbar-left .btn{
+        flex:1 1 calc(33.333% - 6px);
+        min-width:0;
+    }
+
+    .destinatarios-page-size,
+    .destinatarios-view-switch,
+    .destinatarios-view-btn[data-view="miniatura"],
+    .destinatarios-search-wrap{
+        width:100%;
+    }
+
+    .destinatarios-view-btn[data-view="detalle"]{
+        display:none !important;
+    }
+
+    .destinatarios-mini-grid{
+        grid-template-columns:minmax(0,1fr);
+    }
+
+    .destinatarios-detail-header{
+        display:none;
+    }
+
+    .destinatarios-detail-row{
+        grid-template-columns:minmax(0,1fr);
+    }
+
+    .destinatarios-detail-cell{
+        display:block;
+        border-right:0;
+        border-bottom:1px solid #EDF1F6;
+    }
+
+    .destinatarios-cell-label{
+        display:block;
+    }
+
+    .destinatarios-actions-cell{
+        text-align:left;
+    }
+
+    .destinatarios-list-footer{
+        align-items:stretch;
+        flex-direction:column;
+    }
+
+    .destinatarios-pagination{
+        justify-content:flex-start;
+    }
+}
+
+@media(max-width:575.98px){
+    .destinatarios-toolbar-left .btn{
+        flex:1 1 100%;
+        width:100%;
+    }
+
+    .destinatarios-page-btn span{
+        display:none;
+    }
+
+    .destinatarios-actions-dropdown>.dropdown-menu{
+        max-width:calc(100vw - 30px);
+    }
+}
+
+@media(prefers-reduced-motion:reduce){
+    .correo-config-toggle-detail,
+    .destinatarios-detail-row,
+    .destinatarios-mini-card,
+    .destinatarios-mini-icon{
+        transition:none !important;
+    }
+
+    .correo-config-toggle-detail:hover,
+    .destinatarios-detail-row:hover,
+    .destinatarios-mini-card:hover,
+    .destinatarios-mini-card:hover .destinatarios-mini-icon{
+        transform:none !important;
+    }
+}
+
+/* =========================================================
+   IZZY | CORREOS - ALINEACIÓN LIMPIA EN VISTA DETALLE
+   Icono + contenido en una sola línea, sin duplicar iconos.
+   ========================================================= */
+@media (min-width: 1200px) {
+    .correo-config-detail-header,
+    .correo-config-detail-row {
+        grid-template-columns:
+            152px
+            minmax(145px, .82fr)
+            112px
+            minmax(175px, 1fr)
+            minmax(235px, 1.28fr)
+            78px
+            138px
+            minmax(220px, 1.15fr) !important;
+    }
+}
+
+.correo-config-field-main {
+    width: 100%;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+}
+
+.correo-config-field-main > i {
+    margin-top: 0 !important;
+    align-self: center !important;
+}
+
+.correo-config-field-value {
+    min-width: 0;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    line-height: 1.3 !important;
+}
+
+.correo-config-field-method .correo-config-field-value {
+    justify-content: flex-start;
+}
+
+.correo-config-method-badge,
+.correo-config-detail-row > .correo-config-cell:nth-child(6) .correo-config-field-value,
+.correo-config-detail-row > .correo-config-cell:nth-child(7) .correo-config-field-value {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+}
+
+.correo-config-detail-row > .correo-config-cell:nth-child(5) .correo-config-field-value,
+.correo-config-detail-row > .correo-config-cell:nth-child(8) .correo-config-field-value {
+    overflow-wrap: anywhere;
+    word-break: normal !important;
+}
+
+.correo-config-cell {
+    align-items: center !important;
+}
+

@@ -61,6 +61,8 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/facturasMovil.css" rel="stylesheet" />
     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/main_cards.css" rel="stylesheet" />
     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
+    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/select2.min.css" rel="stylesheet">
+    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/select2-izzy.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>fontawesome/css/all.min.css">
     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
     <link rel="shortcut icon" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/icono.png">
@@ -159,6 +161,9 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
     require_once "./vistas/contenido/modals/vistasModals.php";   
     //Scripts
     require_once "./vistas/plantilla/modulos/script.php";
+    
+    //SELECT2 GLOBAL (se carga después de jQuery/bootstrap scripts)
+    echo '<script src="' . htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8') . 'ajax/librerias/select2.min.js"></script>';
     //CIERRE DE SESIÓN
     require_once "./vistas/plantilla/modulos/logoutScript.php";
     //SCRIPT VENTANAS MODALES

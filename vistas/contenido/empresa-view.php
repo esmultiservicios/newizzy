@@ -76,6 +76,13 @@
                                        class="form-control"
                                        placeholder="Nombre, RTN, correo, teléfono, ubicación..."
                                        autocomplete="off">
+                                <button type="button"
+                                        id="limpiar_filtro_empresa_general"
+                                        class="empresa-search-clear"
+                                        title="Limpiar búsqueda"
+                                        aria-label="Limpiar búsqueda">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -268,6 +275,13 @@
                                    class="form-control"
                                    placeholder="Buscar empresa..."
                                    autocomplete="off">
+                            <button type="button"
+                                    id="limpiar_buscar_empresa_listado"
+                                    class="empresa-search-clear"
+                                    title="Limpiar búsqueda"
+                                    aria-label="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -210,3 +210,726 @@
     }
 }
 
+/* =========================================================
+   IZZY | CLIENTES
+   AJUSTE BOTÓN ACCIONES - TAMAÑO UNIFORME
+   ========================================================= */
+
+/* Reduce únicamente el espacio de la columna Acciones para que
+   se vea en proporción con módulos como Colaboradores. */
+.clientes-listado.vista-detalle .clientes-detail-header,
+.clientes-listado.vista-detalle .clientes-detail-row {
+    grid-template-columns:
+        120px
+        minmax(230px,1.25fr)
+        minmax(120px,.65fr)
+        minmax(210px,1.15fr)
+        minmax(150px,.75fr)
+        minmax(150px,.75fr)
+        minmax(120px,.6fr)
+        minmax(110px,.55fr) !important;
+}
+
+.clientes-listado.vista-detalle.sin-sistema .clientes-detail-header,
+.clientes-listado.vista-detalle.sin-sistema .clientes-detail-row {
+    grid-template-columns:
+        120px
+        minmax(230px,1.25fr)
+        minmax(120px,.65fr)
+        minmax(210px,1.15fr)
+        minmax(150px,.75fr)
+        minmax(150px,.75fr)
+        minmax(110px,.55fr) !important;
+}
+
+/* Botón Acciones más compacto, sin partir texto ni salirse. */
+.clientes-actions-cell .btn-acciones,
+.clientes-mini-footer .btn-acciones,
+.clientes-actions-dropdown > .btn {
+    width: auto !important;
+    min-width: 102px !important;
+    max-width: 100% !important;
+    min-height: 34px !important;
+    padding: 6px 10px !important;
+    gap: 5px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
+/* Mantiene el texto e icono siempre en una sola línea. */
+.clientes-actions-cell .btn-acciones span,
+.clientes-mini-footer .btn-acciones span,
+.clientes-actions-dropdown > .btn span {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+}
+
+@media (max-width:1399.98px) {
+    .clientes-listado.vista-detalle .clientes-detail-row,
+    .clientes-listado.vista-detalle.sin-sistema .clientes-detail-row {
+        grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    }
+}
+
+@media (max-width:767.98px) {
+    .clientes-mini-footer .btn-acciones,
+    .clientes-actions-dropdown > .btn {
+        min-width: 102px !important;
+        max-width: 100% !important;
+    }
+}
+
+/* =========================================================
+   IZZY | CLIENTES 6.0
+   ACENTOS KPI + MOVIMIENTO REPORTE DE VENTAS + MODALES
+   ========================================================= */
+
+/* KPI: misma estructura, acentos diferenciados y limpios. */
+.clientes-kpi-total::before { background:#2f9ddd !important; }
+.clientes-kpi-activos::before { background:#22a06b !important; }
+.clientes-kpi-inactivos::before { background:#c9372c !important; }
+.clientes-kpi-sistema::before { background:#6554c0 !important; }
+
+.clientes-kpi-total .clientes-kpi-icon { color:#176fae; background:#eef7fd; border-color:#d4e9f7; }
+.clientes-kpi-activos .clientes-kpi-icon { color:#14804a; background:#eefaf3; border-color:#d2efde; }
+.clientes-kpi-inactivos .clientes-kpi-icon { color:#c9372c; background:#fff1f0; border-color:#f2cfcc; }
+.clientes-kpi-sistema .clientes-kpi-icon { color:#5746b2; background:#f4f1ff; border-color:#ddd6ff; }
+
+/* Movimiento EXACTO del patrón premium de Reporte de Ventas. */
+.clientes-detail-row,
+.clientes-mini-card {
+    position:relative;
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease,
+        background-color .18s ease !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    .clientes-listado.vista-detalle .clientes-detail-row:hover {
+        transform:translateY(-3px) !important;
+        border-color:#b9ded5 !important;
+        border-top-color:#20c997 !important;
+        background:#fcfffe !important;
+        box-shadow:0 10px 22px rgba(23,43,77,.10) !important;
+        z-index:2;
+    }
+
+    .clientes-listado.vista-miniatura .clientes-mini-card:hover {
+        transform:translateY(-4px) !important;
+        border-color:#b9ded5 !important;
+        border-top-color:#20c997 !important;
+        background:#fcfffe !important;
+        box-shadow:0 12px 26px rgba(23,43,77,.11) !important;
+        z-index:2;
+    }
+
+    .clientes-listado.vista-detalle .clientes-detail-row:hover .clientes-avatar,
+    .clientes-listado.vista-miniatura .clientes-mini-card:hover .clientes-avatar {
+        transform:scale(1.05);
+    }
+}
+
+/* =========================================================
+   HISTORIAL DE PUNTOS | LISTADO DIV, SIN TABLA/DATATABLE
+   ========================================================= */
+#modal_historial_puntos .modal-dialog { max-width:1040px; }
+#modal_historial_puntos .modal-content {
+    border:0;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 18px 48px rgba(14,30,47,.22);
+}
+#modal_historial_puntos .clientes-puntos-modal-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:15px 18px;
+    border:0;
+    border-bottom:4px solid #20c997;
+    background:#132a3d;
+    color:#fff;
+}
+#modal_historial_puntos .clientes-puntos-modal-header .modal-title {
+    margin:0;
+    font-size:18px;
+    font-weight:800;
+}
+#modal_historial_puntos .clientes-puntos-modal-header .close {
+    margin:0;
+    padding:0;
+    color:#fff;
+    opacity:.88;
+    text-shadow:none;
+}
+#modal_historial_puntos .modal-body { padding:18px; background:#fff; }
+
+.clientes-puntos-summary {
+    display:grid;
+    grid-template-columns:minmax(0,1.4fr) minmax(230px,.6fr);
+    gap:12px;
+    margin-bottom:16px;
+}
+.clientes-puntos-summary-card {
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 16px;
+    border:1px solid #dce5ef;
+    border-radius:10px;
+    background:#f9fbfd;
+}
+.clientes-puntos-summary-card .clientes-puntos-summary-icon {
+    width:42px;
+    height:42px;
+    flex:0 0 42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    background:#eef6fd;
+    border:1px solid #d7e7f4;
+    color:#176fae;
+    font-size:17px;
+}
+.clientes-puntos-total-card .clientes-puntos-summary-icon {
+    background:#eefaf3;
+    border-color:#d2efde;
+    color:#14804a;
+}
+.clientes-puntos-summary-card small {
+    display:block;
+    color:#6b778c;
+    font-size:10px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.25px;
+}
+.clientes-puntos-summary-card strong {
+    display:block;
+    margin-top:2px;
+    color:#172b4d;
+    font-size:16px;
+    font-weight:800;
+    overflow-wrap:anywhere;
+}
+.clientes-puntos-total-value {
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+}
+.clientes-puntos-total-value strong { font-size:22px; color:#14804a; }
+.clientes-puntos-total-value span { color:#52627a; font-size:12px; font-weight:700; }
+
+.clientes-puntos-toolbar,
+.clientes-sistemas-toolbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:13px;
+    flex-wrap:wrap;
+}
+.clientes-puntos-toolbar-left,
+.clientes-puntos-toolbar-right,
+.clientes-sistemas-toolbar-left,
+.clientes-sistemas-toolbar-right {
+    display:flex;
+    align-items:center;
+    gap:9px;
+    flex-wrap:wrap;
+}
+.clientes-puntos-toolbar-right,
+.clientes-sistemas-toolbar-right { margin-left:auto; }
+.clientes-puntos-page-size {
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:#52627a;
+    font-size:12px;
+    white-space:nowrap;
+}
+.clientes-puntos-page-size select { width:76px; min-width:76px; }
+.clientes-puntos-view-switch {
+    display:inline-flex;
+    padding:3px;
+    border:1px solid #d8e2eb;
+    border-radius:9px;
+    background:#f5f8fb;
+}
+.clientes-puntos-view-btn {
+    min-height:34px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    padding:6px 11px;
+    border:0;
+    border-radius:7px;
+    background:transparent;
+    color:#52627a;
+    font-size:12px;
+    font-weight:700;
+    transition:background-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+.clientes-puntos-view-btn:hover { transform:translateY(-1px); background:#eaf4fc; color:#176fae; }
+.clientes-puntos-view-btn.active { background:#2f9ddd; color:#fff; box-shadow:0 2px 7px rgba(47,157,221,.24); }
+.clientes-puntos-search,
+.clientes-sistemas-search { width:270px; min-width:220px; }
+
+.clientes-puntos-listado.vista-detalle { display:flex; flex-direction:column; gap:9px; }
+.clientes-puntos-detail-header,
+.clientes-puntos-detail-row {
+    display:grid;
+    grid-template-columns:150px 150px 130px minmax(240px,1fr);
+    align-items:center;
+    min-width:0;
+}
+.clientes-puntos-detail-header {
+    min-height:42px;
+    border-radius:8px;
+    overflow:hidden;
+    background:#193b5a;
+    color:#fff;
+}
+.clientes-puntos-detail-header>div {
+    min-width:0;
+    padding:11px 12px;
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+}
+.clientes-puntos-detail-row {
+    min-height:64px;
+    border:1px solid #dfe6ee;
+    border-top:3px solid #28d6a1;
+    border-radius:9px;
+    background:#fff;
+    box-shadow:0 2px 7px rgba(31,47,67,.05);
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background-color .18s ease;
+}
+.clientes-puntos-cell { min-width:0; padding:11px 12px; color:#46556b; font-size:13px; overflow-wrap:anywhere; }
+.clientes-puntos-tipo,
+.clientes-puntos-cantidad {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    width:max-content;
+    max-width:100%;
+    padding:5px 9px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:800;
+}
+.clientes-puntos-tipo.is-positive,.clientes-puntos-cantidad.is-positive { background:#e9f9ef; border:1px solid #bfe8cf; color:#14804a; }
+.clientes-puntos-tipo.is-negative,.clientes-puntos-cantidad.is-negative { background:#fff0ef; border:1px solid #f2c3bf; color:#c9372c; }
+.clientes-puntos-tipo.is-neutral,.clientes-puntos-cantidad.is-neutral { background:#eef6fd; border:1px solid #d7e7f4; color:#176fae; }
+
+.clientes-puntos-listado.vista-miniatura {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+}
+.clientes-puntos-mini-card {
+    min-width:0;
+    border:1px solid #dfe6ee;
+    border-top:3px solid #28d6a1;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(31,47,67,.06);
+    overflow:hidden;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background-color .18s ease;
+}
+.clientes-puntos-mini-head {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    padding:12px 13px;
+    border-bottom:1px solid #edf1f6;
+    background:#fbfdff;
+}
+.clientes-puntos-mini-head strong { color:#172b4d; font-size:13px; }
+.clientes-puntos-mini-body { padding:12px 13px; }
+.clientes-puntos-mini-body span { display:block; color:#6b778c; font-size:9.5px; font-weight:800; text-transform:uppercase; }
+.clientes-puntos-mini-body p { margin:4px 0 0; color:#46556b; font-size:13px; line-height:1.4; overflow-wrap:anywhere; }
+
+@media (hover:hover) and (pointer:fine) {
+    .clientes-puntos-detail-row:hover,
+    .clientes-sistema-row:hover {
+        transform:translateY(-3px);
+        border-color:#b9ded5;
+        border-top-color:#20c997;
+        background:#fcfffe;
+        box-shadow:0 10px 22px rgba(23,43,77,.10);
+    }
+
+    .clientes-puntos-mini-card:hover {
+        transform:translateY(-4px);
+        border-color:#b9ded5;
+        border-top-color:#20c997;
+        background:#fcfffe;
+        box-shadow:0 12px 26px rgba(23,43,77,.11);
+    }
+}
+
+.clientes-puntos-empty,
+.clientes-puntos-loading,
+.clientes-sistemas-empty,
+.clientes-sistemas-loading {
+    min-height:100px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    padding:20px;
+    border:1px dashed #cad6e2;
+    border-radius:9px;
+    background:#f8fafc;
+    color:#6b778c;
+    text-align:center;
+}
+.clientes-puntos-footer {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:13px;
+    padding-top:12px;
+    border-top:1px solid #edf1f6;
+    color:#6b778c;
+    font-size:12px;
+}
+.clientes-puntos-pagination { display:flex; align-items:center; justify-content:flex-end; gap:5px; flex-wrap:wrap; }
+.clientes-puntos-page-btn {
+    min-height:34px;
+    padding:6px 9px;
+    border:1px solid #d7e1eb;
+    border-radius:7px;
+    background:#fff;
+    color:#405269;
+    font-size:11px;
+    font-weight:700;
+}
+.clientes-puntos-page-btn.active { border-color:#2f9ddd; background:#2f9ddd; color:#fff; }
+.clientes-puntos-page-btn:disabled { opacity:.45; cursor:not-allowed; }
+
+/* =========================================================
+   GENERAR SISTEMA | LISTADO DIV, SIN DATATABLE
+   ========================================================= */
+.clientes-sistemas-listado { display:flex; flex-direction:column; gap:9px; }
+.clientes-sistema-header,
+.clientes-sistema-row {
+    display:grid;
+    grid-template-columns:minmax(180px,1.25fr) minmax(120px,.8fr) minmax(120px,.75fr) minmax(120px,.75fr) minmax(130px,.7fr);
+    min-width:0;
+    align-items:center;
+}
+.clientes-sistema-header {
+    min-height:42px;
+    border-radius:8px;
+    background:#193b5a;
+    color:#fff;
+    overflow:hidden;
+}
+.clientes-sistema-header>div { padding:11px 12px; font-size:10.5px; font-weight:800; text-transform:uppercase; }
+.clientes-sistema-row {
+    min-height:62px;
+    border:1px solid #dfe6ee;
+    border-top:3px solid #28d6a1;
+    border-radius:9px;
+    background:#fff;
+    box-shadow:0 2px 7px rgba(31,47,67,.05);
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background-color .18s ease;
+}
+.clientes-sistema-cell { min-width:0; padding:10px 12px; color:#46556b; font-size:12px; overflow-wrap:anywhere; }
+.clientes-sistema-cell strong { color:#172b4d; }
+.clientes-sistemas-info { margin-top:10px; color:#6b778c; font-size:11px; }
+
+@media (max-width:767.98px) {
+    #modal_historial_puntos .modal-dialog { max-width:none; margin:.5rem; }
+    .clientes-puntos-summary { grid-template-columns:1fr; }
+    .clientes-puntos-toolbar,
+    .clientes-puntos-toolbar-right,
+    .clientes-sistemas-toolbar,
+    .clientes-sistemas-toolbar-right { align-items:stretch; flex-direction:column; width:100%; margin-left:0; }
+    .clientes-puntos-view-btn[data-view="detalle"] { display:none!important; }
+    .clientes-puntos-view-switch,
+    .clientes-puntos-view-btn[data-view="miniatura"],
+    .clientes-puntos-search,
+    .clientes-sistemas-search { width:100%; }
+    .clientes-puntos-listado.vista-miniatura { grid-template-columns:1fr; }
+    .clientes-puntos-footer { align-items:stretch; flex-direction:column; }
+    .clientes-puntos-pagination { justify-content:flex-start; }
+    .clientes-sistema-header { display:none; }
+    .clientes-sistema-row { grid-template-columns:1fr; gap:0; }
+    .clientes-sistema-cell { border-bottom:1px solid #edf1f6; }
+    .clientes-sistema-cell:last-child { border-bottom:0; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .clientes-detail-row,
+    .clientes-mini-card,
+    .clientes-puntos-detail-row,
+    .clientes-puntos-mini-card,
+    .clientes-sistema-row,
+    .clientes-avatar { transition:none!important; }
+    .clientes-detail-row:hover,
+    .clientes-mini-card:hover,
+    .clientes-puntos-detail-row:hover,
+    .clientes-puntos-mini-card:hover,
+    .clientes-sistema-row:hover,
+    .clientes-avatar { transform:none!important; }
+}
+
+/* =========================================================
+   CLIENTES | BUSCADORES INTERNOS UNIFORMES
+   Patrón visual de Reporte de Ventas:
+   lupa integrada a la izquierda + X dentro del input.
+   ========================================================= */
+.clientes-puntos-search,
+.clientes-sistemas-search {
+    width: 270px;
+    min-width: 220px;
+}
+
+.clientes-puntos-search .input-group,
+.clientes-sistemas-search .input-group {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    height: 38px;
+}
+
+.clientes-puntos-search .input-group-prepend,
+.clientes-sistemas-search .input-group-prepend {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 38px;
+    margin: 0;
+}
+
+.clientes-puntos-search .input-group-prepend .input-group-text,
+.clientes-sistemas-search .input-group-prepend .input-group-text {
+    width: 42px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid #ced4da;
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    background: #f7f9fc;
+    color: #17324d;
+}
+
+.clientes-puntos-search .form-control,
+.clientes-sistemas-search .form-control {
+    min-width: 0;
+    height: 38px;
+    min-height: 38px;
+    padding: 7px 38px 7px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 0 8px 8px 0 !important;
+    background: #fff;
+    color: #172b4d;
+    box-shadow: none !important;
+}
+
+.clientes-puntos-search .form-control:focus,
+.clientes-sistemas-search .form-control:focus {
+    border-color: #2f9ddd;
+    box-shadow: 0 0 0 2px rgba(47,157,221,.10) !important;
+}
+
+/* El append permanece por compatibilidad con el HTML existente,
+   pero visualmente la X queda DENTRO del input. */
+.clientes-puntos-search .input-group-append,
+.clientes-sistemas-search .input-group-append {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    z-index: 5;
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    transform: translateY(-50%);
+}
+
+.clientes-puntos-search .input-group-append .btn,
+.clientes-sistemas-search .input-group-append .btn {
+    width: 26px;
+    min-width: 26px;
+    height: 26px;
+    min-height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    color: #7a869a !important;
+    box-shadow: none !important;
+}
+
+.clientes-puntos-search .input-group-append .btn:hover,
+.clientes-puntos-search .input-group-append .btn:focus,
+.clientes-sistemas-search .input-group-append .btn:hover,
+.clientes-sistemas-search .input-group-append .btn:focus {
+    background: #eaf4fc !important;
+    color: #176fae !important;
+}
+
+@media (max-width: 767.98px) {
+    .clientes-puntos-search,
+    .clientes-sistemas-search {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}
+
+/* =========================================================
+   IZZY | CLIENTES | BUSCADOR PRINCIPAL
+   Lupa a la izquierda + X dentro del input, mismo patrón
+   visual utilizado en los listados modernos de IZZY.
+   ========================================================= */
+.clientes-search .clientes-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.clientes-search .clientes-search-wrap .input-group-prepend {
+    flex: 0 0 auto;
+}
+
+.clientes-search .clientes-search-wrap .input-group-text {
+    height: 38px;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    background: #f7f9fc;
+    color: #17324d;
+}
+
+.clientes-search .clientes-search-wrap #clientes_buscar {
+    min-width: 0;
+    height: 38px;
+    min-height: 38px;
+    padding-right: 38px !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+/* Evita mostrar dos X en navegadores WebKit/Edge. */
+.clientes-search .clientes-search-wrap #clientes_buscar::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+}
+
+.clientes-search .clientes-search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    min-width: 26px;
+    height: 26px;
+    min-height: 26px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    line-height: 1;
+    z-index: 5;
+    box-shadow: none;
+}
+
+.clientes-search .clientes-search-clear:hover,
+.clientes-search .clientes-search-clear:focus {
+    background: #eaf4fc;
+    color: #176fae;
+    outline: none;
+}
+
+/* =========================================================
+   IZZY 6.0 | CLIENTES - TOOLBAR ESTÁNDAR USERS
+   Misma estructura y separación del módulo Users.
+   ========================================================= */
+.clientes-toolbar-tools {
+    flex: 0 1 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+}
+
+.clientes-page-size {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    color: #46556b !important;
+    font-size: 13px !important;
+}
+
+.clientes-page-size label {
+    margin: 0 !important;
+    color: #172033 !important;
+    font-weight: 700 !important;
+}
+
+.clientes-page-size select {
+    width: 72px !important;
+    min-width: 72px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+}
+
+.clientes-view-switch {
+    flex: 0 0 auto !important;
+}
+
+@media (max-width: 991.98px) {
+    .clientes-toolbar-tools {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        margin-left: 0 !important;
+        flex-wrap: wrap !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .clientes-toolbar-tools {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    .clientes-page-size {
+        width: auto !important;
+        align-self: flex-start !important;
+    }
+}
+

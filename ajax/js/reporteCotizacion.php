@@ -51,6 +51,14 @@ $(() => {
             ? 'miniatura'
             : vistaSolicitada;
 
+        if (!rcEsMovil()) {
+            RC.preferredView = RC.view;
+
+            try {
+                localStorage.setItem(RC_STORAGE_VISTA, RC.preferredView);
+            } catch (e) {}
+        }
+
         rcSincronizarBotonesVista();
         RC.page = 1;
         renderReporteCotizaciones();
@@ -82,7 +90,8 @@ $(() => {
     listar_reporte_cotizaciones();
 });
 
-var RC = { rows: [], filtered: [], page: 1, pageSize: 10, view: 'detalle', search: '' };
+var RC_STORAGE_VISTA = 'izzy.reporteCotizacion.tipo_vista';
+var RC = { rows: [], filtered: [], page: 1, pageSize: 10, view: 'detalle', preferredView: 'detalle', search: '' };
 
 function rcEsMovil() {
     return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
@@ -105,9 +114,14 @@ function rcSincronizarBotonesVista() {
 }
 
 function rcAplicarVistaResponsiveInicial() {
-    if (rcEsMovil()) {
-        RC.view = 'miniatura';
-    }
+    var saved = 'detalle';
+
+    try {
+        saved = localStorage.getItem(RC_STORAGE_VISTA) || 'detalle';
+    } catch (e) {}
+
+    RC.preferredView = saved === 'miniatura' ? 'miniatura' : 'detalle';
+    RC.view = rcEsMovil() ? 'miniatura' : RC.preferredView;
     rcSincronizarBotonesVista();
 }
 
@@ -117,10 +131,17 @@ $(window)
     .on('resize.rcResponsive orientationchange.rcResponsive', function() {
         clearTimeout(rcResponsiveTimer);
         rcResponsiveTimer = setTimeout(function() {
-            if (rcEsMovil() && RC.view !== 'miniatura') {
-                RC.view = 'miniatura';
+            var objetivo = rcEsMovil() ? 'miniatura' : RC.preferredView;
+            var cambio = RC.view !== objetivo;
+
+            if (cambio) {
+                RC.view = objetivo;
                 RC.page = 1;
-                rcSincronizarBotonesVista();
+            }
+
+            rcSincronizarBotonesVista();
+
+            if (cambio) {
                 renderReporteCotizaciones();
             }
         }, 120);

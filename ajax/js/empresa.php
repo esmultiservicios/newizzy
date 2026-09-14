@@ -21,6 +21,14 @@ $(() => {
         }, 100);
     });
 
+    $('#limpiar_filtro_empresa_general')
+        .off('click.empresaBusqueda')
+        .on('click.empresaBusqueda', function () {
+            $('#filtro_empresa_general').val('').focus();
+            empresaState.pagina = 1;
+            aplicarFiltrosEmpresa();
+        });
+
     const ENTERPRISE_URL = '<?php echo rtrim(SERVERURL, "/") . ENTERPRISE_PATH; ?>';
 
     const cfgs = [
@@ -316,6 +324,12 @@ function inicializarEmpresaModulo() {
             empresaState.busqueda = String($(this).val() || '').trim().toLowerCase();
             empresaState.pagina = 1;
             aplicarFiltrosEmpresa();
+        });
+
+    $('#limpiar_buscar_empresa_listado')
+        .off('click.empresaBusqueda')
+        .on('click.empresaBusqueda', function () {
+            $('#buscar_empresa_listado').val('').focus().trigger('input');
         });
 
     $(document)

@@ -1697,3 +1697,159 @@
     }
 }
 
+/* =========================================================
+   DETALLE | HOVER SUAVE PREMIUM
+   Mismo movimiento visual usado en KPIs y Miniatura.
+   Solo afecta la vista Detalle; no cambia estructura ni lógica.
+   ========================================================= */
+.secuencia-listado.vista-detalle .secuencia-record-card {
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease;
+}
+
+.secuencia-listado.vista-detalle .secuencia-record-card .secuencia-main-icon {
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        background-color .18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .secuencia-listado.vista-detalle .secuencia-record-card:hover {
+        transform: translateY(-3px);
+        border-color: #cfdbe7;
+        box-shadow: 0 10px 24px rgba(31, 47, 67, .12);
+    }
+
+    .secuencia-listado.vista-detalle .secuencia-record-card:hover .secuencia-main-icon {
+        transform: scale(1.05);
+        background: #fff;
+        box-shadow: 0 5px 12px rgba(31, 47, 67, .10);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .secuencia-listado.vista-detalle .secuencia-record-card,
+    .secuencia-listado.vista-detalle .secuencia-record-card .secuencia-main-icon {
+        transition: none;
+    }
+
+    .secuencia-listado.vista-detalle .secuencia-record-card:hover,
+    .secuencia-listado.vista-detalle .secuencia-record-card:hover .secuencia-main-icon {
+        transform: none;
+    }
+}
+
+/* =========================================================
+   IZZY | Secuencia - X dentro de todos los inputs de búsqueda
+   ========================================================= */
+.secuencia-search-group,
+.secuencia-list-search .input-group {
+    position: relative;
+}
+
+.secuencia-search-group .form-control,
+.secuencia-list-search .form-control {
+    padding-right: 38px !important;
+}
+
+.secuencia-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    cursor: pointer;
+}
+
+.secuencia-search-clear:hover {
+    background: #f1f4f8;
+    color: #42526e;
+}
+
+#secuencia_buscar_listado::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+
+/* =========================================================
+   IZZY | SECUENCIA - Buscadores unificados
+   Icono + input + X como un solo control.
+   ========================================================= */
+.secuencia-search-group,
+.secuencia-list-search .input-group {
+    position: relative;
+    height: 38px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.secuencia-search-group:focus-within,
+.secuencia-list-search .input-group:focus-within {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10);
+}
+
+.secuencia-search-group .input-group-prepend,
+.secuencia-list-search .input-group-prepend {
+    display: flex;
+    margin-right: 0;
+}
+
+.secuencia-search-group .input-group-text,
+.secuencia-list-search .input-group-text {
+    width: 42px;
+    min-width: 42px;
+    height: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0 !important;
+    border-right: 1px solid #ced4da !important;
+    border-radius: 0 !important;
+    background: #f7f9fc;
+    color: #233b55;
+}
+
+.secuencia-search-group .form-control,
+.secuencia-list-search .form-control {
+    min-width: 0;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 6px 38px 6px 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+    box-shadow: none !important;
+}
+
+.secuencia-search-group .form-control:focus,
+.secuencia-list-search .form-control:focus {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.secuencia-search-clear {
+    right: 5px;
+    z-index: 6;
+}

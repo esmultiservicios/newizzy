@@ -111,6 +111,54 @@ function setupYearSelectors() {
 }
 
 /****************************************************************************************************************************************************************/
+// GRÁFICOS RESPONSIVE - ANCHO INTERNO Y VALORES LEGIBLES
+/****************************************************************************************************************************************************************/
+function dashboardGraficoEsCompacto() {
+    return window.matchMedia
+        ? window.matchMedia('(max-width: 767.98px)').matches
+        : $(window).width() <= 767;
+}
+
+function dashboardPrepararAnchoGrafico(canvas, categorias, series) {
+    if (!canvas || !canvas.parentElement) {
+        return;
+    }
+
+    var contenedor = canvas.parentElement;
+    var cantidadCategorias = Math.max(1, parseInt(categorias, 10) || 1);
+    var cantidadSeries = Math.max(1, parseInt(series, 10) || 1);
+
+    if (!dashboardGraficoEsCompacto()) {
+        contenedor.style.width = '100%';
+        contenedor.style.minWidth = '0';
+        return;
+    }
+
+    var anchoPorCategoria = cantidadSeries > 1
+        ? Math.min(180, 90 + (cantidadSeries * 18))
+        : 82;
+
+    var anchoMinimo = Math.max(680, cantidadCategorias * anchoPorCategoria);
+    contenedor.style.width = anchoMinimo + 'px';
+    contenedor.style.minWidth = anchoMinimo + 'px';
+}
+
+function dashboardFormatoEtiquetaGrafico(value, moneda) {
+    var numero = parseFloat(value || 0);
+    if (isNaN(numero)) {
+        numero = 0;
+    }
+
+    var compacto = dashboardGraficoEsCompacto();
+    var texto = numero.toLocaleString('es-HN', {
+        minimumFractionDigits: compacto ? 0 : 2,
+        maximumFractionDigits: compacto ? 0 : 2
+    });
+
+    return moneda ? (compacto ? texto : 'L.' + texto) : texto;
+}
+
+/****************************************************************************************************************************************************************/
 // GRÁFICO TOP PRODUCTOS
 /****************************************************************************************************************************************************************/
 
@@ -191,6 +239,8 @@ function showTopProductos(months) {
                 return;
             }
 
+            dashboardPrepararAnchoGrafico(canvas, meses.length, Math.max(1, datasets.length));
+
             var ctx = canvas.getContext('2d');
 
             if (window.chartTopProductosAnoActual) {
@@ -234,11 +284,10 @@ function showTopProductos(months) {
                             anchor: 'center',
                             align: 'center',
                             formatter: function(value) {
-                                return parseFloat(value || 0).toLocaleString('es-HN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                });
+                                return dashboardFormatoEtiquetaGrafico(value, false);
                             },
+                            clamp: true,
+                            clip: false,
                             color: '#fff',
                             font: {
                                 weight: 'bold',
@@ -256,7 +305,11 @@ function showTopProductos(months) {
                                 display: false
                             },
                             ticks: {
-                                color: '#858796'
+                                color: '#718096',
+                                autoSkip: false,
+                                minRotation: 30,
+                                maxRotation: 45,
+                                font: { size: 11 }
                             }
                         },
                         y: {
@@ -325,6 +378,8 @@ function showVentasAnuales(year) {
                 return;
             }
 
+            dashboardPrepararAnchoGrafico(canvas, mes.length, 1);
+
             var ctx = canvas.getContext('2d');
 
             if (window.chartVentas) {
@@ -374,13 +429,10 @@ function showVentasAnuales(year) {
                             anchor: 'center',
                             align: 'center',
                             formatter: function(value) {
-                                var formattedValue = new Intl.NumberFormat('es-HN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                }).format(value);
-
-                                return 'L.' + formattedValue;
+                                return dashboardFormatoEtiquetaGrafico(value, true);
                             },
+                            clamp: true,
+                            clip: false,
                             color: '#fff',
                             font: {
                                 weight: 'bold',
@@ -398,7 +450,11 @@ function showVentasAnuales(year) {
                                 drawBorder: false
                             },
                             ticks: {
-                                color: '#718096'
+                                color: '#718096',
+                                autoSkip: false,
+                                minRotation: 30,
+                                maxRotation: 45,
+                                font: { size: 11 }
                             }
                         },
                         y: {
@@ -469,6 +525,8 @@ function showComprasAnuales(year) {
                 return;
             }
 
+            dashboardPrepararAnchoGrafico(canvas, mes.length, 1);
+
             var ctx = canvas.getContext('2d');
 
             if (window.chartCompras) {
@@ -518,13 +576,10 @@ function showComprasAnuales(year) {
                             anchor: 'center',
                             align: 'center',
                             formatter: function(value) {
-                                var formattedValue = new Intl.NumberFormat('es-HN', {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                }).format(value);
-
-                                return 'L.' + formattedValue;
+                                return dashboardFormatoEtiquetaGrafico(value, true);
                             },
+                            clamp: true,
+                            clip: false,
                             color: '#fff',
                             font: {
                                 weight: 'bold',
@@ -542,7 +597,11 @@ function showComprasAnuales(year) {
                                 drawBorder: false
                             },
                             ticks: {
-                                color: '#718096'
+                                color: '#718096',
+                                autoSkip: false,
+                                minRotation: 30,
+                                maxRotation: 45,
+                                font: { size: 11 }
                             }
                         },
                         y: {
@@ -738,6 +797,7 @@ function getChartOptions(title, stacked) {
 var dashboardFiscalesRows = [];
 var dashboardFiscalesFiltradas = [];
 var dashboardFiscalesVista = 'detalle';
+var dashboardFiscalesVistaPreferida = 'detalle';
 var DASHBOARD_FISCALES_STORAGE_VISTA = 'izzy_dashboard_fiscales_tipo_vista';
 var dashboardFiscalesPagina = 1;
 var dashboardFiscalesPorPagina = 3;
@@ -877,34 +937,45 @@ function dashboardFiscalesEsMovil() {
 }
 
 function dashboardFiscalesInicializarVista() {
-    var vista = 'detalle';
+    var vistaGuardada = 'detalle';
 
     try {
-        vista = localStorage.getItem(DASHBOARD_FISCALES_STORAGE_VISTA) || 'detalle';
+        vistaGuardada = localStorage.getItem(DASHBOARD_FISCALES_STORAGE_VISTA) || 'detalle';
     } catch (e) {
-        vista = 'detalle';
+        vistaGuardada = 'detalle';
     }
 
-    /* En móvil la vista inicial siempre debe ser Miniatura.
-       No sobrescribimos la preferencia guardada de escritorio. */
+    dashboardFiscalesVistaPreferida = vistaGuardada === 'miniatura'
+        ? 'miniatura'
+        : 'detalle';
+
     dashboardFiscalesVista = dashboardFiscalesEsMovil()
         ? 'miniatura'
-        : (vista === 'miniatura' ? 'miniatura' : 'detalle');
+        : dashboardFiscalesVistaPreferida;
 
     dashboardFiscalesActualizarBotonesVista();
     dashboardFiscalesSincronizarTamanoPagina();
 }
 
 function dashboardFiscalesCambiarVista(vista) {
-    var siguiente = vista === 'miniatura' ? 'miniatura' : 'detalle';
-
-    dashboardFiscalesVista = dashboardFiscalesEsMovil()
+    var siguiente = vista === 'miniatura'
         ? 'miniatura'
-        : siguiente;
+        : 'detalle';
+
+    if (dashboardFiscalesEsMovil()) {
+        siguiente = 'miniatura';
+    }
+
+    dashboardFiscalesVista = siguiente;
 
     if (!dashboardFiscalesEsMovil()) {
+        dashboardFiscalesVistaPreferida = siguiente;
+
         try {
-            localStorage.setItem(DASHBOARD_FISCALES_STORAGE_VISTA, dashboardFiscalesVista);
+            localStorage.setItem(
+                DASHBOARD_FISCALES_STORAGE_VISTA,
+                dashboardFiscalesVistaPreferida
+            );
         } catch (e) {
             // La interfaz continúa funcionando aunque localStorage esté bloqueado.
         }
@@ -1798,6 +1869,12 @@ function setupDashboardFiscales() {
         dashboardFiscalesRender();
     });
 
+    $('#dashboard_fiscales_buscar_limpiar').off('click.dashboardFiscales').on('click.dashboardFiscales', function() {
+        $('#dashboard_fiscales_buscar').val('').focus();
+        dashboardFiscalesPagina = 1;
+        dashboardFiscalesRender();
+    });
+
     $('.dashboard-fiscales-view-btn').off('click.dashboardFiscalesVista').on('click.dashboardFiscalesVista', function() {
         dashboardFiscalesCambiarVista($(this).data('view'));
     });
@@ -1810,13 +1887,21 @@ function setupDashboardFiscales() {
             clearTimeout(dashboardFiscalesResponsiveTimer);
 
             dashboardFiscalesResponsiveTimer = setTimeout(function() {
-                if (dashboardFiscalesEsMovil() && dashboardFiscalesVista !== 'miniatura') {
-                    dashboardFiscalesVista = 'miniatura';
+                var objetivo = dashboardFiscalesEsMovil()
+                    ? 'miniatura'
+                    : dashboardFiscalesVistaPreferida;
+
+                dashboardFiscalesActualizarDisponibilidadVista();
+
+                if (dashboardFiscalesVista !== objetivo) {
+                    dashboardFiscalesVista = objetivo;
                     dashboardFiscalesPagina = 1;
                     dashboardFiscalesActualizarBotonesVista();
                     dashboardFiscalesSincronizarTamanoPagina();
                     dashboardFiscalesRender();
                 }
+
+                dashboardRedimensionarGraficos();
             }, 120);
         });
 
@@ -1888,6 +1973,49 @@ function dashboardActualizarBotonGrafico($button, visible) {
     }
 }
 
+function dashboardAplicarLegibilidadGrafico(chart) {
+    if (!chart || !chart.options) {
+        return;
+    }
+
+    var movil = window.matchMedia
+        ? window.matchMedia('(max-width: 767.98px)').matches
+        : $(window).width() <= 767;
+
+    var tamanoTicks = movil ? 11 : 10;
+    var colorTicks = '#53627a';
+    var scales = chart.options.scales || {};
+
+    Object.keys(scales).forEach(function(clave) {
+        var escala = scales[clave];
+        if (!escala) return;
+
+        escala.ticks = escala.ticks || {};
+        escala.ticks.color = colorTicks;
+        escala.ticks.font = escala.ticks.font || {};
+        escala.ticks.font.size = tamanoTicks;
+        escala.ticks.font.weight = movil ? '600' : '500';
+
+        if (clave === 'x') {
+            escala.ticks.autoSkip = !movil;
+            escala.ticks.maxRotation = movil ? 45 : 0;
+            escala.ticks.minRotation = movil ? 30 : 0;
+        }
+    });
+
+    if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+        chart.options.plugins.legend.labels.font = chart.options.plugins.legend.labels.font || {};
+        chart.options.plugins.legend.labels.font.size = movil ? 11 : 10;
+        chart.options.plugins.legend.labels.color = '#53627a';
+    }
+
+    if (chart.options.plugins && chart.options.plugins.datalabels) {
+        chart.options.plugins.datalabels.font = chart.options.plugins.datalabels.font || {};
+        chart.options.plugins.datalabels.font.size = movil ? 10 : 10;
+        chart.options.plugins.datalabels.font.weight = 'bold';
+    }
+}
+
 function dashboardRedimensionarGraficos() {
     var charts = [
         window.chartVentas,
@@ -1896,12 +2024,25 @@ function dashboardRedimensionarGraficos() {
     ];
 
     charts.forEach(function(chart) {
-        if (chart && typeof chart.resize === 'function') {
-            try {
+        if (!chart) {
+            return;
+        }
+
+        try {
+            var categorias = chart.data && Array.isArray(chart.data.labels) ? chart.data.labels.length : 1;
+            var series = chart.data && Array.isArray(chart.data.datasets) ? chart.data.datasets.length : 1;
+            dashboardPrepararAnchoGrafico(chart.canvas, categorias, series);
+            dashboardAplicarLegibilidadGrafico(chart);
+
+            if (typeof chart.resize === 'function') {
                 chart.resize();
-            } catch (error) {
-                console.warn('No se pudo redimensionar un gráfico del dashboard:', error);
             }
+
+            if (typeof chart.update === 'function') {
+                chart.update('none');
+            }
+        } catch (error) {
+            console.warn('No se pudo redimensionar un gráfico del dashboard:', error);
         }
     });
 }
@@ -2011,9 +2152,17 @@ $(document).ready(function() {
     setupMonthSelectors();
     setupDownloadButtons();
 
+    $(window)
+        .off('resize.dashboardGraficos orientationchange.dashboardGraficos')
+        .on('resize.dashboardGraficos orientationchange.dashboardGraficos', function() {
+            clearTimeout(window.__dashboardGraficosResizeTimer);
+            window.__dashboardGraficosResizeTimer = setTimeout(dashboardRedimensionarGraficos, 120);
+        });
+
     showVentasAnuales();
     showComprasAnuales();
     showTopProductos(3);
+    setTimeout(dashboardRedimensionarGraficos, 120);
 
     setInterval(function() {
         setTotalCustomers();

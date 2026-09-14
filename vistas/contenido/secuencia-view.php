@@ -83,6 +83,13 @@
                                     <span class="input-group-text"><i class="fas fa-barcode"></i></span>
                                 </div>
                                 <input type="text" id="filtro_secuencia_general" name="filtro_secuencia_general" class="form-control" placeholder="Empresa, documento, CAI, prefijo, rango...">
+                                <button type="button"
+                                        id="limpiar_filtro_secuencia_general"
+                                        class="secuencia-search-clear"
+                                        title="Limpiar búsqueda"
+                                        aria-label="Limpiar búsqueda">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -237,6 +244,13 @@
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
                             </div>
                             <input type="search" id="secuencia_buscar_listado" class="form-control" placeholder="Buscar secuencia..." autocomplete="off">
+                            <button type="button"
+                                    id="limpiar_secuencia_buscar_listado"
+                                    class="secuencia-search-clear"
+                                    title="Limpiar búsqueda"
+                                    aria-label="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

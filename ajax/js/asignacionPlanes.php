@@ -4569,6 +4569,81 @@ $(window).on("load", function() {
         sequenceView: window.innerWidth < 768 ? "mini" : "detail"
     };
 
+    /*
+     * Preferencias de escritorio para las vistas internas del administrador.
+     * En móvil se fuerza Miniatura de forma temporal; al volver a escritorio
+     * se restaura la última vista elegida en escritorio.
+     */
+    let apAdminViewPreferida = "detail";
+    let apCompanyViewPreferida = "detail";
+    let apPrivilegeViewPreferida = "detail";
+    let apTypeViewPreferida = "detail";
+    let apSequenceViewPreferida = "detail";
+
+    function apVistasEsMovil() {
+        return window.matchMedia
+            ? window.matchMedia("(max-width: 767.98px)").matches
+            : window.innerWidth < 768;
+    }
+
+    function apActualizarDisponibilidadVistas() {
+        const movil = apVistasEsMovil();
+
+        [
+            "[data-ap-view='detail']",
+            "[data-company-view='detail']",
+            "[data-sequence-view='detail']",
+            "[data-privilege-view='detail']",
+            "[data-type-view='detail']"
+        ].forEach(function(selector) {
+            $(selector)
+                .prop("disabled", movil)
+                .toggleClass("d-none", movil)
+                .attr("aria-hidden", movil ? "true" : "false");
+        });
+    }
+
+    function apSincronizarVistasResponsive(renderizar) {
+        const movil = apVistasEsMovil();
+        const vistaColaboradores = movil ? "mini" : apAdminViewPreferida;
+        const vistaEmpresas = movil ? "mini" : apCompanyViewPreferida;
+        const vistaPrivilegios = movil ? "mini" : apPrivilegeViewPreferida;
+        const vistaTipos = movil ? "mini" : apTypeViewPreferida;
+        const vistaSecuencias = movil ? "mini" : apSequenceViewPreferida;
+        const cambioColaboradores = apAdminState.view !== vistaColaboradores;
+
+        apAdminState.view = vistaColaboradores;
+        apAdminState.companyView = vistaEmpresas;
+        apAdminState.privilegeView = vistaPrivilegios;
+        apAdminState.typeView = vistaTipos;
+        apBillingState.sequenceView = vistaSecuencias;
+
+        if (cambioColaboradores) {
+            apAdminState.page = 1;
+        }
+
+        apActualizarDisponibilidadVistas();
+
+        $("[data-ap-view]").removeClass("active")
+            .filter('[data-ap-view="' + apAdminState.view + '"]').addClass("active");
+        $("[data-company-view]").removeClass("active")
+            .filter('[data-company-view="' + apAdminState.companyView + '"]').addClass("active");
+        $("[data-sequence-view]").removeClass("active")
+            .filter('[data-sequence-view="' + apBillingState.sequenceView + '"]').addClass("active");
+        $("#ap_privilege_view_switch button").removeClass("active")
+            .filter('[data-privilege-view="' + apAdminState.privilegeView + '"]').addClass("active");
+        $("#ap_type_view_switch button").removeClass("active")
+            .filter('[data-type-view="' + apAdminState.typeView + '"]').addClass("active");
+
+        if (renderizar) {
+            apRenderCollaborators();
+            apRenderCompanies();
+            apRenderSequenceList();
+            apRenderPrivileges();
+            apRenderTypes();
+        }
+    }
+
     function apBillingRequest(action, data) {
         const payload = $.extend({}, data || {}, {
             ap_api_action: action,
@@ -5441,13 +5516,13 @@ $(window).on("load", function() {
       .off("click.apTabs", ".ap-admin-tab").on("click.apTabs", ".ap-admin-tab", function(){ const tab=$(this).data("ap-tab"); $(".ap-admin-tab").removeClass("active"); $(this).addClass("active"); $(".ap-admin-panel").removeClass("active"); $("#ap_panel_"+tab).addClass("active"); if(tab === "secuencias" || tab === "empresas") apLoadBillingData(false); })
       .off("click.apCollaboratorStatus", "[data-collaborator-status]").on("click.apCollaboratorStatus", "[data-collaborator-status]", function(){ apAdminState.collaboratorStatus=String($(this).data("collaborator-status")); $("[data-collaborator-status]").removeClass("active"); $(this).addClass("active"); apAdminState.page=1; apApplyFilter(); })
       .off("click.apCompanyStatus", "[data-company-status]").on("click.apCompanyStatus", "[data-company-status]", function(){ apAdminState.companyStatus=String($(this).data("company-status")); $("[data-company-status]").removeClass("active"); $(this).addClass("active"); apRenderCompanies(); })
-      .off("click.apCompanyView", "[data-company-view]").on("click.apCompanyView", "[data-company-view]", function(){ if(window.innerWidth<768)return; apAdminState.companyView=String($(this).data("company-view"))==="mini"?"mini":"detail"; apRenderCompanies(); })
+      .off("click.apCompanyView", "[data-company-view]").on("click.apCompanyView", "[data-company-view]", function(){ if(apVistasEsMovil())return; apAdminState.companyView=String($(this).data("company-view"))==="mini"?"mini":"detail"; apCompanyViewPreferida=apAdminState.companyView; apRenderCompanies(); })
       .off("click.apSequenceStatus", "[data-sequence-status]").on("click.apSequenceStatus", "[data-sequence-status]", function(){ apBillingState.sequenceStatus=String($(this).data("sequence-status")); $("[data-sequence-status]").removeClass("active"); $(this).addClass("active"); apRenderSequenceList(); })
-      .off("click.apSequenceView", "[data-sequence-view]").on("click.apSequenceView", "[data-sequence-view]", function(){ if(window.innerWidth<768)return; apBillingState.sequenceView=String($(this).data("sequence-view"))==="mini"?"mini":"detail"; apRenderSequenceList(); })
+      .off("click.apSequenceView", "[data-sequence-view]").on("click.apSequenceView", "[data-sequence-view]", function(){ if(apVistasEsMovil())return; apBillingState.sequenceView=String($(this).data("sequence-view"))==="mini"?"mini":"detail"; apSequenceViewPreferida=apBillingState.sequenceView; apRenderSequenceList(); })
       .off("click.apDocumentStatus", "[data-document-status]").on("click.apDocumentStatus", "[data-document-status]", function(){ apBillingState.documentStatus=String($(this).data("document-status")); $("[data-document-status]").removeClass("active"); $(this).addClass("active"); apRenderDocumentCatalog(); })
       .off("input.apSearch", "#ap_search").on("input.apSearch", "#ap_search", function(){ apAdminState.page=1; apApplyFilter(); })
       .off("change.apPageSize", "#ap_page_size").on("change.apPageSize", "#ap_page_size", function(){ apAdminState.pageSize=parseInt(this.value,10)||10; apAdminState.page=1; apRenderCollaborators(); })
-      .off("click.apView", "[data-ap-view]").on("click.apView", "[data-ap-view]", function(){ if(window.innerWidth<768)return; apAdminState.view=$(this).data("ap-view"); $("[data-ap-view]").removeClass("active"); $(this).addClass("active"); apRenderCollaborators(); })
+      .off("click.apView", "[data-ap-view]").on("click.apView", "[data-ap-view]", function(){ if(apVistasEsMovil())return; apAdminState.view=String($(this).data("ap-view"))==="mini"?"mini":"detail"; apAdminViewPreferida=apAdminState.view; $("[data-ap-view]").removeClass("active"); $(this).addClass("active"); apRenderCollaborators(); })
       .off("click.apPage", "#ap_pagination button").on("click.apPage", "#ap_pagination button", function(){ if(this.disabled)return; apAdminState.page=parseInt($(this).data("page"),10)||1; apRenderCollaborators(); })
       .off("click.apRefresh", "#ap_btn_actualizar").on("click.apRefresh", "#ap_btn_actualizar", apLoadAdmin)
       .off("click.apNewUnifiedUser", "#ap_btn_nuevo_usuario").on("click.apNewUnifiedUser", "#ap_btn_nuevo_usuario", function(){ apCloseCollaboratorActionsPortal(); apOpenUnifiedUserModal(null); })
@@ -5602,6 +5677,7 @@ $(window).on("load", function() {
     $("#modalAdministrarCliente")
         .off("shown.bs.modal.apFocus")
         .on("shown.bs.modal.apFocus", function(){
+            apSincronizarVistasResponsive(true);
             const $modal = $(this);
             $modal.find(".modal-body").scrollTop(0);
             setTimeout(function(){
@@ -6148,11 +6224,17 @@ $(window).on("load", function() {
         })
         .off("click.apPrivView","[data-privilege-view]")
         .on("click.apPrivView","[data-privilege-view]",function(){
-            apAdminState.privilegeView=String($(this).data("privilege-view"));$("#ap_privilege_view_switch button").removeClass("active");$(this).addClass("active");apRenderPrivileges();
+            if(apVistasEsMovil())return;
+            apAdminState.privilegeView=String($(this).data("privilege-view"))==="mini"?"mini":"detail";
+            apPrivilegeViewPreferida=apAdminState.privilegeView;
+            $("#ap_privilege_view_switch button").removeClass("active");$(this).addClass("active");apRenderPrivileges();
         })
         .off("click.apTypeView","[data-type-view]")
         .on("click.apTypeView","[data-type-view]",function(){
-            apAdminState.typeView=String($(this).data("type-view"));$("#ap_type_view_switch button").removeClass("active");$(this).addClass("active");apRenderTypes();
+            if(apVistasEsMovil())return;
+            apAdminState.typeView=String($(this).data("type-view"))==="mini"?"mini":"detail";
+            apTypeViewPreferida=apAdminState.typeView;
+            $("#ap_type_view_switch button").removeClass("active");$(this).addClass("active");apRenderTypes();
         })
         .off("input.apPrivSearch","#ap_privilege_search")
         .on("input.apPrivSearch","#ap_privilege_search",function(){apAdminState.privilegeSearch=$(this).val()||"";apRenderPrivileges();})
@@ -6371,6 +6453,21 @@ $(window).on("load", function() {
                 renderAsignaciones();
             }, 120);
         });
+
+    var apVistasResponsiveTimer = null;
+    $(window)
+        .off("resize.apVistasResponsive orientationchange.apVistasResponsive")
+        .on("resize.apVistasResponsive orientationchange.apVistasResponsive", function() {
+            clearTimeout(apVistasResponsiveTimer);
+
+            apVistasResponsiveTimer = setTimeout(function() {
+                apSincronizarVistasResponsive(
+                    $("#modalAdministrarCliente").hasClass("show")
+                );
+            }, 120);
+        });
+
+    apSincronizarVistasResponsive(false);
     inicializarSeccionesPersistentes();
     cargarClientes();
     cargarPlanes();

@@ -15,16 +15,20 @@ var cajasState = {
 var CAJAS_STORAGE_VISTA = 'izzy.cajas.tipo_vista';
 var CAJAS_STORAGE_FILTROS = 'izzy.cajas.filtros.visible';
 var CAJAS_STORAGE_KPIS = 'izzy.cajas.kpis.visible';
+var CAJAS_MOBILE_QUERY = '(max-width: 767.98px)';
+var cajasVistaPreferida = 'detalle';
+
+function cajasEsPantallaPequena() {
+    return window.matchMedia
+        ? window.matchMedia(CAJAS_MOBILE_QUERY).matches
+        : $(window).width() <= 767;
+}
 
 $(() => {
     inicializarCajasUI();
     inicializarDropdownAccionesCajas();
 
-    $("#formMainCajas #estado_cajas").val(0);
-
-    if ($.fn.selectpicker) {
-        $('#formMainCajas #estado_cajas').selectpicker('refresh');
-    }
+    $("#formMainCajas #estado_cajas").val('0').trigger('change.select2');
 
     listar_registro_cajas();
 
@@ -40,13 +44,7 @@ $(() => {
         .off('reset.cajas')
         .on('reset.cajas', function () {
             setTimeout(function () {
-                $("#formMainCajas #estado_cajas").val(0);
-
-                if ($.fn.selectpicker) {
-                    $('#formMainCajas #estado_cajas')
-                        .selectpicker('val', '0')
-                        .selectpicker('refresh');
-                }
+                $("#formMainCajas #estado_cajas").val('0').trigger('change.select2');
 
                 var hoy = new Date().toISOString().split('T')[0];
                 $("#formMainCajas #fecha_cajas").val(hoy);
@@ -113,6 +111,15 @@ $(() => {
         .off('input.cajas')
         .on('input.cajas', function () {
             cajasState.busqueda = String($(this).val() || '').trim().toLowerCase();
+            cajasState.pagina = 1;
+            aplicarFiltroCajas();
+        });
+
+    $('#buscarCajasLimpiar')
+        .off('click.cajas')
+        .on('click.cajas', function () {
+            $('#buscarCajas').val('').focus();
+            cajasState.busqueda = '';
             cajasState.pagina = 1;
             aplicarFiltroCajas();
         });
@@ -218,16 +225,50 @@ function inicializarCajasUI() {
         CAJAS_STORAGE_KPIS
     );
 
+    var vistaGuardada = 'detalle';
+
     try {
-        cajasState.vista = localStorage.getItem(CAJAS_STORAGE_VISTA) === 'miniatura'
-            ? 'miniatura'
-            : 'detalle';
+        vistaGuardada = localStorage.getItem(CAJAS_STORAGE_VISTA) || 'detalle';
     } catch (error) {
-        cajasState.vista = 'detalle';
+        vistaGuardada = 'detalle';
     }
+
+    cajasVistaPreferida = vistaGuardada === 'miniatura'
+        ? 'miniatura'
+        : 'detalle';
+
+    cajasState.vista = cajasEsPantallaPequena()
+        ? 'miniatura'
+        : cajasVistaPreferida;
 
     actualizarBotonesVistaCajas();
     sincronizarPageSizeCajas();
+
+    var cajasResponsiveTimer = null;
+
+    $(window)
+        .off('resize.cajasResponsive orientationchange.cajasResponsive')
+        .on('resize.cajasResponsive orientationchange.cajasResponsive', function () {
+            clearTimeout(cajasResponsiveTimer);
+
+            cajasResponsiveTimer = setTimeout(function () {
+                var objetivo = cajasEsPantallaPequena()
+                    ? 'miniatura'
+                    : cajasVistaPreferida;
+
+                actualizarBotonesVistaCajas();
+
+                if (cajasState.vista === objetivo) {
+                    return;
+                }
+
+                cajasState.vista = objetivo;
+                cajasState.pagina = 1;
+                actualizarBotonesVistaCajas();
+                sincronizarPageSizeCajas();
+                renderCajas();
+            }, 120);
+        });
 }
 
 function configurarToggleCajas(buttonSelector, contentSelector, storageKey) {
@@ -281,12 +322,24 @@ function configurarToggleCajas(buttonSelector, contentSelector, storageKey) {
 }
 
 function cambiarVistaCajas(vista) {
-    cajasState.vista = vista === 'miniatura' ? 'miniatura' : 'detalle';
+    var siguiente = vista === 'miniatura'
+        ? 'miniatura'
+        : 'detalle';
 
-    try {
-        localStorage.setItem(CAJAS_STORAGE_VISTA, cajasState.vista);
-    } catch (error) {
-        console.warn('No se pudo guardar la vista de cajas:', error);
+    if (cajasEsPantallaPequena()) {
+        siguiente = 'miniatura';
+    }
+
+    cajasState.vista = siguiente;
+
+    if (!cajasEsPantallaPequena()) {
+        cajasVistaPreferida = siguiente;
+
+        try {
+            localStorage.setItem(CAJAS_STORAGE_VISTA, cajasVistaPreferida);
+        } catch (error) {
+            console.warn('No se pudo guardar la vista de cajas:', error);
+        }
     }
 
     actualizarBotonesVistaCajas();
@@ -296,6 +349,13 @@ function cambiarVistaCajas(vista) {
 }
 
 function actualizarBotonesVistaCajas() {
+    var movil = cajasEsPantallaPequena();
+
+    $('.cajas-view-btn[data-view="detalle"]')
+        .prop('disabled', movil)
+        .toggleClass('d-none', movil)
+        .attr('aria-hidden', movil ? 'true' : 'false');
+
     $('.cajas-view-btn')
         .removeClass('active')
         .attr('aria-pressed', 'false');
@@ -330,8 +390,9 @@ function sincronizarPageSizeCajas() {
         ? seleccionado
         : opciones[0];
 
-    $select.val(String(cajasState.porPagina));
+    $select.val(String(cajasState.porPagina)).trigger('change.select2');
 }
+
 
 /* =========================================================
    CARGA / FILTRO / KPIs
@@ -898,10 +959,7 @@ function abrirModalRetiroCaja(apertura_id) {
     $('#retiro_monto_transferencia').val('').prop('disabled', true);
     $('#btn_guardar_retiro_caja').prop('disabled', true);
 
-    if ($.fn.selectpicker) {
-        $('#retiro_categoria_gastos_id').selectpicker('val', '');
-        $('#retiro_categoria_gastos_id').selectpicker('refresh');
-    }
+    $('#retiro_categoria_gastos_id').val('').trigger('change.select2');
 
     cargarSaldoRetiroCaja(function () {
         $('#retiro_monto_efectivo').prop('disabled', false);

@@ -41,7 +41,7 @@
 						<div class="col-md-3 col-sm-6 mb-3">
 							<div class="form-group">
 								<label class="small mb-1">Estado</label>
-								<select id="pagar_proveedores_estado" name="pagar_proveedores_estado" class="form-control selectpicker" title="Estado" data-live-search="true">
+								<select id="pagar_proveedores_estado" name="pagar_proveedores_estado" class="form-control izzy-select2" title="Estado" data-placeholder="Estado">
 									<option value="1">Pendientes</option>
 									<option value="2">Pagadas</option>
 								</select>
@@ -52,7 +52,7 @@
 							<div class="form-group">
 								<label class="small mb-1">Proveedores</label>
 								<select id="pagar_proveedores" name="pagar_proveedores" 
-									class="form-control selectpicker" title="Proveedores" data-live-search="true">
+ class="form-control izzy-select2" title="Proveedores" data-placeholder="Proveedores">
 									<option value="">Seleccione</option>
 								</select>
 							</div>
@@ -206,7 +206,7 @@
 
                 <div class="rv-toolbar-right">
                     <label class="rv-page-size">Mostrar
-                        <select id="cxpPageSize" class="form-control form-control-sm">
+                        <select id="cxpPageSize" class="form-control form-control-sm izzy-select2">
                             <option value="10" selected>10</option>
                             <option value="25">25</option>
                             <option value="50">50</option>

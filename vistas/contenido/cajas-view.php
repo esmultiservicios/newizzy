@@ -51,9 +51,8 @@
                             </label>
                             <select id="estado_cajas"
                                     name="estado_cajas"
-                                    class="form-control selectpicker"
-                                    title="Estado"
-                                    data-live-search="true">
+                                    class="form-control izzy-select2"
+                                    title="Estado">
                                 <option value="0">Todas</option>
                                 <option value="1">Activas</option>
                                 <option value="2">Cerrada</option>
@@ -246,7 +245,7 @@
                 <div class="cajas-list-tools">
                     <div class="cajas-page-size">
                         <label for="cajasPageSize">Mostrar</label>
-                        <select id="cajasPageSize" class="form-control form-control-sm"></select>
+                        <select id="cajasPageSize" class="form-control form-control-sm izzy-select2"></select>
                         <span>registros</span>
                     </div>
 
@@ -281,6 +280,13 @@
                                    class="form-control"
                                    placeholder="Buscar caja..."
                                    autocomplete="off">
+                            <button type="button"
+                                    id="buscarCajasLimpiar"
+                                    class="cajas-search-clear"
+                                    aria-label="Limpiar búsqueda"
+                                    title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

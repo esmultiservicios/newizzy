@@ -35,7 +35,7 @@
                                     </label>
 
                                     <select id="tipo_correo_confEmail" name="tipo_correo_confEmail"
-                                        class="selectpicker form-control" data-live-search="true" title="Seleccione tipo" required>
+                                        class="form-control izzy-select2" title="Seleccione tipo" required>
                                     </select>
 
                                     <small class="form-text text-muted">
@@ -49,7 +49,7 @@
                                     </label>
 
                                     <select id="metodoEnvioConfEmail" name="metodoEnvioConfEmail"
-                                        class="selectpicker form-control" title="Seleccione método" required>
+                                        class="form-control izzy-select2" title="Seleccione método" required>
                                         <option value="SMTP">SMTP / PHPMailer</option>
                                         <option value="GRAPH">Microsoft Graph API</option>
                                     </select>
@@ -218,8 +218,7 @@
                                     </label>
 
                                     <select id="smtpSecureConfEmail" name="smtpSecureConfEmail"
-                                        class="selectpicker form-control campo-smtp"
-                                        data-live-search="true"
+                                        class="form-control izzy-select2 campo-smtp"
                                         title="Seleccione seguridad">
                                     </select>
 
@@ -314,7 +313,7 @@
                                     </label>
 
                                     <select id="saveToSentItemsConfEmail" name="saveToSentItemsConfEmail"
-                                        class="selectpicker form-control campo-graph"
+                                        class="form-control izzy-select2 campo-graph"
                                         title="Seleccione">
                                         <option value="1">Sí, guardar copia</option>
                                         <option value="0">No guardar copia</option>
@@ -355,24 +354,32 @@
 
 <!--INICIO MODAL PARA REGISTRAR DESTINATARIOS DE NOTIFICACIONES-->
 <div class="modal fade" id="modalRegistrarDestinatarios" tabindex="-1" role="dialog" aria-labelledby="tituloModalDestinatarios" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable destinatarios-modal-dialog" role="document">
+        <div class="modal-content destinatarios-modal-content">
+
+            <div class="modal-header bg-primary text-white destinatarios-modal-header">
                 <h4 class="modal-title" id="tituloModalDestinatarios">
                     <i class="fas fa-users mr-2"></i>Destinatarios de notificaciones
                 </h4>
+
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
 
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Registre los correos internos que deben recibir notificaciones generadas por el sistema.
+            <div class="modal-body destinatarios-modal-body">
+
+                <div class="destinatarios-info-box">
+                    <span class="destinatarios-info-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                    <div>
+                        <strong>Destinatarios internos</strong>
+                        <p>Registre los correos internos que deben recibir notificaciones generadas por el sistema.</p>
+                    </div>
                 </div>
 
-                <form class="FormularioAjax" id="formDestinatarios" action="" method="POST" data-form="save" autocomplete="off">
+                <form class="FormularioAjax destinatarios-form" id="formDestinatarios" action="" method="POST" data-form="save" autocomplete="off">
                     <input type="hidden" id="proceso_destinatarios" name="proceso_destinatarios" value="Registro Destinatarios">
 
                     <div class="form-row align-items-end">
@@ -391,7 +398,7 @@
                         </div>
 
                         <div class="col-lg-2 col-md-12 mb-3">
-                            <button type="submit" class="btn btn-success btn-block" id="reg_destinatarios">
+                            <button type="submit" class="btn btn-success btn-block destinatarios-register-btn" id="reg_destinatarios">
                                 <i class="fas fa-save mr-1"></i>Registrar
                             </button>
                         </div>
@@ -400,22 +407,64 @@
                     <div class="RespuestaAjax"></div>
                 </form>
 
-                <hr>
+                <div class="destinatarios-divider"></div>
 
-                <div class="table-responsive">
-                    <table id="DatatableDestinatarios" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th>Correo</th>
-                                <th>Nombre</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                    </table>
+                <div class="destinatarios-toolbar">
+                    <div class="destinatarios-toolbar-left">
+                        <button type="button" class="btn btn-secondary table_actualizar ocultar" id="btnActualizarDestinatarios">
+                            <i class="fas fa-sync-alt mr-1"></i>Actualizar
+                        </button>
+
+                        <button type="button" class="btn btn-success table_reportes ocultar" id="btnExcelDestinatarios">
+                            <i class="fas fa-file-excel mr-1"></i>Excel
+                        </button>
+
+                        <button type="button" class="btn btn-danger table_reportes ocultar" id="btnPdfDestinatarios">
+                            <i class="fas fa-file-pdf mr-1"></i>PDF
+                        </button>
+                    </div>
+
+                    <div class="destinatarios-toolbar-right">
+                        <label class="destinatarios-page-size mb-0">
+                            <span>Mostrar</span>
+                            <select id="destinatariosPageSize" class="form-control form-control-sm"></select>
+                            <span>registros</span>
+                        </label>
+
+                        <div class="destinatarios-view-switch">
+                            <button type="button" class="destinatarios-view-btn active" data-view="detalle" aria-pressed="true">
+                                <i class="fas fa-list"></i>
+                                <span>Detalle</span>
+                            </button>
+                            <button type="button" class="destinatarios-view-btn" data-view="miniatura" aria-pressed="false">
+                                <i class="fas fa-th-large"></i>
+                                <span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="destinatarios-search-wrap">
+                            <span class="destinatarios-search-icon">
+                                <i class="fas fa-search"></i>
+                            </span>
+
+                            <input type="search" id="buscarDestinatarioListado" class="form-control" placeholder="Buscar destinatario..." autocomplete="off">
+
+                            <button type="button" id="limpiarBuscarDestinatarioListado" class="destinatarios-search-clear" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="destinatariosListado" class="destinatarios-listado vista-detalle"></div>
+
+                <div class="destinatarios-list-footer">
+                    <span id="destinatariosInfo">0 registros</span>
+                    <div id="destinatariosPaginacion" class="destinatarios-pagination"></div>
                 </div>
             </div>
 
-            <div class="modal-footer">
+            <div class="modal-footer destinatarios-modal-footer">
                 <button type="button" class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times mr-1"></i>Cerrar
                 </button>

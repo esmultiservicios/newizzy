@@ -927,8 +927,8 @@
             });
 
         $(window)
-            .off("resize.menusResponsive")
-            .on("resize.menusResponsive", menusDebounce(aplicarVistaResponsiveMenus, 120));
+            .off("resize.menusResponsive orientationchange.menusResponsive")
+            .on("resize.menusResponsive orientationchange.menusResponsive", menusDebounce(aplicarVistaResponsiveMenus, 120));
 
         $("#btn_exportar_menus_excel")
             .off("click.menusExcel")

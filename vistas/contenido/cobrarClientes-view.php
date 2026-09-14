@@ -44,7 +44,7 @@
 							<label class="small mb-1">Estado</label>
 							<!-- name debe ser “estado” -->
 							<select id="main_cobrar_clientes_estado" name="estado"
-								class="form-control selectpicker" title="Estado" data-live-search="true">
+ class="form-control izzy-select2" title="Estado" data-placeholder="Estado">
 								<option value="1" selected>Pendientes</option>
 								<option value="2">Pagadas</option>
 							</select>
@@ -56,7 +56,7 @@
 							<label class="small mb-1">Clientes</label>
 							<!-- name debe ser “clientes_id” -->
 							<select id="main_cobrar_clientes" name="main_cobrar_clientes"
-								class="form-control selectpicker" title="Clientes" data-live-search="true">
+ class="form-control izzy-select2" title="Clientes" data-placeholder="Clientes">
 								<option value="">Seleccione</option>
 							</select>
 						</div>
@@ -208,7 +208,7 @@
 
                 <div class="rv-toolbar-right">
                     <label class="rv-page-size">Mostrar
-                        <select id="cxcPageSize" class="form-control form-control-sm">
+                        <select id="cxcPageSize" class="form-control form-control-sm izzy-select2">
                             <option value="10" selected>10</option>
                             <option value="25">25</option>
                             <option value="50">50</option>

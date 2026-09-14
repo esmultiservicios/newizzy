@@ -209,6 +209,7 @@ function renderAccionesCuenta(cuenta) {
 
 var CUENTAS_STORAGE_VISTA = 'izzy.cuentasContabilidad.tipo_vista';
 var cuentasVistaActual = 'miniatura';
+var cuentasVistaPreferida = 'miniatura';
 var cuentasUltimosDatos = [];
 var cuentasDatosFiltrados = [];
 var cuentasPaginaActual = 1;
@@ -1099,11 +1100,10 @@ function inicializarVistaCuentas() {
         saved = localStorage.getItem(CUENTAS_STORAGE_VISTA) || 'miniatura';
     } catch (e) {}
 
-    cuentasVistaActual = saved === 'detalle' ? 'detalle' : 'miniatura';
-
-    if (cuentasEsMovil()) {
-        cuentasVistaActual = 'miniatura';
-    }
+    cuentasVistaPreferida = saved === 'detalle' ? 'detalle' : 'miniatura';
+    cuentasVistaActual = cuentasEsMovil()
+        ? 'miniatura'
+        : cuentasVistaPreferida;
 
     cuentasSincronizarPageSize();
     cuentasEstadoVista();
@@ -1150,8 +1150,10 @@ function inicializarVistaCuentas() {
                 : (requested === 'detalle' ? 'detalle' : 'miniatura');
 
             if (!cuentasEsMovil()) {
+                cuentasVistaPreferida = cuentasVistaActual;
+
                 try {
-                    localStorage.setItem(CUENTAS_STORAGE_VISTA, cuentasVistaActual);
+                    localStorage.setItem(CUENTAS_STORAGE_VISTA, cuentasVistaPreferida);
                 } catch (e) {}
             }
 
@@ -1164,19 +1166,18 @@ function inicializarVistaCuentas() {
     $(window)
         .off('resize.cuentasVista orientationchange.cuentasVista')
         .on('resize.cuentasVista orientationchange.cuentasVista', function() {
-            if (cuentasEsMovil()) {
-                cuentasVistaActual = 'miniatura';
-            } else {
-                try {
-                    var savedView = localStorage.getItem(CUENTAS_STORAGE_VISTA) || 'miniatura';
-                    cuentasVistaActual = savedView === 'detalle' ? 'detalle' : 'miniatura';
-                } catch (e) {}
+            var objetivo = cuentasEsMovil()
+                ? 'miniatura'
+                : cuentasVistaPreferida;
+
+            if (cuentasVistaActual !== objetivo) {
+                cuentasVistaActual = objetivo;
+                cuentasPaginaActual = 1;
+                cuentasSincronizarPageSize();
+                cuentasRenderActual();
             }
 
-            cuentasPaginaActual = 1;
-            cuentasSincronizarPageSize();
             cuentasEstadoVista();
-            cuentasRenderActual();
         });
 }
 

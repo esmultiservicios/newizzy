@@ -1318,10 +1318,14 @@ function getClientesPagos(){
   'use strict';
 
   var RV = {
-    main:{rows:[],filtered:[],page:1,pageSize:10,view:'detalle',search:''},
-    detail:{rows:[],filtered:[],page:1,pageSize:10,view:'detalle',search:''},
-    payments:{rows:[],filtered:[],page:1,pageSize:10,view:'detalle',search:''}
+    main:{rows:[],filtered:[],page:1,pageSize:10,view:'detalle',preferredView:'detalle',search:''},
+    detail:{rows:[],filtered:[],page:1,pageSize:10,view:'detalle',preferredView:'detalle',search:''},
+    payments:{rows:[],filtered:[],page:1,pageSize:10,view:'detalle',preferredView:'detalle',search:''}
   };
+
+  var RV_STORAGE_VISTA_MAIN = 'izzy.reporteVentas.vista.main';
+  var RV_STORAGE_VISTA_DETAIL = 'izzy.reporteVentas.vista.detalle';
+  var RV_STORAGE_VISTA_PAYMENTS = 'izzy.reporteVentas.vista.pagos';
 
   function rvEsMovil(){
     return window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches;
@@ -1349,12 +1353,39 @@ function getClientesPagos(){
     $('[data-rv-pay-view="'+RV.payments.view+'"]').addClass('active').attr('aria-pressed','true');
   }
 
-  function rvAplicarVistaResponsiveInicial(){
+  function rvInicializarVistaEstado(state, storageKey){
+    var saved='detalle';
+
+    try{
+      saved=localStorage.getItem(storageKey)||'detalle';
+    }catch(e){}
+
+    state.preferredView=saved==='miniatura'?'miniatura':'detalle';
+    state.view=rvEsMovil()?'miniatura':state.preferredView;
+  }
+
+  function rvCambiarVistaEstado(state, storageKey, vistaSolicitada, renderFn){
+    var next=vistaSolicitada==='miniatura'?'miniatura':'detalle';
+
     if(rvEsMovil()){
-      RV.main.view='miniatura';
-      RV.detail.view='miniatura';
-      RV.payments.view='miniatura';
+      next='miniatura';
+    }else{
+      state.preferredView=next;
+      try{
+        localStorage.setItem(storageKey,state.preferredView);
+      }catch(e){}
     }
+
+    state.view=next;
+    state.page=1;
+    rvSincronizarBotonesVista();
+    renderFn();
+  }
+
+  function rvAplicarVistaResponsiveInicial(){
+    rvInicializarVistaEstado(RV.main,RV_STORAGE_VISTA_MAIN);
+    rvInicializarVistaEstado(RV.detail,RV_STORAGE_VISTA_DETAIL);
+    rvInicializarVistaEstado(RV.payments,RV_STORAGE_VISTA_PAYMENTS);
     rvSincronizarBotonesVista();
   }
 
@@ -1366,32 +1397,32 @@ function getClientesPagos(){
     .on('resize.rvResponsive orientationchange.rvResponsive',function(){
       clearTimeout(rvResponsiveTimer);
       rvResponsiveTimer=setTimeout(function(){
-        if(!rvEsMovil()) return;
+        var mobile=rvEsMovil();
+        var mainTarget=mobile?'miniatura':RV.main.preferredView;
+        var detailTarget=mobile?'miniatura':RV.detail.preferredView;
+        var paymentsTarget=mobile?'miniatura':RV.payments.preferredView;
+        var mainChanged=RV.main.view!==mainTarget;
+        var detailChanged=RV.detail.view!==detailTarget;
+        var paymentsChanged=RV.payments.view!==paymentsTarget;
 
-        var cambio=false;
-
-        if(RV.main.view!=='miniatura'){
-          RV.main.view='miniatura';
+        if(mainChanged){
+          RV.main.view=mainTarget;
           RV.main.page=1;
-          cambio=true;
         }
-        if(RV.detail.view!=='miniatura'){
-          RV.detail.view='miniatura';
+        if(detailChanged){
+          RV.detail.view=detailTarget;
           RV.detail.page=1;
-          cambio=true;
         }
-        if(RV.payments.view!=='miniatura'){
-          RV.payments.view='miniatura';
+        if(paymentsChanged){
+          RV.payments.view=paymentsTarget;
           RV.payments.page=1;
-          cambio=true;
         }
 
-        if(cambio){
-          rvSincronizarBotonesVista();
-          if(RV.main.rows.length) rvRenderMain();
-          if(RV.detail.rows.length) rvRenderDetailSales();
-          if(RV.payments.rows.length) rvRenderPayments();
-        }
+        rvSincronizarBotonesVista();
+
+        if(mainChanged && RV.main.rows.length) rvRenderMain();
+        if(detailChanged && RV.detail.rows.length) rvRenderDetailSales();
+        if(paymentsChanged && RV.payments.rows.length) rvRenderPayments();
       },120);
     });
 
@@ -1870,10 +1901,12 @@ function getClientesPagos(){
   $('#rvSearch').off('input.rv').on('input.rv',function(){RV.main.search=this.value||'';RV.main.page=1;rvRenderMain();});
   $('#rvSearchClear').off('click.rv').on('click.rv',function(){$('#rvSearch').val('').focus();RV.main.search='';RV.main.page=1;rvRenderMain();});
   $('.rv-view-btn[data-view]').off('click.rv').on('click.rv',function(){
-    RV.main.view=rvEsMovil()?'miniatura':($(this).data('view')==='miniatura'?'miniatura':'detalle');
-    RV.main.page=1;
-    rvSincronizarBotonesVista();
-    rvRenderMain();
+    rvCambiarVistaEstado(
+      RV.main,
+      RV_STORAGE_VISTA_MAIN,
+      $(this).data('view'),
+      rvRenderMain
+    );
   });
 
   $('#FormDetalleVentas').off('submit.rv').on('submit.rv',function(e){e.preventDefault();ListarDetalleVenas();});
@@ -1884,10 +1917,12 @@ function getClientesPagos(){
   $('#rvDetSearch').off('input.rv').on('input.rv',function(){RV.detail.search=this.value||'';RV.detail.page=1;rvRenderDetailSales();});
   $('#rvDetSearchClear').off('click.rv').on('click.rv',function(){$('#rvDetSearch').val('').focus();RV.detail.search='';RV.detail.page=1;rvRenderDetailSales();});
   $('[data-rv-detail-view]').off('click.rv').on('click.rv',function(){
-    RV.detail.view=rvEsMovil()?'miniatura':($(this).data('rv-detail-view')==='miniatura'?'miniatura':'detalle');
-    RV.detail.page=1;
-    rvSincronizarBotonesVista();
-    rvRenderDetailSales();
+    rvCambiarVistaEstado(
+      RV.detail,
+      RV_STORAGE_VISTA_DETAIL,
+      $(this).data('rv-detail-view'),
+      rvRenderDetailSales
+    );
   });
 
   $('#rvPagActualizar').off('click.rv').on('click.rv',listar_pagos_cliente);
@@ -1897,10 +1932,12 @@ function getClientesPagos(){
   $('#rvPagSearch').off('input.rv').on('input.rv',function(){RV.payments.search=this.value||'';RV.payments.page=1;rvRenderPayments();});
   $('#rvPagSearchClear').off('click.rv').on('click.rv',function(){$('#rvPagSearch').val('').focus();RV.payments.search='';RV.payments.page=1;rvRenderPayments();});
   $('[data-rv-pay-view]').off('click.rv').on('click.rv',function(){
-    RV.payments.view=rvEsMovil()?'miniatura':($(this).data('rv-pay-view')==='miniatura'?'miniatura':'detalle');
-    RV.payments.page=1;
-    rvSincronizarBotonesVista();
-    rvRenderPayments();
+    rvCambiarVistaEstado(
+      RV.payments,
+      RV_STORAGE_VISTA_PAYMENTS,
+      $(this).data('rv-pay-view'),
+      rvRenderPayments
+    );
   });
 
   rvSincronizarBotonesVista();

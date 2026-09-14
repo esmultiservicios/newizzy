@@ -1,368 +1,1224 @@
 <script>
-$(document).ready(function() {
-    listar_banco_contabilidad();
+(function($){
+    'use strict';
 
-	$('#form_main_Bancos #search').on("click", function (e) {
-		e.preventDefault();
-		listar_banco_contabilidad();
-	});
+    var BANCOS_STORAGE_VISTA = 'izzy.confBancos.vista';
 
-	// Evento para el botón de Limpiar (reset)
-	$('#form_main_Bancos').on('reset', function () {
-		// Limpia y refresca los selects
-		$(this).find('.selectpicker') // Usa `this` para referenciar el formulario actual
-			.val('')
-			.selectpicker('refresh');
+    var bancosState = {
+        rows: [],
+        filtered: [],
+        page: 1,
+        pageSize: 10,
+        pageSizeDetalle: 10,
+        pageSizeMiniatura: 6,
+        search: '',
+        estado: '',
+        view: 'detalle',
+        preferredView: 'detalle'
+    };
 
-			listar_banco_contabilidad();
-	});  	
-});
+    $(document).ready(function(){
+        bancosInicializarVista();
+        bancosInicializarSelect2();
+        bancosBindEventos();
+        listar_banco_contabilidad();
+        bancosActualizarLabelEstado();
+    });
 
-/* =========================================================
-   HEADER DINÁMICO - BANCOS
-   ========================================================= */
-   function construirHeaderDataTableConfBancos() {
-    var $tabla = $("#dataTableConfBancos");
-
-    $tabla.empty();
-
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Acciones</th>' +
-                '<th>Banco</th>' +
-                '<th>Estado</th>' +
-            '</tr>' +
-        '</thead>'
-    );
-}
-
-//INICIO BANCOS
-var listar_banco_contabilidad = function () {
-    var estado = $('#form_main_Bancos #estado_conf_Bancos').val();
-
-    if ($.fn.DataTable.isDataTable("#dataTableConfBancos")) {
-        $("#dataTableConfBancos").DataTable().clear().destroy();
+    function bancosEsc(value){
+        return $('<div>').text(value == null ? '' : String(value)).html();
     }
 
-    construirHeaderDataTableConfBancos();
+    function bancosEsMovil(){
+        return window.matchMedia
+            ? window.matchMedia('(max-width: 767.98px)').matches
+            : $(window).width() <= 767;
+    }
 
-    var table_banco_contabilidad = $("#dataTableConfBancos").DataTable({
-        "destroy": true,
-        "ajax": {
-            "method": "POST",
-            "url": "<?php echo SERVERURL; ?>core/llenarDataTableConfBanco.php",
-            "data": {
-                "estado": estado
-            }
-        },
-        "columns": [
-            {
-                "data": null,
-                "orderable": false,
-                "searchable": false,
-                "className": "text-center align-middle",
-                "render": function (data, type, row) {
-                    if (type !== "display") {
-                        return "";
-                    }
-
-                    return '' +
-                        '<div class="dropdown acciones-dropdown">' +
-
-                            '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-                                '<i class="fas fa-cog"></i>' +
-                                '<span>Acciones</span>' +
-                            '</button>' +
-
-                            '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar">' +
-                                    '<span class="accion-icon accion-icon-editar">' +
-                                        '<i class="fas fa-edit"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Editar</span>' +
-                                '</button>' +
-
-                                '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar">' +
-                                    '<span class="accion-icon accion-icon-eliminar">' +
-                                        '<i class="fas fa-trash-alt"></i>' +
-                                    '</span>' +
-                                    '<span class="accion-label">Eliminar</span>' +
-                                '</button>' +
-
-                            '</div>' +
-
-                        '</div>';
-                }
-            },
-            { "data": "nombre" },
-            {
-                "data": "estado",
-                "render": function (data, type, row) {
-                    if (type === 'display') {
-                        var estadoText = data == 1 ? 'Activo' : 'Inactivo';
-                        var icon = data == 1 ?
-                            '<i class="fas fa-check-circle mr-1"></i>' :
-                            '<i class="fas fa-times-circle mr-1"></i>';
-                        var badgeClass = data == 1 ?
-                            'badge badge-pill badge-success' :
-                            'badge badge-pill badge-danger';
-
-                        return '<span class="' + badgeClass +
-                            '" style="font-size: 0.95rem; padding: 0.5em 0.8em; font-weight: 600;">' +
-                            icon + estadoText + '</span>';
-                    }
-
-                    return data;
-                }
-            }
-        ],
-        "lengthMenu": lengthMenu,
-        "stateSave": true,
-        "bDestroy": true,
-        "language": idioma_español,
-        "dom": dom,
-        "columnDefs": [
-            {
-                width: "12%",
-                targets: 0,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap align-middle"
-            },
-            {
-                width: "73%",
-                targets: 1
-            },
-            {
-                width: "15%",
-                targets: 2,
-                className: "text-center text-nowrap align-middle"
-            }
-        ],
-        "buttons": [
-            {
-                text: '<i class="fas fa-sync-alt fa-lg"></i> Actualizar',
-                titleAttr: 'Actualizar Bancos',
-                className: 'table_actualizar btn btn-secondary ocultar',
-                action: function () {
-                    listar_banco_contabilidad();
-                }
-            },
-            {
-                text: '<i class="fas fa-university fa-lg"></i> Ingresar',
-                titleAttr: 'Agregar Bancos',
-                className: 'table_crear btn btn-primary ocultar',
-                action: function () {
-                    modalBancos();
-                }
-            },
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Reporte Bancos',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-success ocultar',
-                exportOptions: {
-                    columns: [1]
-                }
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                title: 'Reporte Bancos',
-                messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
-                className: 'table_reportes btn btn-danger ocultar',
-                exportOptions: {
-                    columns: [1]
-                },
-                customize: function (doc) {
-                    if (imagen) {
-                        doc.content.splice(0, 0, {
-                            image: imagen,
-                            width: 100,
-                            height: 45,
-                            margin: [0, 0, 0, 12]
-                        });
-                    }
-                }
-            }
-        ],
-        "drawCallback": function (settings) {
-            getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-
-            if (typeof cerrarDropdownAcciones === "function") {
-                cerrarDropdownAcciones();
-            }
+    function bancosPrepararSelect2($select, options){
+        if(!$select.length || typeof $.fn.select2 !== 'function'){
+            return;
         }
-    });
 
-    table_banco_contabilidad.search('').draw();
-    $('#buscar').focus();
-
-    edit_banco_contabilidad_dataTable("#dataTableConfBancos tbody", table_banco_contabilidad);
-    delete_banco_contabilidad_dataTable("#dataTableConfBancos tbody", table_banco_contabilidad);
-}
-
-var edit_banco_contabilidad_dataTable = function(tbody, table){
-	$(tbody).off("click", "button.table_editar");
-	$(tbody).on("click", "button.table_editar", function(){
-		var data = table.row( $(this).parents("tr") ).data();
-		var url = '<?php echo SERVERURL;?>core/editarBancos.php';
-		$('#formBancos #banco_id').val(data.banco_id);
-
-		$.ajax({
-			type:'POST',
-			url:url,
-			data:$('#formBancos').serialize(),
-			success: function(registro){
-				var valores = eval(registro);
-				$('#formBancos').attr({ 'data-form': 'update' });
-				$('#formBancos').attr({ 'action': '<?php echo SERVERURL;?>ajax/modificarBankAjax.php' });
-				$('#formBancos')[0].reset();
-				$('#reg_banco').hide();
-				$('#edi_banco').show();
-				$('#delete_banco').hide();
-				$('#formBancos #pro_bancos').val("Editar");
-				$('#formBancos #confbanco').val(valores[0]);
-
-				if(valores[1] == 1){
-					$('#formBancos #confbanco_activo').attr('checked', true);
-				}else{
-					$('#formBancos #confbanco_activo').attr('checked', false);
-				}
-
-				//HABILITAR OBJETOS
-				$('#formBancos #confbanco').attr('disabled', false);
-				$('#formBancos #confbanco_activo').attr('disabled', false);
-				$('#formBancos #estado_bancos').show();
-
-				$('#modalConfBancos').modal({
-					show:true,
-					keyboard: false,
-					backdrop:'static'
-				});
-			}
-		});
-	});
-}
-
-var delete_banco_contabilidad_dataTable = function(tbody, table){
-	$(tbody).off("click", "button.table_eliminar");
-	$(tbody).on("click", "button.table_eliminar", function(){
-		var data = table.row( $(this).parents("tr") ).data();
-
-		var banco_id = data.banco_id;
-        var nombreBanco = data.nombre; 
-        
-        // Construir el mensaje de confirmación con HTML
-		var mensajeHTML = `¿Desea eliminar permanentemente al banco?<br><br>
-							<strong>Nombre:</strong> ${nombreBanco}`;
-        
-        swal({
-            title: "Confirmar eliminación",
-            content: {
-                element: "span",
-                attributes: {
-                    innerHTML: mensajeHTML
-                }
-            },
-            icon: "warning",
-            buttons: {
-                cancel: {
-                    text: "Cancelar",
-                    value: null,
-                    visible: true,
-                    className: "btn-light"
-                },
-                confirm: {
-                    text: "Sí, eliminar",
-                    value: true,
-                    className: "btn-danger",
-                    closeModal: false
-                }
-            },
-            dangerMode: true,
-            closeOnEsc: false,
-            closeOnClickOutside: false
-        }).then((confirmar) => {
-            if (confirmar) {
-               
-                $.ajax({
-                    type: 'POST',
-                    url: '<?php echo SERVERURL;?>ajax/eliminarBancosAjax.php',
-                    data: {
-                        banco_id: banco_id
-                    },
-                    dataType: 'json', // Esperamos respuesta JSON
-                    before: function(){
-                        // Mostrar carga mientras se procesa
-                        showLoading("Eliminando registro...");
-                    },
-                    success: function(response) {
-                        swal.close();
-                        
-                        if(response.status === "success") {
-                            showNotify("success", response.title, response.message);
-                            table.ajax.reload(null, false); // Recargar tabla sin resetear paginación
-                            table.search('').draw();                    
-                        } else {
-                            showNotify("error", response.title, response.message);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        swal.close();
-                        showNotify("error", "Error", "Ocurrió un error al procesar la solicitud");
-                    }
-                });
+        try{
+            if($.fn.selectpicker && ($select.hasClass('selectpicker') || $select.data('selectpicker'))){
+                $select.selectpicker('destroy');
             }
-        });		
-	});
-}
-//FIN BANCOS	
+        }catch(e){}
 
-//INICIO FORMULARIO BANCOS
-function modalBancos(){
-	$('#formBancos').attr({ 'data-form': 'save' });
-	$('#formBancos').attr({ 'action': '<?php echo SERVERURL; ?>ajax/addBankAjax.php' });
-	$('#formBancos')[0].reset();
-	$('#formBancos #pro_bancos').val("Registro");
-	$('#reg_banco').show();
-	$('#edi_banco').hide();
-	$('#delete_banco').hide();
+        $select.removeClass('selectpicker');
 
-	//HABILITAR OBJETOS
-	$('#formBancos #confbanco').attr('readonly', false);
-	$('#formBancos #confbanco_activo').attr('disabled', false);
-	$('#formBancos #estado_bancos').hide();
+        if($select.hasClass('select2-hidden-accessible')){
+            $select.select2('destroy');
+        }
 
-	$('#modalConfBancos').modal({
-		show:true,
-		keyboard: false,
-		backdrop:'static'
-	});
-}
-//FIN FORMULARIO BANCOS
-
-$(document).ready(function(){
-    $("#modalConfBancos").on('shown.bs.modal', function(){
-        $(this).find('#formBancos #confbanco').focus();
-    });
-});
-
-$('#formBancos #label_confbanco_activo').html("Activo");
-	
-$('#formBancos .switch').change(function(){    
-    if($('input[name=confbanco_activo]').is(':checked')){
-        $('#formBancos #label_confbanco_activo').html("Activo");
-        return true;
+        $select.select2($.extend({
+            width:'100%',
+            minimumResultsForSearch:0,
+            allowClear:false,
+            language:{
+                noResults:function(){return 'No se encontraron resultados';},
+                searching:function(){return 'Buscando...';},
+                inputTooShort:function(){return 'Escriba para buscar';}
+            }
+        },options || {}));
     }
-    else{
-        $('#formBancos #label_confbanco_activo').html("Inactivo");
-        return false;
+
+    function bancosInicializarSelect2(){
+        bancosPrepararSelect2(
+            $('#estado_conf_Bancos'),
+            {placeholder:'Todos los estados'}
+        );
     }
-});	
+
+    function bancosInicializarVista(){
+        var saved = 'detalle';
+
+        try{
+            saved = localStorage.getItem(BANCOS_STORAGE_VISTA) || 'detalle';
+        }catch(e){}
+
+        bancosState.preferredView = saved === 'miniatura' ? 'miniatura' : 'detalle';
+        bancosState.view = bancosEsMovil() ? 'miniatura' : bancosState.preferredView;
+
+        bancosSincronizarPageSize();
+        bancosActualizarBotonesVista();
+    }
+
+    function bancosSincronizarPageSize(){
+        var mini = bancosState.view === 'miniatura';
+        var opciones = mini ? [6,12,18,30] : [10,25,50,100];
+        var preferido = mini ? bancosState.pageSizeMiniatura : bancosState.pageSizeDetalle;
+
+        if(opciones.indexOf(preferido) === -1){
+            preferido = opciones[0];
+        }
+
+        bancosState.pageSize = preferido;
+
+        var $select = $('#bancosPageSize').empty();
+
+        opciones.forEach(function(n){
+            $select.append($('<option>').val(n).text(n));
+        });
+
+        $select.val(String(preferido));
+    }
+
+    function bancosActualizarBotonesVista(){
+        var movil = bancosEsMovil();
+
+        if(movil){
+            bancosState.view = 'miniatura';
+        }
+
+        $('.bancos-view-btn[data-view="detalle"]')
+            .toggleClass('d-none',movil)
+            .prop('disabled',movil)
+            .attr('aria-hidden',movil ? 'true' : 'false');
+
+        $('.bancos-view-btn')
+            .removeClass('active')
+            .attr('aria-pressed','false');
+
+        $('.bancos-view-btn[data-view="'+bancosState.view+'"]')
+            .addClass('active')
+            .attr('aria-pressed','true');
+
+        $('#bancosListado')
+            .removeClass('vista-detalle vista-miniatura')
+            .addClass('vista-'+bancosState.view);
+
+        $('.bancos-detail-header').toggle(bancosState.view === 'detalle' && !movil);
+    }
+
+    function bancosCambiarVista(vista){
+        if(bancosEsMovil()){
+            bancosState.view = 'miniatura';
+        }else{
+            bancosState.view = vista === 'miniatura' ? 'miniatura' : 'detalle';
+            bancosState.preferredView = bancosState.view;
+
+            try{
+                localStorage.setItem(BANCOS_STORAGE_VISTA,bancosState.preferredView);
+            }catch(e){}
+        }
+
+        bancosState.page = 1;
+        bancosSincronizarPageSize();
+        bancosActualizarBotonesVista();
+        bancosRender();
+    }
+
+    function bancosNormalizarRespuesta(resp){
+        if(Array.isArray(resp)){
+            return resp;
+        }
+
+        if(resp && Array.isArray(resp.data)){
+            return resp.data;
+        }
+
+        return [];
+    }
+
+    function listar_banco_contabilidad(){
+        $('#bancosListado').html(
+            '<div class="bancos-empty">'+
+                '<i class="fas fa-spinner fa-spin"></i>'+
+                '<strong>Cargando bancos</strong>'+
+                '<span>Consultando información...</span>'+
+            '</div>'
+        );
+
+        $.ajax({
+            method:'POST',
+            url:'<?php echo SERVERURL;?>core/llenarDataTableConfBanco.php',
+            data:{
+                estado:bancosState.estado
+            },
+            dataType:'json'
+        }).done(function(resp){
+            bancosState.rows = bancosNormalizarRespuesta(resp);
+            bancosFiltrar();
+        }).fail(function(xhr){
+            bancosState.rows = [];
+            bancosState.filtered = [];
+            bancosActualizarKpis();
+            bancosRender();
+
+            showNotify(
+                'error',
+                'Error al cargar bancos',
+                'No se pudieron obtener los bancos registrados.'
+            );
+
+            console.error(xhr.responseText);
+        });
+    }
+
+    window.listar_banco_contabilidad = listar_banco_contabilidad;
+
+    function bancosFiltrar(){
+        var q = $.trim(bancosState.search || '').toLowerCase();
+
+        bancosState.filtered = !q
+            ? bancosState.rows.slice()
+            : bancosState.rows.filter(function(row){
+                var texto = [
+                    row.nombre,
+                    parseInt(row.estado,10) === 1 ? 'activo' : 'inactivo',
+                    row.banco_id
+                ].map(function(v){
+                    return String(v == null ? '' : v).toLowerCase();
+                }).join(' ');
+
+                return texto.indexOf(q) !== -1;
+            });
+
+        bancosState.page = 1;
+        bancosActualizarKpis();
+        bancosRender();
+    }
+
+    function bancosActualizarKpis(){
+        var activos = 0;
+        var inactivos = 0;
+
+        bancosState.filtered.forEach(function(row){
+            if(parseInt(row.estado,10) === 1){
+                activos++;
+            }else{
+                inactivos++;
+            }
+        });
+
+        $('#bancosKpiRegistros').text(bancosState.filtered.length);
+        $('#bancosKpiActivos').text(activos);
+        $('#bancosKpiInactivos').text(inactivos);
+    }
+
+    function bancosBadgeEstado(row){
+        var activo = parseInt(row.estado,10) === 1;
+
+        return '<span class="bancos-status '+(activo ? 'is-active' : 'is-inactive')+'">'+
+            '<i class="fas '+(activo ? 'fa-check-circle' : 'fa-times-circle')+'"></i>'+
+            '<span>'+(activo ? 'Activo' : 'Inactivo')+'</span>'+
+        '</span>';
+    }
+
+    function bancosAcciones(row,index){
+        return ''+
+            '<div class="dropdown acciones-dropdown">'+
+                '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">'+
+                    '<i class="fas fa-cog"></i>'+
+                    '<span>Acciones</span>'+
+                '</button>'+
+                '<div class="dropdown-menu dropdown-menu-right acciones-menu">'+
+                    '<button type="button" class="dropdown-item accion-item accion-editar js-bancos-editar ocultar" data-index="'+index+'">'+
+                        '<span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span>'+
+                        '<span class="accion-label">Editar</span>'+
+                    '</button>'+
+                    '<button type="button" class="dropdown-item accion-item accion-eliminar js-bancos-eliminar ocultar" data-index="'+index+'">'+
+                        '<span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span>'+
+                        '<span class="accion-label">Eliminar</span>'+
+                    '</button>'+
+                '</div>'+
+            '</div>';
+    }
+
+    function bancosRenderDetalle(pageRows,offset){
+        var html = '';
+
+        pageRows.forEach(function(row,i){
+            var idx = offset+i;
+
+            html +=
+                '<article class="bancos-detail-row">'+
+                    '<div class="bancos-detail-cell bancos-actions-cell">'+
+                        '<span class="bancos-cell-label">Acciones</span>'+
+                        bancosAcciones(row,idx)+
+                    '</div>'+
+                    '<div class="bancos-detail-cell bancos-name-cell">'+
+                        '<span class="bancos-cell-label">Banco</span>'+
+                        '<span class="bancos-name-icon"><i class="fas fa-university"></i></span>'+
+                        '<strong>'+bancosEsc(row.nombre || 'Sin nombre')+'</strong>'+
+                    '</div>'+
+                    '<div class="bancos-detail-cell">'+
+                        '<span class="bancos-cell-label">Estado</span>'+
+                        bancosBadgeEstado(row)+
+                    '</div>'+
+                '</article>';
+        });
+
+        return html;
+    }
+
+    function bancosRenderMiniatura(pageRows,offset){
+        var html = '<div class="bancos-mini-grid">';
+
+        pageRows.forEach(function(row,i){
+            var idx = offset+i;
+
+            html +=
+                '<article class="bancos-mini-card">'+
+                    '<div class="bancos-mini-line"></div>'+
+                    '<div class="bancos-mini-head">'+
+                        '<span class="bancos-name-icon"><i class="fas fa-university"></i></span>'+
+                        '<div class="bancos-mini-title">'+
+                            '<span>Banco</span>'+
+                            '<h4>'+bancosEsc(row.nombre || 'Sin nombre')+'</h4>'+
+                        '</div>'+
+                        bancosBadgeEstado(row)+
+                    '</div>'+
+                    '<div class="bancos-mini-footer">'+
+                        bancosAcciones(row,idx)+
+                    '</div>'+
+                '</article>';
+        });
+
+        return html+'</div>';
+    }
+
+    function bancosRender(){
+        bancosActualizarBotonesVista();
+
+        var rows = bancosState.filtered || [];
+
+        if(!rows.length){
+            $('#bancosListado').html(
+                '<div class="bancos-empty">'+
+                    '<i class="fas fa-university"></i>'+
+                    '<strong>Sin bancos</strong>'+
+                    '<span>No se encontraron registros con los filtros actuales.</span>'+
+                '</div>'
+            );
+
+            $('#bancosInfo').text('0 registros');
+            $('#bancosPaginacion').empty();
+            return;
+        }
+
+        var totalPages = Math.max(1,Math.ceil(rows.length/bancosState.pageSize));
+
+        if(bancosState.page > totalPages){
+            bancosState.page = totalPages;
+        }
+
+        var offset = (bancosState.page-1)*bancosState.pageSize;
+        var pageRows = rows.slice(offset,offset+bancosState.pageSize);
+
+        $('#bancosListado').html(
+            bancosState.view === 'miniatura'
+                ? bancosRenderMiniatura(pageRows,offset)
+                : bancosRenderDetalle(pageRows,offset)
+        );
+
+        $('#bancosInfo').text(
+            'Mostrando '+(offset+1)+' a '+Math.min(offset+pageRows.length,rows.length)+' de '+rows.length+' registros'
+        );
+
+        bancosRenderPaginacion(totalPages);
+
+        if(typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
+           typeof getPrivilegioTipoUsuario === 'function'){
+            try{
+                getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
+            }catch(e){}
+        }
+
+        if(typeof cerrarDropdownAcciones === 'function'){
+            cerrarDropdownAcciones();
+        }
+    }
+
+    function bancosRenderPaginacion(totalPages){
+        var current = bancosState.page;
+        var html = '';
+
+        function btn(label,page,disabled,active,icon){
+            return '<button type="button" class="bancos-page-btn'+(active ? ' active' : '')+'" data-page="'+page+'" '+(disabled ? 'disabled' : '')+'>'+
+                (icon ? '<i class="'+icon+'"></i>' : '')+
+                '<span>'+label+'</span>'+
+            '</button>';
+        }
+
+        html += btn('Inicio',1,current===1,false,'fas fa-angle-double-left');
+        html += btn('Anterior',current-1,current===1,false,'fas fa-angle-left');
+
+        var from = Math.max(1,current-2);
+        var to = Math.min(totalPages,from+4);
+        from = Math.max(1,to-4);
+
+        for(var p=from;p<=to;p++){
+            html += btn(String(p),p,false,p===current,'');
+        }
+
+        html += btn('Siguiente',current+1,current===totalPages,false,'fas fa-angle-right');
+        html += btn('Final',totalPages,current===totalPages,false,'fas fa-angle-double-right');
+
+        $('#bancosPaginacion').html(html);
+    }
+
+    function bancosParseEditar(registro){
+        if(Array.isArray(registro)){
+            return registro;
+        }
+
+        if(typeof registro === 'string'){
+            try{
+                var json = JSON.parse(registro);
+
+                if(Array.isArray(json)){
+                    return json;
+                }
+            }catch(e){}
+
+            try{
+                return eval(registro);
+            }catch(e){}
+        }
+
+        return null;
+    }
+
+    function bancosEditar(row){
+        if(!row || !row.banco_id){
+            showNotify('warning','Registro inválido','No se pudo identificar el banco seleccionado.');
+            return;
+        }
+
+        var $form = $('#formBancos');
+
+        $form.find('#banco_id').val(row.banco_id);
+
+        $.ajax({
+            type:'POST',
+            url:'<?php echo SERVERURL;?>core/editarBancos.php',
+            data:$form.serialize()
+        }).done(function(registro){
+            var valores = bancosParseEditar(registro);
+
+            if(!valores){
+                showNotify('error','Respuesta inválida','No se pudo interpretar la información del banco.');
+                return;
+            }
+
+            $form.attr({
+                'data-form':'update',
+                'action':'<?php echo SERVERURL;?>ajax/modificarBankAjax.php'
+            });
+
+            if($form[0]){
+                $form[0].reset();
+            }
+
+            $('#reg_banco').hide();
+            $('#edi_banco').show();
+            $('#delete_banco').hide();
+
+            $form.find('#pro_bancos').val('Editar');
+            $form.find('#confbanco').val(valores[0]);
+
+            $form.find('#confbanco_activo')
+                .prop('checked',parseInt(valores[1],10) === 1)
+                .prop('disabled',false);
+
+            $form.find('#confbanco').prop('disabled',false);
+            $('#estado_bancos').show();
+
+            bancosActualizarLabelEstado();
+
+            $('#modalConfBancos').modal({
+                show:true,
+                keyboard:true,
+                backdrop:'static'
+            });
+        }).fail(function(xhr){
+            showNotify('error','Error al editar','No se pudo cargar el banco seleccionado.');
+            console.error(xhr.responseText);
+        });
+    }
+
+    function bancosEliminar(row){
+        if(!row || !row.banco_id){
+            showNotify('warning','Registro inválido','No se pudo identificar el banco seleccionado.');
+            return;
+        }
+
+        var mensajeHTML =
+            '¿Desea eliminar permanentemente el banco?<br><br>'+
+            '<strong>Nombre:</strong> '+bancosEsc(row.nombre || '');
+
+        swal({
+            title:'Confirmar eliminación',
+            content:{
+                element:'span',
+                attributes:{
+                    innerHTML:mensajeHTML
+                }
+            },
+            icon:'warning',
+            buttons:{
+                cancel:{
+                    text:'Cancelar',
+                    value:null,
+                    visible:true,
+                    className:'btn-light'
+                },
+                confirm:{
+                    text:'Sí, eliminar',
+                    value:true,
+                    className:'btn-danger',
+                    closeModal:false
+                }
+            },
+            dangerMode:true,
+            closeOnEsc:true,
+            closeOnClickOutside:false
+        }).then(function(confirmar){
+            if(!confirmar){
+                return;
+            }
+
+            $.ajax({
+                type:'POST',
+                url:'<?php echo SERVERURL;?>ajax/eliminarBancosAjax.php',
+                data:{
+                    banco_id:row.banco_id
+                },
+                dataType:'json',
+                beforeSend:function(){
+                    if(typeof showLoading === 'function'){
+                        showLoading('Eliminando registro...');
+                    }
+                }
+            }).done(function(response){
+                swal.close();
+
+                if(response && response.status === 'success'){
+                    showNotify(
+                        'success',
+                        response.title || 'Eliminado',
+                        response.message || 'El banco fue eliminado correctamente.'
+                    );
+
+                    listar_banco_contabilidad();
+                }else{
+                    showNotify(
+                        'error',
+                        response && response.title ? response.title : 'Error',
+                        response && response.message ? response.message : 'No se pudo eliminar el banco.'
+                    );
+                }
+            }).fail(function(xhr){
+                swal.close();
+                showNotify('error','Error','Ocurrió un error al procesar la solicitud.');
+                console.error(xhr.responseText);
+            });
+        });
+    }
+
+    function modalBancos(){
+        var $form = $('#formBancos');
+
+        $form.attr({
+            'data-form':'save',
+            'action':'<?php echo SERVERURL;?>ajax/addBankAjax.php'
+        });
+
+        if($form[0]){
+            $form[0].reset();
+        }
+
+        $form.find('#pro_bancos').val('Registro');
+
+        $('#reg_banco').show();
+        $('#edi_banco').hide();
+        $('#delete_banco').hide();
+
+        $form.find('#confbanco').prop('readonly',false);
+        $form.find('#confbanco_activo').prop('disabled',false);
+        $('#estado_bancos').hide();
+
+        bancosActualizarLabelEstado();
+
+        $('#modalConfBancos').modal({
+            show:true,
+            keyboard:true,
+            backdrop:'static'
+        });
+    }
+
+    window.modalBancos = modalBancos;
+
+    function bancosActualizarLabelEstado(){
+        var activo = $('#formBancos #confbanco_activo').is(':checked');
+
+        $('#formBancos #label_confbanco_activo').html(activo ? 'Activo' : 'Inactivo');
+    }
+
+    function bancosLogoPdf(callback){
+        if(typeof imagen === 'string' && imagen.indexOf('data:image/') === 0){
+            callback(imagen);
+            return;
+        }
+
+        $.ajax({
+            type:'GET',
+            url:'<?php echo SERVERURL;?>core/get_image.php',
+            dataType:'text',
+            timeout:15000
+        }).done(function(src){
+            src = $.trim(src || '');
+
+            if(!src){
+                callback(null);
+                return;
+            }
+
+            var img = new Image();
+            img.crossOrigin = 'Anonymous';
+
+            img.onload = function(){
+                try{
+                    var canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width;
+                    canvas.height = img.naturalHeight || img.height;
+                    canvas.getContext('2d').drawImage(img,0,0);
+                    callback(canvas.toDataURL('image/png'));
+                }catch(e){
+                    callback(null);
+                }
+            };
+
+            img.onerror = function(){
+                callback(null);
+            };
+
+            img.src = src;
+        }).fail(function(){
+            callback(null);
+        });
+    }
+
+    function bancosExportPdf(){
+        var rows = bancosState.filtered || [];
+
+        if(!rows.length){
+            showNotify('warning','Sin datos','No hay bancos para exportar.');
+            return;
+        }
+
+        if(typeof pdfMake === 'undefined' || typeof abrirModalPdfPublico !== 'function'){
+            showNotify('error','PDF no disponible','No están disponibles los componentes necesarios para generar el PDF.');
+            return;
+        }
+
+        bancosLogoPdf(function(logoData){
+            var body = [[
+                {text:'BANCO',style:'th'},
+                {text:'ESTADO',style:'th'}
+            ]];
+
+            rows.forEach(function(row,i){
+                var fill = i % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+                var activo = parseInt(row.estado,10) === 1;
+
+                body.push([
+                    {text:String(row.nombre || ''),style:'td',fillColor:fill},
+                    {text:activo ? 'Activo' : 'Inactivo',style:activo ? 'tdSuccess' : 'tdDanger',fillColor:fill}
+                ]);
+            });
+
+            body.push([
+                {text:'TOTAL DE BANCOS',style:'totalLabel',fillColor:'#EAF1F7'},
+                {text:String(rows.length),style:'totalValue',fillColor:'#EAF1F7'}
+            ]);
+
+            var logoPlate = logoData
+                ? {
+                    table:{
+                        widths:['*'],
+                        body:[[
+                            {
+                                image:logoData,
+                                fit:[78,44],
+                                alignment:'center',
+                                margin:[6,5,6,5],
+                                fillColor:'#FFFFFF'
+                            }
+                        ]]
+                    },
+                    layout:'noBorders',
+                    fillColor:'#17324D',
+                    margin:[8,7,8,7]
+                }
+                : {
+                    text:'IZZY',
+                    bold:true,
+                    fontSize:18,
+                    color:'#17324D',
+                    alignment:'center',
+                    fillColor:'#FFFFFF',
+                    margin:[8,14,8,14]
+                };
+
+            var doc = {
+                pageSize:'LETTER',
+                pageOrientation:'landscape',
+                pageMargins:[28,28,28,34],
+
+                header:function(){
+                    return {
+                        margin:[28,12,28,0],
+                        canvas:[
+                            {
+                                type:'line',
+                                x1:0,
+                                y1:0,
+                                x2:736,
+                                y2:0,
+                                lineWidth:2,
+                                lineColor:'#0EA5A8'
+                            }
+                        ]
+                    };
+                },
+
+                footer:function(currentPage,pageCount){
+                    return {
+                        margin:[28,8,28,0],
+                        columns:[
+                            {
+                                text:'IZZY • Bancos',
+                                fontSize:7,
+                                color:'#7A869A'
+                            },
+                            {
+                                text:'Página '+currentPage+' de '+pageCount,
+                                fontSize:7,
+                                color:'#7A869A',
+                                alignment:'right'
+                            }
+                        ]
+                    };
+                },
+
+                content:[
+                    {
+                        table:{
+                            widths:[100,'*',150],
+                            body:[[
+                                logoPlate,
+                                {
+                                    stack:[
+                                        {
+                                            text:'REPORTE DE BANCOS',
+                                            bold:true,
+                                            fontSize:16,
+                                            color:'#FFFFFF'
+                                        },
+                                        {
+                                            text:'Instituciones bancarias configuradas',
+                                            fontSize:8,
+                                            color:'#D8E5F0',
+                                            margin:[0,2,0,0]
+                                        }
+                                    ],
+                                    fillColor:'#17324D',
+                                    margin:[0,10,0,10]
+                                },
+                                {
+                                    stack:[
+                                        {
+                                            text:'REPORTE EJECUTIVO',
+                                            bold:true,
+                                            fontSize:6.5,
+                                            color:'#72E2E5',
+                                            alignment:'right'
+                                        },
+                                        {
+                                            text:new Date().toLocaleDateString('es-HN'),
+                                            bold:true,
+                                            fontSize:9,
+                                            color:'#FFFFFF',
+                                            alignment:'right'
+                                        },
+                                        {
+                                            text:rows.length+' registro(s)',
+                                            fontSize:6.5,
+                                            color:'#D8E5F0',
+                                            alignment:'right'
+                                        }
+                                    ],
+                                    fillColor:'#17324D',
+                                    margin:[0,10,12,10]
+                                }
+                            ]]
+                        },
+                        layout:'noBorders',
+                        margin:[0,0,0,10]
+                    },
+
+                    {
+                        text:'Estado: '+($('#estado_conf_Bancos option:selected').text() || 'Todos')+
+                             '   |   Búsqueda: '+(bancosState.search || 'Sin búsqueda'),
+                        fontSize:7,
+                        color:'#5E6C84',
+                        fillColor:'#F7F9FC',
+                        margin:[8,7,8,7]
+                    },
+
+                    {
+                        table:{
+                            widths:['*',120],
+                            headerRows:1,
+                            body:body
+                        },
+                        layout:{
+                            hLineColor:function(){return '#DDE3EA';},
+                            vLineColor:function(){return '#DDE3EA';},
+                            hLineWidth:function(){return .55;},
+                            vLineWidth:function(){return .55;},
+                            paddingLeft:function(){return 4;},
+                            paddingRight:function(){return 4;},
+                            paddingTop:function(){return 5;},
+                            paddingBottom:function(){return 5;}
+                        }
+                    }
+                ],
+
+                styles:{
+                    th:{
+                        fontSize:6.5,
+                        bold:true,
+                        color:'#FFFFFF',
+                        fillColor:'#17324D',
+                        alignment:'center'
+                    },
+                    td:{
+                        fontSize:7,
+                        color:'#253858',
+                        noWrap:false
+                    },
+                    tdSuccess:{
+                        fontSize:7,
+                        color:'#14804A',
+                        bold:true
+                    },
+                    tdDanger:{
+                        fontSize:7,
+                        color:'#C9372C',
+                        bold:true
+                    },
+                    totalLabel:{
+                        fontSize:7.5,
+                        bold:true,
+                        color:'#17324D'
+                    },
+                    totalValue:{
+                        fontSize:7.5,
+                        bold:true,
+                        color:'#17324D',
+                        alignment:'right'
+                    }
+                },
+
+                defaultStyle:{
+                    font:'Roboto'
+                }
+            };
+
+            pdfMake.createPdf(doc).getDataUrl(function(url){
+                abrirModalPdfPublico(
+                    url,
+                    'Reporte de Bancos',
+                    'Reporte_Bancos.pdf'
+                );
+            });
+        });
+    }
+
+    function bancosExcelEscape(v){
+        return String(v == null ? '' : v)
+            .replace(/&/g,'&amp;')
+            .replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;');
+    }
+
+    function bancosExcelCell(ref,value,style){
+        return '<c r="'+ref+'" s="'+style+'" t="inlineStr"><is><t>'+bancosExcelEscape(value)+'</t></is></c>';
+    }
+
+    function bancosExportExcel(){
+        var rows = bancosState.filtered || [];
+
+        if(!rows.length){
+            showNotify('warning','Sin datos','No hay bancos para exportar.');
+            return;
+        }
+
+        if(typeof JSZip === 'undefined'){
+            showNotify('error','Excel no disponible','JSZip no está disponible.');
+            return;
+        }
+
+        var sheetRows = [];
+
+        sheetRows.push(
+            '<row r="1" ht="30" customHeight="1">'+
+                bancosExcelCell('A1','IZZY • BANCOS',1)+
+            '</row>'
+        );
+
+        sheetRows.push(
+            '<row r="2">'+
+                bancosExcelCell(
+                    'A2',
+                    'Estado: '+($('#estado_conf_Bancos option:selected').text() || 'Todos')+
+                    ' • Registros: '+rows.length+
+                    ' • Generado: '+new Date().toLocaleDateString('es-HN'),
+                    2
+                )+
+            '</row>'
+        );
+
+        sheetRows.push(
+            '<row r="4" ht="26" customHeight="1">'+
+                bancosExcelCell('A4','BANCO',3)+
+                bancosExcelCell('B4','ESTADO',3)+
+            '</row>'
+        );
+
+        rows.forEach(function(row,i){
+            var r = 5+i;
+
+            sheetRows.push(
+                '<row r="'+r+'">'+
+                    bancosExcelCell('A'+r,row.nombre || '',4)+
+                    bancosExcelCell('B'+r,parseInt(row.estado,10) === 1 ? 'Activo' : 'Inactivo',4)+
+                '</row>'
+            );
+        });
+
+        var totalRow = 5+rows.length;
+
+        sheetRows.push(
+            '<row r="'+totalRow+'">'+
+                bancosExcelCell('A'+totalRow,'TOTAL DE BANCOS',5)+
+                bancosExcelCell('B'+totalRow,String(rows.length),5)+
+            '</row>'
+        );
+
+        var worksheetXml =
+            '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+                '<dimension ref="A1:B'+totalRow+'"/>'+
+                '<sheetViews>'+
+                    '<sheetView workbookViewId="0" showGridLines="0">'+
+                        '<pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/>'+
+                    '</sheetView>'+
+                '</sheetViews>'+
+                '<cols>'+
+                    '<col min="1" max="1" width="48" customWidth="1"/>'+
+                    '<col min="2" max="2" width="18" customWidth="1"/>'+
+                '</cols>'+
+                '<sheetData>'+sheetRows.join('')+'</sheetData>'+
+                '<autoFilter ref="A4:B'+(totalRow-1)+'"/>'+
+                '<mergeCells count="2">'+
+                    '<mergeCell ref="A1:B1"/>'+
+                    '<mergeCell ref="A2:B2"/>'+
+                '</mergeCells>'+
+            '</worksheet>';
+
+        var stylesXml =
+            '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+                '<fonts count="6">'+
+                    '<font><sz val="10"/><name val="Calibri"/></font>'+
+                    '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'+
+                    '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>'+
+                    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'+
+                    '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>'+
+                    '<font><b/><sz val="10"/><color rgb="FF17324D"/><name val="Calibri"/></font>'+
+                '</fonts>'+
+                '<fills count="5">'+
+                    '<fill><patternFill patternType="none"/></fill>'+
+                    '<fill><patternFill patternType="gray125"/></fill>'+
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>'+
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>'+
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FFEAF1F7"/></patternFill></fill>'+
+                '</fills>'+
+                '<borders count="2">'+
+                    '<border><left/><right/><top/><bottom/><diagonal/></border>'+
+                    '<border>'+
+                        '<left style="thin"><color rgb="FFDDE3EA"/></left>'+
+                        '<right style="thin"><color rgb="FFDDE3EA"/></right>'+
+                        '<top style="thin"><color rgb="FFDDE3EA"/></top>'+
+                        '<bottom style="thin"><color rgb="FFDDE3EA"/></bottom>'+
+                        '<diagonal/>'+
+                    '</border>'+
+                '</borders>'+
+                '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+                '<cellXfs count="6">'+
+                    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
+                    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/>'+
+                    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>'+
+                    '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>'+
+                    '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>'+
+                    '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>'+
+                '</cellXfs>'+
+                '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'+
+            '</styleSheet>';
+
+        var workbookXml =
+            '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+                '<sheets><sheet name="Bancos" sheetId="1" r:id="rId1"/></sheets>'+
+            '</workbook>';
+
+        var workbookRels =
+            '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+                '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+            '</Relationships>';
+
+        var rootRels =
+            '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+            '</Relationships>';
+
+        var contentTypes =
+            '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+                '<Default Extension="xml" ContentType="application/xml"/>'+
+                '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+                '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
+                '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+            '</Types>';
+
+        var zip = new JSZip();
+
+        zip.file('[Content_Types].xml',contentTypes);
+        zip.folder('_rels').file('.rels',rootRels);
+        zip.folder('xl').file('workbook.xml',workbookXml);
+        zip.folder('xl').file('styles.xml',stylesXml);
+        zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml',worksheetXml);
+
+        var options = {
+            type:'blob',
+            mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            compression:'DEFLATE'
+        };
+
+        var promise = typeof zip.generateAsync === 'function'
+            ? zip.generateAsync(options)
+            : Promise.resolve(zip.generate(options));
+
+        promise.then(function(blob){
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+
+            a.href = url;
+            a.download = 'Reporte_Bancos.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            setTimeout(function(){
+                URL.revokeObjectURL(url);
+            },1000);
+        }).catch(function(error){
+            console.error(error);
+            showNotify('error','Excel','No se pudo generar el archivo Excel.');
+        });
+    }
+
+    function bancosToggleSection($btn){
+        var target = $btn.data('target');
+        var $body = $(target);
+        var visible = $body.is(':visible');
+
+        $body.stop(true,true).slideToggle(160);
+
+        $btn.attr('aria-expanded',visible ? 'false' : 'true');
+        $btn.find('span').text(visible ? 'Mostrar' : 'Ocultar');
+        $btn.find('i')
+            .toggleClass('fa-chevron-up',!visible)
+            .toggleClass('fa-chevron-down',visible);
+    }
+
+    function bancosBindEventos(){
+        $(document)
+            .off('submit.bancos','#form_main_Bancos')
+            .on('submit.bancos','#form_main_Bancos',function(e){
+                e.preventDefault();
+                bancosState.estado = $('#estado_conf_Bancos').val() || '';
+                bancosState.page = 1;
+                listar_banco_contabilidad();
+            })
+
+            .off('reset.bancos','#form_main_Bancos')
+            .on('reset.bancos','#form_main_Bancos',function(){
+                window.setTimeout(function(){
+                    bancosState.estado = '';
+                    $('#estado_conf_Bancos').val('').trigger('change.select2');
+                    bancosState.page = 1;
+                    listar_banco_contabilidad();
+                },0);
+            })
+
+            .off('click.bancos','#btnBancosActualizar')
+            .on('click.bancos','#btnBancosActualizar',listar_banco_contabilidad)
+
+            .off('click.bancos','#btnBancosIngresar')
+            .on('click.bancos','#btnBancosIngresar',modalBancos)
+
+            .off('click.bancos','#btnBancosExcel')
+            .on('click.bancos','#btnBancosExcel',bancosExportExcel)
+
+            .off('click.bancos','#btnBancosPdf')
+            .on('click.bancos','#btnBancosPdf',bancosExportPdf)
+
+            .off('input.bancos','#bancosBuscar')
+            .on('input.bancos','#bancosBuscar',function(){
+                bancosState.search = this.value || '';
+                bancosFiltrar();
+            })
+
+            .off('click.bancos','#bancosBuscarLimpiar')
+            .on('click.bancos','#bancosBuscarLimpiar',function(){
+                $('#bancosBuscar').val('').focus();
+                bancosState.search = '';
+                bancosFiltrar();
+            })
+
+            .off('change.bancos','#bancosPageSize')
+            .on('change.bancos','#bancosPageSize',function(){
+                var n = parseInt(this.value,10);
+
+                if(!n){
+                    return;
+                }
+
+                bancosState.pageSize = n;
+
+                if(bancosState.view === 'miniatura'){
+                    bancosState.pageSizeMiniatura = n;
+                }else{
+                    bancosState.pageSizeDetalle = n;
+                }
+
+                bancosState.page = 1;
+                bancosRender();
+            })
+
+            .off('click.bancos','.bancos-view-btn')
+            .on('click.bancos','.bancos-view-btn',function(){
+                bancosCambiarVista($(this).data('view'));
+            })
+
+            .off('click.bancos','#bancosPaginacion .bancos-page-btn')
+            .on('click.bancos','#bancosPaginacion .bancos-page-btn',function(){
+                if(this.disabled){
+                    return;
+                }
+
+                var page = parseInt($(this).data('page'),10);
+
+                if(page){
+                    bancosState.page = page;
+                    bancosRender();
+                }
+            })
+
+            .off('click.bancos','#bancosListado .js-bancos-editar')
+            .on('click.bancos','#bancosListado .js-bancos-editar',function(){
+                var idx = parseInt($(this).data('index'),10);
+                bancosEditar(bancosState.filtered[idx]);
+            })
+
+            .off('click.bancos','#bancosListado .js-bancos-eliminar')
+            .on('click.bancos','#bancosListado .js-bancos-eliminar',function(){
+                var idx = parseInt($(this).data('index'),10);
+                bancosEliminar(bancosState.filtered[idx]);
+            })
+
+            .off('click.bancos','.bancos-toggle-section')
+            .on('click.bancos','.bancos-toggle-section',function(){
+                bancosToggleSection($(this));
+            })
+
+            .off('change.bancos','#formBancos #confbanco_activo')
+            .on('change.bancos','#formBancos #confbanco_activo',bancosActualizarLabelEstado);
+
+        $('#modalConfBancos')
+            .off('shown.bs.modal.bancos')
+            .on('shown.bs.modal.bancos',function(){
+                $(this).find('#formBancos #confbanco').trigger('focus');
+            });
+
+        $(window)
+            .off('resize.bancos orientationchange.bancos')
+            .on('resize.bancos orientationchange.bancos',function(){
+                var target = bancosEsMovil() ? 'miniatura' : bancosState.preferredView;
+
+                if(bancosState.view !== target){
+                    bancosState.view = target;
+                    bancosState.page = 1;
+                    bancosSincronizarPageSize();
+                    bancosRender();
+                }
+
+                bancosActualizarBotonesVista();
+            });
+    }
+
+})(jQuery);
 </script>

@@ -231,7 +231,7 @@
 					cc.fecha < DATE_FORMAT(CURDATE(), '%Y-%m-01')
 					OR 
 					(
-                        DAY(CURDATE()) >= 16 
+                        DAY(CURDATE()) >= 16
                         AND MONTH(cc.fecha) = MONTH(CURDATE()) 
                         AND YEAR(cc.fecha) = YEAR(CURDATE())
                     )

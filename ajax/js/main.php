@@ -26,6 +26,17 @@ if (isset($GLOBALS['SISTEMA_PRUEBA']) && trim((string)$GLOBALS['SISTEMA_PRUEBA']
 $IZZY_DB_JS = htmlspecialchars((string)$IZZY_DB_JS, ENT_QUOTES, 'UTF-8');
 $IZZY_DB_MAIN_JS = htmlspecialchars((string)$IZZY_DB_MAIN_JS, ENT_QUOTES, 'UTF-8');
 $IZZY_SISTEMA_PRUEBA_JS = htmlspecialchars((string)$IZZY_SISTEMA_PRUEBA_JS, ENT_QUOTES, 'UTF-8');
+
+$IZZY_MODO_SOLO_LECTURA_PAGO_JS =
+    isset($_SESSION['modo_solo_lectura_pago']) && $_SESSION['modo_solo_lectura_pago'] === 'SI';
+
+$IZZY_RUTA_ACTUAL_PAGO_JS = '';
+if (isset($_GET['views'])) {
+    $IZZY_RUTA_ACTUAL_PAGO_JS = trim((string)$_GET['views'], '/');
+    $IZZY_RUTA_ACTUAL_PAGO_JS = explode('/', $IZZY_RUTA_ACTUAL_PAGO_JS)[0] ?? '';
+}
+
+$IZZY_RUTA_ACTUAL_PAGO_JS = htmlspecialchars((string)$IZZY_RUTA_ACTUAL_PAGO_JS, ENT_QUOTES, 'UTF-8');
 ?>
 
 //main.php
@@ -38,6 +49,192 @@ var DB_MAIN = "<?php echo $IZZY_DB_MAIN_JS; ?>";
  */
 var IZZY_DB_ACTUAL = "<?php echo $IZZY_DB_JS; ?>";
 var IZZY_PRIVILEGIO_USUARIO = <?php echo (int)($_SESSION['privilegio_id'] ?? $_SESSION['privilegio_sd'] ?? 0); ?>;
+
+/* =========================================================
+   IZZY | MODO CONSULTA POR PAGO PENDIENTE
+   ---------------------------------------------------------
+   El cliente puede consultar el sistema. DetallesFacturacion
+   queda habilitado para consultar la deuda y, cuando exista,
+   realizar el pago. Fuera de esa vista solo se bloquean
+   acciones que modifican información.
+   ========================================================= */
+window.IZZY_MODO_SOLO_LECTURA_PAGO = <?php echo $IZZY_MODO_SOLO_LECTURA_PAGO_JS ? 'true' : 'false'; ?>;
+window.IZZY_RUTA_ACTUAL_PAGO = "<?php echo $IZZY_RUTA_ACTUAL_PAGO_JS; ?>";
+
+(function () {
+    'use strict';
+
+    if (!window.IZZY_MODO_SOLO_LECTURA_PAGO) {
+        return;
+    }
+
+    var rutaActual = String(window.IZZY_RUTA_ACTUAL_PAGO || '').toLowerCase();
+    var rutaFacturacionHabilitada = rutaActual === 'detallesfacturacion';
+    var ultimoAviso = 0;
+
+    window.IZZY_PAGO_RUTA_HABILITADA = rutaFacturacionHabilitada;
+
+    function descripcionControl(el) {
+        if (!el) return '';
+
+        return [
+            el.id || '',
+            el.name || '',
+            el.className || '',
+            el.getAttribute ? (el.getAttribute('title') || '') : '',
+            el.getAttribute ? (el.getAttribute('data-action') || '') : '',
+            el.getAttribute ? (el.getAttribute('data-accion') || '') : '',
+            el.textContent || '',
+            el.value || ''
+        ].join(' ').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function formularioEsConsulta(form) {
+        if (!form) return false;
+
+        var texto = [
+            form.id || '',
+            form.name || '',
+            form.className || '',
+            form.getAttribute('action') || ''
+        ].join(' ').toLowerCase();
+
+        if (/(buscar|search|filtro|filter|consulta|consultar|listar|listado|historial|reporte|report|export)/i.test(texto)) {
+            return true;
+        }
+
+        var submits = form.querySelectorAll('button:not([type]), button[type="submit"], input[type="submit"]');
+        for (var i = 0; i < submits.length; i++) {
+            if (controlEsSoloConsulta(submits[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function controlEsSoloConsulta(el) {
+        var texto = descripcionControl(el);
+
+        return /(excel|pdf|imprimir|print|descargar|download|export|buscar|search|filtrar|filtro|filter|actualizar|refrescar|reconsultar|ver detalle|detalle|miniatura|mostrar|ocultar|inicio|anterior|siguiente|final|pagin|cerrar modal)/i.test(texto);
+    }
+
+    function controlEsMutacion(el) {
+        if (!el || rutaFacturacionHabilitada) return false;
+        if (el.closest && el.closest('[data-izzy-payment-readonly-allowed="1"]')) return false;
+        if (controlEsSoloConsulta(el)) return false;
+
+        var texto = descripcionControl(el);
+        var mutacion = /(crear|nuevo|nueva|ingresar|guardar|registrar|editar|eliminar|borrar|anular|pagar|abonar|retirar|reintegrar|reorganizar|asignar|desvincular|regenerar|procesar|confirmar|finalizar|despachar|devolver|aprobar|rechazar|enviar|subir|cargar archivo|importar|duplicar|activar|desactivar|agregar|quitar|emitir|facturar)/i;
+
+        if (mutacion.test(texto)) {
+            return true;
+        }
+
+        var tag = String(el.tagName || '').toLowerCase();
+        var tipo = String(el.type || '').toLowerCase();
+
+        if ((tag === 'button' || tag === 'input') && tipo === 'submit') {
+            return !formularioEsConsulta(el.form || (el.closest ? el.closest('form') : null));
+        }
+
+        return false;
+    }
+
+    function marcarControl(el) {
+        if (!controlEsMutacion(el)) return;
+        if (el.getAttribute('data-izzy-payment-readonly-disabled') === '1') return;
+
+        el.setAttribute('data-izzy-payment-readonly-disabled', '1');
+        el.classList.add('izzy-payment-readonly-disabled');
+        el.setAttribute('title', 'Disponible al regularizar el pago.');
+
+        if ('disabled' in el) {
+            el.disabled = true;
+        } else {
+            el.setAttribute('aria-disabled', 'true');
+            el.setAttribute('tabindex', '-1');
+        }
+    }
+
+    function aplicarModoConsulta(root) {
+        if (rutaFacturacionHabilitada) return;
+
+        var scope = root && root.querySelectorAll ? root : document;
+        var selector = 'button, input[type="submit"], input[type="button"], a.btn, a.dropdown-item, [role="button"], .accion-item';
+
+        if (scope.matches && scope.matches(selector)) {
+            marcarControl(scope);
+        }
+
+        scope.querySelectorAll(selector).forEach(marcarControl);
+    }
+
+    function avisarModoConsulta() {
+        var ahora = Date.now();
+        if (ahora - ultimoAviso < 1200) return;
+        ultimoAviso = ahora;
+
+        if (typeof window.showNotify === 'function') {
+            window.showNotify(
+                'warning',
+                'Modo consulta',
+                'La cuenta tiene un pago pendiente. Puede consultar el sistema y gestionar la factura desde Detalles de Facturación.'
+            );
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        if (rutaFacturacionHabilitada) return;
+
+        var el = e.target && e.target.closest
+            ? e.target.closest('button, input[type="submit"], input[type="button"], a.btn, a.dropdown-item, [role="button"], .accion-item')
+            : null;
+
+        if (!el || !controlEsMutacion(el)) return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        avisarModoConsulta();
+    }, true);
+
+    document.addEventListener('submit', function (e) {
+        if (rutaFacturacionHabilitada) return;
+        if (formularioEsConsulta(e.target)) return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        avisarModoConsulta();
+    }, true);
+
+    function iniciarProteccion() {
+        if (!document.body) return;
+
+        document.body.classList.add('izzy-payment-readonly');
+        aplicarModoConsulta(document);
+
+        if (!rutaFacturacionHabilitada && typeof MutationObserver !== 'undefined') {
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    Array.prototype.forEach.call(mutation.addedNodes || [], function (node) {
+                        if (node && node.nodeType === 1) {
+                            aplicarModoConsulta(node);
+                        }
+                    });
+                });
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+            window.IZZY_PAGO_READONLY_OBSERVER = observer;
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', iniciarProteccion, { once: true });
+    } else {
+        iniciarProteccion();
+    }
+})();
 
 var izzyPermisosDataTablesPromise = null;
 var izzyProgramaPuntosPromise = null;

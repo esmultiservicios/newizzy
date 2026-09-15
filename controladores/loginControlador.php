@@ -171,6 +171,20 @@ class loginControlador extends loginModel{
 
                         $_SESSION['db_cliente'] = $consultaServeruser['db'];
 
+                        /* =====================================================
+                           MODO CONSULTA POR PAGO PENDIENTE
+                           -----------------------------------------------------
+                           El cliente siempre puede iniciar sesión. Si existe un
+                           pago vencido, la sesión queda marcada como solo lectura.
+                           Soporte, DB principal y clientes con validar=2 no se
+                           restringen. Detalles de Facturación se habilita desde
+                           la capa global de interfaz para consultar/pagar.
+                           ===================================================== */
+                        $_SESSION['modo_solo_lectura_pago'] =
+                            $this->debe_activar_modo_solo_lectura_pago($mantenimiento, $consultaServeruser)
+                                ? "SI"
+                                : "NO";
+
                         if (!$mantenimiento) {
                             $this->enviarCorreoInicioSesion($row, $codigoCliente);
                         }
@@ -631,6 +645,33 @@ class loginControlador extends loginModel{
         exit();
     }
     
+    /**
+     * Determina si la sesión debe quedar en modo consulta por pago vencido.
+     * No bloquea el inicio de sesión; únicamente devuelve el estado que se
+     * guardará en sesión después de autenticar correctamente al usuario.
+     */
+    private function debe_activar_modo_solo_lectura_pago($mantenimiento, $consultaServeruser){
+        if ($mantenimiento) {
+            return false;
+        }
+
+        if (defined('DB_MAIN_LOGIN_CONTROLADOR') && $GLOBALS['db'] == DB_MAIN_LOGIN_CONTROLADOR) {
+            return false;
+        }
+
+        $validar = isset($consultaServeruser['validar'])
+            ? (int)$consultaServeruser['validar']
+            : 1;
+
+        if ($validar === 2) {
+            return false;
+        }
+
+        $resultPagoVencido = loginModel::validar_cliente_pagos_vencidos_main_server_modelo();
+
+        return $resultPagoVencido && $resultPagoVencido->num_rows >= 1;
+    }
+
     public function validar_pago_pendiente_main_server_controlador(){
         $username = isset($_POST['inputEmail']) ? mainModel::cleanString($_POST['inputEmail']) : "";
 
@@ -671,17 +712,13 @@ class loginControlador extends loginModel{
             return json_encode($datos);
         }
 
-        $result_pagoVencido = loginModel::validar_cliente_pagos_vencidos_main_server_modelo();
-
-        if ($result_pagoVencido && $result_pagoVencido->num_rows >= 1) {
-            $datos = [
-                0 => "",
-                1 => "ErrorP",
-            ];
-
-        } else {
-            $datos = 1;
-        }
+        /*
+         * Ya no se bloquea el acceso por deuda. La condición de pago se
+         * vuelve a comprobar después de autenticar y se guarda en sesión
+         * como modo_solo_lectura_pago. Este método conserva su contrato
+         * actual (1 = continuar) para no romper iniciarSesionAjax.php.
+         */
+        $datos = 1;
 
         return json_encode($datos);
     }

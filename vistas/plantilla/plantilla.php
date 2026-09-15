@@ -37,6 +37,11 @@ $sesionValida =
     $_SESSION['user_sd'] !== null &&
     $_SESSION['user_sd'] !== '';
 
+$modoSoloLecturaPagoActivo =
+    $sesionValida &&
+    isset($_SESSION['modo_solo_lectura_pago']) &&
+    $_SESSION['modo_solo_lectura_pago'] === 'SI';
+
 if (!$esRutaPublicaInicial && !$sesionValida) {
     header('Location: ' . SERVERURL . 'login/');
     exit;
@@ -80,7 +85,7 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
 
 </head>
 
-<body class="sb-nav-fixed">
+<body class="sb-nav-fixed<?php echo $modoSoloLecturaPagoActivo ? ' izzy-payment-readonly' : ''; ?>">
     <?php
         if (defined('SISTEMA_PRUEBA_LABEL') && SISTEMA_PRUEBA_LABEL !== '') {
             echo '<div class="env-badge" data-toggle="tooltip" data-placement="left" title="Entorno de demostración - Datos no reales">
@@ -135,6 +140,37 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
         </div>
 
         <div id="layoutSidenav_content">
+            <?php if ($modoSoloLecturaPagoActivo): ?>
+                <div class="izzy-payment-readonly-banner" role="status" aria-live="polite">
+                    <div class="izzy-payment-readonly-banner-copy">
+                        <span class="izzy-payment-readonly-banner-icon" aria-hidden="true">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </span>
+                        <div>
+                            <strong>Cuenta con pago pendiente · Modo consulta</strong>
+                            <span>Puede consultar toda la información del sistema, pero las acciones que modifican datos permanecerán deshabilitadas hasta regularizar el pago.</span>
+                            <span class="izzy-payment-readonly-contact">
+                                Por ahora, el pago se gestiona por WhatsApp al
+                                <a href="https://wa.me/50489136844"
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   data-izzy-payment-readonly-allowed="1"
+                                   aria-label="Contactar por WhatsApp al +504 8913-6844">
+                                    <i class="fab fa-whatsapp" aria-hidden="true"></i>
+                                    <strong>+504 8913-6844</strong>
+                                </a>.
+                            </span>
+                        </div>
+                    </div>
+                    <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>DetallesFacturacion/"
+                       class="btn btn-warning izzy-payment-readonly-banner-action"
+                       data-izzy-payment-readonly-allowed="1">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Ver facturación</span>
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <main>
                 <!-- Contenido -->
                 <?php 			

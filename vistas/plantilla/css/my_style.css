@@ -15125,3 +15125,173 @@ body > .modal-backdrop.pdf-public-backdrop {
         min-height: 38px;
     }
 }
+
+/* =========================================================
+   IZZY | MODO CONSULTA POR PAGO PENDIENTE
+   ---------------------------------------------------------
+   El cliente conserva acceso de lectura. Las acciones que
+   modifican información se muestran deshabilitadas sin
+   ocultarlas. Detalles de Facturación permanece habilitado.
+   ========================================================= */
+.izzy-payment-readonly-banner {
+  margin: 14px 18px 0;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid #f0c36d;
+  border-left: 4px solid #f0ad4e;
+  border-radius: 10px;
+  background: #fff9ec;
+  color: #5f4b1f;
+  box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+}
+
+.izzy-payment-readonly-banner-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.izzy-payment-readonly-banner-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #fff1c7;
+  color: #b7791f;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.izzy-payment-readonly-banner-icon i {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transform-origin: center;
+  animation: izzyPaymentWarningPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes izzyPaymentWarningPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  45%, 55% {
+    transform: translateY(-2px) scale(1.08);
+  }
+}
+
+.izzy-payment-readonly-banner-copy > div {
+  min-width: 0;
+}
+
+.izzy-payment-readonly-banner strong,
+.izzy-payment-readonly-banner span {
+  display: block;
+}
+
+.izzy-payment-readonly-banner strong {
+  margin-bottom: 2px;
+  color: #5a4517;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.izzy-payment-readonly-banner-copy > div > span {
+  color: #7a6330;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.izzy-payment-readonly-contact {
+  margin-top: 4px;
+  color: #6f5725 !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+}
+
+.izzy-payment-readonly-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 3px;
+  color: #1f7a4d;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.izzy-payment-readonly-contact a:hover,
+.izzy-payment-readonly-contact a:focus {
+  color: #17643e;
+  text-decoration: underline;
+}
+
+.izzy-payment-readonly-contact a strong {
+  display: inline;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .izzy-payment-readonly-banner-icon i {
+    animation: none;
+  }
+}
+
+.izzy-payment-readonly-banner-action {
+  flex: 0 0 auto;
+  min-width: 150px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.izzy-payment-readonly-disabled,
+.izzy-payment-readonly-disabled:hover,
+.izzy-payment-readonly-disabled:focus,
+.izzy-payment-readonly-disabled:active {
+  opacity: .48 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+button.izzy-payment-readonly-disabled,
+input.izzy-payment-readonly-disabled {
+  pointer-events: auto;
+}
+
+a.izzy-payment-readonly-disabled,
+[role="button"].izzy-payment-readonly-disabled {
+  pointer-events: auto;
+  text-decoration: none !important;
+}
+
+.izzy-payment-readonly-disabled .accion-icon,
+.izzy-payment-readonly-disabled i {
+  transform: none !important;
+}
+
+@media (max-width: 767.98px) {
+  .izzy-payment-readonly-banner {
+    margin: 10px 12px 0;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .izzy-payment-readonly-banner-action {
+    width: 100%;
+  }
+}

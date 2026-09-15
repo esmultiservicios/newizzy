@@ -253,3 +253,1008 @@
     }
 }
 
+
+
+/* =========================================================
+   IZZY | REGISTRAR PLANES - BOTÓN ACCIONES COMPACTO
+   Mantiene icono + texto en una sola línea sin desbordar.
+   ========================================================= */
+#planesListado .planes-actions-dropdown {
+    max-width: 100% !important;
+}
+
+#planesListado .planes-actions-dropdown > .planes-acciones-toggle {
+    width: auto !important;
+    min-width: 86px !important;
+    max-width: 100% !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 5px 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    border-radius: 7px !important;
+    font-size: 11.5px !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
+
+#planesListado .planes-actions-dropdown > .planes-acciones-toggle i {
+    flex: 0 0 auto !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+}
+
+#planesListado .planes-actions-dropdown > .planes-acciones-toggle span {
+    display: inline !important;
+    min-width: auto !important;
+    max-width: none !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    line-height: 1 !important;
+}
+
+/* =========================================================
+   IZZY | REGISTRAR PLANES
+   SELECT2 DINÁMICO + MODALES AUXILIARES MODERNOS
+   Este bloque NO redefine los estilos globales de Select2.
+   ========================================================= */
+
+/* Fila de configuración: un solo select, cantidad y acción. */
+.planes-config-row {
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns:
+        minmax(260px, 1fr)
+        minmax(180px, 1fr)
+        auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.planes-config-select-wrap,
+.planes-config-value-wrap,
+.planes-config-action-wrap {
+    min-width: 0;
+}
+
+.planes-config-action-wrap {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.planes-config-action-wrap .remover-configuracion {
+    min-width: 102px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+/* Movimiento solicitado para la vista Detalle principal. */
+.planes-detail-row {
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease,
+        background-color .18s ease !important;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    .planes-listado.vista-detalle .planes-detail-row:hover {
+        transform: translateY(-3px) !important;
+        border-color: #b9ded5 !important;
+        border-top-color: #20c997 !important;
+        background: #fcfffe !important;
+        box-shadow: 0 10px 22px rgba(23,43,77,.10) !important;
+        z-index: 2;
+    }
+}
+
+/* Acciones principal: mismo tamaño compacto usado en Clientes. */
+#planesListado .planes-actions-dropdown > .planes-acciones-toggle {
+    width: auto !important;
+    min-width: 102px !important;
+    max-width: 100% !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 6px 10px !important;
+    gap: 5px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
+/* =========================================================
+   MODALES AUXILIARES | AISLADOS
+   ========================================================= */
+.planes-aux-modal-root {
+    overflow-x: hidden !important;
+}
+
+.planes-aux-modal-root .modal-dialog {
+    width: calc(100vw - 28px);
+    max-width: 1180px;
+}
+
+.planes-aux-modal {
+    overflow: hidden;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 22px 60px rgba(15,23,42,.22);
+}
+
+.planes-aux-modal-header {
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 17px;
+    border: 0;
+    border-bottom: 4px solid #20c997;
+    background: #132a3d;
+    color: #fff;
+}
+
+.planes-aux-modal-heading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.planes-aux-modal-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px;
+    background: rgba(255,255,255,.08);
+    color: #fff;
+}
+
+.planes-aux-modal-heading .modal-title {
+    margin: 0;
+    color: #fff;
+    font-size: 17px;
+    line-height: 1.25;
+    font-weight: 800;
+}
+
+.planes-aux-modal-heading p {
+    margin: 3px 0 0;
+    color: #cbd5e1;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.planes-aux-close {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #fff !important;
+    opacity: .9 !important;
+    text-shadow: none !important;
+    border-radius: 8px;
+}
+
+.planes-aux-close:hover {
+    background: rgba(255,255,255,.10);
+    opacity: 1 !important;
+}
+
+.planes-aux-modal-body {
+    min-width: 0;
+    overflow-x: hidden !important;
+    padding: 18px;
+    background: #fff;
+}
+
+.planes-aux-toolbar {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.planes-aux-actions,
+.planes-aux-tools {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.planes-aux-actions {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+}
+
+.planes-aux-tools {
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.planes-aux-page-size {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #46556b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.planes-aux-page-size label {
+    margin: 0;
+    color: #172033;
+    font-weight: 700;
+}
+
+.planes-aux-view-switch {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+}
+
+.planes-aux-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.planes-aux-view-btn:hover {
+    color: #176fae;
+    background: #eaf4fc;
+}
+
+.planes-aux-view-btn.active {
+    background: #2f9ddd;
+    color: #fff;
+    box-shadow: 0 2px 7px rgba(47,157,221,.24);
+}
+
+/* Buscador estándar: lupa izquierda + X dentro del input. */
+.planes-aux-search {
+    width: 270px;
+    min-width: 220px;
+}
+
+.planes-aux-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.planes-aux-search-icon {
+    width: 42px;
+    flex: 0 0 42px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ced4da;
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    background: #f7f9fc;
+    color: #17324d;
+}
+
+.planes-aux-search-wrap .form-control {
+    min-width: 0;
+    height: 38px;
+    min-height: 38px;
+    padding: 7px 38px 7px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 0 8px 8px 0 !important;
+    background: #fff;
+    color: #172b4d;
+    box-shadow: none !important;
+}
+
+.planes-aux-search-wrap .form-control:focus {
+    border-color: #2f9ddd;
+    box-shadow: 0 0 0 2px rgba(47,157,221,.10) !important;
+}
+
+.planes-aux-search-wrap .form-control::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+}
+
+.planes-aux-search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    z-index: 5;
+    width: 26px;
+    min-width: 26px;
+    height: 26px;
+    min-height: 26px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    box-shadow: none;
+}
+
+.planes-aux-search-clear:hover,
+.planes-aux-search-clear:focus {
+    background: #eaf4fc;
+    color: #176fae;
+    outline: none;
+}
+
+/* Vista Detalle */
+.planes-aux-list.vista-detalle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.planes-aux-detail-header,
+.planes-aux-detail-row {
+    min-width: 0;
+    display: grid;
+}
+
+.planes-aux-list[data-kind="configuraciones"] .planes-aux-detail-header,
+.planes-aux-list[data-kind="configuraciones"] .planes-aux-detail-row {
+    grid-template-columns:
+        minmax(240px,1.5fr)
+        minmax(120px,.55fr)
+        124px;
+}
+
+.planes-aux-list[data-kind="menus"] .planes-aux-detail-header,
+.planes-aux-list[data-kind="menus"] .planes-aux-detail-row {
+    grid-template-columns:
+        minmax(260px,1.5fr)
+        minmax(140px,.6fr)
+        124px;
+}
+
+.planes-aux-list[data-kind="submenus"] .planes-aux-detail-header,
+.planes-aux-list[data-kind="submenus"] .planes-aux-detail-row {
+    grid-template-columns:
+        minmax(190px,.8fr)
+        minmax(260px,1.2fr)
+        minmax(140px,.6fr)
+        124px;
+}
+
+.planes-aux-list[data-kind="submenus2"] .planes-aux-detail-header,
+.planes-aux-list[data-kind="submenus2"] .planes-aux-detail-row {
+    grid-template-columns:
+        minmax(180px,.85fr)
+        minmax(180px,.85fr)
+        minmax(210px,1fr)
+        minmax(140px,.6fr)
+        124px;
+}
+
+.planes-aux-detail-header {
+    overflow: hidden;
+    border-radius: 10px;
+    background: #1f354e;
+    color: #fff;
+}
+
+.planes-aux-detail-header > div {
+    min-width: 0;
+    padding: 13px 14px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    font-size: 11px;
+    line-height: 1.3;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.planes-aux-detail-header > div:last-child {
+    border-right: 0;
+}
+
+.planes-aux-detail-row {
+    min-height: 82px;
+    align-items: stretch;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #0ea5a8;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23,50,77,.05);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease,
+        background-color .18s ease;
+}
+
+.planes-aux-detail-cell {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 15px 14px;
+    border-right: 1px solid #edf1f6;
+    color: #46556b;
+    font-size: 14px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.planes-aux-detail-cell:last-child {
+    border-right: 0;
+}
+
+.planes-aux-action-cell {
+    justify-content: center;
+}
+
+.planes-aux-primary {
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.planes-aux-primary strong {
+    min-width: 0;
+    color: #172b4d;
+    font-size: 14px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.planes-aux-row-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e6f2;
+    border-radius: 9px;
+    background: #edf5ff;
+    color: #176fae;
+}
+
+.planes-aux-value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 58px;
+    min-height: 30px;
+    padding: 5px 9px;
+    border: 1px solid #d8e7f3;
+    border-radius: 999px;
+    background: #f4f9fd;
+    color: #334e68;
+    font-weight: 800;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    .planes-aux-detail-row:hover {
+        transform: translateY(-3px);
+        border-color: #b9ded5;
+        border-top-color: #20c997;
+        background: #fcfffe;
+        box-shadow: 0 10px 22px rgba(23,43,77,.10);
+        z-index: 2;
+    }
+}
+
+/* Vista Miniatura */
+.planes-aux-list.vista-miniatura {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 14px;
+}
+
+.planes-aux-mini-card {
+    position: relative;
+    min-width: 0;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23,50,77,.06);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease,
+        background-color .18s ease;
+}
+
+.planes-aux-mini-topline {
+    height: 3px;
+    border-radius: 10px 10px 0 0;
+    background: #0ea5a8;
+}
+
+.planes-aux-mini-header {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 15px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.planes-aux-mini-icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8e6f2;
+    border-radius: 10px;
+    background: #edf5ff;
+    color: #176fae;
+}
+
+.planes-aux-mini-header h4 {
+    margin: 0;
+    color: #172b4d;
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.planes-aux-mini-header small {
+    display: block;
+    margin-top: 3px;
+    color: #6b778c;
+    font-size: 10.5px;
+}
+
+.planes-aux-mini-body {
+    min-width: 0;
+    display: grid;
+    gap: 10px;
+    padding: 14px 15px;
+}
+
+.planes-aux-mini-data {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.planes-aux-mini-data > span:first-child {
+    color: #6b778c;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.planes-aux-mini-data strong {
+    min-width: 0;
+    color: #334e68;
+    font-size: 13px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.planes-aux-mini-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding: 12px 15px;
+    border-top: 1px solid #edf1f6;
+}
+
+@media (hover:hover) and (pointer:fine) {
+    .planes-aux-mini-card:hover {
+        transform: translateY(-4px);
+        border-color: #b9ded5;
+        border-top-color: #20c997;
+        background: #fcfffe;
+        box-shadow: 0 12px 26px rgba(23,43,77,.11);
+        z-index: 2;
+    }
+}
+
+.planes-aux-status {
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    line-height: 1.2;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.planes-aux-status.is-assigned {
+    border: 1px solid #bfe8cf;
+    background: #e9f9ef;
+    color: #14804a;
+}
+
+.planes-aux-status.is-pending {
+    border: 1px solid #dde3ea;
+    background: #f5f7fa;
+    color: #5e6c84;
+}
+
+.planes-aux-action-btn {
+    width: auto !important;
+    min-width: 102px !important;
+    max-width: 100% !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    border-radius: 8px !important;
+}
+
+.planes-aux-action-btn span {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+}
+
+/* Footer / paginación */
+.planes-aux-footer {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #edf1f6;
+}
+
+.planes-aux-info {
+    color: #6b778c;
+    font-size: 12px;
+}
+
+.planes-aux-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.planes-aux-page-btn {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #fff;
+    color: #405269;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.planes-aux-page-btn:hover:not(:disabled):not(.active) {
+    background: #edf6fd;
+    color: #176fae;
+}
+
+.planes-aux-page-btn.active {
+    border-color: #2f9ddd;
+    background: #2f9ddd;
+    color: #fff;
+}
+
+.planes-aux-page-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.planes-aux-empty,
+.planes-aux-loading {
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 22px;
+    border: 1px dashed #cad6e2;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #6b778c;
+    text-align: center;
+}
+
+.planes-aux-empty strong,
+.planes-aux-empty small {
+    display: block;
+}
+
+.planes-aux-empty strong {
+    color: #3e4c61;
+    margin-bottom: 3px;
+}
+
+.planes-aux-modal-footer {
+    min-height: 62px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 11px 18px;
+    border-top: 1px solid #e6ebf1;
+    background: #fbfcfe;
+}
+
+/* Responsive de modales */
+@media (max-width:1199.98px) {
+    .planes-aux-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .planes-aux-tools {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .planes-aux-list.vista-miniatura {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width:991.98px) {
+    .planes-aux-detail-header {
+        display: none;
+    }
+
+    .planes-aux-list.vista-detalle .planes-aux-detail-row {
+        grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    }
+
+    .planes-aux-action-cell {
+        grid-column: 1/-1;
+        justify-content: flex-start;
+    }
+
+    .planes-aux-search {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+@media (max-width:767.98px) {
+    .planes-config-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .planes-config-action-wrap {
+        justify-content: flex-start;
+    }
+
+    .planes-aux-modal-root .modal-dialog {
+        width: calc(100vw - 14px);
+        max-width: none;
+        margin: 7px auto;
+    }
+
+    .planes-aux-modal-heading .modal-title {
+        font-size: 15px;
+    }
+
+    .planes-aux-modal-heading p {
+        display: none;
+    }
+
+    .planes-aux-modal-body {
+        padding: 14px;
+    }
+
+    .planes-aux-toolbar,
+    .planes-aux-tools {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .planes-aux-actions,
+    .planes-aux-page-size,
+    .planes-aux-view-switch,
+    .planes-aux-search {
+        width: 100%;
+    }
+
+    .planes-aux-actions .btn {
+        flex: 1 1 0;
+    }
+
+    .planes-aux-view-btn[data-view="detalle"] {
+        display: none !important;
+    }
+
+    .planes-aux-view-btn[data-view="miniatura"] {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .planes-aux-list.vista-miniatura,
+    .planes-aux-list.vista-detalle .planes-aux-detail-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .planes-aux-detail-cell {
+        border-right: 0;
+    }
+
+    .planes-aux-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .planes-aux-pagination {
+        justify-content: flex-start;
+    }
+
+    .planes-aux-page-btn span {
+        display: none;
+    }
+}
+
+/* =========================================================
+   IZZY | REGISTRAR PLANES
+   MODALES AUXILIARES CON ALTURA ESTABLE
+   No cambian de tamaño según cantidad de registros o vista.
+   ========================================================= */
+@media (min-width: 768px) {
+    .planes-aux-modal-root .modal-dialog {
+        height: min(820px, calc(100vh - 28px)) !important;
+        max-height: min(820px, calc(100vh - 28px)) !important;
+        margin-top: 14px !important;
+        margin-bottom: 14px !important;
+    }
+
+    .planes-aux-modal-root .modal-dialog-scrollable .modal-content,
+    .planes-aux-modal-root .planes-aux-modal {
+        height: 100% !important;
+        max-height: none !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .planes-aux-modal-root .planes-aux-modal-body {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    .planes-aux-modal-root .planes-aux-modal-header,
+    .planes-aux-modal-root .planes-aux-modal-footer {
+        flex: 0 0 auto !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .planes-aux-modal-root .modal-dialog {
+        height: calc(100dvh - 14px) !important;
+        max-height: calc(100dvh - 14px) !important;
+        margin: 7px auto !important;
+    }
+
+    .planes-aux-modal-root .modal-content {
+        height: 100% !important;
+        max-height: none !important;
+    }
+
+    .planes-aux-modal-root .planes-aux-modal-body {
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+}
+
+/* =========================================================
+   IZZY | REGISTRAR PLANES
+   TÍTULOS COMPLETOS EN TODOS LOS MODALES AUXILIARES
+   Evita truncado por estilos globales del sistema.
+   ========================================================= */
+.planes-aux-modal-root .planes-aux-modal-header {
+    min-width: 0 !important;
+}
+
+.planes-aux-modal-root .planes-aux-modal-heading {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 52px) !important;
+    overflow: visible !important;
+}
+
+.planes-aux-modal-root .planes-aux-modal-heading > div {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+}
+
+.planes-aux-modal-root .planes-aux-modal-heading .modal-title {
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+}
+
+.planes-aux-modal-root .planes-aux-modal-heading p {
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+}
+
+.planes-aux-modal-root .planes-aux-close {
+    flex: 0 0 36px !important;
+}
+

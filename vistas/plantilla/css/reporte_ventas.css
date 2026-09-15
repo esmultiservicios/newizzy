@@ -1735,3 +1735,47 @@
     }
 }
 
+
+/* ============================================================
+   IZZY | DETALLE DE VENTAS - ICONOS KPI
+   Ajuste aislado: reutiliza el recuadro superior derecho que
+   ya existe en los KPI del modal, sin tocar PHP ni JavaScript.
+   ============================================================ */
+#rvDetalleKpisBody .rv-kpi::after {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-family: "Font Awesome 5 Free" !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    -webkit-font-smoothing: antialiased !important;
+    font-weight: 900 !important;
+    font-size: 15px !important;
+    line-height: 1 !important;
+}
+
+#rvDetalleKpisBody .rv-kpi:nth-child(1)::after {
+    content: "\f51e" !important; /* coins */
+    color: #607d9b !important;
+}
+
+#rvDetalleKpisBody .rv-kpi:nth-child(2)::after {
+    content: "\f1b3" !important; /* cubes */
+    color: #2f80c9 !important;
+}
+
+#rvDetalleKpisBody .rv-kpi:nth-child(3)::after {
+    content: "\f541" !important; /* percentage */
+    color: #6f67c7 !important;
+}
+
+#rvDetalleKpisBody .rv-kpi:nth-child(4)::after {
+    content: "\f02c" !important; /* tags */
+    color: #b67d0d !important;
+}
+
+#rvDetalleKpisBody .rv-kpi:nth-child(5)::after {
+    content: "\f53a" !important; /* money-bill-wave */
+    color: #087f5b !important;
+}

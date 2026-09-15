@@ -4,6 +4,7 @@ var inventarioResumenRowsCache = [];
 (function () {
   function inicializarInventarioTransferencia() {
     transferenciaInicializarEventosUI();
+    historicoInventarioInicializarEventos();
     inventario_transferencia();
     getTipoProductos();
     getAlmacen();
@@ -1343,10 +1344,236 @@ function construirTablaResumenInventario(rows) {
    HISTÓRICO VENDIDO
    ========================================================= */
 
+var HISTORICO_INVENTARIO_STORAGE_VISTA = 'izzy.transferencia.historico.tipo_vista';
+
+var historicoInventarioUI = {
+  rows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 10,
+  pageSizeDetalle: 10,
+  pageSizeMiniatura: 6,
+  view: 'detalle',
+  preferredView: 'detalle',
+  search: '',
+  loading: false
+};
+
+function historicoInventarioInicializarVista() {
+  var saved = 'detalle';
+  try { saved = localStorage.getItem(HISTORICO_INVENTARIO_STORAGE_VISTA) || 'detalle'; } catch (e) {}
+
+  historicoInventarioUI.preferredView = saved === 'miniatura' ? 'miniatura' : 'detalle';
+  historicoInventarioUI.view = transferenciaEsMovil() ? 'miniatura' : historicoInventarioUI.preferredView;
+
+  historicoInventarioActualizarVistaUI();
+  historicoInventarioSincronizarPageSize();
+}
+
+function historicoInventarioActualizarVistaUI() {
+  var movil = transferenciaEsMovil();
+
+  $('.historico-inventario-view-btn[data-view="detalle"]')
+    .toggleClass('d-none', movil)
+    .prop('disabled', movil);
+
+  $('.historico-inventario-view-btn')
+    .removeClass('active')
+    .attr('aria-pressed', 'false');
+
+  $('.historico-inventario-view-btn[data-view="' + historicoInventarioUI.view + '"]')
+    .addClass('active')
+    .attr('aria-pressed', 'true');
+}
+
+function historicoInventarioSincronizarPageSize() {
+  var mini = historicoInventarioUI.view === 'miniatura';
+  var opciones = mini ? [6, 12, 18, 30] : [10, 25, 50, 100];
+  var preferido = mini ? historicoInventarioUI.pageSizeMiniatura : historicoInventarioUI.pageSizeDetalle;
+
+  if (opciones.indexOf(preferido) === -1) preferido = opciones[0];
+
+  var $select = $('#historicoInventarioPageSize').empty();
+  opciones.forEach(function(n) {
+    $select.append($('<option></option>').val(n).text(n));
+  });
+
+  historicoInventarioUI.pageSize = preferido;
+  $select.val(String(preferido));
+}
+
+function historicoInventarioTextoRow(row) {
+  return [
+    row.producto,
+    row.barCode,
+    row.categoria,
+    row.tipo_producto,
+    row.cantidad_vendida,
+    row.total_vendido
+  ].map(function(v) {
+    return inventarioValor(v, '').toLowerCase();
+  }).join(' ');
+}
+
+function historicoInventarioFiltrar(rows) {
+  var q = $.trim(historicoInventarioUI.search || '').toLowerCase();
+  if (!q) return rows.slice();
+
+  return rows.filter(function(row) {
+    return historicoInventarioTextoRow(row).indexOf(q) !== -1;
+  });
+}
+
+function historicoInventarioImagen(row) {
+  var imageUrl = transferenciaImagenUrl(row);
+  var fallback = '<?php echo SERVERURL;?>vistas/plantilla/img/products/image_preview.png';
+  var title = inventarioEscape(inventarioValor(row.producto, 'Producto'));
+
+  return '' +
+    '<a href="#" class="iv-trigger historico-inventario-image" ' +
+       'data-iv-src="' + inventarioEscape(imageUrl) + '" ' +
+       'data-iv-fallback="' + inventarioEscape(fallback) + '" ' +
+       'data-iv-title="' + title + '" title="Ver imagen">' +
+      '<img src="' + inventarioEscape(imageUrl) + '" alt="' + title + '" ' +
+           'onerror="this.onerror=null;this.src=\'' + fallback + '\';">' +
+      '<span class="historico-inventario-image-zoom"><i class="fas fa-search-plus"></i></span>' +
+    '</a>';
+}
+
+function historicoInventarioRenderDetalle(rows) {
+  var html = '<div class="historico-inventario-detalle-list">';
+
+  rows.forEach(function(row) {
+    html += '' +
+      '<article class="historico-inventario-detail-row">' +
+        '<div class="historico-inventario-detail-product">' +
+          historicoInventarioImagen(row) +
+          '<div class="historico-inventario-product-copy">' +
+            '<h4>' + inventarioEscape(inventarioValor(row.producto, 'Sin producto')) + '</h4>' +
+            '<p><i class="fas fa-barcode mr-1"></i>' + inventarioEscape(inventarioValor(row.barCode, 'Sin código')) + '</p>' +
+          '</div>' +
+        '</div>' +
+        '<div class="historico-inventario-detail-cell">' +
+          '<span>Categoría</span>' +
+          '<strong>' + inventarioEscape(inventarioValor(row.categoria, 'Sin categoría')) + '</strong>' +
+        '</div>' +
+        '<div class="historico-inventario-detail-cell">' +
+          '<span>Cantidad vendida</span>' +
+          '<strong>' + formatNumber(toNumber(row.cantidad_vendida)) + '</strong>' +
+        '</div>' +
+        '<div class="historico-inventario-detail-cell total">' +
+          '<span>Total vendido</span>' +
+          '<strong>' + formatMoney(toNumber(row.total_vendido)) + '</strong>' +
+        '</div>' +
+      '</article>';
+  });
+
+  return html + '</div>';
+}
+
+function historicoInventarioRenderMiniatura(rows) {
+  var html = '<div class="historico-inventario-mini-grid">';
+
+  rows.forEach(function(row) {
+    html += '' +
+      '<article class="historico-inventario-mini-card">' +
+        historicoInventarioImagen(row) +
+        '<div class="historico-inventario-mini-copy">' +
+          '<h4>' + inventarioEscape(inventarioValor(row.producto, 'Sin producto')) + '</h4>' +
+          '<p class="historico-inventario-mini-code"><i class="fas fa-barcode mr-1"></i>' +
+            inventarioEscape(inventarioValor(row.barCode, 'Sin código')) +
+          '</p>' +
+          '<div class="historico-inventario-mini-meta">' +
+            '<span><b>Categoría:</b> ' + inventarioEscape(inventarioValor(row.categoria, 'Sin categoría')) + '</span>' +
+            '<span><b>Tipo:</b> ' + inventarioEscape(inventarioValor(row.tipo_producto, 'Sin tipo')) + '</span>' +
+            '<span><b>Cantidad:</b> ' + formatNumber(toNumber(row.cantidad_vendida)) + '</span>' +
+            '<span class="historico-inventario-mini-total"><b>Total:</b> ' + formatMoney(toNumber(row.total_vendido)) + '</span>' +
+          '</div>' +
+        '</div>' +
+      '</article>';
+  });
+
+  return html + '</div>';
+}
+
+function historicoInventarioRenderPaginacion(totalPages) {
+  var current = historicoInventarioUI.page;
+  var html = '';
+
+  function btn(label, page, disabled, active, icon) {
+    return '<button type="button" class="transferencia-page-btn' + (active ? ' active' : '') + '" data-historico-page="' + page + '"' +
+      (disabled ? ' disabled' : '') + '>' +
+      (icon ? '<i class="' + icon + ' mr-1"></i>' : '') + label +
+    '</button>';
+  }
+
+  html += btn('Inicio', 1, current === 1, false, 'fas fa-angle-double-left');
+  html += btn('Anterior', current - 1, current === 1, false, 'fas fa-angle-left');
+
+  var from = Math.max(1, current - 2);
+  var to = Math.min(totalPages, from + 4);
+  from = Math.max(1, to - 4);
+
+  for (var p = from; p <= to; p++) {
+    html += btn(String(p), p, false, p === current, '');
+  }
+
+  html += btn('Siguiente', current + 1, current === totalPages, false, 'fas fa-angle-right');
+  html += btn('Final', totalPages, current === totalPages, false, 'fas fa-angle-double-right');
+
+  $('#historicoInventarioPaginacion').html(html);
+}
+
+function historicoInventarioRender() {
+  var rows = historicoInventarioUI.filtered || [];
+
+  if (historicoInventarioUI.loading) {
+    $('#historicoInventarioListado').html(
+      '<div class="transferencia-state"><i class="fas fa-spinner fa-spin"></i><strong>Cargando histórico</strong><span>Espere mientras consultamos los productos vendidos.</span></div>'
+    );
+    $('#historicoInventarioInfo').text('0 registros');
+    $('#historicoInventarioPaginacion').empty();
+    return;
+  }
+
+  if (!rows.length) {
+    $('#historicoInventarioListado').html(
+      '<div class="transferencia-state"><i class="fas fa-receipt"></i><strong>Sin histórico</strong><span>No se encontraron productos vendidos.</span></div>'
+    );
+    $('#historicoInventarioInfo').text('0 registros');
+    $('#historicoInventarioPaginacion').empty();
+    return;
+  }
+
+  var pages = Math.max(1, Math.ceil(rows.length / historicoInventarioUI.pageSize));
+  if (historicoInventarioUI.page > pages) historicoInventarioUI.page = pages;
+
+  var offset = (historicoInventarioUI.page - 1) * historicoInventarioUI.pageSize;
+  var pageRows = rows.slice(offset, offset + historicoInventarioUI.pageSize);
+
+  $('#historicoInventarioListado')
+    .removeClass('vista-detalle vista-miniatura')
+    .addClass('vista-' + historicoInventarioUI.view)
+    .html(
+      historicoInventarioUI.view === 'miniatura'
+        ? historicoInventarioRenderMiniatura(pageRows)
+        : historicoInventarioRenderDetalle(pageRows)
+    );
+
+  var end = Math.min(offset + pageRows.length, rows.length);
+  $('#historicoInventarioInfo').text(
+    'Mostrando ' + (offset + 1) + ' a ' + end + ' de ' + rows.length + ' registros'
+  );
+
+  historicoInventarioRenderPaginacion(pages);
+}
+
 function cargarHistoricoVendidoInventario() {
   var filtros = obtenerFiltrosInventario();
 
   $('#cardHistoricoVendidoInventario').show();
+  historicoInventarioUI.loading = true;
+  historicoInventarioRender();
 
   $.ajax({
     type: "POST",
@@ -1361,28 +1588,41 @@ function cargarHistoricoVendidoInventario() {
       $('#resumen_total_historico_vendido').text('...');
     },
     success: function(json){
-      var rows = [];
+      if (json && json.success === false) {
+        historicoInventarioUI.rows = [];
+        historicoInventarioUI.filtered = [];
+        historicoInventarioUI.page = 1;
+        historicoInventarioUI.loading = false;
+        historicoInventarioRender();
+        $('#resumen_total_historico_vendido').text(formatMoney(0));
 
-      if (json && json.data) {
-        rows = json.data;
+        if (typeof showNotify === 'function') {
+          showNotify('error', 'Error', json.message || 'No se pudo cargar el histórico vendido');
+        }
+        return;
       }
 
-      construirTablaHistoricoVendidoInventario(rows);
+      var rows = json && Array.isArray(json.data) ? json.data : [];
+
+      historicoInventarioUI.rows = rows;
+      historicoInventarioUI.search = $('#buscarHistoricoInventario').val() || '';
+      historicoInventarioUI.filtered = historicoInventarioFiltrar(rows);
+      historicoInventarioUI.page = 1;
+      historicoInventarioUI.loading = false;
+      historicoInventarioRender();
 
       if (json && json.resumen) {
         $('#resumen_total_historico_vendido').text(formatMoney(toNumber(json.resumen.total_vendido)));
       } else {
         $('#resumen_total_historico_vendido').text(formatMoney(0));
       }
-
-      setTimeout(function(){
-        if ($.fn.DataTable.isDataTable("#dataTablaHistoricoVendidoInventario")) {
-          $("#dataTablaHistoricoVendidoInventario").DataTable().columns.adjust();
-        }
-      }, 150);
     },
     error: function(xhr){
-      construirTablaHistoricoVendidoInventario([]);
+      historicoInventarioUI.rows = [];
+      historicoInventarioUI.filtered = [];
+      historicoInventarioUI.page = 1;
+      historicoInventarioUI.loading = false;
+      historicoInventarioRender();
       $('#resumen_total_historico_vendido').text(formatMoney(0));
 
       if (typeof showNotify === 'function') {
@@ -1395,45 +1635,441 @@ function cargarHistoricoVendidoInventario() {
 }
 
 function construirTablaHistoricoVendidoInventario(rows) {
-  rows = rows || [];
+  rows = Array.isArray(rows) ? rows : [];
+  historicoInventarioUI.rows = rows;
+  historicoInventarioUI.filtered = historicoInventarioFiltrar(rows);
+  historicoInventarioUI.page = 1;
+  historicoInventarioUI.loading = false;
+  historicoInventarioRender();
+
+  var totalVendido = 0;
+  rows.forEach(function(row) {
+    totalVendido += toNumber(row.total_vendido);
+  });
+  $('#resumen_total_historico_vendido').text(formatMoney(totalVendido));
+}
+
+function historicoInventarioGenerarXlsx(rows) {
+  if (typeof JSZip === 'undefined') return null;
 
   var totalCantidad = 0;
   var totalVendido = 0;
 
-  rows.forEach(function(row){
-    totalCantidad += toNumber(row.cantidad_vendida);
-    totalVendido += toNumber(row.total_vendido);
+  rows.forEach(function(r) {
+    totalCantidad += toNumber(r.cantidad_vendida);
+    totalVendido += toNumber(r.total_vendido);
   });
 
-  var html = '<div class="transferencia-historico-grid">';
+  var headers = ['Producto', 'Código', 'Categoría', 'Tipo', 'Cantidad vendida', 'Total vendido'];
+  var sheetRows = [];
 
-  rows.forEach(function(row) {
-    html += '' +
-      '<article class="transferencia-historico-card">' +
-        '<div class="transferencia-historico-icon"><i class="fas fa-receipt"></i></div>' +
-        '<div class="transferencia-historico-copy">' +
-          '<h4>' + inventarioEscape(inventarioValor(row.producto,'Sin producto')) + '</h4>' +
-          '<div class="transferencia-historico-meta">' +
-            '<span><b>Código:</b> ' + inventarioEscape(inventarioValor(row.barCode,'Sin código')) + '</span>' +
-            '<span><b>Categoría:</b> ' + inventarioEscape(inventarioValor(row.categoria,'Sin categoría')) + '</span>' +
-            '<span><b>Cantidad:</b> ' + formatNumber(toNumber(row.cantidad_vendida)) + '</span>' +
-            '<span class="transferencia-historico-total"><b>Total:</b> ' + formatMoney(toNumber(row.total_vendido)) + '</span>' +
-          '</div>' +
-        '</div>' +
-      '</article>';
+  sheetRows.push('<row r="1" ht="30" customHeight="1">' +
+    transferenciaExcelCell('A1', 'IZZY • HISTÓRICO DE PRODUCTOS VENDIDOS', 1, false) +
+  '</row>');
+
+  sheetRows.push('<row r="2" ht="20" customHeight="1">' +
+    transferenciaExcelCell('A2', 'Productos facturados, cantidad vendida y valor real facturado • Generado: ' + new Date().toLocaleDateString('es-HN'), 2, false) +
+  '</row>');
+
+  sheetRows.push('<row r="3">' +
+    transferenciaExcelCell('A3', 'REGISTROS', 6, false) +
+    transferenciaExcelCell('C3', 'UNIDADES VENDIDAS', 6, false) +
+    transferenciaExcelCell('E3', 'TOTAL VENDIDO', 6, false) +
+  '</row>');
+
+  sheetRows.push('<row r="4" ht="24" customHeight="1">' +
+    transferenciaExcelCell('A4', rows.length, 7, true) +
+    transferenciaExcelCell('C4', totalCantidad, 11, true) +
+    transferenciaExcelCell('E4', totalVendido, 11, true) +
+  '</row>');
+
+  sheetRows.push('<row r="5">' +
+    transferenciaExcelCell('A5', 'Búsqueda: ' + ($.trim($('#buscarHistoricoInventario').val()) || 'Sin búsqueda'), 8, false) +
+  '</row>');
+
+  sheetRows.push('<row r="6" ht="26" customHeight="1">' +
+    headers.map(function(h, i) {
+      return transferenciaExcelCell(transferenciaExcelCol(i) + '6', h, 3, false);
+    }).join('') +
+  '</row>');
+
+  rows.forEach(function(r, i) {
+    var rr = 7 + i;
+    var values = [
+      inventarioValor(r.producto, ''),
+      inventarioValor(r.barCode, ''),
+      inventarioValor(r.categoria, ''),
+      inventarioValor(r.tipo_producto, ''),
+      toNumber(r.cantidad_vendida),
+      toNumber(r.total_vendido)
+    ];
+
+    sheetRows.push('<row r="' + rr + '" ht="22" customHeight="1">' +
+      values.map(function(v, c) {
+        return transferenciaExcelCell(
+          transferenciaExcelCol(c) + rr,
+          v,
+          c >= 4 ? 11 : 4,
+          c >= 4
+        );
+      }).join('') +
+    '</row>');
   });
 
-  html += '</div>';
+  var lastRow = Math.max(6, 6 + rows.length);
+
+  var sheetXml =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<dimension ref="A1:F' + lastRow + '"/>' +
+      '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="6" topLeftCell="A7" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+      '<cols>' +
+        '<col min="1" max="1" width="34" customWidth="1"/>' +
+        '<col min="2" max="2" width="19" customWidth="1"/>' +
+        '<col min="3" max="4" width="24" customWidth="1"/>' +
+        '<col min="5" max="6" width="18" customWidth="1"/>' +
+      '</cols>' +
+      '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+      '<autoFilter ref="A6:F' + lastRow + '"/>' +
+      '<mergeCells count="8">' +
+        '<mergeCell ref="A1:F1"/><mergeCell ref="A2:F2"/>' +
+        '<mergeCell ref="A3:B3"/><mergeCell ref="A4:B4"/>' +
+        '<mergeCell ref="C3:D3"/><mergeCell ref="C4:D4"/>' +
+        '<mergeCell ref="E3:F3"/><mergeCell ref="E4:F4"/>' +
+      '</mergeCells>' +
+    '</worksheet>';
+
+  var stylesXml =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts>' +
+      '<fonts count="7">' +
+        '<font><sz val="10"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+        '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+        '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+      '</fonts>' +
+      '<fills count="5">' +
+        '<fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+      '</fills>' +
+      '<borders count="2">' +
+        '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+        '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+      '</borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="12">' +
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"/>' +
+        '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+      '</cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+
+  var workbookXml =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+      '<sheets><sheet name="Histórico vendido" sheetId="1" r:id="rId1"/></sheets>' +
+    '</workbook>';
+
+  var workbookRels =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    '</Relationships>';
+
+  var rootRels =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>';
+
+  var contentTypes =
+    '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+      '<Default Extension="xml" ContentType="application/xml"/>' +
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '</Types>';
+
+  var zip = new JSZip();
+  zip.file('[Content_Types].xml', contentTypes);
+  zip.folder('_rels').file('.rels', rootRels);
+  zip.folder('xl').file('workbook.xml', workbookXml);
+  zip.folder('xl').file('styles.xml', stylesXml);
+  zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+
+  var opts = {
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    compression: 'DEFLATE'
+  };
+
+  if (typeof zip.generateAsync === 'function') return zip.generateAsync(opts);
+  if (typeof zip.generate === 'function') return Promise.resolve(zip.generate(opts));
+
+  return Promise.reject(new Error('JSZip no soportado.'));
+}
+
+function historicoInventarioExportarExcel() {
+  var rows = historicoInventarioUI.filtered || [];
 
   if (!rows.length) {
-    html = '<div class="transferencia-state"><i class="fas fa-receipt"></i><strong>Sin histórico</strong><span>No se encontraron productos vendidos.</span></div>';
+    showNotify('warning', 'Sin información', 'No hay registros del histórico para exportar.');
+    return;
   }
 
-  $('#historicoInventarioListado').html(html);
-  $('#historicoInventarioInfo').text(rows.length + ' registro(s)');
-  $('#historicoInventarioPaginacion').empty();
+  var promise = historicoInventarioGenerarXlsx(rows);
 
-  $('#resumen_total_historico_vendido').text(formatMoney(totalVendido));
+  if (!promise) {
+    showNotify('error', 'Excel no disponible', 'JSZip no está disponible.');
+    return;
+  }
+
+  promise.then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'Historico_Productos_Vendidos.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }).catch(function(error) {
+    console.error(error);
+    showNotify('error', 'Error', 'No se pudo generar el Excel del histórico.');
+  });
+}
+
+function historicoInventarioExportarPdf() {
+  var rows = historicoInventarioUI.filtered || [];
+
+  if (!rows.length) {
+    showNotify('warning', 'Sin información', 'No hay registros del histórico para mostrar en PDF.');
+    return;
+  }
+
+  if (typeof pdfMake === 'undefined' || typeof abrirModalPdfPublico !== 'function') {
+    showNotify('error', 'PDF no disponible', 'No están disponibles los componentes del PDF.');
+    return;
+  }
+
+  transferenciaObtenerLogoPdf(function(logo) {
+    var totalCantidad = 0;
+    var totalVendido = 0;
+
+    rows.forEach(function(r) {
+      totalCantidad += toNumber(r.cantidad_vendida);
+      totalVendido += toNumber(r.total_vendido);
+    });
+
+    var body = [[
+      {text:'PRODUCTO',style:'th',fillColor:'#17324D'},
+      {text:'CÓDIGO',style:'th',fillColor:'#17324D'},
+      {text:'CATEGORÍA / TIPO',style:'th',fillColor:'#17324D'},
+      {text:'CANTIDAD',style:'th',fillColor:'#17324D'},
+      {text:'TOTAL',style:'th',fillColor:'#17324D'}
+    ]];
+
+    rows.forEach(function(r, i) {
+      var fill = i % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+
+      body.push([
+        {text:inventarioValor(r.producto, ''),style:'td',fillColor:fill},
+        {text:inventarioValor(r.barCode, 'Sin código'),style:'td',fillColor:fill},
+        {text:inventarioValor(r.categoria, 'Sin categoría') + '\n' + inventarioValor(r.tipo_producto, 'Sin tipo'),style:'td',fillColor:fill},
+        {text:formatNumber(toNumber(r.cantidad_vendida)),style:'tdn',fillColor:fill},
+        {text:formatMoney(toNumber(r.total_vendido)),style:'tdn',color:'#14804A',fillColor:fill}
+      ]);
+    });
+
+    var doc = {
+      pageSize:'LETTER',
+      pageOrientation:'landscape',
+      pageMargins:[28,28,28,34],
+      header:function(){
+        return {
+          margin:[28,12,28,0],
+          canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]
+        };
+      },
+      footer:function(page,pages){
+        return {
+          margin:[28,8,28,0],
+          columns:[
+            {text:'IZZY • Histórico de productos vendidos',fontSize:7,color:'#7A869A'},
+            {text:'Página ' + page + ' de ' + pages,fontSize:7,color:'#7A869A',alignment:'right'}
+          ]
+        };
+      },
+      content:[
+        {
+          table:{widths:[100,'*',160],body:[[
+            {table:{widths:['*'],body:[[{image:logo,fit:[62,36],alignment:'center',margin:[7,5,7,5],fillColor:'#FFFFFF'}]]},layout:'noBorders',fillColor:'#17324D',margin:[8,7,8,7]},
+            {stack:[
+              {text:'HISTÓRICO DE PRODUCTOS VENDIDOS',bold:true,fontSize:15,color:'#FFFFFF'},
+              {text:'Productos facturados, cantidad vendida y valor real facturado',fontSize:7.5,color:'#D8E5F0',margin:[0,2,0,0]}
+            ],fillColor:'#17324D',margin:[0,10,0,10]},
+            {stack:[
+              {text:'REPORTE EJECUTIVO',bold:true,fontSize:6.5,color:'#72E2E5',alignment:'right'},
+              {text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},
+              {text:rows.length + ' registro(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right'}
+            ],fillColor:'#17324D',margin:[0,10,12,10]}
+          ]]},
+          layout:'noBorders',
+          margin:[0,0,0,10]
+        },
+        {
+          table:{widths:['*','*','*'],body:[[
+            {stack:[{text:'REGISTROS',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:13,bold:true,color:'#172B4D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},
+            {stack:[{text:'UNIDADES VENDIDAS',fontSize:6.3,bold:true,color:'#6B778C'},{text:formatNumber(totalCantidad),fontSize:13,bold:true,color:'#253858'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},
+            {stack:[{text:'TOTAL VENDIDO',fontSize:6.3,bold:true,color:'#6B778C'},{text:formatMoney(totalVendido),fontSize:13,bold:true,color:'#14804A'}],fillColor:'#F7F9FC',margin:[8,7,8,7]}
+          ]]},
+          layout:'lightHorizontalLines',
+          margin:[0,0,0,10]
+        },
+        {
+          table:{widths:[180,100,'*',80,100],headerRows:1,body:body},
+          layout:{
+            hLineColor:function(){return '#DDE3EA';},
+            vLineColor:function(){return '#DDE3EA';},
+            hLineWidth:function(){return .55;},
+            vLineWidth:function(){return .55;},
+            paddingLeft:function(){return 5;},
+            paddingRight:function(){return 5;},
+            paddingTop:function(){return 6;},
+            paddingBottom:function(){return 6;}
+          }
+        }
+      ],
+      styles:{
+        th:{fontSize:6.5,bold:true,color:'#FFFFFF',alignment:'center'},
+        td:{fontSize:7,color:'#253858'},
+        tdn:{fontSize:7,color:'#253858',alignment:'right'}
+      }
+    };
+
+    pdfMake.createPdf(doc).getDataUrl(function(url) {
+      abrirModalPdfPublico(url, 'Histórico de productos vendidos', 'Historico_Productos_Vendidos.pdf');
+    });
+  });
+}
+
+function historicoInventarioInicializarEventos() {
+  historicoInventarioInicializarVista();
+
+  $('#buscarHistoricoInventario')
+    .off('input.historicoInventarioUI')
+    .on('input.historicoInventarioUI', function() {
+      historicoInventarioUI.search = $(this).val() || '';
+      historicoInventarioUI.filtered = historicoInventarioFiltrar(historicoInventarioUI.rows || []);
+      historicoInventarioUI.page = 1;
+      historicoInventarioRender();
+    });
+
+  $('#limpiarBuscarHistoricoInventario')
+    .off('click.historicoInventarioUI')
+    .on('click.historicoInventarioUI', function() {
+      historicoInventarioUI.search = '';
+      $('#buscarHistoricoInventario').val('').focus();
+      historicoInventarioUI.filtered = historicoInventarioFiltrar(historicoInventarioUI.rows || []);
+      historicoInventarioUI.page = 1;
+      historicoInventarioRender();
+    });
+
+  $('#historicoInventarioPageSize')
+    .off('change.historicoInventarioUI')
+    .on('change.historicoInventarioUI', function() {
+      var n = parseInt($(this).val(), 10);
+      if (!n) return;
+
+      historicoInventarioUI.pageSize = n;
+
+      if (historicoInventarioUI.view === 'miniatura') {
+        historicoInventarioUI.pageSizeMiniatura = n;
+      } else {
+        historicoInventarioUI.pageSizeDetalle = n;
+      }
+
+      historicoInventarioUI.page = 1;
+      historicoInventarioRender();
+    });
+
+  $('.historico-inventario-view-btn')
+    .off('click.historicoInventarioUI')
+    .on('click.historicoInventarioUI', function() {
+      var vista = $(this).data('view');
+
+      historicoInventarioUI.view = transferenciaEsMovil()
+        ? 'miniatura'
+        : (vista === 'miniatura' ? 'miniatura' : 'detalle');
+
+      if (!transferenciaEsMovil()) {
+        historicoInventarioUI.preferredView = historicoInventarioUI.view;
+        try {
+          localStorage.setItem(HISTORICO_INVENTARIO_STORAGE_VISTA, historicoInventarioUI.preferredView);
+        } catch (e) {}
+      }
+
+      historicoInventarioUI.page = 1;
+      historicoInventarioActualizarVistaUI();
+      historicoInventarioSincronizarPageSize();
+      historicoInventarioRender();
+    });
+
+  $('#historicoInventarioPaginacion')
+    .off('click.historicoInventarioUI', '.transferencia-page-btn')
+    .on('click.historicoInventarioUI', '.transferencia-page-btn', function() {
+      if (this.disabled) return;
+
+      var p = parseInt($(this).data('historico-page'), 10);
+      if (!p) return;
+
+      historicoInventarioUI.page = p;
+      historicoInventarioRender();
+    });
+
+  $('#btnExcelHistoricoInventario')
+    .off('click.historicoInventarioUI')
+    .on('click.historicoInventarioUI', historicoInventarioExportarExcel);
+
+  $('#btnPdfHistoricoInventario')
+    .off('click.historicoInventarioUI')
+    .on('click.historicoInventarioUI', historicoInventarioExportarPdf);
+
+  $(window)
+    .off('resize.historicoInventarioUI orientationchange.historicoInventarioUI')
+    .on('resize.historicoInventarioUI orientationchange.historicoInventarioUI', function() {
+      var objetivo = transferenciaEsMovil() ? 'miniatura' : historicoInventarioUI.preferredView;
+
+      if (historicoInventarioUI.view !== objetivo) {
+        historicoInventarioUI.view = objetivo;
+        historicoInventarioUI.page = 1;
+        historicoInventarioActualizarVistaUI();
+        historicoInventarioSincronizarPageSize();
+        historicoInventarioRender();
+      } else {
+        historicoInventarioActualizarVistaUI();
+      }
+    });
 }
 
 /* =========================================================
@@ -1631,33 +2267,142 @@ function getProductosMovimientos(categoria_id){
   });
 }
 
+function transferenciaPrepararSelectAlmacen(){
+  var $almacen = $('#form_main_movimientos_transferencia #almacen');
+  if (!$almacen.length) return $almacen;
+
+  function mostrarFallbackNativo(){
+    try {
+      if ($.fn.selectpicker && $almacen.data('selectpicker')) {
+        $almacen.selectpicker('destroy');
+      }
+    } catch (e) {}
+
+    $almacen
+      .removeClass('selectpicker')
+      .addClass('transferencia-almacen-fallback')
+      .css({
+        display: 'block',
+        visibility: 'visible',
+        width: '100%'
+      });
+
+    return $almacen;
+  }
+
+  if (!$.fn.selectpicker) {
+    return mostrarFallbackNativo();
+  }
+
+  try {
+    if (!$almacen.data('selectpicker')) {
+      $almacen.selectpicker({
+        liveSearch: true,
+        width: '100%',
+        noneSelectedText: 'Todos los almacenes'
+      });
+    } else {
+      $almacen.selectpicker('refresh');
+    }
+
+    var $wrapper = $almacen.parent('.bootstrap-select');
+
+    if (!$wrapper.length) {
+      return mostrarFallbackNativo();
+    }
+
+    $almacen.removeClass('transferencia-almacen-fallback');
+
+    $wrapper
+      .removeClass('d-none')
+      .css({
+        display: 'block',
+        visibility: 'visible',
+        width: '100%'
+      });
+
+    $wrapper.children('.dropdown-toggle').css('width', '100%');
+  } catch (e) {
+    console.log('No se pudo inicializar bootstrap-select para Almacén:', e);
+    return mostrarFallbackNativo();
+  }
+
+  return $almacen;
+}
+
+function transferenciaActualizarSelectAlmacen(opciones, valor){
+  var $almacen = $('#form_main_movimientos_transferencia #almacen');
+  if (!$almacen.length) return $almacen;
+
+  $almacen.html(opciones).val(String(valor == null ? '0' : valor));
+
+  $almacen = transferenciaPrepararSelectAlmacen();
+
+  if ($.fn.selectpicker && $almacen.hasClass('selectpicker') && $almacen.data('selectpicker')) {
+    try {
+      $almacen.selectpicker('refresh');
+      $almacen.selectpicker('render');
+
+      $almacen.parent('.bootstrap-select')
+        .removeClass('d-none')
+        .css({
+          display: 'block',
+          visibility: 'visible',
+          width: '100%'
+        });
+    } catch (e) {
+      console.log('No se pudo refrescar Almacén:', e);
+    }
+  }
+
+  return $almacen;
+}
+
 function getAlmacen(){
   var url = '<?php echo SERVERURL;?>core/inventario/getAlmacenInventario.php';
+
+  transferenciaActualizarSelectAlmacen(
+    '<option value="0">Cargando almacenes...</option>',
+    '0'
+  );
 
   $.ajax({
     type: "POST",
     url: url,
     async: true,
     success: function(data){
-      $('#form_main_movimientos_transferencia #almacen')
-        .html(data)
-        .val('0')
-        .selectpicker('refresh');
+      var opciones = $.trim(String(data || ''));
+      var tieneTodos = /value\s*=\s*["']?0["']?/i.test(opciones);
+
+      if (!opciones) {
+        opciones = '<option value="0">Todos los almacenes</option>';
+      } else if (!tieneTodos) {
+        opciones = '<option value="0">Todos los almacenes</option>' + opciones;
+      }
+
+      transferenciaActualizarSelectAlmacen(opciones, '0');
 
       if ($('#formTransferencia #id_bodega').length) {
-        $('#formTransferencia #id_bodega')
-          .html(data)
-          .selectpicker('refresh');
+        $('#formTransferencia #id_bodega').html(opciones);
+
+        if ($.fn.selectpicker && $('#formTransferencia #id_bodega').hasClass('selectpicker')) {
+          $('#formTransferencia #id_bodega').selectpicker('refresh');
+        }
       }
     },
     error: function(xhr){
-      $('#form_main_movimientos_transferencia #almacen')
-        .html('<option value="">Error al cargar almacenes</option>')
-        .val('')
-        .selectpicker('refresh');
+      transferenciaActualizarSelectAlmacen(
+        '<option value="0">No se pudieron cargar los almacenes</option>',
+        '0'
+      );
+
+      if (typeof showNotify === 'function') {
+        showNotify('warning', 'Almacenes', 'No se pudo cargar el listado de almacenes.');
+      }
 
       console.log('Error almacenes inventario:', xhr.responseText);
     }
   });
 }
+
 </script>

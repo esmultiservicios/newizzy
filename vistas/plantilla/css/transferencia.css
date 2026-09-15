@@ -961,3 +961,557 @@
     .transferencia-mini-field strong { font-size:13px !important; }
     .transferencia-mini-field span { font-size:10px !important; }
 }
+
+/* =========================================================
+   IZZY 6.0 | TRANSFERENCIA - RESUMEN / HISTÓRICO VENDIDO
+   Ajustes visuales aislados a este módulo.
+   ========================================================= */
+
+/* Movimiento premium en Valor del Inventario */
+.inventario-transferencia-page .inventario-resumen-card {
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    will-change: transform;
+}
+
+.inventario-transferencia-page .transferencia-summary-card {
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+    will-change: transform;
+}
+
+/* Legibilidad del resumen de valor del inventario */
+.inventario-transferencia-page .inventario-resumen-label {
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.inventario-transferencia-page .inventario-resumen-card strong {
+    font-size: 1.28rem;
+    line-height: 1.2;
+}
+
+.inventario-transferencia-page .inventario-resumen-card small {
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+.inventario-transferencia-page .transferencia-summary-copy h4 {
+    font-size: .98rem;
+    line-height: 1.28;
+}
+
+.inventario-transferencia-page .transferencia-summary-copy p {
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+.inventario-transferencia-page .transferencia-summary-meta {
+    font-size: .84rem;
+    line-height: 1.4;
+}
+
+/* Toolbar Histórico */
+.inventario-transferencia-page .historico-inventario-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.inventario-transferencia-page .historico-inventario-toolbar-left,
+.inventario-transferencia-page .historico-inventario-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inventario-transferencia-page .historico-inventario-toolbar-right {
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.inventario-transferencia-page .historico-inventario-page-size {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    white-space: nowrap;
+    color: #52627a;
+    font-size: .84rem;
+}
+
+.inventario-transferencia-page .historico-inventario-page-size select {
+    width: 72px;
+    min-width: 72px;
+    height: 38px;
+}
+
+/* Vista Detalle / Miniatura */
+.inventario-transferencia-page .historico-inventario-view-switch {
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid #d9e2ec;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.inventario-transferencia-page .historico-inventario-view-btn {
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 12px;
+    border: 0;
+    border-right: 1px solid #d9e2ec;
+    background: transparent;
+    color: #44546a;
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.inventario-transferencia-page .historico-inventario-view-btn:last-child {
+    border-right: 0;
+}
+
+.inventario-transferencia-page .historico-inventario-view-btn.active {
+    background: #3498db;
+    color: #fff;
+}
+
+/* Buscador aprobado: [ lupa | input | X ] */
+.inventario-transferencia-page .historico-inventario-search {
+    position: relative;
+    width: 270px;
+    height: 38px;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.inventario-transferencia-page .historico-inventario-search:focus-within {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10);
+}
+
+.inventario-transferencia-page .historico-inventario-search-icon {
+    width: 42px;
+    min-width: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #ced4da;
+    background: #f7f9fc;
+    color: #17324d;
+}
+
+.inventario-transferencia-page .historico-inventario-search input {
+    min-width: 0;
+    height: 36px !important;
+    flex: 1 1 auto;
+    padding: 6px 38px 6px 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+    box-shadow: none !important;
+    font-size: .88rem;
+}
+
+.inventario-transferencia-page .historico-inventario-search input:focus {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.inventario-transferencia-page .historico-inventario-search input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.inventario-transferencia-page .historico-inventario-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    z-index: 6;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.inventario-transferencia-page .historico-inventario-search-clear:hover {
+    background: #f1f5f9;
+    color: #17324d;
+}
+
+/* Histórico Detalle */
+.inventario-transferencia-page .historico-inventario-detalle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.inventario-transferencia-page .historico-inventario-detail-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(280px, 1.55fr) minmax(150px, .8fr) minmax(135px, .65fr) minmax(145px, .7fr);
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #dce4ed;
+    border-left: 3px solid #20c997;
+    border-radius: 10px;
+    background: #fff;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.inventario-transferencia-page .historico-inventario-detail-product {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.inventario-transferencia-page .historico-inventario-product-copy {
+    min-width: 0;
+}
+
+.inventario-transferencia-page .historico-inventario-product-copy h4 {
+    margin: 0 0 4px;
+    color: #172b4d;
+    font-size: .98rem;
+    font-weight: 800;
+    line-height: 1.28;
+}
+
+.inventario-transferencia-page .historico-inventario-product-copy p {
+    margin: 0;
+    color: #66758a;
+    font-size: .83rem;
+    line-height: 1.4;
+}
+
+.inventario-transferencia-page .historico-inventario-detail-cell {
+    min-width: 0;
+}
+
+.inventario-transferencia-page .historico-inventario-detail-cell > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #7a869a;
+    font-size: .70rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.inventario-transferencia-page .historico-inventario-detail-cell strong {
+    display: block;
+    color: #253858;
+    font-size: .88rem;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.inventario-transferencia-page .historico-inventario-detail-cell.total strong {
+    color: #14804a;
+}
+
+/* Miniaturas */
+.inventario-transferencia-page .historico-inventario-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-card {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    gap: 12px;
+    padding: 13px;
+    border: 1px solid #dce4ed;
+    border-radius: 11px;
+    background: #fff;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-copy h4 {
+    margin: 0 0 4px;
+    color: #172b4d;
+    font-size: .98rem;
+    font-weight: 800;
+    line-height: 1.28;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-code {
+    margin: 0 0 8px;
+    color: #66758a;
+    font-size: .82rem;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 12px;
+    font-size: .84rem;
+    color: #40516a;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-meta span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.inventario-transferencia-page .historico-inventario-mini-total {
+    color: #14804a;
+    font-weight: 800;
+}
+
+/* Imagen + lupa */
+.inventario-transferencia-page .historico-inventario-image {
+    position: relative;
+    width: 66px;
+    height: 66px;
+    min-width: 66px;
+    display: block;
+    overflow: hidden;
+    border: 1px solid #d9e3ed;
+    border-radius: 10px;
+    background: #f8fafc;
+    text-decoration: none !important;
+}
+
+.inventario-transferencia-page .historico-inventario-image img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #fff;
+}
+
+.inventario-transferencia-page .historico-inventario-image .historico-inventario-image-zoom {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 25px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    background: rgba(23, 50, 77, .88);
+    color: #fff;
+    font-size: .72rem;
+    box-shadow: 0 2px 6px rgba(23, 50, 77, .18);
+    pointer-events: none;
+}
+
+/* Footer / contador */
+.inventario-transferencia-page #historicoInventarioInfo {
+    font-size: .84rem;
+    color: #52627a;
+}
+
+/* Hover premium aprobado */
+@media (hover:hover) and (pointer:fine) {
+    .inventario-transferencia-page .inventario-resumen-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 26px rgba(23, 43, 77, .11);
+    }
+
+    .inventario-transferencia-page .inventario-resumen-card:hover .inventario-resumen-icon {
+        transform: scale(1.06);
+    }
+
+    .inventario-transferencia-page .inventario-resumen-icon {
+        transition: transform .18s ease;
+    }
+
+    .inventario-transferencia-page .transferencia-summary-card:hover {
+        transform: translateY(-4px);
+        border-color: #b9ded5;
+        background: #fcfffe;
+        box-shadow: 0 12px 26px rgba(23, 43, 77, .11);
+    }
+
+    .inventario-transferencia-page .historico-inventario-detail-row:hover {
+        transform: translateY(-3px);
+        border-color: #b9ded5;
+        border-left-color: #20c997;
+        background: #fcfffe;
+        box-shadow: 0 10px 22px rgba(23, 43, 77, .10);
+    }
+
+    .inventario-transferencia-page .historico-inventario-mini-card:hover {
+        transform: translateY(-4px);
+        border-color: #b9ded5;
+        background: #fcfffe;
+        box-shadow: 0 12px 26px rgba(23, 43, 77, .11);
+    }
+
+    .inventario-transferencia-page .historico-inventario-image:hover img {
+        transform: scale(1.03);
+    }
+}
+
+.inventario-transferencia-page .historico-inventario-image img {
+    transition: transform .18s ease;
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+    .inventario-transferencia-page .historico-inventario-detail-row {
+        grid-template-columns: minmax(240px, 1.4fr) minmax(130px, .7fr) minmax(120px, .6fr) minmax(125px, .65fr);
+    }
+
+    .inventario-transferencia-page .historico-inventario-toolbar-right {
+        width: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .inventario-transferencia-page .historico-inventario-toolbar,
+    .inventario-transferencia-page .historico-inventario-toolbar-left,
+    .inventario-transferencia-page .historico-inventario-toolbar-right {
+        width: 100%;
+    }
+
+    .inventario-transferencia-page .historico-inventario-toolbar-left .btn {
+        flex: 1 1 0;
+    }
+
+    .inventario-transferencia-page .historico-inventario-page-size {
+        width: 100%;
+    }
+
+    .inventario-transferencia-page .historico-inventario-view-switch {
+        width: 100%;
+    }
+
+    .inventario-transferencia-page .historico-inventario-view-btn {
+        flex: 1 1 0;
+    }
+
+    .inventario-transferencia-page .historico-inventario-search {
+        width: 100%;
+    }
+
+    .inventario-transferencia-page .historico-inventario-mini-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .inventario-transferencia-page .historico-inventario-mini-card {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 479.98px) {
+    .inventario-transferencia-page .historico-inventario-mini-meta {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .inventario-transferencia-page .historico-inventario-image {
+        width: 58px;
+        height: 58px;
+        min-width: 58px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .inventario-transferencia-page .inventario-resumen-card,
+    .inventario-transferencia-page .transferencia-summary-card,
+    .inventario-transferencia-page .historico-inventario-detail-row,
+    .inventario-transferencia-page .historico-inventario-mini-card,
+    .inventario-transferencia-page .historico-inventario-image img,
+    .inventario-transferencia-page .inventario-resumen-icon {
+        transition: none;
+    }
+}
+
+
+/* =========================================================
+   IZZY | FILTRO ALMACÉN
+   Mantiene el mismo control visual de Categoría y Producto.
+   Incluye fallback nativo si bootstrap-select no logra renderizar.
+   ========================================================= */
+#form_main_movimientos_transferencia .transferencia-filter-almacen {
+    min-width: 0;
+}
+
+#form_main_movimientos_transferencia .transferencia-filter-almacen .bootstrap-select {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+#form_main_movimientos_transferencia .transferencia-filter-almacen .bootstrap-select > .dropdown-toggle {
+    width: 100% !important;
+    min-height: 38px;
+    padding: 6px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+    color: #495057;
+    box-shadow: none !important;
+}
+
+#form_main_movimientos_transferencia .transferencia-filter-almacen .bootstrap-select > .dropdown-toggle:focus,
+#form_main_movimientos_transferencia .transferencia-filter-almacen .bootstrap-select.show > .dropdown-toggle {
+    border-color: #80bdff;
+    outline: 0 !important;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10) !important;
+}
+
+#form_main_movimientos_transferencia .transferencia-filter-almacen .bootstrap-select .filter-option {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+#form_main_movimientos_transferencia #almacen.transferencia-almacen-fallback {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 6px 32px 6px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+    color: #495057;
+    box-shadow: none !important;
+}
+
+#form_main_movimientos_transferencia #almacen.transferencia-almacen-fallback:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10) !important;
+}
+

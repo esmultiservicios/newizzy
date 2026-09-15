@@ -44,17 +44,9 @@
     }
 
     function impuestosPrepararSelect2($select, options){
-        if(!$select.length || typeof $.fn.select2 !== 'function'){
+        if(!$select.length || !$select.is('select') || typeof $.fn.select2 !== 'function'){
             return;
         }
-
-        try{
-            if($.fn.selectpicker && ($select.hasClass('selectpicker') || $select.data('selectpicker'))){
-                $select.selectpicker('destroy');
-            }
-        }catch(e){}
-
-        $select.removeClass('selectpicker');
 
         if($select.hasClass('select2-hidden-accessible')){
             $select.select2('destroy');
@@ -76,15 +68,18 @@
             placeholder:'Todos los impuestos'
         });
 
+        var $tipoIsv = $('#formImpuestos #tipo_isv');
         var $modal = $('#modalImpuestos');
 
-        impuestosPrepararSelect2(
-            $('#formImpuestos #tipo_isv'),
-            {
-                placeholder:'Seleccione un impuesto',
-                dropdownParent:$modal.length ? $modal : $(document.body)
-            }
-        );
+        if($tipoIsv.is('select')){
+            impuestosPrepararSelect2(
+                $tipoIsv,
+                {
+                    placeholder:'Seleccione un impuesto',
+                    dropdownParent:$modal.length ? $modal : $(document.body)
+                }
+            );
+        }
     }
 
     function impuestosInicializarVista(){
@@ -171,11 +166,15 @@
             return resp;
         }
 
+        if(resp && resp.success === false){
+            throw new Error(resp.message || 'No se pudieron cargar los impuestos configurados.');
+        }
+
         if(resp && Array.isArray(resp.data)){
             return resp.data;
         }
 
-        return [];
+        throw new Error('La respuesta de impuestos no contiene un arreglo de datos válido.');
     }
 
     function impuestosCargarFiltro(){
@@ -221,24 +220,48 @@
         $.ajax({
             method:'POST',
             url:'<?php echo SERVERURL;?>core/llenarDataTableConfImpuestos.php',
-            dataType:'json'
+            dataType:'json',
+            cache:false
         }).done(function(resp){
-            impuestosState.rows=impuestosNormalizarRespuesta(resp);
-            impuestosCargarFiltro();
-            impuestosFiltrar();
+            try{
+                impuestosState.rows=impuestosNormalizarRespuesta(resp);
+                impuestosCargarFiltro();
+                impuestosFiltrar();
+            }catch(error){
+                impuestosState.rows=[];
+                impuestosState.filtered=[];
+                impuestosActualizarKpis();
+                impuestosRender();
+
+                showNotify(
+                    'error',
+                    'Error al cargar impuestos',
+                    error && error.message
+                        ? error.message
+                        : 'No se pudieron obtener los impuestos configurados.'
+                );
+
+                console.error('Respuesta inválida de impuestos:', resp, error);
+            }
         }).fail(function(xhr){
             impuestosState.rows=[];
             impuestosState.filtered=[];
             impuestosActualizarKpis();
             impuestosRender();
 
+            var mensaje='No se pudieron obtener los impuestos configurados.';
+
+            if(xhr && xhr.responseJSON && xhr.responseJSON.message){
+                mensaje=xhr.responseJSON.message;
+            }
+
             showNotify(
                 'error',
                 'Error al cargar impuestos',
-                'No se pudieron obtener los impuestos configurados.'
+                mensaje
             );
 
-            console.error(xhr.responseText);
+            console.error('Error cargando impuestos:', xhr ? xhr.responseText : xhr);
         });
     }
 
@@ -496,7 +519,13 @@
             $form.find('#valor').val(valores[3]);
 
             impuestosInicializarSelect2();
-            $form.find('#tipo_isv').val(valores[1]).trigger('change.select2');
+
+            var $tipoIsv = $form.find('#tipo_isv');
+            $tipoIsv.val(valores[1]);
+
+            if($tipoIsv.is('select')){
+                $tipoIsv.trigger('change.select2');
+            }
 
             $('#modalImpuestos').modal({
                 show:true,

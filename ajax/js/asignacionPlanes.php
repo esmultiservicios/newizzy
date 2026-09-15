@@ -3513,6 +3513,73 @@ $(window).on("load", function() {
             }
         });
 
+    function enfocarPrimerCampoAsignacion() {
+        const $form = $("#formAsignacionPlan");
+
+        if (!$form.length) {
+            return;
+        }
+
+        const $campos = $form
+            .find("input:not([type='hidden']), select, textarea")
+            .filter(":enabled");
+
+        let enfocado = false;
+
+        $campos.each(function() {
+            if (enfocado) {
+                return false;
+            }
+
+            const $campo = $(this);
+
+            /*
+             * Si el campo usa Bootstrap Select, el <select> original puede estar
+             * oculto. Se enfoca el botón visible del componente sin abrirlo.
+             * Para cualquier control normal se usa focus() directamente.
+             */
+            if ($campo.is("select") && $campo.hasClass("selectpicker")) {
+                const $bootstrapSelect = $campo.parent(".bootstrap-select").length
+                    ? $campo.parent(".bootstrap-select")
+                    : $campo.next(".bootstrap-select");
+
+                const $toggle = $bootstrapSelect
+                    .find("> .dropdown-toggle, .dropdown-toggle")
+                    .filter(":visible")
+                    .first();
+
+                if ($toggle.length) {
+                    $toggle.trigger("focus");
+                    enfocado = true;
+                    return false;
+                }
+            }
+
+            if ($campo.is(":visible")) {
+                $campo.trigger("focus");
+
+                if ($campo.is("input[type='text'], input[type='number'], input[type='search'], textarea")) {
+                    try {
+                        const elemento = $campo.get(0);
+                        const longitud = String($campo.val() || "").length;
+
+                        if (
+                            elemento &&
+                            typeof elemento.setSelectionRange === "function"
+                        ) {
+                            elemento.setSelectionRange(longitud, longitud);
+                        }
+                    } catch (e) {
+                        // El enfoque ya fue aplicado; la selección del cursor es opcional.
+                    }
+                }
+
+                enfocado = true;
+                return false;
+            }
+        });
+    }
+
     $(document)
         .off("click.asignacionEditar", ".btn-editar-asignacion")
         .on("click.asignacionEditar", ".btn-editar-asignacion", function() {
@@ -3532,9 +3599,17 @@ $(window).on("load", function() {
                 );
 
             if ($("#div_top").length > 0) {
-                $("html, body").animate({
-                    scrollTop: $("#div_top").offset().top - 20
-                }, 350);
+                $("html, body").stop(true).animate(
+                    {
+                        scrollTop: $("#div_top").offset().top - 20
+                    },
+                    350,
+                    function() {
+                        enfocarPrimerCampoAsignacion();
+                    }
+                );
+            } else {
+                setTimeout(enfocarPrimerCampoAsignacion, 50);
             }
         });
 

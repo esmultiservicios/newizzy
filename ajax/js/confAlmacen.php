@@ -655,9 +655,34 @@ function almacenExcelEscape(value) {
         .replace(/"/g, '&quot;');
 }
 
-function almacenExcelCell(ref, value, style) {
-    return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' +
-        almacenExcelEscape(value) + '</t></is></c>';
+function almacenExcelCell(ref, value, styleId, numeric) {
+    if (numeric) {
+        var numero = Number(value);
+
+        if (!isNaN(numero)) {
+            return '<c r="' + ref + '" s="' + styleId + '"><v>' + numero + '</v></c>';
+        }
+    }
+
+    var raw = String(value == null ? '' : value);
+    var preserve = /^\s|\s$/.test(raw) ? ' xml:space="preserve"' : '';
+
+    return '<c r="' + ref + '" s="' + styleId + '" t="inlineStr">' +
+        '<is><t' + preserve + '>' + almacenExcelEscape(raw) + '</t></is>' +
+    '</c>';
+}
+
+function almacenExcelColName(index) {
+    var name = '';
+    var n = index + 1;
+
+    while (n > 0) {
+        var mod = (n - 1) % 26;
+        name = String.fromCharCode(65 + mod) + name;
+        n = Math.floor((n - 1) / 26);
+    }
+
+    return name;
 }
 
 function almacenFiltroEstadoTexto() {
@@ -683,105 +708,219 @@ function almacenGenerarExcel() {
     }
 
     if (typeof JSZip === 'undefined') {
-        almacenNotificar('error', 'Excel no disponible', 'JSZip no está disponible.');
+        almacenNotificar(
+            'error',
+            'Excel no disponible',
+            'No se encontró JSZip para generar el archivo XLSX.'
+        );
         return;
     }
 
+    var totalActivos = rows.filter(function(row) {
+        return almacenEstadoActivo(row);
+    }).length;
+
+    var totalFacturanCero = rows.filter(function(row) {
+        return almacenFacturarCeroActivo(row);
+    }).length;
+
+    var empresas = {};
+    rows.forEach(function(row) {
+        var empresa = $.trim(almacenValor(row.empresa, ''));
+        if (empresa) {
+            empresas[empresa.toLowerCase()] = true;
+        }
+    });
+
+    var totalEmpresas = Object.keys(empresas).length;
+
+    var headers = [
+        'EMPRESA',
+        'ALMACÉN',
+        'FACTURAR EN CERO',
+        'UBICACIÓN',
+        'ESTADO'
+    ];
+
+    var headerRow = 7;
+    var firstDataRow = 8;
+    var lastRow = Math.max(headerRow, headerRow + rows.length);
     var sheetRows = [];
-    var dataStart = 5;
-
-    sheetRows.push('<row r="1" ht="30" customHeight="1">' +
-        almacenExcelCell('A1', 'IZZY • REPORTE DE ALMACENES', 1) +
-    '</row>');
-
-    sheetRows.push('<row r="2">' +
-        almacenExcelCell(
-            'A2',
-            'Estado: ' + almacenFiltroEstadoTexto() +
-            ' • Registros: ' + rows.length +
-            ' • Fecha: ' + (typeof convertDateFormat === 'function' && typeof today === 'function'
-                ? convertDateFormat(today())
-                : new Date().toLocaleDateString('es-HN')),
-            2
-        ) +
-    '</row>');
-
-    sheetRows.push('<row r="3"></row>');
 
     sheetRows.push(
-        '<row r="4" ht="24" customHeight="1">' +
-            almacenExcelCell('A4', 'EMPRESA', 3) +
-            almacenExcelCell('B4', 'ALMACÉN', 3) +
-            almacenExcelCell('C4', 'FACTURAR EN CERO', 3) +
-            almacenExcelCell('D4', 'UBICACIÓN', 3) +
-            almacenExcelCell('E4', 'ESTADO', 3) +
+        '<row r="1" ht="30" customHeight="1">' +
+            almacenExcelCell(
+                'A1',
+                'IZZY • REPORTE DE ALMACENES',
+                1,
+                false
+            ) +
         '</row>'
     );
 
-    rows.forEach(function(row, index) {
-        var r = dataStart + index;
-        var style = index % 2 === 0 ? 4 : 5;
+    sheetRows.push(
+        '<row r="2" ht="20" customHeight="1">' +
+            almacenExcelCell(
+                'A2',
+                'Configuración, disponibilidad y ubicación de almacenes • Generado: ' +
+                new Date().toLocaleDateString('es-HN'),
+                2,
+                false
+            ) +
+        '</row>'
+    );
+
+    /*
+     * Resumen ejecutivo.
+     * Cada celda de los rangos combinados recibe estilo para que
+     * el borde exterior quede completo al abrir el archivo en Excel.
+     */
+    sheetRows.push(
+        '<row r="3" ht="18" customHeight="1">' +
+            almacenExcelCell('A3', 'REGISTROS', 6, false) +
+            almacenExcelCell('B3', '', 6, false) +
+            almacenExcelCell('C3', 'ACTIVOS', 6, false) +
+            almacenExcelCell('D3', '', 6, false) +
+            almacenExcelCell('E3', 'FACTURAN EN CERO', 6, false) +
+            almacenExcelCell('F3', '', 6, false) +
+            almacenExcelCell('G3', 'EMPRESAS', 6, false) +
+            almacenExcelCell('H3', '', 6, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="4" ht="26" customHeight="1">' +
+            almacenExcelCell('A4', rows.length, 7, true) +
+            almacenExcelCell('B4', '', 7, false) +
+            almacenExcelCell('C4', totalActivos, 7, true) +
+            almacenExcelCell('D4', '', 7, false) +
+            almacenExcelCell('E4', totalFacturanCero, 7, true) +
+            almacenExcelCell('F4', '', 7, false) +
+            almacenExcelCell('G4', totalEmpresas, 7, true) +
+            almacenExcelCell('H4', '', 7, false) +
+        '</row>'
+    );
+
+    sheetRows.push('<row r="5"></row>');
+
+    sheetRows.push(
+        '<row r="6" ht="18" customHeight="1">' +
+            almacenExcelCell(
+                'A6',
+                'Detalle de almacenes filtrados',
+                8,
+                false
+            ) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="' + headerRow + '" ht="28" customHeight="1">' +
+            headers.map(function(header, index) {
+                return almacenExcelCell(
+                    almacenExcelColName(index) + headerRow,
+                    header,
+                    3,
+                    false
+                );
+            }).join('') +
+        '</row>'
+    );
+
+    rows.forEach(function(row, rowIndex) {
+        var excelRow = firstDataRow + rowIndex;
+        var values = [
+            almacenValor(row.empresa, ''),
+            almacenValor(row.almacen, ''),
+            almacenFacturarCeroActivo(row) ? 'Sí' : 'No',
+            almacenValor(row.ubicacion, ''),
+            almacenEstadoActivo(row) ? 'Activo' : 'Inactivo'
+        ];
+
+        var cells = values.map(function(value, colIndex) {
+            var style = 4;
+
+            if (colIndex === 2) {
+                style = String(value).toLowerCase() === 'sí' ? 9 : 10;
+            }
+
+            if (colIndex === 4) {
+                style = String(value).toLowerCase() === 'activo' ? 9 : 10;
+            }
+
+            return almacenExcelCell(
+                almacenExcelColName(colIndex) + excelRow,
+                value,
+                style,
+                false
+            );
+        }).join('');
 
         sheetRows.push(
-            '<row r="' + r + '">' +
-                almacenExcelCell('A' + r, almacenValor(row.empresa, ''), style) +
-                almacenExcelCell('B' + r, almacenValor(row.almacen, ''), style) +
-                almacenExcelCell('C' + r, almacenFacturarCeroActivo(row) ? 'Sí' : 'No', style) +
-                almacenExcelCell('D' + r, almacenValor(row.ubicacion, ''), style) +
-                almacenExcelCell('E' + r, almacenEstadoActivo(row) ? 'Activo' : 'Inactivo', style) +
+            '<row r="' + excelRow + '" ht="34" customHeight="1">' +
+                cells +
             '</row>'
         );
     });
 
-    var totalRow = dataStart + rows.length;
-    sheetRows.push(
-        '<row r="' + totalRow + '" ht="22" customHeight="1">' +
-            almacenExcelCell('A' + totalRow, 'TOTAL DE REGISTROS', 6) +
-            almacenExcelCell('B' + totalRow, String(rows.length), 6) +
-        '</row>'
-    );
-
     var sheetXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-            '<sheetViews><sheetView workbookViewId="0">' +
-                '<pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/>' +
-            '</sheetView></sheetViews>' +
-            '<sheetFormatPr defaultRowHeight="18"/>' +
+            '<dimension ref="A1:H' + lastRow + '"/>' +
+            '<sheetViews>' +
+                '<sheetView workbookViewId="0" showGridLines="0">' +
+                    '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                    '<selection pane="bottomLeft" activeCell="A8" sqref="A8"/>' +
+                '</sheetView>' +
+            '</sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
             '<cols>' +
                 '<col min="1" max="1" width="28" customWidth="1"/>' +
                 '<col min="2" max="2" width="26" customWidth="1"/>' +
                 '<col min="3" max="3" width="20" customWidth="1"/>' +
-                '<col min="4" max="4" width="40" customWidth="1"/>' +
+                '<col min="4" max="4" width="38" customWidth="1"/>' +
                 '<col min="5" max="5" width="16" customWidth="1"/>' +
+                '<col min="6" max="8" width="14" customWidth="1"/>' +
             '</cols>' +
             '<sheetData>' + sheetRows.join('') + '</sheetData>' +
-            '<mergeCells count="3">' +
-                '<mergeCell ref="A1:E1"/>' +
-                '<mergeCell ref="A2:E2"/>' +
-                '<mergeCell ref="A' + totalRow + ':A' + totalRow + '"/>' +
+            '<autoFilter ref="A' + headerRow + ':E' + lastRow + '"/>' +
+            '<mergeCells count="11">' +
+                '<mergeCell ref="A1:H1"/>' +
+                '<mergeCell ref="A2:H2"/>' +
+                '<mergeCell ref="A3:B3"/>' +
+                '<mergeCell ref="A4:B4"/>' +
+                '<mergeCell ref="C3:D3"/>' +
+                '<mergeCell ref="C4:D4"/>' +
+                '<mergeCell ref="E3:F3"/>' +
+                '<mergeCell ref="E4:F4"/>' +
+                '<mergeCell ref="G3:H3"/>' +
+                '<mergeCell ref="G4:H4"/>' +
+                '<mergeCell ref="A6:E6"/>' +
             '</mergeCells>' +
-            '<autoFilter ref="A4:E' + (totalRow - 1) + '"/>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
         '</worksheet>';
 
     var stylesXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
             '<fonts count="7">' +
-                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
                 '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
                 '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
                 '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
                 '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
-                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
-                '<font><b/><sz val="10"/><color rgb="FF17324D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
             '</fonts>' +
-            '<fills count="5">' +
+            '<fills count="7">' +
                 '<fill><patternFill patternType="none"/></fill>' +
                 '<fill><patternFill patternType="gray125"/></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF172B4D"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/><bgColor indexed="64"/></patternFill></fill>' +
             '</fills>' +
             '<borders count="2">' +
                 '<border><left/><right/><top/><bottom/><diagonal/></border>' +
@@ -793,15 +932,21 @@ function almacenGenerarExcel() {
                     '<diagonal/>' +
                 '</border>' +
             '</borders>' +
-            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-            '<cellXfs count="7">' +
+            '<cellStyleXfs count="1">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+            '</cellStyleXfs>' +
+            '<cellXfs count="11">' +
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/>' +
-                '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
             '</cellXfs>' +
             '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
         '</styleSheet>';
@@ -810,6 +955,7 @@ function almacenGenerarExcel() {
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
             'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<bookViews><workbookView activeTab="0"/></bookViews>' +
             '<sheets><sheet name="Almacenes" sheetId="1" r:id="rId1"/></sheets>' +
         '</workbook>';
 
@@ -837,6 +983,7 @@ function almacenGenerarExcel() {
         '</Types>';
 
     var zip = new JSZip();
+
     zip.file('[Content_Types].xml', contentTypes);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbookXml);
@@ -844,37 +991,73 @@ function almacenGenerarExcel() {
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
     zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
 
-    var opts = {
+    var opcionesZip = {
         type: 'blob',
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         compression: 'DEFLATE'
     };
 
-    var promise = typeof zip.generateAsync === 'function'
-        ? zip.generateAsync(opts)
-        : (typeof zip.generate === 'function'
-            ? Promise.resolve(zip.generate(opts))
-            : Promise.reject(new Error('JSZip no soportado')));
+    var promesa;
 
-    promise.then(function(blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
+    if (typeof zip.generateAsync === 'function') {
+        promesa = zip.generateAsync(opcionesZip);
+    } else if (typeof zip.generate === 'function') {
+        try {
+            promesa = Promise.resolve(zip.generate(opcionesZip));
+        } catch (errorGenerate) {
+            console.error(
+                'Error al generar XLSX de almacenes con JSZip legado:',
+                errorGenerate
+            );
+            promesa = Promise.reject(errorGenerate);
+        }
+    } else {
+        promesa = Promise.reject(
+            new Error(
+                'La versión de JSZip cargada no soporta generateAsync() ni generate().'
+            )
+        );
+    }
 
-        a.href = url;
-        a.download = 'Reporte_Almacenes.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    promesa
+        .then(function(blob) {
+            if (!(blob instanceof Blob)) {
+                blob = new Blob(
+                    [blob],
+                    {
+                        type:
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    }
+                );
+            }
 
-        setTimeout(function() {
-            URL.revokeObjectURL(url);
-        }, 1000);
-    }).catch(function(error) {
-        console.error(error);
-        almacenNotificar('error', 'Error', 'No se pudo generar el Excel.');
-    });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+
+            link.href = url;
+            link.download = 'Reporte_Almacenes.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(function() {
+                URL.revokeObjectURL(url);
+            }, 1000);
+        })
+        .catch(function(error) {
+            console.error(
+                'Error al generar Excel de almacenes:',
+                error
+            );
+
+            almacenNotificar(
+                'error',
+                'Error al generar Excel',
+                'No se pudo generar el archivo Excel.'
+            );
+        });
 }
-
 /* =========================================================
    PDF CON PREVIEW
    ========================================================= */
@@ -929,16 +1112,70 @@ function almacenGenerarPdf() {
     var rows = almacenUI.filtered || [];
 
     if (!rows.length) {
-        almacenNotificar('warning', 'Sin información', 'No hay almacenes para mostrar en PDF.');
+        almacenNotificar(
+            'warning',
+            'Sin información',
+            'No hay almacenes para mostrar en PDF.'
+        );
         return;
     }
 
-    if (typeof pdfMake === 'undefined' || typeof abrirModalPdfPublico !== 'function') {
-        almacenNotificar('error', 'PDF no disponible', 'No están disponibles los componentes del PDF.');
+    if (
+        typeof pdfMake === 'undefined' ||
+        typeof abrirModalPdfPublico !== 'function'
+    ) {
+        almacenNotificar(
+            'error',
+            'PDF no disponible',
+            'No están disponibles los componentes del PDF.'
+        );
         return;
     }
+
+    var totalActivos = rows.filter(function(row) {
+        return almacenEstadoActivo(row);
+    }).length;
+
+    var totalFacturanCero = rows.filter(function(row) {
+        return almacenFacturarCeroActivo(row);
+    }).length;
+
+    var empresas = {};
+    rows.forEach(function(row) {
+        var empresa = $.trim(almacenValor(row.empresa, ''));
+        if (empresa) {
+            empresas[empresa.toLowerCase()] = true;
+        }
+    });
+
+    var totalEmpresas = Object.keys(empresas).length;
+    var busqueda = $.trim($('#buscarAlmacenListado').val()) || 'Sin búsqueda';
 
     almacenObtenerLogoPdf(function(logo) {
+        var logoCell = logo
+            ? {
+                table: {
+                    widths: ['*'],
+                    body: [[{
+                        image: logo,
+                        fit: [76, 42],
+                        alignment: 'center',
+                        margin: [6, 4, 6, 4],
+                        fillColor: '#FFFFFF'
+                    }]]
+                },
+                layout: 'noBorders',
+                margin: [10, 8, 8, 8]
+            }
+            : {
+                text: 'IZZY',
+                bold: true,
+                fontSize: 19,
+                color: '#FFFFFF',
+                alignment: 'center',
+                margin: [10, 18, 8, 18]
+            };
+
         var body = [[
             { text: 'EMPRESA', style: 'th' },
             { text: 'ALMACÉN', style: 'th' },
@@ -949,126 +1186,307 @@ function almacenGenerarPdf() {
 
         rows.forEach(function(row, index) {
             var fill = index % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+            var activo = almacenEstadoActivo(row);
+            var facturarCero = almacenFacturarCeroActivo(row);
 
             body.push([
-                { text: almacenValor(row.empresa, ''), style: 'td', fillColor: fill },
-                { text: almacenValor(row.almacen, ''), style: 'td', fillColor: fill },
-                { text: almacenFacturarCeroActivo(row) ? 'Sí' : 'No', style: 'td', fillColor: fill, alignment: 'center' },
-                { text: almacenValor(row.ubicacion, ''), style: 'td', fillColor: fill },
-                { text: almacenEstadoActivo(row) ? 'Activo' : 'Inactivo', style: 'td', fillColor: fill, alignment: 'center' }
+                {
+                    text: almacenValor(row.empresa, '—'),
+                    style: 'td',
+                    fillColor: fill
+                },
+                {
+                    text: almacenValor(row.almacen, '—'),
+                    style: 'td',
+                    fillColor: fill
+                },
+                {
+                    text: facturarCero ? 'Sí' : 'No',
+                    style: 'tdCenter',
+                    fillColor: fill,
+                    bold: true,
+                    color: facturarCero ? '#14804A' : '#C9372C'
+                },
+                {
+                    text: almacenValor(row.ubicacion, '—'),
+                    style: 'td',
+                    fillColor: fill
+                },
+                {
+                    text: activo ? 'Activo' : 'Inactivo',
+                    style: 'tdCenter',
+                    fillColor: fill,
+                    bold: true,
+                    color: activo ? '#14804A' : '#C9372C'
+                }
             ]);
         });
 
-        var logoCell = logo
-            ? {
-                table: {
-                    widths: ['*'],
-                    body: [[{
-                        image: logo,
-                        fit: [76, 42],
-                        alignment: 'center',
-                        margin: [7, 5, 7, 5],
-                        fillColor: '#FFFFFF'
-                    }]]
-                },
-                layout: 'noBorders',
-                fillColor: '#17324D',
-                margin: [8, 7, 8, 7]
-            }
-            : {
-                text: 'IZZY',
-                bold: true,
-                fontSize: 18,
-                color: '#17324D',
-                alignment: 'center',
-                fillColor: '#FFFFFF',
-                margin: [8, 14, 8, 14]
-            };
-
-        var busqueda = $.trim($('#buscarAlmacenListado').val()) || 'Sin búsqueda';
+        var fechaReporte = new Date().toLocaleDateString('es-HN');
 
         var doc = {
             pageSize: 'LETTER',
             pageOrientation: 'landscape',
-            pageMargins: [26, 28, 26, 34],
+            pageMargins: [28, 28, 28, 34],
+
+            header: function() {
+                return {
+                    margin: [28, 12, 28, 0],
+                    canvas: [{
+                        type: 'line',
+                        x1: 0,
+                        y1: 0,
+                        x2: 736,
+                        y2: 0,
+                        lineWidth: 2,
+                        lineColor: '#0EA5A8'
+                    }]
+                };
+            },
+
+            footer: function(currentPage, pageCount) {
+                return {
+                    margin: [28, 8, 28, 0],
+                    columns: [
+                        {
+                            text: 'IZZY • Configuración de Almacén',
+                            fontSize: 7,
+                            color: '#7A869A'
+                        },
+                        {
+                            text:
+                                'Página ' +
+                                currentPage +
+                                ' de ' +
+                                pageCount,
+                            alignment: 'right',
+                            fontSize: 7,
+                            color: '#7A869A'
+                        }
+                    ]
+                };
+            },
 
             content: [
                 {
                     table: {
-                        widths: [105, '*'],
+                        widths: [100, '*', 155],
                         body: [[
-                            logoCell,
                             {
-                                stack: [
-                                    { text: 'REPORTE DE ALMACENES', color: '#FFFFFF', bold: true, fontSize: 16, margin: [0, 5, 0, 5] },
-                                    { text: 'Estado: ' + almacenFiltroEstadoTexto(), color: '#DCEAF5', fontSize: 9 },
-                                    { text: 'Búsqueda: ' + busqueda, color: '#DCEAF5', fontSize: 9 },
-                                    { text: 'Registros: ' + rows.length, color: '#DCEAF5', fontSize: 9 }
-                                ],
+                                border: [false, false, false, false],
                                 fillColor: '#17324D',
-                                margin: [12, 8, 12, 8]
+                                stack: [logoCell]
+                            },
+                            {
+                                border: [false, false, false, false],
+                                fillColor: '#17324D',
+                                margin: [0, 10, 0, 10],
+                                stack: [
+                                    {
+                                        text: 'REPORTE DE ALMACENES',
+                                        fontSize: 16,
+                                        bold: true,
+                                        color: '#FFFFFF'
+                                    },
+                                    {
+                                        text:
+                                            'Configuración, disponibilidad y ubicación de almacenes',
+                                        fontSize: 7.5,
+                                        color: '#D8E5F0',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            },
+                            {
+                                border: [false, false, false, false],
+                                fillColor: '#17324D',
+                                margin: [0, 10, 12, 10],
+                                stack: [
+                                    {
+                                        text: 'REPORTE EJECUTIVO',
+                                        fontSize: 6.5,
+                                        bold: true,
+                                        color: '#72E2E5',
+                                        alignment: 'right'
+                                    },
+                                    {
+                                        text: fechaReporte,
+                                        fontSize: 9,
+                                        bold: true,
+                                        color: '#FFFFFF',
+                                        alignment: 'right',
+                                        margin: [0, 3, 0, 0]
+                                    },
+                                    {
+                                        text:
+                                            rows.length +
+                                            ' registro(s) filtrado(s)',
+                                        fontSize: 6.5,
+                                        color: '#D8E5F0',
+                                        alignment: 'right',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
                             }
                         ]]
                     },
-                    layout: 'noBorders',
+                    layout: {
+                        hLineWidth: function() { return 0; },
+                        vLineWidth: function() { return 0; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+                {
+                    table: {
+                        widths: ['*'],
+                        body: [[{
+                            text:
+                                'Filtros aplicados: Estado: ' +
+                                almacenFiltroEstadoTexto() +
+                                '   |   Búsqueda: ' +
+                                busqueda,
+                            fontSize: 6.8,
+                            color: '#52627A',
+                            margin: [10, 7, 10, 7],
+                            fillColor: '#F7F9FC'
+                        }]]
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; },
+                        hLineWidth: function() { return 0.6; },
+                        vLineWidth: function() { return 0.6; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+                {
+                    table: {
+                        widths: ['*', '*', '*', '*'],
+                        body: [[
+                            {
+                                fillColor: '#F7F9FC',
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    { text: 'REGISTROS', fontSize: 6.3, bold: true, color: '#6B778C' },
+                                    { text: String(rows.length), fontSize: 13, bold: true, color: '#172B4D' }
+                                ]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    { text: 'ACTIVOS', fontSize: 6.3, bold: true, color: '#6B778C' },
+                                    { text: String(totalActivos), fontSize: 13, bold: true, color: '#14804A' }
+                                ]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    { text: 'FACTURAN EN CERO', fontSize: 6.3, bold: true, color: '#6B778C' },
+                                    { text: String(totalFacturanCero), fontSize: 13, bold: true, color: '#0EA5A8' }
+                                ]
+                            },
+                            {
+                                fillColor: '#F7F9FC',
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    { text: 'EMPRESAS', fontSize: 6.3, bold: true, color: '#6B778C' },
+                                    { text: String(totalEmpresas), fontSize: 13, bold: true, color: '#6554C0' }
+                                ]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; },
+                        hLineWidth: function() { return 0.6; },
+                        vLineWidth: function() { return 0.6; }
+                    },
                     margin: [0, 0, 0, 12]
+                },
+                {
+                    text: 'VISTA DETALLE',
+                    fontSize: 7,
+                    bold: true,
+                    color: '#17324D',
+                    margin: [0, 1, 0, 7]
                 },
                 {
                     table: {
                         headerRows: 1,
-                        widths: [120, 115, 85, '*', 65],
+                        widths: [120, 115, 88, '*', 70],
                         body: body
                     },
                     layout: {
-                        hLineColor: function() { return '#DDE5ED'; },
-                        vLineColor: function() { return '#DDE5ED'; },
-                        paddingLeft: function() { return 6; },
-                        paddingRight: function() { return 6; },
+                        hLineColor: function() { return '#DDE3EA'; },
+                        vLineColor: function() { return '#DDE3EA'; },
+                        hLineWidth: function() { return 0.55; },
+                        vLineWidth: function() { return 0.55; },
+                        paddingLeft: function() { return 5; },
+                        paddingRight: function() { return 5; },
                         paddingTop: function() { return 6; },
                         paddingBottom: function() { return 6; }
                     }
                 }
             ],
 
-            footer: function(currentPage, pageCount) {
-                return {
-                    margin: [26, 8, 26, 0],
-                    columns: [
-                        { text: 'Reporte de Almacenes', fontSize: 8, color: '#6B778C' },
-                        { text: 'Página ' + currentPage + ' de ' + pageCount, alignment: 'right', fontSize: 8, color: '#6B778C' }
-                    ]
-                };
-            },
-
             styles: {
                 th: {
+                    fontSize: 6.2,
                     bold: true,
-                    fontSize: 8,
                     color: '#FFFFFF',
-                    fillColor: '#0EA5A8',
+                    fillColor: '#17324D',
                     alignment: 'center'
                 },
                 td: {
-                    fontSize: 8,
-                    color: '#172B4D'
+                    fontSize: 6.5,
+                    color: '#253858'
+                },
+                tdCenter: {
+                    fontSize: 6.5,
+                    color: '#253858',
+                    alignment: 'center'
                 }
             },
 
             defaultStyle: {
-                fontSize: 8
+                fontSize: 8,
+                color: '#253858'
             }
         };
 
-        pdfMake.createPdf(doc).getDataUrl(function(url) {
-            abrirModalPdfPublico(
-                url,
-                'Reporte de Almacenes',
-                'Reporte_Almacenes.pdf'
-            );
-        });
+        var pdf = pdfMake.createPdf(doc);
+
+        if (typeof pdf.getDataUrl === 'function') {
+            pdf.getDataUrl(function(url) {
+                abrirModalPdfPublico(
+                    url,
+                    'Reporte de Almacenes',
+                    'Reporte_Almacenes.pdf'
+                );
+            });
+            return;
+        }
+
+        if (typeof pdf.getBase64 === 'function') {
+            pdf.getBase64(function(base64) {
+                abrirModalPdfPublico(
+                    'data:application/pdf;base64,' + base64,
+                    'Reporte de Almacenes',
+                    'Reporte_Almacenes.pdf'
+                );
+            });
+            return;
+        }
+
+        almacenNotificar(
+            'error',
+            'PDF no disponible',
+            'La versión actual de pdfMake no permite una vista previa compatible.'
+        );
     });
 }
-
 /* =========================================================
    MODAL Y CATÁLOGOS EXISTENTES
    ========================================================= */

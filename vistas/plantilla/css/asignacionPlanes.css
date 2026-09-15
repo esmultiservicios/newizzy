@@ -361,12 +361,18 @@
     border: 1px solid #dbe3eb;
     border-radius: 10px;
     box-shadow: 0 3px 12px rgba(31, 47, 67, .055);
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        border-color .18s ease,
+        background-color .18s ease;
 }
 
 .asignacion-record-topline {
     height: 3px;
     border-radius: 10px 10px 0 0;
     background: #22cda0;
+    transition: background-color .18s ease;
 }
 
 .asignacion-record-grid {
@@ -1514,10 +1520,29 @@
     line-height: 1.25;
 }
 
-/* Las tarjetas conservan su interacción sin interferir con el portal flotante. */
-.asignacion-record-card:hover {
-    box-shadow: 0 10px 24px rgba(18, 52, 77, .09);
-    transition: box-shadow .18s ease;
+/* Vista Detalle: mismo movimiento premium usado en los módulos aprobados. */
+@media (hover: hover) and (pointer: fine) {
+    .asignacion-listado.vista-detalle .asignacion-record-card:hover {
+        transform: translateY(-3px);
+        border-color: #b9ded5;
+        background: #fcfffe;
+        box-shadow: 0 10px 22px rgba(23, 43, 77, .10);
+        z-index: 2;
+    }
+
+    .asignacion-listado.vista-detalle .asignacion-record-card:hover .asignacion-record-topline {
+        background: #20c997;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .asignacion-record-card {
+        transition: none;
+    }
+
+    .asignacion-listado.vista-detalle .asignacion-record-card:hover {
+        transform: none;
+    }
 }
 
 

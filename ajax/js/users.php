@@ -89,6 +89,20 @@ $(document).ready(function () {
     $('#btnExcelUsuarios').on('click', exportarUsuariosExcelPremium);
     $('#btnPdfUsuarios').on('click', previsualizarUsuariosPdfPremium);
 
+    /*
+     * Tanto al registrar como al editar, el cursor queda en el
+     * primer campo habilitado de la pestaña visible del modal.
+     */
+    $(document)
+        .off('shown.bs.modal.usuariosFocus', '#modal_registrar_usuarios')
+        .on(
+            'shown.bs.modal.usuariosFocus',
+            '#modal_registrar_usuarios',
+            function () {
+                setTimeout(enfocarPrimerCampoDisponibleUsuarios, 60);
+            }
+        );
+
     configurarToggleUsuarios(
         '#btnToggleFiltrosUsuarios',
         '#usuariosFiltrosContenido',
@@ -149,6 +163,137 @@ $(document).ready(function () {
     });
 });
 
+
+function enfocarPrimerCampoDisponibleUsuarios() {
+    var $modal = $('#modal_registrar_usuarios');
+
+    if (!$modal.length || !$modal.hasClass('show')) {
+        return;
+    }
+
+    var $form = $modal.find('#formUsers');
+
+    if (!$form.length) {
+        return;
+    }
+
+    var $scope = $form;
+    var $activePane = $form.find('.tab-pane.active:visible').first();
+
+    if ($activePane.length) {
+        $scope = $activePane;
+    }
+
+    var $campos = $scope
+        .find('input, select, textarea')
+        .filter(function () {
+            var $campo = $(this);
+            var tipo = String($campo.attr('type') || '').toLowerCase();
+
+            return (
+                !$campo.prop('disabled') &&
+                !$campo.prop('readonly') &&
+                tipo !== 'hidden' &&
+                $campo.attr('tabindex') !== '-1'
+            );
+        });
+
+    var enfocado = false;
+
+    $campos.each(function () {
+        if (enfocado) {
+            return false;
+        }
+
+        var $campo = $(this);
+
+        /*
+         * Bootstrap Select: el <select> original está oculto.
+         * Enfocamos únicamente su botón visible, sin abrir el menú.
+         */
+        if ($campo.is('select') && $campo.hasClass('selectpicker')) {
+            var $bootstrapSelect = $campo.closest('.bootstrap-select');
+            var $bootstrapToggle = $bootstrapSelect
+                .find('> .dropdown-toggle')
+                .filter(':visible')
+                .first();
+
+            if ($bootstrapToggle.length) {
+                $bootstrapToggle.trigger('focus');
+                enfocado = true;
+                return false;
+            }
+        }
+
+        /*
+         * Compatibilidad preventiva con Select2:
+         * si este formulario migra a Select2, el cursor seguirá
+         * cayendo sobre el primer selector visible disponible.
+         */
+        if ($campo.is('select') && $campo.next('.select2').length) {
+            var $select2Selection = $campo
+                .next('.select2')
+                .find('.select2-selection')
+                .filter(':visible')
+                .first();
+
+            if ($select2Selection.length) {
+                $select2Selection.attr('tabindex', '0').trigger('focus');
+                enfocado = true;
+                return false;
+            }
+        }
+
+        if ($campo.is(':visible')) {
+            $campo.trigger('focus');
+
+            if (
+                $campo.is(
+                    "input[type='text'], " +
+                    "input[type='email'], " +
+                    "input[type='number'], " +
+                    "input[type='search'], " +
+                    "input[type='tel'], " +
+                    "input[type='password'], " +
+                    "textarea"
+                )
+            ) {
+                try {
+                    var elemento = $campo.get(0);
+                    var longitud = String($campo.val() || '').length;
+
+                    if (
+                        elemento &&
+                        typeof elemento.setSelectionRange === 'function'
+                    ) {
+                        elemento.setSelectionRange(longitud, longitud);
+                    }
+                } catch (error) {
+                    // El enfoque ya fue aplicado; mover el cursor es secundario.
+                }
+            }
+
+            enfocado = true;
+            return false;
+        }
+    });
+
+    /*
+     * Si la pestaña activa no contiene un campo enfocable,
+     * se busca el primero disponible dentro de todo el formulario.
+     */
+    if (!enfocado && $activePane.length) {
+        $activePane.removeClass('usuarios-focus-scope-temp');
+
+        var $fallback = $form
+            .find('input:not([type="hidden"]):enabled:visible, textarea:enabled:visible')
+            .first();
+
+        if ($fallback.length) {
+            $fallback.trigger('focus');
+        }
+    }
+}
 
 function inicializarVistaUsuarios() {
     var vistaGuardada = 'detalle';

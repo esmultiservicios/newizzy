@@ -1,5 +1,4 @@
 <link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/inventario.css">
-
 <div class="container-fluid">
     <!-- Movimientos y Registro -->
     <div class="breadcrumb-container">
@@ -50,9 +49,9 @@
                             <i class="fas fa-tags mr-1"></i> Categoría
                         </label>
                         <select id="inventario_tipo_productos_id" name="inventario_tipo_productos_id"
-                                class="form-control selectpicker" data-live-search="true"
+                                class="form-control izzy-select2"
                                 data-toggle="tooltip" data-placement="top"
-                                title="Categoría de Productos" data-width="100%">
+                                title="Categoría de Productos" data-width="100%" data-placeholder="Categoría de Productos">
                         </select>
                     </div>
 
@@ -61,9 +60,9 @@
                             <i class="fas fa-warehouse mr-1"></i> Bodega
                         </label>
                         <select id="almacen" name="almacen"
-                                class="form-control selectpicker"
-                                data-live-search="true"
-                                title="Bodega" data-width="100%">
+                                class="form-control izzy-select2"
+                                title="Todas las bodegas" data-width="100%" data-placeholder="Todas las bodegas">
+                            <option value="0" selected>Todas las bodegas</option>
                         </select>
                     </div>
 
@@ -72,9 +71,8 @@
                             <i class="fas fa-box-open mr-1"></i> Producto
                         </label>
                         <select id="producto_movimiento_filtro" name="producto_movimiento_filtro"
-                                class="form-control selectpicker"
-                                data-live-search="true"
-                                title="Producto" data-width="100%">
+                                class="form-control izzy-select2"
+                                title="Producto" data-width="100%" data-placeholder="Producto">
                         </select>
                     </div>
 
@@ -83,9 +81,8 @@
                             <i class="fas fa-user mr-1"></i> Cliente
                         </label>
                         <select id="cliente_movimiento_filtro" name="cliente_movimiento_filtro"
-                                class="form-control selectpicker"
-                                data-live-search="true"
-                                title="Cliente" data-width="100%">
+                                class="form-control izzy-select2"
+                                title="Cliente" data-width="100%" data-placeholder="Cliente">
                         </select>
                     </div>
 

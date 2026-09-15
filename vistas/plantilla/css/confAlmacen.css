@@ -127,15 +127,11 @@
     background: #fff;
     box-shadow: 0 4px 12px rgba(23, 43, 77, .06);
     overflow: hidden;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        border-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .almacen-resumen-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 22px rgba(23, 43, 77, .11);
+    transform: translateY(-4px);
 }
 
 .almacen-resumen-card > div:first-child {
@@ -201,16 +197,11 @@
     background: #f7f9fc;
     color: #274f72;
     font-size: 18px;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        background-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .almacen-resumen-card:hover .almacen-resumen-icon {
-    transform: translateY(-1px) scale(1.05);
-    background: #fff;
-    box-shadow: 0 5px 12px rgba(31, 47, 67, .10);
+    transform: scale(1.05);
 }
 
 /* =========================================================
@@ -464,9 +455,7 @@
     border-radius: 9px;
     background: #eef6ff;
     color: #2479b8;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease;
+    transition: transform .18s ease;
 }
 
 .almacen-main-info strong,
@@ -593,10 +582,7 @@
     border-radius: 10px;
     background: #fff;
     box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        border-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .almacen-mini-topline {
@@ -626,9 +612,7 @@
     border-radius: 10px;
     background: #eef6ff;
     color: #2479b8;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease;
+    transition: transform .18s ease;
 }
 
 .almacen-mini-title {
@@ -717,20 +701,22 @@
     overflow: visible;
 }
 
-/* Movimiento sutil en Detalle y Miniatura. */
+/* Movimiento sutil en Detalle y Miniatura.
+   El hover conserva exactamente colores, bordes, fondo y sombra. */
 @media (hover: hover) and (pointer: fine) {
-    .almacen-listado.vista-detalle .almacen-detail-row:hover,
-    .almacen-mini-card:hover {
+    .almacen-listado.vista-detalle .almacen-detail-row:hover {
         transform: translateY(-3px);
-        border-color: #cfdbe7;
-        box-shadow: 0 10px 24px rgba(23, 50, 77, .12);
+        z-index: 2;
+    }
+
+    .almacen-mini-card:hover {
+        transform: translateY(-4px);
         z-index: 2;
     }
 
     .almacen-listado.vista-detalle .almacen-detail-row:hover .almacen-main-icon,
     .almacen-mini-card:hover .almacen-mini-icon {
-        transform: translateY(-1px) scale(1.04);
-        box-shadow: 0 6px 14px rgba(23, 50, 77, .10);
+        transform: scale(1.04);
     }
 }
 

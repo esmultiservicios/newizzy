@@ -318,16 +318,16 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-dismiss="modal">
-                    Cancelar
+                    <i class="fas fa-times mr-1"></i> Cancelar
                 </button>
                 <button class="btn btn-primary" type="submit" id="reg_ProgramaPuntos" form="formProgramaPuntos">
-                    Registrar
+                    <i class="fas fa-save mr-1"></i> Registrar
                 </button>
                 <button class="btn btn-warning" type="submit" style="display: none;" id="edi_ProgramaPuntos" form="formProgramaPuntos">
-                    Editar
+                    <i class="fas fa-edit mr-1"></i> Editar
                 </button>
                 <button class="btn btn-danger" type="submit" style="display: none;" id="delete_ProgramaPuntos" form="formProgramaPuntos">
-                    Eliminar
+                    <i class="fas fa-trash-alt mr-1"></i> Eliminar
                 </button>
             </div>
         </div>

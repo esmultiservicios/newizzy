@@ -317,127 +317,516 @@
 
 </div>
 
-<!-- Modal para configuraciones -->
-<div class="modal fade" id="modalConfiguraciones">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title">Configuraciones del Plan</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+<!-- Modal moderno: Configuraciones del Plan -->
+<div class="modal fade planes-aux-modal-root"
+     id="modalConfiguraciones"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content planes-aux-modal">
+            <div class="modal-header planes-aux-modal-header">
+                <div class="planes-aux-modal-heading">
+                    <span class="planes-aux-modal-icon" aria-hidden="true">
+                        <i class="fas fa-sliders-h"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title">Configuraciones del Plan</h5>
+                        <p>Revise y administre las cantidades configuradas para este plan.</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="close planes-aux-close"
+                        data-dismiss="modal"
+                        aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="modal-body">
-                <div class="table-responsive">
-                    <table id="tablaConfiguraciones" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead class="bg-light">
-                            <tr>
-                                <th width="5%">#</th>
-                                <th>Configuración</th>
-                                <th>Cantidad</th>
-                                <th width="15%">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+
+            <div class="modal-body planes-aux-modal-body">
+                <div class="planes-aux-toolbar">
+                    <div class="planes-aux-actions">
+                        <button type="button"
+                                class="btn btn-success"
+                                data-planes-aux-excel="configuraciones">
+                            <i class="fas fa-file-excel mr-1"></i> Excel
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                data-planes-aux-pdf="configuraciones">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
+                    </div>
+
+                    <div class="planes-aux-tools">
+                        <div class="planes-aux-page-size">
+                            <label for="planesConfiguracionesPageSize">Mostrar</label>
+                            <select id="planesConfiguracionesPageSize"
+                                    class="form-control form-control-sm"
+                                    data-planes-aux-page-size="configuraciones"></select>
+                            <span>registros</span>
+                        </div>
+
+                        <div class="planes-aux-view-switch" role="group" aria-label="Tipo de vista">
+                            <button type="button"
+                                    class="planes-aux-view-btn active"
+                                    data-planes-aux-view="configuraciones"
+                                    data-view="detalle"
+                                    aria-pressed="true">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Detalle</span>
+                            </button>
+
+                            <button type="button"
+                                    class="planes-aux-view-btn"
+                                    data-planes-aux-view="configuraciones"
+                                    data-view="miniatura"
+                                    aria-pressed="false">
+                                <i class="fas fa-th-large"></i>
+                                <span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="planes-aux-search">
+                            <div class="planes-aux-search-wrap">
+                                <span class="planes-aux-search-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+
+                                <input type="search"
+                                       class="form-control"
+                                       data-planes-aux-search="configuraciones"
+                                       placeholder="Buscar..."
+                                       autocomplete="off">
+
+                                <button type="button"
+                                        class="planes-aux-search-clear"
+                                        data-planes-aux-clear="configuraciones"
+                                        aria-label="Limpiar búsqueda"
+                                        title="Limpiar búsqueda"
+                                        style="display:none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planesAuxListado_configuraciones"
+                     class="planes-aux-list vista-detalle"
+                     data-kind="configuraciones"></div>
+
+                <div id="planesAuxVacio_configuraciones"
+                     class="planes-aux-empty"
+                     style="display:none;">
+                    <i class="fas fa-inbox"></i>
+                    <div>
+                        <strong>Sin resultados</strong>
+                        <small>No hay registros que coincidan con la búsqueda actual.</small>
+                    </div>
+                </div>
+
+                <div class="planes-aux-footer">
+                    <div id="planesAuxInfo_configuraciones" class="planes-aux-info">0 registros</div>
+                    <nav id="planesAuxPaginacion_configuraciones"
+                         class="planes-aux-pagination"
+                         aria-label="Paginación"></nav>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+
+            <div class="modal-footer planes-aux-modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para Asignar Menús Principales -->
-<div class="modal fade" id="modalAsignarMenus">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Asignar Menús Principales</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+<!-- Modal moderno: Menús Principales -->
+<div class="modal fade planes-aux-modal-root"
+     id="modalAsignarMenus"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content planes-aux-modal">
+            <div class="modal-header planes-aux-modal-header">
+                <div class="planes-aux-modal-heading">
+                    <span class="planes-aux-modal-icon" aria-hidden="true">
+                        <i class="fas fa-sitemap"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title">Asignar Menús Principales</h5>
+                        <p>Administre los menús principales habilitados para este plan.</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="close planes-aux-close"
+                        data-dismiss="modal"
+                        aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="modal-body">
+
+            <div class="modal-body planes-aux-modal-body">
                 <input type="hidden" id="plan_id_menus" value="">
-                <div class="table-responsive">
-                    <table id="tablaMenus" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th width="5%">#</th>
-                                <th>Nombre del Menú</th>
-                                <th width="15%">Estado</th>
-                                <th width="15%">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyMenus"></tbody>
-                    </table>
+                <div class="planes-aux-toolbar">
+                    <div class="planes-aux-actions">
+                        <button type="button"
+                                class="btn btn-success"
+                                data-planes-aux-excel="menus">
+                            <i class="fas fa-file-excel mr-1"></i> Excel
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                data-planes-aux-pdf="menus">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
+                    </div>
+
+                    <div class="planes-aux-tools">
+                        <div class="planes-aux-page-size">
+                            <label for="planesMenusPageSize">Mostrar</label>
+                            <select id="planesMenusPageSize"
+                                    class="form-control form-control-sm"
+                                    data-planes-aux-page-size="menus"></select>
+                            <span>registros</span>
+                        </div>
+
+                        <div class="planes-aux-view-switch" role="group" aria-label="Tipo de vista">
+                            <button type="button"
+                                    class="planes-aux-view-btn active"
+                                    data-planes-aux-view="menus"
+                                    data-view="detalle"
+                                    aria-pressed="true">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Detalle</span>
+                            </button>
+
+                            <button type="button"
+                                    class="planes-aux-view-btn"
+                                    data-planes-aux-view="menus"
+                                    data-view="miniatura"
+                                    aria-pressed="false">
+                                <i class="fas fa-th-large"></i>
+                                <span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="planes-aux-search">
+                            <div class="planes-aux-search-wrap">
+                                <span class="planes-aux-search-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+
+                                <input type="search"
+                                       class="form-control"
+                                       data-planes-aux-search="menus"
+                                       placeholder="Buscar..."
+                                       autocomplete="off">
+
+                                <button type="button"
+                                        class="planes-aux-search-clear"
+                                        data-planes-aux-clear="menus"
+                                        aria-label="Limpiar búsqueda"
+                                        title="Limpiar búsqueda"
+                                        style="display:none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planesAuxListado_menus"
+                     class="planes-aux-list vista-detalle"
+                     data-kind="menus"></div>
+
+                <div id="planesAuxVacio_menus"
+                     class="planes-aux-empty"
+                     style="display:none;">
+                    <i class="fas fa-inbox"></i>
+                    <div>
+                        <strong>Sin resultados</strong>
+                        <small>No hay registros que coincidan con la búsqueda actual.</small>
+                    </div>
+                </div>
+
+                <div class="planes-aux-footer">
+                    <div id="planesAuxInfo_menus" class="planes-aux-info">0 registros</div>
+                    <nav id="planesAuxPaginacion_menus"
+                         class="planes-aux-pagination"
+                         aria-label="Paginación"></nav>
                 </div>
             </div>
-            <div class="modal-footer">
 
+            <div class="modal-footer planes-aux-modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para Asignar Submenús Nivel 1 -->
-<div class="modal fade" id="modalAsignarSubmenus">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Asignar Submenús Nivel 1</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+<!-- Modal moderno: Submenús Nivel 1 -->
+<div class="modal fade planes-aux-modal-root"
+     id="modalAsignarSubmenus"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content planes-aux-modal">
+            <div class="modal-header planes-aux-modal-header">
+                <div class="planes-aux-modal-heading">
+                    <span class="planes-aux-modal-icon" aria-hidden="true">
+                        <i class="fas fa-stream"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title">Asignar Submenús Nivel 1</h5>
+                        <p>Administre los submenús de primer nivel habilitados para este plan.</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="close planes-aux-close"
+                        data-dismiss="modal"
+                        aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="modal-body">
+
+            <div class="modal-body planes-aux-modal-body">
                 <input type="hidden" id="plan_id_submenus" value="">
-                <div class="table-responsive">
-                    <table id="tablaSubmenus" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th width="5%">#</th>
-                                <th>Menú Padre</th>
-                                <th>Nombre del Submenú</th>
-                                <th width="15%">Estado</th>
-                                <th width="15%">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodySubmenus"></tbody>
-                    </table>
+                <div class="planes-aux-toolbar">
+                    <div class="planes-aux-actions">
+                        <button type="button"
+                                class="btn btn-success"
+                                data-planes-aux-excel="submenus">
+                            <i class="fas fa-file-excel mr-1"></i> Excel
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                data-planes-aux-pdf="submenus">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
+                    </div>
+
+                    <div class="planes-aux-tools">
+                        <div class="planes-aux-page-size">
+                            <label for="planesSubmenusPageSize">Mostrar</label>
+                            <select id="planesSubmenusPageSize"
+                                    class="form-control form-control-sm"
+                                    data-planes-aux-page-size="submenus"></select>
+                            <span>registros</span>
+                        </div>
+
+                        <div class="planes-aux-view-switch" role="group" aria-label="Tipo de vista">
+                            <button type="button"
+                                    class="planes-aux-view-btn active"
+                                    data-planes-aux-view="submenus"
+                                    data-view="detalle"
+                                    aria-pressed="true">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Detalle</span>
+                            </button>
+
+                            <button type="button"
+                                    class="planes-aux-view-btn"
+                                    data-planes-aux-view="submenus"
+                                    data-view="miniatura"
+                                    aria-pressed="false">
+                                <i class="fas fa-th-large"></i>
+                                <span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="planes-aux-search">
+                            <div class="planes-aux-search-wrap">
+                                <span class="planes-aux-search-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+
+                                <input type="search"
+                                       class="form-control"
+                                       data-planes-aux-search="submenus"
+                                       placeholder="Buscar..."
+                                       autocomplete="off">
+
+                                <button type="button"
+                                        class="planes-aux-search-clear"
+                                        data-planes-aux-clear="submenus"
+                                        aria-label="Limpiar búsqueda"
+                                        title="Limpiar búsqueda"
+                                        style="display:none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planesAuxListado_submenus"
+                     class="planes-aux-list vista-detalle"
+                     data-kind="submenus"></div>
+
+                <div id="planesAuxVacio_submenus"
+                     class="planes-aux-empty"
+                     style="display:none;">
+                    <i class="fas fa-inbox"></i>
+                    <div>
+                        <strong>Sin resultados</strong>
+                        <small>No hay registros que coincidan con la búsqueda actual.</small>
+                    </div>
+                </div>
+
+                <div class="planes-aux-footer">
+                    <div id="planesAuxInfo_submenus" class="planes-aux-info">0 registros</div>
+                    <nav id="planesAuxPaginacion_submenus"
+                         class="planes-aux-pagination"
+                         aria-label="Paginación"></nav>
                 </div>
             </div>
-            <div class="modal-footer">
 
+            <div class="modal-footer planes-aux-modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para Asignar Submenús Nivel 2 -->
-<div class="modal fade" id="modalAsignarSubmenus2">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">Asignar Submenús Nivel 2</h5>
-                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+<!-- Modal moderno: Submenús Nivel 2 -->
+<div class="modal fade planes-aux-modal-root"
+     id="modalAsignarSubmenus2"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content planes-aux-modal">
+            <div class="modal-header planes-aux-modal-header">
+                <div class="planes-aux-modal-heading">
+                    <span class="planes-aux-modal-icon" aria-hidden="true">
+                        <i class="fas fa-project-diagram"></i>
+                    </span>
+                    <div>
+                        <h5 class="modal-title">Asignar Submenús Nivel 2</h5>
+                        <p>Administre los accesos de segundo nivel habilitados para este plan.</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="close planes-aux-close"
+                        data-dismiss="modal"
+                        aria-label="Cerrar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-            <div class="modal-body">
+
+            <div class="modal-body planes-aux-modal-body">
                 <input type="hidden" id="plan_id_submenus2" value="">
-                <div class="table-responsive">
-                    <table id="tablaSubmenus2" class="table table-header-gradient table-striped table-condensed table-hover" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th width="5%">#</th>
-                                <th>Nombre del Submenú</th>
-                                <th>Menú Padre</th>                                
-                                <th>Submenú Nivel 1</th>                                
-                                <th width="15%">Estado</th>
-                                <th width="15%">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodySubmenus2"></tbody>
-                    </table>
+                <div class="planes-aux-toolbar">
+                    <div class="planes-aux-actions">
+                        <button type="button"
+                                class="btn btn-success"
+                                data-planes-aux-excel="submenus2">
+                            <i class="fas fa-file-excel mr-1"></i> Excel
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                data-planes-aux-pdf="submenus2">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
+                    </div>
+
+                    <div class="planes-aux-tools">
+                        <div class="planes-aux-page-size">
+                            <label for="planesSubmenus2PageSize">Mostrar</label>
+                            <select id="planesSubmenus2PageSize"
+                                    class="form-control form-control-sm"
+                                    data-planes-aux-page-size="submenus2"></select>
+                            <span>registros</span>
+                        </div>
+
+                        <div class="planes-aux-view-switch" role="group" aria-label="Tipo de vista">
+                            <button type="button"
+                                    class="planes-aux-view-btn active"
+                                    data-planes-aux-view="submenus2"
+                                    data-view="detalle"
+                                    aria-pressed="true">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Detalle</span>
+                            </button>
+
+                            <button type="button"
+                                    class="planes-aux-view-btn"
+                                    data-planes-aux-view="submenus2"
+                                    data-view="miniatura"
+                                    aria-pressed="false">
+                                <i class="fas fa-th-large"></i>
+                                <span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="planes-aux-search">
+                            <div class="planes-aux-search-wrap">
+                                <span class="planes-aux-search-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+
+                                <input type="search"
+                                       class="form-control"
+                                       data-planes-aux-search="submenus2"
+                                       placeholder="Buscar..."
+                                       autocomplete="off">
+
+                                <button type="button"
+                                        class="planes-aux-search-clear"
+                                        data-planes-aux-clear="submenus2"
+                                        aria-label="Limpiar búsqueda"
+                                        title="Limpiar búsqueda"
+                                        style="display:none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="planesAuxListado_submenus2"
+                     class="planes-aux-list vista-detalle"
+                     data-kind="submenus2"></div>
+
+                <div id="planesAuxVacio_submenus2"
+                     class="planes-aux-empty"
+                     style="display:none;">
+                    <i class="fas fa-inbox"></i>
+                    <div>
+                        <strong>Sin resultados</strong>
+                        <small>No hay registros que coincidan con la búsqueda actual.</small>
+                    </div>
+                </div>
+
+                <div class="planes-aux-footer">
+                    <div id="planesAuxInfo_submenus2" class="planes-aux-info">0 registros</div>
+                    <nav id="planesAuxPaginacion_submenus2"
+                         class="planes-aux-pagination"
+                         aria-label="Paginación"></nav>
                 </div>
             </div>
-            <div class="modal-footer">
 
+            <div class="modal-footer planes-aux-modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i> Cerrar
+                </button>
             </div>
         </div>
     </div>

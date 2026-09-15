@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/nota_credito.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturas.css">
 <body id="view_bill">
     <div class="container-fluid">
         <div class="card mb-4">

@@ -319,10 +319,6 @@ function historialRender() {
 
     historialRenderPaginacion(pages);
 
-    if (typeof getPermisosTipoUsuarioAccesosTable === 'function' &&
-        typeof getPrivilegioTipoUsuario === 'function') {
-        getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());
-    }
 }
 
 var listar_historial_accesos = function() {
@@ -594,16 +590,37 @@ function historialObtenerLogoPdf(callback) {
         return;
     }
 
+    var terminado = false;
+    var finalizar = function(valor) {
+        if (terminado) {
+            return;
+        }
+
+        terminado = true;
+        callback(valor || null);
+    };
+
+    /*
+     * El logo es decorativo: nunca debe bloquear la generación del PDF.
+     * Antes podía esperar hasta 15 segundos y la carga de la imagen no tenía
+     * timeout propio.
+     */
+    var timeoutLogo = setTimeout(function() {
+        finalizar(null);
+    }, 2500);
+
     $.ajax({
         type: 'GET',
         url: '<?php echo SERVERURL;?>core/get_image.php',
         dataType: 'text',
-        timeout: 15000
+        timeout: 2200,
+        cache: true
     }).done(function(url) {
         url = $.trim(url || '');
 
         if (!url) {
-            callback(null);
+            clearTimeout(timeoutLogo);
+            finalizar(null);
             return;
         }
 
@@ -611,26 +628,101 @@ function historialObtenerLogoPdf(callback) {
         img.crossOrigin = 'Anonymous';
 
         img.onload = function() {
+            clearTimeout(timeoutLogo);
+
             try {
                 var canvas = document.createElement('canvas');
                 canvas.width = img.naturalWidth || img.width;
                 canvas.height = img.naturalHeight || img.height;
                 canvas.getContext('2d').drawImage(img, 0, 0);
 
-                imagen = canvas.toDataURL('image/png');
-                callback(imagen);
+                var logoData = canvas.toDataURL('image/png');
+
+                if (typeof imagen !== 'undefined') {
+                    imagen = logoData;
+                }
+
+                finalizar(logoData);
             } catch (e) {
-                callback(null);
+                finalizar(null);
             }
         };
 
         img.onerror = function() {
-            callback(null);
+            clearTimeout(timeoutLogo);
+            finalizar(null);
         };
 
         img.src = url;
     }).fail(function() {
-        callback(null);
+        clearTimeout(timeoutLogo);
+        finalizar(null);
+    });
+}
+
+var historialPdfObjectUrlActual = null;
+
+function historialLiberarPdfObjectUrl() {
+    if (historialPdfObjectUrlActual) {
+        try {
+            URL.revokeObjectURL(historialPdfObjectUrlActual);
+        } catch (e) {}
+
+        historialPdfObjectUrlActual = null;
+    }
+}
+
+function historialDataUrlABlobUrl(dataUrl) {
+    /*
+     * pdfMake ya terminó cuando recibimos el Data URL.
+     * Para PDFs grandes NO enviamos ese Data URL directamente al iframe:
+     * Edge/Chrome puede abrir el modal y dejar el visor en blanco.
+     *
+     * fetch(data:) convierte el Data URL en Blob sin usar getBlob() de pdfMake
+     * y entrega al visor una blob: URL nativa.
+     */
+    if (typeof fetch === 'function') {
+        return fetch(dataUrl)
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('No se pudo preparar el PDF para el visor.');
+                }
+
+                return response.blob();
+            })
+            .then(function(blob) {
+                historialLiberarPdfObjectUrl();
+
+                historialPdfObjectUrlActual = URL.createObjectURL(blob);
+                return historialPdfObjectUrlActual;
+            });
+    }
+
+    return new Promise(function(resolve, reject) {
+        try {
+            var partes = String(dataUrl || '').split(',');
+
+            if (partes.length < 2) {
+                throw new Error('Data URL PDF inválido.');
+            }
+
+            var binario = atob(partes.slice(1).join(','));
+            var bytes = new Uint8Array(binario.length);
+
+            for (var i = 0; i < binario.length; i++) {
+                bytes[i] = binario.charCodeAt(i);
+            }
+
+            historialLiberarPdfObjectUrl();
+
+            historialPdfObjectUrlActual = URL.createObjectURL(
+                new Blob([bytes], { type: 'application/pdf' })
+            );
+
+            resolve(historialPdfObjectUrlActual);
+        } catch (error) {
+            reject(error);
+        }
     });
 }
 
@@ -647,6 +739,19 @@ function historialGenerarPdf() {
         return;
     }
 
+    if (typeof mostrarCargaPdfPublico === 'function') {
+        mostrarCargaPdfPublico(
+            'PDF',
+            'Procesando ' + rows.length + ' registro(s). Esto puede tardar unos segundos...'
+        );
+    }
+
+    /*
+     * La generación vuelve a ejecutarse de forma directa.
+     * NO abrimos el modal del visor antes de tiempo y NO añadimos waits.
+     * historialObtenerLogoPdf ya es asíncrono, así que el navegador puede
+     * pintar el indicador mientras se obtiene el logo.
+     */
     historialObtenerLogoPdf(function(logo) {
         var body = [[
             { text: 'FECHA', style: 'th' },
@@ -700,6 +805,7 @@ function historialGenerarPdf() {
             pageSize: 'LETTER',
             pageOrientation: 'landscape',
             pageMargins: [28, 28, 28, 34],
+            compress: true,
 
             header: function() {
                 return {
@@ -772,8 +878,7 @@ function historialGenerarPdf() {
                     table: {
                         headerRows: 1,
                         widths: [115, 175, 105, '*'],
-                        body: body,
-                        dontBreakRows: true
+                        body: body
                     },
                     layout: {
                         hLineWidth: function() { return 0.6; },
@@ -808,13 +913,119 @@ function historialGenerarPdf() {
             }
         };
 
-        pdfMake.createPdf(doc).getDataUrl(function(url) {
-            abrirModalPdfPublico(
-                url,
-                'Historial de Accesos',
-                'Reporte_Historial_Accesos.pdf'
+        try {
+            var pdfHistorial = pdfMake.createPdf(doc);
+            var nombrePdf = 'Reporte_Historial_Accesos.pdf';
+
+            if (pdfHistorial && typeof pdfHistorial.getDataUrl === 'function') {
+                pdfHistorial.getDataUrl(function(dataUrl) {
+                    /*
+                     * PRUEBA YA AISLADA:
+                     * llegar aquí = pdfMake terminó correctamente.
+                     * El problema observado era el Data URL grande dentro
+                     * del iframe. Lo convertimos a blob: URL antes de abrir.
+                     */
+                    if (typeof actualizarCargaPdfPublico === 'function') {
+                        actualizarCargaPdfPublico(
+                            'Abriendo vista previa...',
+                            'PDF generado. Preparando el visor...'
+                        );
+                    }
+
+                    historialDataUrlABlobUrl(dataUrl)
+                        .then(function(urlVisor) {
+                            var $visorPdf = $('#visor_pdf_publico');
+                            var $modalPdf = $('#modal_pdf_publico');
+                            var loaderOculto = false;
+
+                            var ocultarLoader = function() {
+                                if (loaderOculto) {
+                                    return;
+                                }
+
+                                loaderOculto = true;
+
+                                if (typeof ocultarCargaPdfPublico === 'function') {
+                                    ocultarCargaPdfPublico();
+                                }
+                            };
+
+                            /*
+                             * Registramos load ANTES de asignar la URL mediante
+                             * abrirModalPdfPublico().
+                             */
+                            $visorPdf
+                                .off('load.historialPdf')
+                                .one('load.historialPdf', function() {
+                                    ocultarLoader();
+                                });
+
+                            /*
+                             * Liberar la blob URL solo cuando el modal cierre.
+                             * Nunca antes, porque el visor aún la necesita.
+                             */
+                            $modalPdf
+                                .off('hidden.bs.modal.historialPdfObjectUrl')
+                                .one('hidden.bs.modal.historialPdfObjectUrl', function() {
+                                    historialLiberarPdfObjectUrl();
+                                });
+
+                            abrirModalPdfPublico(
+                                urlVisor,
+                                'Historial de Accesos',
+                                nombrePdf
+                            );
+
+                            /*
+                             * El plugin PDF de algunos Edge/Chrome no siempre
+                             * dispara load. El PDF YA existe en este punto,
+                             * así que retiramos el overlay como respaldo para
+                             * no tapar el visor indefinidamente.
+                             */
+                            setTimeout(ocultarLoader, 1800);
+                        })
+                        .catch(function(error) {
+                            if (typeof ocultarCargaPdfPublico === 'function') {
+                                ocultarCargaPdfPublico();
+                            }
+
+                            console.error(
+                                'Error preparando el visor PDF del Historial de Accesos:',
+                                error
+                            );
+
+                            historialNotificar(
+                                'error',
+                                'Vista previa no disponible',
+                                'El PDF se generó, pero no se pudo preparar el visor.'
+                            );
+                        });
+                });
+                return;
+            }
+
+            if (typeof ocultarCargaPdfPublico === 'function') {
+                ocultarCargaPdfPublico();
+            }
+
+            historialNotificar(
+                'error',
+                'PDF no disponible',
+                'La versión actual de pdfMake no permite generar la vista previa.'
             );
-        });
+        } catch (error) {
+            if (typeof ocultarCargaPdfPublico === 'function') {
+                ocultarCargaPdfPublico();
+            }
+
+            console.error('Error generando PDF de Historial de Accesos:', error);
+
+            historialNotificar(
+                'error',
+                'Error',
+                'No se pudo generar el PDF del historial de accesos.'
+            );
+        }
     });
 }
 

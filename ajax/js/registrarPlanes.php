@@ -3,35 +3,17 @@
     "use strict";
 
     /* =========================================================
-        ESPERAR JQUERY + DATATABLES SIN DOCUMENT READY
+        ESPERAR JQUERY SIN DOCUMENT READY
+        Registrar Planes ya no depende de DataTables.
     ========================================================= */
     let intentosCargaPlanes = 0;
     const MAX_INTENTOS_CARGA_PLANES = 60;
 
     function dependenciasPlanesDisponibles() {
-        if (typeof window.jQuery === "undefined") {
-            return false;
-        }
-
-        const $ = window.jQuery;
-
-        if (typeof $.fn === "undefined") {
-            return false;
-        }
-
-        if (typeof $.fn.DataTable !== "function") {
-            return false;
-        }
-
-        if (typeof $.fn.dataTable === "undefined") {
-            return false;
-        }
-
-        if (typeof $.fn.dataTable.isDataTable !== "function") {
-            return false;
-        }
-
-        return true;
+        return (
+            typeof window.jQuery !== "undefined" &&
+            typeof window.jQuery.fn !== "undefined"
+        );
     }
 
     function esperarDependenciasPlanes() {
@@ -43,13 +25,13 @@
         intentosCargaPlanes++;
 
         if (intentosCargaPlanes >= MAX_INTENTOS_CARGA_PLANES) {
-            console.error("DataTables no está disponible. Revise que jquery.dataTables.min.js se cargue antes de este script.");
+            console.error("jQuery no está disponible para Administrar Planes.");
 
             if (typeof window.showNotify === "function") {
                 window.showNotify(
                     "error",
                     "Error",
-                    "No se pudo cargar DataTables. Revise la carga de librerías JS."
+                    "No se pudo iniciar el módulo Administrar Planes."
                 );
             }
 
@@ -105,8 +87,6 @@
         /* =========================================================
             VARIABLES DEL MÓDULO
         ========================================================= */
-        let dataTablePlanes = null; // Compatibilidad con modales auxiliares.
-
         const PLANES_STORAGE_VISTA = "izzy.registrarPlanes.tipo_vista";
         const PLANES_STORAGE_FILTROS = "izzy.registrarPlanes.filtros.visible";
         const PLANES_STORAGE_KPIS = "izzy.registrarPlanes.kpis.visible";
@@ -157,17 +137,45 @@
             }
         }
 
-        function refrescarSelectPicker() {
-            if (typeof $.fn.selectpicker === "function") {
-                $(".selectpicker").selectpicker("refresh");
+        function prepararSelect2Planes($select) {
+            if (!$select || !$select.length || !$select.is("select")) {
+                return;
+            }
+
+            if (typeof window.izzyInitSelect2 === "function") {
+                window.izzyInitSelect2($select);
+                return;
+            }
+
+            if (typeof $.fn.select2 === "function" && !$select.hasClass("select2-hidden-accessible")) {
+                $select.select2({
+                    width: "100%",
+                    minimumResultsForSearch: 0,
+                    placeholder: $select.attr("data-placeholder") || "Seleccione"
+                });
             }
         }
 
-        function inicializarSelectPicker() {
-            if (typeof $.fn.selectpicker === "function") {
-                $(".selectpicker").selectpicker();
-                $(".selectpicker").selectpicker("refresh");
+        function refrescarSelect2Planes($select) {
+            if (!$select || !$select.length || !$select.is("select")) {
+                return;
             }
+
+            if (typeof window.izzyRefreshSelect2 === "function") {
+                window.izzyRefreshSelect2($select);
+                return;
+            }
+
+            prepararSelect2Planes($select);
+            $select.trigger("change.select2");
+        }
+
+        function inicializarSelect2Planes() {
+            prepararSelect2Planes($("#filtroEstadoPlanes"));
+            prepararSelect2Planes($("#filtroConfiguracionPlanes"));
+            prepararSelect2Planes(
+                $("#configuraciones-container select[name='configuracion_clave[]']")
+            );
         }
 
         function bloquearBotonSubmit(texto) {
@@ -209,24 +217,49 @@
             CONFIGURACIONES DINÁMICAS
         ========================================================= */
         function agregarConfiguracion(conFoco = false, configuracion = null) {
-            let opcionesHTML = "";
+            let opcionesHTML = '<option value=""></option>';
 
             opcionesConfiguracion.forEach(function(opcion) {
-                const selected = configuracion && configuracion.clave === opcion.value ? "selected" : "";
-                opcionesHTML += '<option value="' + opcion.value + '" ' + selected + '>' + opcion.text + '</option>';
+                const selected =
+                    configuracion && configuracion.clave === opcion.value
+                        ? "selected"
+                        : "";
+
+                opcionesHTML +=
+                    '<option value="' + planesEscape(opcion.value) + '" ' + selected + '>' +
+                        planesEscape(opcion.text) +
+                    '</option>';
             });
 
-            const valor = configuracion && typeof configuracion.valor !== "undefined" ? configuracion.valor : "";
+            const valor =
+                configuracion && typeof configuracion.valor !== "undefined"
+                    ? configuracion.valor
+                    : "";
 
             const newItem = `
-                <div class="input-group mb-3 configuracion-item">
-                    <select class="form-control selectpicker mr-2" name="configuracion_clave[]" data-live-search="true" title="Seleccione una opción">
-                        ${opcionesHTML}
-                    </select>
-                    <input type="number" class="form-control mr-2" name="configuracion_valor[]" placeholder="Cantidad" min="0" value="${valor}">
-                    <div class="input-group-append">
-                        <button class="btn btn-danger remover-configuracion" type="button">
-                            <i class="fas fa-times fa-lg"></i> Quitar
+                <div class="configuracion-item planes-config-row">
+                    <div class="planes-config-select-wrap">
+                        <select class="form-control izzy-select2"
+                                name="configuracion_clave[]"
+                                data-placeholder="Seleccione una opción"
+                                title="Seleccione una opción">
+                            ${opcionesHTML}
+                        </select>
+                    </div>
+
+                    <div class="planes-config-value-wrap">
+                        <input type="number"
+                               class="form-control"
+                               name="configuracion_valor[]"
+                               placeholder="Cantidad"
+                               min="0"
+                               value="${planesEscape(valor)}">
+                    </div>
+
+                    <div class="planes-config-action-wrap">
+                        <button class="btn btn-danger remover-configuracion"
+                                type="button">
+                            <i class="fas fa-times mr-1"></i> Quitar
                         </button>
                     </div>
                 </div>
@@ -234,14 +267,22 @@
 
             $("#configuraciones-container").append(newItem);
 
-            refrescarSelectPicker();
+            const $ultimoSelect =
+                $("#configuraciones-container .configuracion-item:last-child select[name='configuracion_clave[]']");
 
-            if (conFoco) {
-                const $ultimoSelect = $("#configuraciones-container .configuracion-item:last-child select[name='configuracion_clave[]']");
+            prepararSelect2Planes($ultimoSelect);
 
-                if ($ultimoSelect.length > 0 && typeof $.fn.selectpicker === "function") {
-                    $ultimoSelect.selectpicker("focus");
-                }
+            if (conFoco && $ultimoSelect.length) {
+                setTimeout(function() {
+                    if (
+                        typeof $.fn.select2 === "function" &&
+                        $ultimoSelect.hasClass("select2-hidden-accessible")
+                    ) {
+                        $ultimoSelect.select2("open");
+                    } else {
+                        $ultimoSelect.trigger("focus");
+                    }
+                }, 50);
             }
         }
 
@@ -1731,72 +1772,1636 @@
         }
 
         /* =========================================================
-            LISTAR CONFIGURACIONES DEL PLAN
+            MODALES AUXILIARES | DIVs / DETALLE / MINIATURA
+            Configuraciones, Menús, Submenús Nivel 1 y Nivel 2.
         ========================================================= */
-        function listar_configuraciones(plan_id, configuraciones) {
-            if ($.fn.dataTable.isDataTable("#tablaConfiguraciones")) {
-                $("#tablaConfiguraciones").DataTable().clear().destroy();
+        const PLANES_AUX_STORAGE_PREFIX = "izzy.registrarPlanes.modal.";
+        const planesAuxStates = {};
+
+        const planesAuxMeta = {
+            configuraciones: {
+                modal: "#modalConfiguraciones",
+                listado: "#planesAuxListado_configuraciones",
+                vacio: "#planesAuxVacio_configuraciones",
+                info: "#planesAuxInfo_configuraciones",
+                paginacion: "#planesAuxPaginacion_configuraciones",
+                search: '[data-planes-aux-search="configuraciones"]',
+                pageSize: '[data-planes-aux-page-size="configuraciones"]',
+                title: "Configuraciones del Plan",
+                file: "Configuraciones_Plan",
+                headers: ["CONFIGURACIÓN", "CANTIDAD"],
+                values: function(row) {
+                    return [row.config, row.valor];
+                }
+            },
+            menus: {
+                modal: "#modalAsignarMenus",
+                listado: "#planesAuxListado_menus",
+                vacio: "#planesAuxVacio_menus",
+                info: "#planesAuxInfo_menus",
+                paginacion: "#planesAuxPaginacion_menus",
+                search: '[data-planes-aux-search="menus"]',
+                pageSize: '[data-planes-aux-page-size="menus"]',
+                title: "Menús Principales",
+                file: "Menus_Plan",
+                headers: ["MENÚ", "ESTADO"],
+                values: function(row) {
+                    return [
+                        row.name,
+                        planesAuxEsAsignado(row.asignado) ? "Asignado" : "No asignado"
+                    ];
+                }
+            },
+            submenus: {
+                modal: "#modalAsignarSubmenus",
+                listado: "#planesAuxListado_submenus",
+                vacio: "#planesAuxVacio_submenus",
+                info: "#planesAuxInfo_submenus",
+                paginacion: "#planesAuxPaginacion_submenus",
+                search: '[data-planes-aux-search="submenus"]',
+                pageSize: '[data-planes-aux-page-size="submenus"]',
+                title: "Submenús Nivel 1",
+                file: "Submenus_Nivel_1_Plan",
+                headers: ["MENÚ PADRE", "SUBMENÚ", "ESTADO"],
+                values: function(row) {
+                    return [
+                        row.menu_name,
+                        row.name,
+                        planesAuxEsAsignado(row.asignado) ? "Asignado" : "No asignado"
+                    ];
+                }
+            },
+            submenus2: {
+                modal: "#modalAsignarSubmenus2",
+                listado: "#planesAuxListado_submenus2",
+                vacio: "#planesAuxVacio_submenus2",
+                info: "#planesAuxInfo_submenus2",
+                paginacion: "#planesAuxPaginacion_submenus2",
+                search: '[data-planes-aux-search="submenus2"]',
+                pageSize: '[data-planes-aux-page-size="submenus2"]',
+                title: "Submenús Nivel 2",
+                file: "Submenus_Nivel_2_Plan",
+                headers: ["NOMBRE DEL SUBMENÚ", "MENÚ PADRE", "SUBMENÚ NIVEL 1", "ESTADO"],
+                values: function(row) {
+                    return [
+                        row.name,
+                        row.menu_name,
+                        row.submenu_name,
+                        planesAuxEsAsignado(row.asignado) ? "Asignado" : "No asignado"
+                    ];
+                }
+            }
+        };
+
+        function planesAuxEsAsignado(valor) {
+            return (
+                valor === true ||
+                valor === 1 ||
+                valor === "1" ||
+                valor === "true"
+            );
+        }
+
+        function planesAuxEstado(tipo) {
+            if (planesAuxStates[tipo]) {
+                return planesAuxStates[tipo];
             }
 
-            let dataSet = [];
+            let preferida = "detalle";
 
-            if (configuraciones && typeof configuraciones === "object" && Object.keys(configuraciones).length > 0) {
-                let index = 1;
+            try {
+                preferida =
+                    localStorage.getItem(
+                        PLANES_AUX_STORAGE_PREFIX + tipo + ".vista"
+                    ) === "miniatura"
+                        ? "miniatura"
+                        : "detalle";
+            } catch (e) {
+                preferida = "detalle";
+            }
 
-                for (const [clave, valor] of Object.entries(configuraciones)) {
-                    const opcion = opcionesConfiguracion.find(function(op) {
-                        return op.value === clave;
-                    });
+            planesAuxStates[tipo] = {
+                rows: [],
+                filtered: [],
+                pagina: 1,
+                porPagina: planesEsMovil() ? 6 : 10,
+                porPaginaDetalle: 10,
+                porPaginaMiniatura: 6,
+                vistaPreferida: preferida,
+                vista: planesEsMovil() ? "miniatura" : preferida,
+                busqueda: "",
+                planId: "",
+                planNombre: "Plan"
+            };
 
-                    const texto = opcion ? opcion.text : clave;
+            return planesAuxStates[tipo];
+        }
 
-                    dataSet.push({
-                        id: index,
-                        clave: clave,
-                        config: texto,
-                        valor: valor,
-                        acciones: `
-                            <button class="btn btn-sm btn-danger btn-eliminar-config"
-                                    data-clave="${clave}"
-                                    data-plan-id="${plan_id}">
-                                <i class="fas fa-times fa-lg"></i> Quitar
-                            </button>
-                        `
-                    });
+        function planesAuxTextoFila(tipo, row) {
+            if (tipo === "configuraciones") {
+                return [row.config, row.valor].join(" ");
+            }
 
-                    index++;
-                }
+            if (tipo === "menus") {
+                return [
+                    row.name,
+                    planesAuxEsAsignado(row.asignado)
+                        ? "asignado"
+                        : "no asignado"
+                ].join(" ");
+            }
+
+            if (tipo === "submenus") {
+                return [
+                    row.menu_name,
+                    row.name,
+                    planesAuxEsAsignado(row.asignado)
+                        ? "asignado"
+                        : "no asignado"
+                ].join(" ");
+            }
+
+            return [
+                row.name,
+                row.menu_name,
+                row.submenu_name,
+                planesAuxEsAsignado(row.asignado)
+                    ? "asignado"
+                    : "no asignado"
+            ].join(" ");
+        }
+
+        function planesAuxBadge(asignado) {
+            const activo = planesAuxEsAsignado(asignado);
+
+            return (
+                '<span class="planes-aux-status ' +
+                    (activo ? "is-assigned" : "is-pending") +
+                '">' +
+                    '<i class="fas ' +
+                        (activo ? "fa-check-circle" : "fa-minus-circle") +
+                    '"></i>' +
+                    (activo ? "Asignado" : "No asignado") +
+                '</span>'
+            );
+        }
+
+        function planesAuxBotonAccion(tipo, row) {
+            if (tipo === "configuraciones") {
+                return (
+                    '<button type="button" ' +
+                        'class="btn btn-danger planes-aux-action-btn btn-eliminar-config" ' +
+                        'data-clave="' + planesEscape(row.clave) + '" ' +
+                        'data-plan-id="' + planesEscape(row.plan_id) + '">' +
+                        '<i class="fas fa-times"></i>' +
+                        '<span>Quitar</span>' +
+                    '</button>'
+                );
+            }
+
+            const asignado = planesAuxEsAsignado(row.asignado);
+            let clase = "";
+            let atributo = "";
+            let id = "";
+
+            if (tipo === "menus") {
+                clase = "btn-toggle-menu";
+                atributo = "data-menu-id";
+                id = row.menu_id;
+            } else if (tipo === "submenus") {
+                clase = "btn-toggle-submenu";
+                atributo = "data-submenu-id";
+                id = row.submenu_id;
             } else {
-                dataSet.push({
-                    id: 1,
-                    clave: "",
-                    config: "Sin configuraciones",
-                    valor: "-",
-                    acciones: ""
+                clase = "btn-toggle-submenu2";
+                atributo = "data-submenu2-id";
+                id = row.submenu1_id;
+            }
+
+            return (
+                '<button type="button" ' +
+                    'class="btn ' +
+                    (asignado ? "btn-danger" : "btn-success") +
+                    ' planes-aux-action-btn ' + clase + '" ' +
+                    atributo + '="' + planesEscape(id) + '" ' +
+                    'data-asignado="' + (asignado ? "1" : "0") + '">' +
+                    '<i class="fas ' +
+                        (asignado ? "fa-times" : "fa-plus") +
+                    '"></i>' +
+                    '<span>' +
+                        (asignado ? "Quitar" : "Asignar") +
+                    '</span>' +
+                '</button>'
+            );
+        }
+
+        function planesAuxHeaderDetalle(tipo) {
+            const headers = {
+                configuraciones: ["Configuración", "Cantidad", "Acciones"],
+                menus: ["Menú", "Estado", "Acciones"],
+                submenus: ["Menú Padre", "Nombre del Submenú", "Estado", "Acciones"],
+                submenus2: ["Nombre del Submenú", "Menú Padre", "Submenú Nivel 1", "Estado", "Acciones"]
+            };
+
+            return (
+                '<div class="planes-aux-detail-header">' +
+                    headers[tipo].map(function(texto) {
+                        return "<div>" + planesEscape(texto) + "</div>";
+                    }).join("") +
+                '</div>'
+            );
+        }
+
+        function planesAuxFilaDetalle(tipo, row) {
+            let cells = [];
+
+            if (tipo === "configuraciones") {
+                cells = [
+                    '<div class="planes-aux-primary">' +
+                        '<span class="planes-aux-row-icon">' +
+                            '<i class="fas fa-sliders-h"></i>' +
+                        '</span>' +
+                        '<strong>' + planesEscape(row.config) + '</strong>' +
+                    '</div>',
+                    '<span class="planes-aux-value">' +
+                        planesEscape(row.valor) +
+                    '</span>',
+                    planesAuxBotonAccion(tipo, row)
+                ];
+            } else if (tipo === "menus") {
+                cells = [
+                    '<div class="planes-aux-primary">' +
+                        '<span class="planes-aux-row-icon">' +
+                            '<i class="fas fa-bars"></i>' +
+                        '</span>' +
+                        '<strong>' + planesEscape(row.name) + '</strong>' +
+                    '</div>',
+                    planesAuxBadge(row.asignado),
+                    planesAuxBotonAccion(tipo, row)
+                ];
+            } else if (tipo === "submenus") {
+                cells = [
+                    planesEscape(row.menu_name),
+                    '<div class="planes-aux-primary">' +
+                        '<span class="planes-aux-row-icon">' +
+                            '<i class="fas fa-stream"></i>' +
+                        '</span>' +
+                        '<strong>' + planesEscape(row.name) + '</strong>' +
+                    '</div>',
+                    planesAuxBadge(row.asignado),
+                    planesAuxBotonAccion(tipo, row)
+                ];
+            } else {
+                cells = [
+                    '<div class="planes-aux-primary">' +
+                        '<span class="planes-aux-row-icon">' +
+                            '<i class="fas fa-project-diagram"></i>' +
+                        '</span>' +
+                        '<strong>' + planesEscape(row.name) + '</strong>' +
+                    '</div>',
+                    planesEscape(row.menu_name),
+                    planesEscape(row.submenu_name),
+                    planesAuxBadge(row.asignado),
+                    planesAuxBotonAccion(tipo, row)
+                ];
+            }
+
+            return (
+                '<article class="planes-aux-detail-row">' +
+                    cells.map(function(cell, index) {
+                        return (
+                            '<div class="planes-aux-detail-cell ' +
+                                (index === cells.length - 1
+                                    ? "planes-aux-action-cell"
+                                    : "") +
+                            '">' +
+                                cell +
+                            '</div>'
+                        );
+                    }).join("") +
+                '</article>'
+            );
+        }
+
+        function planesAuxMiniCard(tipo, row) {
+            let titulo = "";
+            let icono = "fa-layer-group";
+            let contenido = "";
+
+            if (tipo === "configuraciones") {
+                titulo = row.config;
+                icono = "fa-sliders-h";
+                contenido =
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Cantidad</span>' +
+                        '<strong>' + planesEscape(row.valor) + '</strong>' +
+                    '</div>';
+            } else if (tipo === "menus") {
+                titulo = row.name;
+                icono = "fa-bars";
+                contenido =
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Estado</span>' +
+                        planesAuxBadge(row.asignado) +
+                    '</div>';
+            } else if (tipo === "submenus") {
+                titulo = row.name;
+                icono = "fa-stream";
+                contenido =
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Menú padre</span>' +
+                        '<strong>' + planesEscape(row.menu_name) + '</strong>' +
+                    '</div>' +
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Estado</span>' +
+                        planesAuxBadge(row.asignado) +
+                    '</div>';
+            } else {
+                titulo = row.name;
+                icono = "fa-project-diagram";
+                contenido =
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Menú padre</span>' +
+                        '<strong>' + planesEscape(row.menu_name) + '</strong>' +
+                    '</div>' +
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Submenú nivel 1</span>' +
+                        '<strong>' + planesEscape(row.submenu_name) + '</strong>' +
+                    '</div>' +
+                    '<div class="planes-aux-mini-data">' +
+                        '<span>Estado</span>' +
+                        planesAuxBadge(row.asignado) +
+                    '</div>';
+            }
+
+            return (
+                '<article class="planes-aux-mini-card">' +
+                    '<div class="planes-aux-mini-topline"></div>' +
+                    '<div class="planes-aux-mini-header">' +
+                        '<span class="planes-aux-mini-icon">' +
+                            '<i class="fas ' + icono + '"></i>' +
+                        '</span>' +
+                        '<div>' +
+                            '<h4>' + planesEscape(titulo) + '</h4>' +
+                            '<small>' +
+                                planesEscape(planesAuxMeta[tipo].title) +
+                            '</small>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="planes-aux-mini-body">' +
+                        contenido +
+                    '</div>' +
+                    '<div class="planes-aux-mini-footer">' +
+                        planesAuxBotonAccion(tipo, row) +
+                    '</div>' +
+                '</article>'
+            );
+        }
+
+        function planesAuxSincronizarPageSize(tipo) {
+            const state = planesAuxEstado(tipo);
+            const miniatura = state.vista === "miniatura";
+            const opciones = miniatura
+                ? [6, 12, 18, 30]
+                : [10, 25, 50, 100];
+
+            let valor = miniatura
+                ? state.porPaginaMiniatura
+                : state.porPaginaDetalle;
+
+            if (opciones.indexOf(valor) === -1) {
+                valor = opciones[0];
+            }
+
+            state.porPagina = valor;
+
+            const $select = $(planesAuxMeta[tipo].pageSize);
+            $select.empty();
+
+            opciones.forEach(function(item) {
+                $select.append(
+                    $("<option></option>")
+                        .attr("value", item)
+                        .text(item)
+                );
+            });
+
+            $select.val(String(valor));
+            refrescarSelect2Planes($select);
+        }
+
+        function planesAuxActualizarVistaBotones(tipo) {
+            const state = planesAuxEstado(tipo);
+            const movil = planesEsMovil();
+            const selector =
+                '[data-planes-aux-view="' + tipo + '"]';
+
+            $(selector)
+                .removeClass("active")
+                .attr("aria-pressed", "false");
+
+            $(selector + '[data-view="detalle"]')
+                .prop("disabled", movil)
+                .toggleClass("d-none", movil)
+                .attr("aria-hidden", movil ? "true" : "false");
+
+            $(selector + '[data-view="' + state.vista + '"]')
+                .addClass("active")
+                .attr("aria-pressed", "true");
+        }
+
+        function planesAuxCambiarVista(tipo, vista) {
+            const state = planesAuxEstado(tipo);
+
+            state.vista = planesEsMovil()
+                ? "miniatura"
+                : (vista === "miniatura"
+                    ? "miniatura"
+                    : "detalle");
+
+            if (!planesEsMovil()) {
+                state.vistaPreferida = state.vista;
+
+                try {
+                    localStorage.setItem(
+                        PLANES_AUX_STORAGE_PREFIX + tipo + ".vista",
+                        state.vistaPreferida
+                    );
+                } catch (e) {
+                    console.warn(
+                        "No se pudo guardar la vista del modal.",
+                        e
+                    );
+                }
+            }
+
+            state.pagina = 1;
+            planesAuxSincronizarPageSize(tipo);
+            planesAuxActualizarVistaBotones(tipo);
+            planesAuxRender(tipo);
+        }
+
+        function planesAuxFiltrar(tipo) {
+            const state = planesAuxEstado(tipo);
+            const q = planesNormalizarTexto(state.busqueda);
+
+            state.filtered = state.rows.filter(function(row) {
+                if (!q) {
+                    return true;
+                }
+
+                return (
+                    planesNormalizarTexto(
+                        planesAuxTextoFila(tipo, row)
+                    ).indexOf(q) !== -1
+                );
+            });
+
+            const totalPaginas = Math.max(
+                1,
+                Math.ceil(
+                    state.filtered.length / state.porPagina
+                )
+            );
+
+            if (state.pagina > totalPaginas) {
+                state.pagina = totalPaginas;
+            }
+
+            planesAuxRender(tipo);
+        }
+
+        function planesAuxPaginacionHtml(tipo, totalPaginas) {
+            const state = planesAuxEstado(tipo);
+
+            if (totalPaginas <= 1) {
+                return "";
+            }
+
+            function boton(texto, pagina, disabled, active, icono) {
+                return (
+                    '<button type="button" ' +
+                        'class="planes-aux-page-btn ' +
+                            (active ? "active" : "") +
+                        '" ' +
+                        'data-planes-aux-page="' + tipo + '" ' +
+                        'data-page="' + pagina + '" ' +
+                        (disabled ? "disabled" : "") +
+                    '>' +
+                        (icono
+                            ? '<i class="fas ' + icono + '"></i>'
+                            : "") +
+                        '<span>' + texto + '</span>' +
+                    '</button>'
+                );
+            }
+
+            let html = "";
+            const pagina = state.pagina;
+
+            html += boton(
+                "Inicio",
+                1,
+                pagina === 1,
+                false,
+                "fa-angle-double-left"
+            );
+
+            html += boton(
+                "Anterior",
+                Math.max(1, pagina - 1),
+                pagina === 1,
+                false,
+                "fa-angle-left"
+            );
+
+            let desde = Math.max(1, pagina - 2);
+            let hasta = Math.min(
+                totalPaginas,
+                desde + 4
+            );
+
+            desde = Math.max(1, hasta - 4);
+
+            for (let i = desde; i <= hasta; i++) {
+                html += boton(
+                    String(i),
+                    i,
+                    false,
+                    i === pagina,
+                    ""
+                );
+            }
+
+            html += boton(
+                "Siguiente",
+                Math.min(totalPaginas, pagina + 1),
+                pagina === totalPaginas,
+                false,
+                "fa-angle-right"
+            );
+
+            html += boton(
+                "Final",
+                totalPaginas,
+                pagina === totalPaginas,
+                false,
+                "fa-angle-double-right"
+            );
+
+            return html;
+        }
+
+        function planesAuxRender(tipo) {
+            const meta = planesAuxMeta[tipo];
+            const state = planesAuxEstado(tipo);
+            const $list = $(meta.listado);
+            const $empty = $(meta.vacio);
+
+            const total = state.filtered.length;
+            const totalPaginas = Math.max(
+                1,
+                Math.ceil(total / state.porPagina)
+            );
+
+            state.pagina = Math.min(
+                Math.max(1, state.pagina),
+                totalPaginas
+            );
+
+            const inicio =
+                (state.pagina - 1) * state.porPagina;
+
+            const visibles = state.filtered.slice(
+                inicio,
+                inicio + state.porPagina
+            );
+
+            $list
+                .removeClass(
+                    "vista-detalle vista-miniatura"
+                )
+                .addClass(
+                    "vista-" + state.vista
+                )
+                .attr("data-kind", tipo);
+
+            if (!total) {
+                $list.empty().hide();
+                $empty.show();
+                $(meta.info).text("0 registros");
+                $(meta.paginacion).empty();
+                return;
+            }
+
+            $empty.hide();
+            $list.show();
+
+            let html = "";
+
+            if (state.vista === "detalle") {
+                html += planesAuxHeaderDetalle(tipo);
+
+                visibles.forEach(function(row) {
+                    html += planesAuxFilaDetalle(
+                        tipo,
+                        row
+                    );
+                });
+            } else {
+                visibles.forEach(function(row) {
+                    html += planesAuxMiniCard(
+                        tipo,
+                        row
+                    );
                 });
             }
 
-            $("#tablaConfiguraciones").DataTable({
-                data: dataSet,
-                columns: [
-                    {data: "id", title: "#", width: "5%"},
-                    {data: "config", title: "Configuración"},
-                    {data: "valor", title: "Cantidad"},
-                    {data: "acciones", title: "Acciones", width: "15%"}
-                ],
-                language: typeof idioma_español !== "undefined" ? idioma_español : {},
-                paging: false,
-                searching: false,
-                info: false,
-                responsive: true
+            $list.html(html);
+
+            const fin = Math.min(
+                inicio + visibles.length,
+                total
+            );
+
+            $(meta.info).text(
+                "Mostrando registros del " +
+                (inicio + 1) +
+                " al " +
+                fin +
+                " de un total de " +
+                total +
+                " registros"
+            );
+
+            $(meta.paginacion).html(
+                planesAuxPaginacionHtml(
+                    tipo,
+                    totalPaginas
+                )
+            );
+        }
+
+        function planesAuxTituloModal(tipo, planNombre) {
+            const nombre = $.trim(String(planNombre || "Plan"));
+
+            if (tipo === "configuraciones") {
+                return "Configuraciones del Plan: " + nombre;
+            }
+
+            if (tipo === "menus") {
+                return "Asignar Menús Principales al Plan: " + nombre;
+            }
+
+            if (tipo === "submenus") {
+                return "Asignar Submenús Nivel 1 al Plan: " + nombre;
+            }
+
+            return "Asignar Submenús Nivel 2 al Plan: " + nombre;
+        }
+
+        function planesAuxSetRows(
+            tipo,
+            rows,
+            planId,
+            planNombre
+        ) {
+            const meta = planesAuxMeta[tipo];
+            const state = planesAuxEstado(tipo);
+
+            state.rows =
+                Array.isArray(rows)
+                    ? rows
+                    : [];
+
+            state.filtered =
+                state.rows.slice();
+
+            state.pagina = 1;
+            state.busqueda = "";
+            state.planId = planId || "";
+            state.planNombre =
+                planNombre ||
+                state.planNombre ||
+                "Plan";
+
+            $(meta.modal + " .modal-title")
+                .text(
+                    planesAuxTituloModal(
+                        tipo,
+                        state.planNombre
+                    )
+                );
+
+            state.vista = planesEsMovil()
+                ? "miniatura"
+                : state.vistaPreferida;
+
+            $(meta.search).val("");
+            $('[data-planes-aux-clear="' + tipo + '"]')
+                .hide();
+
+            planesAuxSincronizarPageSize(tipo);
+            planesAuxActualizarVistaBotones(tipo);
+            planesAuxFiltrar(tipo);
+        }
+
+        function planesAuxLoading(tipo) {
+            const meta = planesAuxMeta[tipo];
+
+            $(meta.vacio).hide();
+            $(meta.info).text("Cargando...");
+            $(meta.paginacion).empty();
+
+            $(meta.listado)
+                .removeClass(
+                    "vista-detalle vista-miniatura"
+                )
+                .addClass("vista-detalle")
+                .show()
+                .html(
+                    '<div class="planes-aux-loading">' +
+                        '<i class="fas fa-spinner fa-spin"></i>' +
+                        '<span>Cargando información...</span>' +
+                    '</div>'
+                );
+        }
+
+        function planesAuxActualizarAsignado(
+            tipo,
+            id,
+            nuevoEstado
+        ) {
+            const state = planesAuxEstado(tipo);
+
+            const key =
+                tipo === "menus"
+                    ? "menu_id"
+                    : (
+                        tipo === "submenus"
+                            ? "submenu_id"
+                            : "submenu1_id"
+                    );
+
+            const row = state.rows.find(function(item) {
+                return String(item[key]) === String(id);
             });
 
-            $("#modalConfiguraciones").data("plan-id", plan_id);
+            if (row) {
+                row.asignado =
+                    nuevoEstado ? 1 : 0;
+            }
 
-            $("#modalConfiguraciones").modal({
-                show: true,
-                keyboard: false,
-                backdrop: "static"
+            planesAuxFiltrar(tipo);
+        }
+
+        function planesAuxActualizarConfiguraciones(
+            planId,
+            configuraciones
+        ) {
+            const state =
+                planesAuxEstado("configuraciones");
+
+            const rows = [];
+            let index = 1;
+
+            if (
+                configuraciones &&
+                typeof configuraciones === "object"
+            ) {
+                Object.keys(configuraciones).forEach(
+                    function(clave) {
+                        const opcion =
+                            opcionesConfiguracion.find(
+                                function(op) {
+                                    return op.value === clave;
+                                }
+                            );
+
+                        rows.push({
+                            id: index++,
+                            clave: clave,
+                            config: opcion
+                                ? opcion.text
+                                : clave,
+                            valor: configuraciones[clave],
+                            plan_id: planId
+                        });
+                    }
+                );
+            }
+
+            planesAuxSetRows(
+                "configuraciones",
+                rows,
+                planId,
+                state.planNombre
+            );
+        }
+
+        function listar_configuraciones(
+            plan_id,
+            configuraciones,
+            planNombre
+        ) {
+            const state =
+                planesAuxEstado("configuraciones");
+
+            state.planNombre =
+                planNombre ||
+                state.planNombre ||
+                "Plan";
+
+            $("#modalConfiguraciones .modal-title")
+                .text(
+                    "Configuraciones del Plan: " +
+                    state.planNombre
+                );
+
+            planesAuxActualizarConfiguraciones(
+                plan_id,
+                configuraciones || {}
+            );
+
+            $("#modalConfiguraciones")
+                .data("plan-id", plan_id)
+                .modal({
+                    show: true,
+                    keyboard: false,
+                    backdrop: "static"
+                });
+        }
+
+        /* =========================================================
+            EXPORTACIÓN AUXILIAR | EXCEL
+        ========================================================= */
+        function planesAuxExportRows(tipo) {
+            const state = planesAuxEstado(tipo);
+            const meta = planesAuxMeta[tipo];
+
+            return state.filtered.map(function(row) {
+                return meta.values(row).map(function(value) {
+                    return (
+                        value === null ||
+                        typeof value === "undefined"
+                    )
+                        ? ""
+                        : String(value);
+                });
+            });
+        }
+
+        function planesAuxResumen(tipo) {
+            const state = planesAuxEstado(tipo);
+            const rows = state.filtered || [];
+            const total = rows.length;
+
+            if (tipo === "configuraciones") {
+                const conValor = rows.filter(function(row) {
+                    return (
+                        row.valor !== null &&
+                        typeof row.valor !== "undefined" &&
+                        String(row.valor).trim() !== ""
+                    );
+                }).length;
+
+                const totalConfigurado = rows.reduce(function(acc, row) {
+                    const numero = Number(row.valor);
+                    return acc + (isNaN(numero) ? 0 : numero);
+                }, 0);
+
+                return [
+                    {label: "REGISTROS", value: total, color: "#172B4D"},
+                    {label: "CON VALOR", value: conValor, color: "#14804A"},
+                    {label: "TOTAL CONFIGURADO", value: totalConfigurado, color: "#172B4D"},
+                    {label: "PLAN", value: state.planNombre || "Plan", color: "#172B4D"}
+                ];
+            }
+
+            const asignados = rows.filter(function(row) {
+                return planesAuxEsAsignado(row.asignado);
+            }).length;
+
+            const noAsignados = Math.max(0, total - asignados);
+
+            return [
+                {label: "REGISTROS", value: total, color: "#172B4D"},
+                {label: "ASIGNADOS", value: asignados, color: "#14804A"},
+                {label: "NO ASIGNADOS", value: noAsignados, color: "#C9372C"},
+                {label: "PLAN", value: state.planNombre || "Plan", color: "#172B4D"}
+            ];
+        }
+
+        function planesAuxFiltroTexto(tipo) {
+            const state = planesAuxEstado(tipo);
+            const busqueda = $.trim(state.busqueda) || "Sin búsqueda";
+
+            return (
+                "Plan: " +
+                (state.planNombre || "Plan") +
+                "   |   Búsqueda: " +
+                busqueda
+            );
+        }
+
+        function planesAuxSubtitulo(tipo) {
+            const state = planesAuxEstado(tipo);
+            const nombre = state.planNombre || "Plan";
+
+            if (tipo === "configuraciones") {
+                return (
+                    "Plan: " +
+                    nombre +
+                    " • Configuraciones y cantidades permitidas"
+                );
+            }
+
+            if (tipo === "menus") {
+                return (
+                    "Plan: " +
+                    nombre +
+                    " • Administración de menús principales"
+                );
+            }
+
+            if (tipo === "submenus") {
+                return (
+                    "Plan: " +
+                    nombre +
+                    " • Administración de submenús nivel 1"
+                );
+            }
+
+            return (
+                "Plan: " +
+                nombre +
+                " • Administración de submenús nivel 2"
+            );
+        }
+
+        function planesAuxExcelStyleXml() {
+            return (
+                '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+                '<fonts count="7">' +
+                    '<font><sz val="10"/><name val="Calibri"/></font>' +
+                    '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                    '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                    '<font><sz val="9"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                    '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                    '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '</fonts>' +
+                '<fills count="7">' +
+                    '<fill><patternFill patternType="none"/></fill>' +
+                    '<fill><patternFill patternType="gray125"/></fill>' +
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/></patternFill></fill>' +
+                    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/></patternFill></fill>' +
+                '</fills>' +
+                '<borders count="2">' +
+                    '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                    '<border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border>' +
+                '</borders>' +
+                '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+                '<cellXfs count="11">' +
+                    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                    '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                    '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                    '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '</cellXfs>' +
+                '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+                '</styleSheet>'
+            );
+        }
+
+        function planesAuxExportarExcel(tipo) {
+            const state = planesAuxEstado(tipo);
+            const meta = planesAuxMeta[tipo];
+            const rows = planesAuxExportRows(tipo);
+            const resumen = planesAuxResumen(tipo);
+
+            if (!rows.length) {
+                notificarPlan(
+                    "warning",
+                    "Sin información",
+                    "No hay registros para exportar."
+                );
+                return;
+            }
+
+            if (typeof JSZip === "undefined") {
+                notificarPlan(
+                    "error",
+                    "Excel no disponible",
+                    "No se encontró JSZip para generar el archivo XLSX."
+                );
+                return;
+            }
+
+            const headers = meta.headers;
+            const headerRow = 7;
+            const firstDataRow = 8;
+            const lastRow = Math.max(headerRow, headerRow + rows.length);
+            const virtualLastCol = "H";
+            const dataLastCol = planesExcelCol(headers.length - 1);
+            const sheetRows = [];
+
+            sheetRows.push(
+                '<row r="1" ht="30" customHeight="1">' +
+                    planesExcelCell(
+                        "A1",
+                        "IZZY • " + meta.title.toUpperCase(),
+                        1,
+                        false
+                    ) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="2" ht="20" customHeight="1">' +
+                    planesExcelCell(
+                        "A2",
+                        planesAuxSubtitulo(tipo) +
+                        " • Generado: " +
+                        new Date().toLocaleDateString("es-HN"),
+                        2,
+                        false
+                    ) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="3">' +
+                    planesExcelCell("A3", resumen[0].label, 6, false) +
+                    planesExcelCell("C3", resumen[1].label, 6, false) +
+                    planesExcelCell("E3", resumen[2].label, 6, false) +
+                    planesExcelCell("G3", resumen[3].label, 6, false) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="4" ht="27" customHeight="1">' +
+                    planesExcelCell("A4", resumen[0].value, 7, false) +
+                    planesExcelCell("C4", resumen[1].value, 7, false) +
+                    planesExcelCell("E4", resumen[2].value, 7, false) +
+                    planesExcelCell("G4", resumen[3].value, 7, false) +
+                '</row>'
+            );
+
+            sheetRows.push('<row r="5"></row>');
+
+            sheetRows.push(
+                '<row r="6">' +
+                    planesExcelCell(
+                        "A6",
+                        "Detalle de " +
+                        meta.title.toLowerCase() +
+                        " filtrados",
+                        8,
+                        false
+                    ) +
+                '</row>'
+            );
+
+            sheetRows.push(
+                '<row r="' + headerRow + '" ht="28" customHeight="1">' +
+                    headers.map(function(header, index) {
+                        return planesExcelCell(
+                            planesExcelCol(index) + headerRow,
+                            header,
+                            3,
+                            false
+                        );
+                    }).join("") +
+                '</row>'
+            );
+
+            rows.forEach(function(row, rowIndex) {
+                const excelRow = firstDataRow + rowIndex;
+
+                sheetRows.push(
+                    '<row r="' + excelRow + '" ht="34" customHeight="1">' +
+                        row.map(function(value, colIndex) {
+                            let style = 4;
+
+                            if (
+                                String(value) === "Asignado" ||
+                                String(value) === "Activo"
+                            ) {
+                                style = 9;
+                            } else if (
+                                String(value) === "No asignado" ||
+                                String(value) === "Inactivo"
+                            ) {
+                                style = 10;
+                            }
+
+                            return planesExcelCell(
+                                planesExcelCol(colIndex) + excelRow,
+                                value,
+                                style,
+                                false
+                            );
+                        }).join("") +
+                    '</row>'
+                );
+            });
+
+            const sheetXml =
+                '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+                '<dimension ref="A1:' + virtualLastCol + lastRow + '"/>' +
+                '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
+                '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                '</sheetView></sheetViews>' +
+                '<cols>' +
+                    '<col min="1" max="1" width="30" customWidth="1"/>' +
+                    '<col min="2" max="4" width="24" customWidth="1"/>' +
+                    '<col min="5" max="8" width="16" customWidth="1"/>' +
+                '</cols>' +
+                '<sheetData>' + sheetRows.join("") + '</sheetData>' +
+                '<autoFilter ref="A7:' + dataLastCol + lastRow + '"/>' +
+                '<mergeCells count="10">' +
+                    '<mergeCell ref="A1:H1"/><mergeCell ref="A2:H2"/>' +
+                    '<mergeCell ref="A3:B3"/><mergeCell ref="A4:B4"/>' +
+                    '<mergeCell ref="C3:D3"/><mergeCell ref="C4:D4"/>' +
+                    '<mergeCell ref="E3:F3"/><mergeCell ref="E4:F4"/>' +
+                    '<mergeCell ref="G3:H3"/><mergeCell ref="G4:H4"/>' +
+                '</mergeCells>' +
+                '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+                '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+                '</worksheet>';
+
+            const workbookXml =
+                '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+                '<sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets>' +
+                '</workbook>';
+
+            const workbookRels =
+                '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+                '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+                '</Relationships>';
+
+            const rootRels =
+                '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+                '</Relationships>';
+
+            const contentTypes =
+                '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+                '<Default Extension="xml" ContentType="application/xml"/>' +
+                '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+                '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+                '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+                '</Types>';
+
+            const zip = new JSZip();
+
+            zip.file("[Content_Types].xml", contentTypes);
+            zip.folder("_rels").file(".rels", rootRels);
+            zip.folder("xl").file("workbook.xml", workbookXml);
+            zip.folder("xl").file("styles.xml", planesAuxExcelStyleXml());
+            zip.folder("xl").folder("_rels").file("workbook.xml.rels", workbookRels);
+            zip.folder("xl").folder("worksheets").file("sheet1.xml", sheetXml);
+
+            const opciones = {
+                type: "blob",
+                mimeType:
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                compression: "DEFLATE"
+            };
+
+            const promesa =
+                typeof zip.generateAsync === "function"
+                    ? zip.generateAsync(opciones)
+                    : Promise.resolve(zip.generate(opciones));
+
+            promesa
+                .then(function(blob) {
+                    descargarBlobPlanes(
+                        blob,
+                        meta.file +
+                        "_" +
+                        String(state.planNombre || "Plan")
+                            .replace(/[^\w\-]+/g, "_") +
+                        ".xlsx"
+                    );
+                })
+                .catch(function(error) {
+                    console.error(error);
+
+                    notificarPlan(
+                        "error",
+                        "Error",
+                        "No se pudo generar el archivo Excel."
+                    );
+                });
+        }
+
+        function planesAuxPdfEncabezadoPremium(tipo, rows, logoDataUrl) {
+            const state = planesAuxEstado(tipo);
+            const meta = planesAuxMeta[tipo];
+            const resumen = planesAuxResumen(tipo);
+            const logoCell = planesPdfLogoPlate(logoDataUrl);
+
+            return [
+                {
+                    table: {
+                        widths: [100, "*", 155],
+                        body: [[
+                            {
+                                border: [false, false, false, false],
+                                fillColor: "#17324D",
+                                margin: [12, 10, 0, 10],
+                                stack: [logoCell]
+                            },
+                            {
+                                border: [false, false, false, false],
+                                fillColor: "#17324D",
+                                margin: [0, 10, 0, 10],
+                                stack: [
+                                    {
+                                        text: meta.title.toUpperCase(),
+                                        fontSize: 16,
+                                        bold: true,
+                                        color: "#FFFFFF"
+                                    },
+                                    {
+                                        text: planesAuxSubtitulo(tipo),
+                                        fontSize: 7.5,
+                                        color: "#D8E5F0",
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            },
+                            {
+                                border: [false, false, false, false],
+                                fillColor: "#17324D",
+                                margin: [0, 10, 12, 10],
+                                stack: [
+                                    {
+                                        text: "REPORTE EJECUTIVO",
+                                        fontSize: 6.5,
+                                        bold: true,
+                                        color: "#72E2E5",
+                                        alignment: "right"
+                                    },
+                                    {
+                                        text: new Date().toLocaleDateString("es-HN"),
+                                        fontSize: 9,
+                                        bold: true,
+                                        color: "#FFFFFF",
+                                        alignment: "right",
+                                        margin: [0, 3, 0, 0]
+                                    },
+                                    {
+                                        text: rows.length + " registro(s) filtrado(s)",
+                                        fontSize: 6.5,
+                                        color: "#D8E5F0",
+                                        alignment: "right",
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineWidth: function() { return 0; },
+                        vLineWidth: function() { return 0; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+                {
+                    table: {
+                        widths: ["*"],
+                        body: [[{
+                            text: "Filtros aplicados: " + planesAuxFiltroTexto(tipo),
+                            fontSize: 6.8,
+                            color: "#52627A",
+                            margin: [10, 7, 10, 7],
+                            fillColor: "#F7F9FC"
+                        }]]
+                    },
+                    layout: {
+                        hLineColor: function() { return "#DDE3EA"; },
+                        vLineColor: function() { return "#DDE3EA"; },
+                        hLineWidth: function() { return 0.6; },
+                        vLineWidth: function() { return 0.6; }
+                    },
+                    margin: [0, 0, 0, 10]
+                },
+                {
+                    table: {
+                        widths: ["*", "*", "*", "*"],
+                        body: [[
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: resumen[0].label, fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(resumen[0].value), fontSize: 13, bold: true, color: resumen[0].color}
+                                ]
+                            },
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: resumen[1].label, fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(resumen[1].value), fontSize: 13, bold: true, color: resumen[1].color}
+                                ]
+                            },
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: resumen[2].label, fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(resumen[2].value), fontSize: 13, bold: true, color: resumen[2].color}
+                                ]
+                            },
+                            {
+                                fillColor: "#F7F9FC",
+                                margin: [8, 7, 8, 7],
+                                stack: [
+                                    {text: resumen[3].label, fontSize: 6.3, bold: true, color: "#6B778C"},
+                                    {text: String(resumen[3].value), fontSize: 10.5, bold: true, color: resumen[3].color}
+                                ]
+                            }
+                        ]]
+                    },
+                    layout: {
+                        hLineColor: function() { return "#DDE3EA"; },
+                        vLineColor: function() { return "#DDE3EA"; },
+                        hLineWidth: function() { return 0.6; },
+                        vLineWidth: function() { return 0.6; }
+                    },
+                    margin: [0, 0, 0, 12]
+                }
+            ];
+        }
+
+        function planesAuxPdfContenidoDetalle(tipo, rows) {
+            const meta = planesAuxMeta[tipo];
+
+            const body = [
+                meta.headers.map(function(header) {
+                    return {
+                        text: header,
+                        style: "th",
+                        fillColor: "#17324D"
+                    };
+                })
+            ];
+
+            rows.forEach(function(row, index) {
+                const fill =
+                    index % 2 === 0
+                        ? "#FFFFFF"
+                        : "#F7F9FC";
+
+                body.push(
+                    row.map(function(value) {
+                        const texto = String(value || "—");
+                        const esEstado =
+                            texto === "Asignado" ||
+                            texto === "No asignado";
+
+                        return {
+                            text: texto,
+                            style: esEstado ? "tdCenter" : "td",
+                            color:
+                                texto === "Asignado"
+                                    ? "#14804A"
+                                    : (
+                                        texto === "No asignado"
+                                            ? "#C9372C"
+                                            : "#253858"
+                                    ),
+                            bold: esEstado,
+                            fillColor: fill
+                        };
+                    })
+                );
+            });
+
+            const widths =
+                meta.headers.length === 2
+                    ? ["*", "*"]
+                    : (
+                        meta.headers.length === 3
+                            ? ["*", "*", 110]
+                            : ["*", "*", "*", 110]
+                    );
+
+            return [
+                {
+                    text: "VISTA DETALLE",
+                    fontSize: 7,
+                    bold: true,
+                    color: "#17324D",
+                    margin: [0, 1, 0, 7]
+                },
+                {
+                    table: {
+                        headerRows: 1,
+                        widths: widths,
+                        body: body
+                    },
+                    layout: {
+                        hLineColor: function() { return "#DDE3EA"; },
+                        vLineColor: function() { return "#DDE3EA"; },
+                        hLineWidth: function() { return 0.55; },
+                        vLineWidth: function() { return 0.55; },
+                        paddingLeft: function() { return 5; },
+                        paddingRight: function() { return 5; },
+                        paddingTop: function() { return 6; },
+                        paddingBottom: function() { return 6; }
+                    }
+                }
+            ];
+        }
+
+        function planesAuxPrevisualizarPdf(tipo) {
+            const state = planesAuxEstado(tipo);
+            const meta = planesAuxMeta[tipo];
+            const rows = planesAuxExportRows(tipo);
+
+            if (!rows.length) {
+                notificarPlan(
+                    "warning",
+                    "Sin información",
+                    "No hay registros para exportar."
+                );
+                return;
+            }
+
+            if (
+                typeof pdfMake === "undefined" ||
+                typeof abrirModalPdfPublico !== "function"
+            ) {
+                notificarPlan(
+                    "error",
+                    "PDF no disponible",
+                    "No están disponibles los componentes del PDF."
+                );
+                return;
+            }
+
+            const generar = function(logoDataUrl) {
+                const contenido =
+                    planesAuxPdfEncabezadoPremium(
+                        tipo,
+                        rows,
+                        logoDataUrl
+                    ).concat(
+                        planesAuxPdfContenidoDetalle(
+                            tipo,
+                            rows
+                        )
+                    );
+
+                const doc = {
+                    pageSize: "LETTER",
+                    pageOrientation: "landscape",
+                    pageMargins: [28, 28, 28, 34],
+
+                    header: function() {
+                        return {
+                            margin: [28, 12, 28, 0],
+                            canvas: [{
+                                type: "line",
+                                x1: 0,
+                                y1: 0,
+                                x2: 736,
+                                y2: 0,
+                                lineWidth: 2,
+                                lineColor: "#0EA5A8"
+                            }]
+                        };
+                    },
+
+                    footer: function(page, pages) {
+                        return {
+                            margin: [28, 8, 28, 0],
+                            columns: [
+                                {
+                                    text: "IZZY • Administrar Planes",
+                                    fontSize: 7,
+                                    color: "#7A869A"
+                                },
+                                {
+                                    text:
+                                        "Página " +
+                                        page +
+                                        " de " +
+                                        pages,
+                                    fontSize: 7,
+                                    color: "#7A869A",
+                                    alignment: "right"
+                                }
+                            ]
+                        };
+                    },
+
+                    content: contenido,
+
+                    styles: {
+                        th: {
+                            fontSize: 6.2,
+                            bold: true,
+                            color: "#FFFFFF",
+                            alignment: "center"
+                        },
+                        td: {
+                            fontSize: 6.5,
+                            color: "#253858"
+                        },
+                        tdCenter: {
+                            fontSize: 6.5,
+                            color: "#253858",
+                            alignment: "center"
+                        }
+                    },
+
+                    defaultStyle: {
+                        fontSize: 8,
+                        color: "#253858"
+                    }
+                };
+
+                const pdf = pdfMake.createPdf(doc);
+                const nombre =
+                    meta.file +
+                    "_" +
+                    String(state.planNombre || "Plan")
+                        .replace(/[^\w\-]+/g, "_") +
+                    ".pdf";
+
+                if (typeof pdf.getDataUrl === "function") {
+                    pdf.getDataUrl(function(dataUrl) {
+                        abrirModalPdfPublico(
+                            dataUrl,
+                            meta.title +
+                            " - " +
+                            (state.planNombre || "Plan"),
+                            nombre
+                        );
+                    });
+                    return;
+                }
+
+                if (typeof pdf.getBase64 === "function") {
+                    pdf.getBase64(function(base64) {
+                        abrirModalPdfPublico(
+                            "data:application/pdf;base64," +
+                            base64,
+                            meta.title +
+                            " - " +
+                            (state.planNombre || "Plan"),
+                            nombre
+                        );
+                    });
+                    return;
+                }
+
+                notificarPlan(
+                    "error",
+                    "PDF no disponible",
+                    "La versión actual de pdfMake no permite una vista previa compatible."
+                );
+            };
+
+            if (
+                typeof imagen !== "undefined" &&
+                typeof imagen === "string" &&
+                imagen.indexOf("data:image/") === 0
+            ) {
+                generar(imagen);
+                return;
+            }
+
+            planesObtenerLogoPdf(function(logoDataUrl) {
+                try {
+                    imagen = logoDataUrl;
+                } catch (e) {}
+
+                generar(logoDataUrl);
             });
         }
 
@@ -1819,7 +3424,6 @@
             updateEstadoLabel();
 
             agregarConfiguracion(false);
-            refrescarSelectPicker();
 
             $("#nombre_plan").focus();
         }
@@ -1875,8 +3479,7 @@
                         $("#btn-cancelar-edicion").show();
                         $("#nombre_plan").focus();
 
-                        refrescarSelectPicker();
-
+            
                     } else {
                         notificarPlan("error", "Error", response.message || "Error al cargar el plan");
                         $("#btn-submit").prop("disabled", false).html('<i class="fas fa-save mr-1"></i> Registrar Plan');
@@ -1981,54 +3584,27 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            const configs = response.configuraciones || {};
-                            const table = $("#tablaConfiguraciones").DataTable();
+                            const configs =
+                                response.configuraciones || {};
 
-                            if (Object.keys(configs).length === 0) {
-                                table.clear().draw();
+                            planesAuxActualizarConfiguraciones(
+                                planId,
+                                configs
+                            );
 
-                                table.row.add({
-                                    id: 1,
-                                    clave: "",
-                                    config: "Sin configuraciones",
-                                    valor: "-",
-                                    acciones: ""
-                                }).draw();
-                            } else {
-                                let newData = [];
-                                let index = 1;
-
-                                for (const [key, val] of Object.entries(configs)) {
-                                    const opcion = opcionesConfiguracion.find(function(op) {
-                                        return op.value === key;
-                                    });
-
-                                    const texto = opcion ? opcion.text : key;
-
-                                    newData.push({
-                                        id: index,
-                                        clave: key,
-                                        config: texto,
-                                        valor: val,
-                                        acciones: `
-                                            <button class="btn btn-sm btn-danger btn-eliminar-config"
-                                                    data-clave="${key}"
-                                                    data-plan-id="${planId}">
-                                                <i class="fas fa-trash"></i> Eliminar
-                                            </button>
-                                        `
-                                    });
-
-                                    index++;
-                                }
-
-                                table.clear().rows.add(newData).draw();
-                            }
                             recargarPlanesPrincipal(true);
 
-                            notificarPlan("success", "Éxito", response.message);
+                            notificarPlan(
+                                "success",
+                                "Éxito",
+                                response.message
+                            );
                         } else {
-                            notificarPlan("error", "Error", response.message);
+                            notificarPlan(
+                                "error",
+                                "Error",
+                                response.message
+                            );
                         }
                     },
                     error: function(xhr) {
@@ -2036,7 +3612,7 @@
                         notificarPlan("error", "Error", "Error de conexión al eliminar configuración");
                     },
                     complete: function() {
-                        $button.prop("disabled", false).html('<i class="fas fa-trash"></i> Eliminar');
+                        $button.prop("disabled", false).html('<i class="fas fa-times"></i><span>Quitar</span>');
                     }
                 });
             });
@@ -2112,179 +3688,279 @@
         }
 
         /* =========================================================
-            LISTAR MENÚS PRINCIPALES PARA ASIGNACIÓN
+            CARGAR MENÚS / SUBMENÚS PARA ASIGNACIÓN - DIVs
         ========================================================= */
-        function listar_menus_asignacion(plan_id) {
-            $("#tablaMenus").DataTable({
-                destroy: true,
-                ajax: {
-                    method: "POST",
-                    url: PLANES_URLS.obtenerMenus,
-                    data: {
-                        plan_id: plan_id
-                    },
-                    dataSrc: function(json) {
-                        if (!json.success) {
-                            console.error(json.message);
-                            notificarPlan("error", "Error", "Error al cargar los menús");
-                            return [];
-                        }
+        function listar_menus_asignacion(
+            plan_id,
+            planNombre
+        ) {
+            planesAuxLoading("menus");
 
-                        const contador = json.data.filter(function(d) {
-                            return d.asignado;
-                        }).length;
+            $.ajax({
+                method: "POST",
+                url: PLANES_URLS.obtenerMenus,
+                data: {
+                    plan_id: plan_id
+                },
+                dataType: "json"
+            })
+            .done(function(json) {
+                if (!json || !json.success) {
+                    planesAuxSetRows(
+                        "menus",
+                        [],
+                        plan_id,
+                        planNombre
+                    );
 
-                        $("#contador-menus-" + plan_id).text(contador + " asignados");
+                    notificarPlan(
+                        "error",
+                        "Error",
+                        (json && json.message) ||
+                        "Error al cargar los menús"
+                    );
+                    return;
+                }
 
-                        return json.data.map(function(menu, index) {
+                const rows =
+                    (json.data || []).map(
+                        function(menu) {
                             return {
-                                "#": index + 1,
+                                menu_id: menu.menu_id,
                                 name: menu.name,
-                                asignado: menu.asignado
-                                    ? '<span class="badge badge-success">Asignado</span>'
-                                    : '<span class="badge badge-secondary">No asignado</span>',
-                                acciones: `
-                                    <button class="btn btn-sm ${menu.asignado ? "btn-danger" : "btn-success"} btn-toggle-menu"
-                                        data-menu-id="${menu.menu_id}"
-                                        data-asignado="${menu.asignado}">
-                                        ${menu.asignado ? '<i class="fas fa-times"></i> Quitar' : '<i class="fas fa-plus"></i> Asignar'}
-                                    </button>
-                                `
+                                asignado:
+                                    planesAuxEsAsignado(
+                                        menu.asignado
+                                    )
+                                        ? 1
+                                        : 0
                             };
-                        });
-                    }
-                },
-                columns: [
-                    {data: "#"},
-                    {data: "name"},
-                    {data: "asignado"},
-                    {data: "acciones"}
-                ],
-                lengthMenu: typeof lengthMenu10 !== "undefined" ? lengthMenu10 : [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
-                stateSave: true,
-                language: typeof idioma_español !== "undefined" ? idioma_español : {},
-                dom: typeof dom !== "undefined" ? dom : "frtip",
-                buttons: []
+                        }
+                    );
+
+                const contador =
+                    rows.filter(function(row) {
+                        return planesAuxEsAsignado(
+                            row.asignado
+                        );
+                    }).length;
+
+                $("#contador-menus-" + plan_id)
+                    .text(
+                        contador + " asignados"
+                    );
+
+                planesAuxSetRows(
+                    "menus",
+                    rows,
+                    plan_id,
+                    planNombre
+                );
+            })
+            .fail(function(xhr) {
+                console.error(
+                    "Error al cargar menús:",
+                    xhr.responseText
+                );
+
+                planesAuxSetRows(
+                    "menus",
+                    [],
+                    plan_id,
+                    planNombre
+                );
+
+                notificarPlan(
+                    "error",
+                    "Error",
+                    "Error de conexión al cargar los menús"
+                );
             });
         }
 
-        /* =========================================================
-            LISTAR SUBMENÚS NIVEL 1 PARA ASIGNACIÓN
-        ========================================================= */
-        function listar_submenus_asignacion(plan_id) {
-            $("#tablaSubmenus").DataTable({
-                destroy: true,
-                ajax: {
-                    method: "POST",
-                    url: PLANES_URLS.obtenerSubmenus,
-                    data: {
-                        plan_id: plan_id
-                    },
-                    dataSrc: function(json) {
-                        if (!json.success) {
-                            console.error(json.message);
-                            notificarPlan("error", "Error", "Error al cargar los submenús");
-                            return [];
-                        }
+        function listar_submenus_asignacion(
+            plan_id,
+            planNombre
+        ) {
+            planesAuxLoading("submenus");
 
-                        const contador = json.data.filter(function(d) {
-                            return d.asignado;
-                        }).length;
-
-                        $("#contador-submenus-" + plan_id).text(contador + " asignados");
-
-                        return json.data.map(function(submenu, index) {
-                            return {
-                                "#": index + 1,
-                                menu_name: submenu.descripcion_padre,
-                                name: submenu.descripcion,
-                                asignado: submenu.asignado
-                                    ? '<span class="badge badge-success">Asignado</span>'
-                                    : '<span class="badge badge-secondary">No asignado</span>',
-                                acciones: `
-                                    <button class="btn btn-sm ${submenu.asignado ? "btn-danger" : "btn-success"} btn-toggle-submenu"
-                                        data-submenu-id="${submenu.submenu_id}"
-                                        data-asignado="${submenu.asignado}">
-                                        ${submenu.asignado ? '<i class="fas fa-times"></i> Quitar' : '<i class="fas fa-plus"></i> Asignar'}
-                                    </button>
-                                `
-                            };
-                        });
-                    }
+            $.ajax({
+                method: "POST",
+                url: PLANES_URLS.obtenerSubmenus,
+                data: {
+                    plan_id: plan_id
                 },
-                columns: [
-                    {data: "#"},
-                    {data: "menu_name"},
-                    {data: "name"},
-                    {data: "asignado"},
-                    {data: "acciones"}
-                ],
-                lengthMenu: typeof lengthMenu10 !== "undefined" ? lengthMenu10 : [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
-                stateSave: true,
-                language: typeof idioma_español !== "undefined" ? idioma_español : {},
-                dom: typeof dom !== "undefined" ? dom : "frtip",
-                buttons: []
+                dataType: "json"
+            })
+            .done(function(json) {
+                if (!json || !json.success) {
+                    planesAuxSetRows(
+                        "submenus",
+                        [],
+                        plan_id,
+                        planNombre
+                    );
+
+                    notificarPlan(
+                        "error",
+                        "Error",
+                        (json && json.message) ||
+                        "Error al cargar los submenús"
+                    );
+                    return;
+                }
+
+                const rows =
+                    (json.data || []).map(
+                        function(submenu) {
+                            return {
+                                submenu_id:
+                                    submenu.submenu_id,
+                                menu_name:
+                                    submenu.descripcion_padre,
+                                name:
+                                    submenu.descripcion,
+                                asignado:
+                                    planesAuxEsAsignado(
+                                        submenu.asignado
+                                    )
+                                        ? 1
+                                        : 0
+                            };
+                        }
+                    );
+
+                const contador =
+                    rows.filter(function(row) {
+                        return planesAuxEsAsignado(
+                            row.asignado
+                        );
+                    }).length;
+
+                $("#contador-submenus-" + plan_id)
+                    .text(
+                        contador + " asignados"
+                    );
+
+                planesAuxSetRows(
+                    "submenus",
+                    rows,
+                    plan_id,
+                    planNombre
+                );
+            })
+            .fail(function(xhr) {
+                console.error(
+                    "Error al cargar submenús:",
+                    xhr.responseText
+                );
+
+                planesAuxSetRows(
+                    "submenus",
+                    [],
+                    plan_id,
+                    planNombre
+                );
+
+                notificarPlan(
+                    "error",
+                    "Error",
+                    "Error de conexión al cargar los submenús"
+                );
             });
         }
 
-        /* =========================================================
-            LISTAR SUBMENÚS NIVEL 2 PARA ASIGNACIÓN
-        ========================================================= */
-        function listar_submenus2_asignacion(plan_id) {
-            $("#tablaSubmenus2").DataTable({
-                destroy: true,
-                ajax: {
-                    method: "POST",
-                    url: PLANES_URLS.obtenerSubmenus2,
-                    data: {
-                        plan_id: plan_id
-                    },
-                    dataSrc: function(json) {
-                        if (!json.success) {
-                            console.error(json.message);
-                            notificarPlan("error", "Error", "Error al cargar los submenús nivel 2");
-                            return [];
-                        }
+        function listar_submenus2_asignacion(
+            plan_id,
+            planNombre
+        ) {
+            planesAuxLoading("submenus2");
 
-                        const contador = json.data.filter(function(d) {
-                            return d.asignado;
-                        }).length;
-
-                        $("#contador-submenus2-" + plan_id).text(contador + " asignados");
-
-                        return json.data.map(function(s2, index) {
-                            return {
-                                "#": index + 1,
-                                menu_name: s2.descripcion_padre,
-                                submenu_name: s2.descripcion,
-                                name: s2.descripcion_menu,
-                                asignado: s2.asignado
-                                    ? '<span class="badge badge-success">Asignado</span>'
-                                    : '<span class="badge badge-secondary">No asignado</span>',
-                                acciones: `
-                                    <button class="btn btn-sm ${s2.asignado ? "btn-danger" : "btn-success"} btn-toggle-submenu2"
-                                        data-submenu2-id="${s2.submenu1_id}"
-                                        data-asignado="${s2.asignado}">
-                                        ${s2.asignado ? '<i class="fas fa-times"></i> Quitar' : '<i class="fas fa-plus"></i> Asignar'}
-                                    </button>
-                                `
-                            };
-                        });
-                    }
+            $.ajax({
+                method: "POST",
+                url: PLANES_URLS.obtenerSubmenus2,
+                data: {
+                    plan_id: plan_id
                 },
-                columns: [
-                    {data: "#"},
-                    {data: "name"},
-                    {data: "menu_name"},
-                    {data: "submenu_name"},
-                    {data: "asignado"},
-                    {data: "acciones"}
-                ],
-                lengthMenu: typeof lengthMenu10 !== "undefined" ? lengthMenu10 : [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
-                stateSave: true,
-                language: typeof idioma_español !== "undefined" ? idioma_español : {},
-                dom: typeof dom !== "undefined" ? dom : "frtip",
-                buttons: []
+                dataType: "json"
+            })
+            .done(function(json) {
+                if (!json || !json.success) {
+                    planesAuxSetRows(
+                        "submenus2",
+                        [],
+                        plan_id,
+                        planNombre
+                    );
+
+                    notificarPlan(
+                        "error",
+                        "Error",
+                        (json && json.message) ||
+                        "Error al cargar los submenús nivel 2"
+                    );
+                    return;
+                }
+
+                const rows =
+                    (json.data || []).map(
+                        function(s2) {
+                            return {
+                                submenu1_id:
+                                    s2.submenu1_id,
+                                menu_name:
+                                    s2.descripcion_padre,
+                                submenu_name:
+                                    s2.descripcion,
+                                name:
+                                    s2.descripcion_menu,
+                                asignado:
+                                    planesAuxEsAsignado(
+                                        s2.asignado
+                                    )
+                                        ? 1
+                                        : 0
+                            };
+                        }
+                    );
+
+                const contador =
+                    rows.filter(function(row) {
+                        return planesAuxEsAsignado(
+                            row.asignado
+                        );
+                    }).length;
+
+                $("#contador-submenus2-" + plan_id)
+                    .text(
+                        contador + " asignados"
+                    );
+
+                planesAuxSetRows(
+                    "submenus2",
+                    rows,
+                    plan_id,
+                    planNombre
+                );
+            })
+            .fail(function(xhr) {
+                console.error(
+                    "Error al cargar submenús nivel 2:",
+                    xhr.responseText
+                );
+
+                planesAuxSetRows(
+                    "submenus2",
+                    [],
+                    plan_id,
+                    planNombre
+                );
+
+                notificarPlan(
+                    "error",
+                    "Error",
+                    "Error de conexión al cargar los submenús nivel 2"
+                );
             });
         }
 
@@ -2299,14 +3975,38 @@
             $counterElement.text(newCount + " asignados");
         }
 
-        function actualizarUIBotonAsignacion($button, asignadoActual) {
-            $button.data("asignado", !asignadoActual);
-            $button.toggleClass("btn-success btn-danger");
-            $button.html(asignadoActual ? '<i class="fas fa-plus"></i> Asignar' : '<i class="fas fa-times"></i> Quitar');
+        function actualizarUIBotonAsignacion(
+            $button,
+            asignadoActual
+        ) {
+            const nuevoEstado =
+                !planesAuxEsAsignado(asignadoActual);
 
-            const $badge = $button.closest("tr").find("span.badge");
-            $badge.toggleClass("badge-success badge-secondary");
-            $badge.text(asignadoActual ? "No asignado" : "Asignado");
+            if ($button.hasClass("btn-toggle-menu")) {
+                planesAuxActualizarAsignado(
+                    "menus",
+                    $button.data("menu-id"),
+                    nuevoEstado
+                );
+                return;
+            }
+
+            if ($button.hasClass("btn-toggle-submenu")) {
+                planesAuxActualizarAsignado(
+                    "submenus",
+                    $button.data("submenu-id"),
+                    nuevoEstado
+                );
+                return;
+            }
+
+            if ($button.hasClass("btn-toggle-submenu2")) {
+                planesAuxActualizarAsignado(
+                    "submenus2",
+                    $button.data("submenu2-id"),
+                    nuevoEstado
+                );
+            }
         }
 
         /* =========================================================
@@ -2504,6 +4204,14 @@
                         $("#filtroEstadoPlanes").val("todos");
                         $("#filtroConfiguracionPlanes").val("");
 
+                        refrescarSelect2Planes(
+                            $("#filtroEstadoPlanes")
+                        );
+
+                        refrescarSelect2Planes(
+                            $("#filtroConfiguracionPlanes")
+                        );
+
                         aplicarFiltrosPlanesPrincipal();
                     }, 50);
                 });
@@ -2603,6 +4311,198 @@
                 .off("click.planesPdf")
                 .on("click.planesPdf", previsualizarPlanesPdfPremium);
 
+            $(document)
+                .off(
+                    "input.planesAuxSearch",
+                    "[data-planes-aux-search]"
+                )
+                .on(
+                    "input.planesAuxSearch",
+                    "[data-planes-aux-search]",
+                    function() {
+                        const tipo =
+                            $(this)
+                                .data("planes-aux-search");
+
+                        const state =
+                            planesAuxEstado(tipo);
+
+                        state.busqueda =
+                            $.trim($(this).val());
+
+                        state.pagina = 1;
+
+                        $(
+                            '[data-planes-aux-clear="' +
+                            tipo +
+                            '"]'
+                        ).toggle(
+                            !!state.busqueda
+                        );
+
+                        planesAuxFiltrar(tipo);
+                    }
+                );
+
+            $(document)
+                .off(
+                    "click.planesAuxClear",
+                    "[data-planes-aux-clear]"
+                )
+                .on(
+                    "click.planesAuxClear",
+                    "[data-planes-aux-clear]",
+                    function() {
+                        const tipo =
+                            $(this)
+                                .data("planes-aux-clear");
+
+                        const state =
+                            planesAuxEstado(tipo);
+
+                        const $input =
+                            $(planesAuxMeta[tipo].search);
+
+                        $input.val("");
+                        $(this).hide();
+
+                        state.busqueda = "";
+                        state.pagina = 1;
+
+                        planesAuxFiltrar(tipo);
+                        $input.trigger("focus");
+                    }
+                );
+
+            $(document)
+                .off(
+                    "change.planesAuxPageSize",
+                    "[data-planes-aux-page-size]"
+                )
+                .on(
+                    "change.planesAuxPageSize",
+                    "[data-planes-aux-page-size]",
+                    function() {
+                        const tipo =
+                            $(this)
+                                .data("planes-aux-page-size");
+
+                        const state =
+                            planesAuxEstado(tipo);
+
+                        const valor =
+                            parseInt(
+                                $(this).val(),
+                                10
+                            );
+
+                        state.porPagina =
+                            isNaN(valor) ||
+                            valor <= 0
+                                ? (
+                                    state.vista ===
+                                    "miniatura"
+                                        ? 6
+                                        : 10
+                                )
+                                : valor;
+
+                        if (
+                            state.vista ===
+                            "miniatura"
+                        ) {
+                            state.porPaginaMiniatura =
+                                state.porPagina;
+                        } else {
+                            state.porPaginaDetalle =
+                                state.porPagina;
+                        }
+
+                        state.pagina = 1;
+                        planesAuxRender(tipo);
+                    }
+                );
+
+            $(document)
+                .off(
+                    "click.planesAuxView",
+                    "[data-planes-aux-view]"
+                )
+                .on(
+                    "click.planesAuxView",
+                    "[data-planes-aux-view]",
+                    function() {
+                        planesAuxCambiarVista(
+                            $(this)
+                                .data("planes-aux-view"),
+                            $(this)
+                                .data("view")
+                        );
+                    }
+                );
+
+            $(document)
+                .off(
+                    "click.planesAuxPage",
+                    ".planes-aux-page-btn"
+                )
+                .on(
+                    "click.planesAuxPage",
+                    ".planes-aux-page-btn",
+                    function() {
+                        if ($(this).prop("disabled")) {
+                            return;
+                        }
+
+                        const tipo =
+                            $(this)
+                                .data("planes-aux-page");
+
+                        const state =
+                            planesAuxEstado(tipo);
+
+                        state.pagina =
+                            parseInt(
+                                $(this).data("page"),
+                                10
+                            ) || 1;
+
+                        planesAuxRender(tipo);
+                    }
+                );
+
+            $(document)
+                .off(
+                    "click.planesAuxExcel",
+                    "[data-planes-aux-excel]"
+                )
+                .on(
+                    "click.planesAuxExcel",
+                    "[data-planes-aux-excel]",
+                    function() {
+                        planesAuxExportarExcel(
+                            $(this)
+                                .data("planes-aux-excel")
+                        );
+                    }
+                );
+
+            $(document)
+                .off(
+                    "click.planesAuxPdf",
+                    "[data-planes-aux-pdf]"
+                )
+                .on(
+                    "click.planesAuxPdf",
+                    "[data-planes-aux-pdf]",
+                    function() {
+                        planesAuxPrevisualizarPdf(
+                            $(this)
+                                .data("planes-aux-pdf")
+                        );
+                    }
+                );
+
             $("#estado_plan").off("change.planes").on("change.planes", updateEstadoLabel);
 
             $("#agregar-configuracion").off("click.planes").on("click.planes", function() {
@@ -2626,7 +4526,7 @@
                 $("#modalConfiguraciones .modal-title")
                     .text("Configuraciones del Plan: " + planNombre);
 
-                listar_configuraciones(planId, configs);
+                listar_configuraciones(planId, configs, planNombre);
             });
 
             $(document).off("click.planesEditar", ".btn-editar").on("click.planesEditar", ".btn-editar", function() {
@@ -2660,7 +4560,7 @@
             $(document).off("click.planesToggleMenu", ".btn-toggle-menu").on("click.planesToggleMenu", ".btn-toggle-menu", function() {
                 const $button = $(this);
                 const menuId = $button.data("menu-id");
-                const asignado = $button.data("asignado");
+                const asignado = planesAuxEsAsignado($button.data("asignado"));
                 const planId = $("#plan_id_menus").val();
                 const nuevoEstado = asignado ? 0 : 1;
 
@@ -2699,7 +4599,7 @@
             $(document).off("click.planesToggleSubmenu", ".btn-toggle-submenu").on("click.planesToggleSubmenu", ".btn-toggle-submenu", function() {
                 const $button = $(this);
                 const submenuId = $button.data("submenu-id");
-                const asignado = $button.data("asignado");
+                const asignado = planesAuxEsAsignado($button.data("asignado"));
                 const planId = $("#plan_id_submenus").val();
                 const nuevoEstado = asignado ? 0 : 1;
 
@@ -2738,7 +4638,7 @@
             $(document).off("click.planesToggleSubmenu2", ".btn-toggle-submenu2").on("click.planesToggleSubmenu2", ".btn-toggle-submenu2", function() {
                 const $button = $(this);
                 const submenu2Id = $button.data("submenu2-id");
-                const asignado = $button.data("asignado");
+                const asignado = planesAuxEsAsignado($button.data("asignado"));
                 const planId = $("#plan_id_submenus2").val();
                 const nuevoEstado = asignado ? 0 : 1;
 
@@ -2774,6 +4674,65 @@
                 });
             });
 
+            let planesAuxResponsiveTimer = null;
+
+            $(window)
+                .off(
+                    "resize.planesAuxResponsive orientationchange.planesAuxResponsive"
+                )
+                .on(
+                    "resize.planesAuxResponsive orientationchange.planesAuxResponsive",
+                    function() {
+                        clearTimeout(
+                            planesAuxResponsiveTimer
+                        );
+
+                        planesAuxResponsiveTimer =
+                            setTimeout(function() {
+                                Object.keys(
+                                    planesAuxStates
+                                ).forEach(
+                                    function(tipo) {
+                                        const state =
+                                            planesAuxEstado(tipo);
+
+                                        const objetivo =
+                                            planesEsMovil()
+                                                ? "miniatura"
+                                                : state.vistaPreferida;
+
+                                        if (
+                                            state.vista ===
+                                            objetivo
+                                        ) {
+                                            planesAuxActualizarVistaBotones(
+                                                tipo
+                                            );
+                                            return;
+                                        }
+
+                                        state.vista =
+                                            objetivo;
+
+                                        state.pagina = 1;
+
+                                        planesAuxSincronizarPageSize(
+                                            tipo
+                                        );
+
+                                        planesAuxActualizarVistaBotones(
+                                            tipo
+                                        );
+
+                                        planesAuxRender(
+                                            tipo
+                                        );
+                                    }
+                                );
+                            }, 120);
+                    }
+                );
+
             $(document).off("click.planesAbrirMenus", ".btn-asignar-menu").on("click.planesAbrirMenus", ".btn-asignar-menu", function() {
                 const planId = $(this).data("plan-id");
                 const planNombre = $(this).data("plan-nombre");
@@ -2781,7 +4740,7 @@
                 $("#plan_id_menus").val(planId);
                 $("#modalAsignarMenus .modal-title").text("Asignar Menús Principales al Plan: " + planNombre);
 
-                listar_menus_asignacion(planId);
+                listar_menus_asignacion(planId, planNombre);
 
                 $("#modalAsignarMenus").modal({
                     keyboard: false,
@@ -2796,7 +4755,7 @@
                 $("#plan_id_submenus").val(planId);
                 $("#modalAsignarSubmenus .modal-title").text("Asignar Submenús Nivel 1 al Plan: " + planNombre);
 
-                listar_submenus_asignacion(planId);
+                listar_submenus_asignacion(planId, planNombre);
 
                 $("#modalAsignarSubmenus").modal({
                     keyboard: false,
@@ -2811,7 +4770,7 @@
                 $("#plan_id_submenus2").val(planId);
                 $("#modalAsignarSubmenus2 .modal-title").text("Asignar Submenús Nivel 2 al Plan: " + planNombre);
 
-                listar_submenus2_asignacion(planId);
+                listar_submenus2_asignacion(planId, planNombre);
 
                 $("#modalAsignarSubmenus2").modal({
                     keyboard: false,
@@ -2825,7 +4784,7 @@
         ========================================================= */
         function arrancarPlanes() {
             updateEstadoLabel();
-            inicializarSelectPicker();
+            inicializarSelect2Planes();
             inicializarUIPlanes();
             registrarEventosPlanes();
             recargarPlanesPrincipal(false);

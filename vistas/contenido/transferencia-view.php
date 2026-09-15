@@ -60,13 +60,17 @@
                             </select>
                         </div>
 
-                        <div class="col-lg-4 col-md-6 col-12 mb-3">
-                            <label class="transferencia-label-filter">
+                        <div class="col-lg-4 col-md-6 col-12 mb-3 transferencia-filter-almacen">
+                            <label class="transferencia-label-filter" for="almacen">
                                 <i class="fas fa-warehouse mr-1"></i> Almacén
                             </label>
                             <select id="almacen" name="almacen"
-                                    class="form-control selectpicker" data-live-search="true"
-                                    title="Almacén" data-width="100%">
+                                    class="form-control selectpicker"
+                                    data-live-search="true"
+                                    data-none-selected-text="Todos los almacenes"
+                                    title="Todos los almacenes"
+                                    data-width="100%">
+                                <option value="0" selected>Todos los almacenes</option>
                             </select>
                         </div>
 
@@ -397,7 +401,52 @@
             </div>
 
             <div class="card-body">
-                <div id="historicoInventarioListado" class="transferencia-historico-listado"></div>
+                <div class="historico-inventario-toolbar">
+                    <div class="historico-inventario-toolbar-left">
+                        <button type="button" class="btn btn-success table_reportes ocultar" id="btnExcelHistoricoInventario">
+                            <i class="fas fa-file-excel mr-1"></i> Excel
+                        </button>
+                        <button type="button" class="btn btn-danger table_reportes ocultar" id="btnPdfHistoricoInventario">
+                            <i class="fas fa-file-pdf mr-1"></i> PDF
+                        </button>
+                    </div>
+
+                    <div class="historico-inventario-toolbar-right">
+                        <label class="historico-inventario-page-size mb-0">
+                            <span>Mostrar</span>
+                            <select id="historicoInventarioPageSize" class="form-control form-control-sm">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                            <span>registros</span>
+                        </label>
+
+                        <div class="historico-inventario-view-switch">
+                            <button type="button" class="historico-inventario-view-btn active" data-view="detalle" aria-pressed="true">
+                                <i class="fas fa-list"></i><span>Detalle</span>
+                            </button>
+                            <button type="button" class="historico-inventario-view-btn" data-view="miniatura" aria-pressed="false">
+                                <i class="fas fa-th-large"></i><span>Miniatura</span>
+                            </button>
+                        </div>
+
+                        <div class="historico-inventario-search">
+                            <span class="historico-inventario-search-icon"><i class="fas fa-search"></i></span>
+                            <input type="search" id="buscarHistoricoInventario" class="form-control"
+                                   placeholder="Buscar producto..." autocomplete="off">
+                            <button type="button" id="limpiarBuscarHistoricoInventario"
+                                    class="historico-inventario-search-clear"
+                                    aria-label="Limpiar búsqueda" title="Limpiar búsqueda">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="historicoInventarioListado" class="transferencia-historico-listado vista-detalle"></div>
+
                 <div class="transferencia-list-footer">
                     <span id="historicoInventarioInfo">0 registros</span>
                     <div id="historicoInventarioPaginacion" class="transferencia-pagination"></div>

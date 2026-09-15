@@ -43,6 +43,179 @@ var izzyPermisosDataTablesPromise = null;
 var izzyProgramaPuntosPromise = null;
 var izzyPrivilegioUsuarioPromise = null;
 
+var izzyPdfCargaTimer = null;
+var izzyPdfCargaInterval = null;
+var izzyPdfCargaInicio = 0;
+
+/* =========================================================
+   IZZY | CARGA GLOBAL DE PDF
+   ---------------------------------------------------------
+   El indicador de proceso es INDEPENDIENTE del modal del visor.
+   El modal PDF se abre únicamente cuando el documento ya existe.
+   Así no se toca el iframe ni se altera el flujo de pdfMake.
+   ========================================================= */
+function izzyPdfCargaObtenerUI() {
+    var $loading = $('#izzy_pdf_generando_global');
+
+    if (!$loading.length) {
+        $loading = $(
+            '<div id="izzy_pdf_generando_global" ' +
+                'class="d-flex align-items-center justify-content-center">' +
+                '<div class="izzy-pdf-loading-card text-center">' +
+                    '<div class="spinner-border text-info mb-3" role="status" aria-hidden="true"></div>' +
+                    '<strong class="izzy-pdf-loading-title d-block">Generando PDF...</strong>' +
+                    '<span class="izzy-pdf-loading-text d-block mt-1">Preparando el documento.</span>' +
+                '</div>' +
+            '</div>'
+        );
+
+        $loading.css({
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 20000,
+            background: 'rgba(15, 23, 42, .42)',
+            padding: '20px'
+        });
+
+        $loading.find('.izzy-pdf-loading-card').css({
+            width: 'min(420px, calc(100vw - 32px))',
+            padding: '26px 24px',
+            borderRadius: '14px',
+            background: '#FFFFFF',
+            boxShadow: '0 22px 60px rgba(15, 23, 42, .24)',
+            color: '#253858'
+        });
+
+        $loading.find('.izzy-pdf-loading-title').css({
+            fontSize: '15px',
+            color: '#17324D'
+        });
+
+        $loading.find('.izzy-pdf-loading-text').css({
+            fontSize: '13px',
+            color: '#6B778C',
+            lineHeight: '1.45'
+        });
+
+        $('body').append($loading);
+    }
+
+    return $loading;
+}
+
+window.mostrarCargaPdfPublico = function(titulo, mensaje) {
+    var $loading = izzyPdfCargaObtenerUI();
+
+    if (!$loading.length) {
+        return false;
+    }
+
+    if (izzyPdfCargaTimer) {
+        clearTimeout(izzyPdfCargaTimer);
+        izzyPdfCargaTimer = null;
+    }
+
+    if (izzyPdfCargaInterval) {
+        clearInterval(izzyPdfCargaInterval);
+        izzyPdfCargaInterval = null;
+    }
+
+    var mensajeBase = mensaje || 'Preparando el documento. Espere un momento...';
+
+    $loading.find('.izzy-pdf-loading-title')
+        .text(titulo ? 'Generando ' + titulo + '...' : 'Generando PDF...');
+
+    $loading.find('.izzy-pdf-loading-text')
+        .text(mensajeBase);
+
+    izzyPdfCargaInicio = Date.now();
+
+    izzyPdfCargaInterval = setInterval(function() {
+        var segundos = Math.max(
+            0,
+            Math.floor((Date.now() - izzyPdfCargaInicio) / 1000)
+        );
+
+        var texto = mensajeBase + ' • ' + segundos + ' s';
+
+        if (segundos >= 30) {
+            texto += ' • El reporte es grande; continúo procesándolo.';
+        }
+
+        if (segundos >= 60) {
+            texto += ' • Está tardando más de lo normal.';
+        }
+
+        $loading.find('.izzy-pdf-loading-text').text(texto);
+    }, 1000);
+
+    $loading.stop(true, true).fadeIn(120);
+
+    return true;
+};
+
+window.actualizarCargaPdfPublico = function(titulo, mensaje) {
+    var $loading = izzyPdfCargaObtenerUI();
+
+    if (!$loading.length) {
+        return false;
+    }
+
+    if (titulo) {
+        $loading.find('.izzy-pdf-loading-title').text(titulo);
+    }
+
+    if (mensaje) {
+        $loading.find('.izzy-pdf-loading-text').text(mensaje);
+    }
+
+    return true;
+};
+
+window.ocultarCargaPdfPublico = function() {
+    if (izzyPdfCargaTimer) {
+        clearTimeout(izzyPdfCargaTimer);
+        izzyPdfCargaTimer = null;
+    }
+
+    if (izzyPdfCargaInterval) {
+        clearInterval(izzyPdfCargaInterval);
+        izzyPdfCargaInterval = null;
+    }
+
+    izzyPdfCargaInicio = 0;
+
+    /*
+     * Ocultado inmediato: abrir el visor PDF puede ocupar el hilo de
+     * renderizado y dejar una animación fadeOut pendiente en pantalla.
+     */
+    $('#izzy_pdf_generando_global')
+        .stop(true, true)
+        .hide();
+
+    return true;
+};
+
+window.finalizarCargaPdfPublico = function(delay) {
+    var espera = parseInt(delay, 10);
+
+    if (isNaN(espera) || espera < 0) {
+        espera = 0;
+    }
+
+    if (izzyPdfCargaTimer) {
+        clearTimeout(izzyPdfCargaTimer);
+    }
+
+    izzyPdfCargaTimer = setTimeout(function() {
+        window.ocultarCargaPdfPublico();
+    }, espera);
+};
+
+
 function izzyParseJsonSeguro(valor, respaldo) {
     if (valor !== null && typeof valor === 'object') {
         return valor;

@@ -124,15 +124,11 @@
     background: #fff;
     box-shadow: 0 4px 12px rgba(23, 43, 77, .06);
     overflow: hidden;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        border-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .programa-puntos-kpi-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 22px rgba(23, 43, 77, .11);
+    transform: translateY(-4px);
 }
 
 .programa-puntos-kpi-card > div:first-child {
@@ -188,16 +184,11 @@
     background: #f7f9fc;
     color: #274f72;
     font-size: 18px;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        background-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .programa-puntos-kpi-card:hover .programa-puntos-kpi-icon {
-    transform: translateY(-1px) scale(1.05);
-    background: #fff;
-    box-shadow: 0 5px 12px rgba(31, 47, 67, .10);
+    transform: scale(1.05);
 }
 
 /* Toolbar */
@@ -383,10 +374,7 @@
     border-radius: 9px;
     background: #fff;
     box-shadow: 0 2px 7px rgba(31, 47, 67, .05);
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        border-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .programa-puntos-cell {
@@ -556,10 +544,7 @@
     border-radius: 10px;
     background: #fff;
     box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        border-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .programa-puntos-mini-topline {
@@ -589,9 +574,7 @@
     border-radius: 10px;
     background: #eef6ff;
     color: #2479b8;
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease;
+    transition: transform .18s ease;
 }
 
 .programa-puntos-mini-title {
@@ -684,17 +667,18 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .programa-puntos-listado.vista-detalle .programa-puntos-detail-row:hover,
-    .programa-puntos-mini-card:hover {
+    .programa-puntos-listado.vista-detalle .programa-puntos-detail-row:hover {
         transform: translateY(-3px);
-        border-color: #cfdbe7;
-        box-shadow: 0 10px 24px rgba(23, 50, 77, .12);
+        z-index: 2;
+    }
+
+    .programa-puntos-mini-card:hover {
+        transform: translateY(-4px);
         z-index: 2;
     }
 
     .programa-puntos-mini-card:hover .programa-puntos-mini-icon {
-        transform: translateY(-1px) scale(1.04);
-        box-shadow: 0 6px 14px rgba(23, 50, 77, .10);
+        transform: scale(1.04);
     }
 }
 

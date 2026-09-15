@@ -1509,9 +1509,20 @@ function empresaExcelCol(index) {
     return name;
 }
 
-function empresaExcelCell(ref, value, styleId) {
+function empresaExcelCell(ref, value, styleId, numeric) {
+    if (numeric) {
+        var numero = Number(value);
+
+        if (!isNaN(numero)) {
+            return '<c r="' + ref + '" s="' + styleId + '"><v>' + numero + '</v></c>';
+        }
+    }
+
+    var raw = String(value === null || value === undefined ? '' : value);
+    var preserve = /^\s|\s$/.test(raw) ? ' xml:space="preserve"' : '';
+
     return '<c r="' + ref + '" s="' + styleId + '" t="inlineStr">' +
-        '<is><t>' + empresaXmlEscape(value) + '</t></is>' +
+        '<is><t' + preserve + '>' + empresaXmlEscape(raw) + '</t></is>' +
     '</c>';
 }
 
@@ -1564,12 +1575,36 @@ function exportarEmpresaExcelPremium() {
         ];
     });
 
+    var activas = rows.filter(function (row) {
+        return String(row.estado || '').toLowerCase() === 'activo';
+    }).length;
+
+    var contacto = rows.filter(function (row) {
+        return (
+            row.telefono !== 'No registrado' ||
+            row.celular !== 'No registrado' ||
+            row.correo !== 'No registrado'
+        );
+    }).length;
+
+    var firma = rows.filter(function (row) {
+        return String(row.firma || '').toLowerCase() === 'visible';
+    }).length;
+
     var sheetRows = [];
     var headerRow = 7;
+    var firstDataRow = 8;
+    var lastCol = 'L';
+    var lastRow = Math.max(headerRow, headerRow + data.length);
 
     sheetRows.push(
         '<row r="1" ht="30" customHeight="1">' +
-            empresaExcelCell('A1', 'IZZY • REPORTE DE EMPRESAS', 1) +
+            empresaExcelCell(
+                'A1',
+                'IZZY • REPORTE DE EMPRESAS',
+                1,
+                false
+            ) +
         '</row>'
     );
 
@@ -1579,163 +1614,284 @@ function exportarEmpresaExcelPremium() {
                 'A2',
                 'Directorio empresarial y configuración fiscal • Generado: ' +
                 new Date().toLocaleDateString('es-HN'),
-                2
+                2,
+                false
             ) +
         '</row>'
     );
 
+    /*
+     * Resumen ejecutivo.
+     * Cada celda del rango combinado conserva estilo y borde.
+     * Así Excel dibuja el contorno completo de los 4 indicadores.
+     */
     sheetRows.push(
-        '<row r="3">' +
-            empresaExcelCell('A3', 'REGISTROS', 6) +
-            empresaExcelCell('D3', 'ACTIVAS', 6) +
-            empresaExcelCell('G3', 'CON CONTACTO', 6) +
-            empresaExcelCell('J3', 'FIRMA VISIBLE', 6) +
+        '<row r="3" ht="18" customHeight="1">' +
+            empresaExcelCell('A3', 'REGISTROS', 6, false) +
+            empresaExcelCell('B3', '', 6, false) +
+            empresaExcelCell('C3', '', 6, false) +
+
+            empresaExcelCell('D3', 'ACTIVAS', 6, false) +
+            empresaExcelCell('E3', '', 6, false) +
+            empresaExcelCell('F3', '', 6, false) +
+
+            empresaExcelCell('G3', 'CON CONTACTO', 6, false) +
+            empresaExcelCell('H3', '', 6, false) +
+            empresaExcelCell('I3', '', 6, false) +
+
+            empresaExcelCell('J3', 'FIRMA VISIBLE', 6, false) +
+            empresaExcelCell('K3', '', 6, false) +
+            empresaExcelCell('L3', '', 6, false) +
         '</row>'
     );
 
-    var activas = rows.filter(function (r) { return r.estado === 'Activo'; }).length;
-    var contacto = rows.filter(function (r) {
-        return r.telefono !== 'No registrado' ||
-               r.celular !== 'No registrado' ||
-               r.correo !== 'No registrado';
-    }).length;
-    var firma = rows.filter(function (r) { return r.firma === 'Visible'; }).length;
-
     sheetRows.push(
-        '<row r="4">' +
-            empresaExcelCell('A4', rows.length, 7) +
-            empresaExcelCell('D4', activas, 7) +
-            empresaExcelCell('G4', contacto, 7) +
-            empresaExcelCell('J4', firma, 7) +
+        '<row r="4" ht="26" customHeight="1">' +
+            empresaExcelCell('A4', rows.length, 7, true) +
+            empresaExcelCell('B4', '', 7, false) +
+            empresaExcelCell('C4', '', 7, false) +
+
+            empresaExcelCell('D4', activas, 7, true) +
+            empresaExcelCell('E4', '', 7, false) +
+            empresaExcelCell('F4', '', 7, false) +
+
+            empresaExcelCell('G4', contacto, 7, true) +
+            empresaExcelCell('H4', '', 7, false) +
+            empresaExcelCell('I4', '', 7, false) +
+
+            empresaExcelCell('J4', firma, 7, true) +
+            empresaExcelCell('K4', '', 7, false) +
+            empresaExcelCell('L4', '', 7, false) +
         '</row>'
     );
 
     sheetRows.push('<row r="5"></row>');
+
     sheetRows.push(
-        '<row r="6">' +
-            empresaExcelCell('A6', 'Detalle de empresas filtradas', 8) +
+        '<row r="6" ht="18" customHeight="1">' +
+            empresaExcelCell(
+                'A6',
+                'Detalle de empresas filtradas',
+                8,
+                false
+            ) +
         '</row>'
     );
 
-    var headerCells = headers.map(function (h, i) {
-        return empresaExcelCell(empresaExcelCol(i) + headerRow, h, 3);
+    var headerCells = headers.map(function (header, index) {
+        return empresaExcelCell(
+            empresaExcelCol(index) + headerRow,
+            header,
+            3,
+            false
+        );
     }).join('');
 
-    sheetRows.push('<row r="' + headerRow + '">' + headerCells + '</row>');
+    sheetRows.push(
+        '<row r="' + headerRow + '" ht="26" customHeight="1">' +
+            headerCells +
+        '</row>'
+    );
 
     data.forEach(function (row, rowIndex) {
-        var excelRow = 8 + rowIndex;
+        var excelRow = firstDataRow + rowIndex;
 
         var cells = row.map(function (value, colIndex) {
             var style = 4;
 
-            if (colIndex === 10 || colIndex === 11) {
-                style = value === 'Visible' || value === 'Activo' ? 9 : 10;
+            if (colIndex === 10) {
+                style = String(value || '').toLowerCase() === 'visible'
+                    ? 9
+                    : 10;
+            }
+
+            if (colIndex === 11) {
+                style = String(value || '').toLowerCase() === 'activo'
+                    ? 9
+                    : 10;
             }
 
             return empresaExcelCell(
                 empresaExcelCol(colIndex) + excelRow,
                 value,
-                style
+                style,
+                false
             );
         }).join('');
 
-        sheetRows.push('<row r="' + excelRow + '" ht="38" customHeight="1">' + cells + '</row>');
+        sheetRows.push(
+            '<row r="' + excelRow + '" ht="38" customHeight="1">' +
+                cells +
+            '</row>'
+        );
     });
-
-    var lastRow = Math.max(headerRow, headerRow + data.length);
 
     var sheetXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-            '<dimension ref="A1:L' + lastRow + '"/>' +
-            '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
-                '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
-            '</sheetView></sheetViews>' +
+            '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
+            '<sheetViews>' +
+                '<sheetView workbookViewId="0" showGridLines="0">' +
+                    '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                    '<selection pane="bottomLeft" activeCell="A8" sqref="A8"/>' +
+                '</sheetView>' +
+            '</sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+
             '<cols>' +
-                '<col min="1" max="2" width="28" customWidth="1"/>' +
+                '<col min="1" max="1" width="28" customWidth="1"/>' +
+                '<col min="2" max="2" width="30" customWidth="1"/>' +
                 '<col min="3" max="3" width="19" customWidth="1"/>' +
                 '<col min="4" max="5" width="16" customWidth="1"/>' +
-                '<col min="6" max="6" width="26" customWidth="1"/>' +
-                '<col min="7" max="7" width="32" customWidth="1"/>' +
-                '<col min="8" max="9" width="25" customWidth="1"/>' +
-                '<col min="10" max="10" width="22" customWidth="1"/>' +
-                '<col min="11" max="12" width="14" customWidth="1"/>' +
+                '<col min="6" max="6" width="30" customWidth="1"/>' +
+                '<col min="7" max="7" width="34" customWidth="1"/>' +
+                '<col min="8" max="9" width="27" customWidth="1"/>' +
+                '<col min="10" max="10" width="24" customWidth="1"/>' +
+                '<col min="11" max="12" width="15" customWidth="1"/>' +
             '</cols>' +
+
             '<sheetData>' + sheetRows.join('') + '</sheetData>' +
-            '<autoFilter ref="A7:L' + lastRow + '"/>' +
+
+            '<autoFilter ref="A' + headerRow + ':' + lastCol + lastRow + '"/>' +
+
             '<mergeCells count="10">' +
                 '<mergeCell ref="A1:L1"/>' +
                 '<mergeCell ref="A2:L2"/>' +
-                '<mergeCell ref="A3:C3"/><mergeCell ref="A4:C4"/>' +
-                '<mergeCell ref="D3:F3"/><mergeCell ref="D4:F4"/>' +
-                '<mergeCell ref="G3:I3"/><mergeCell ref="G4:I4"/>' +
-                '<mergeCell ref="J3:L3"/><mergeCell ref="J4:L4"/>' +
+                '<mergeCell ref="A3:C3"/>' +
+                '<mergeCell ref="A4:C4"/>' +
+                '<mergeCell ref="D3:F3"/>' +
+                '<mergeCell ref="D4:F4"/>' +
+                '<mergeCell ref="G3:I3"/>' +
+                '<mergeCell ref="G4:I4"/>' +
+                '<mergeCell ref="J3:L3"/>' +
+                '<mergeCell ref="J4:L4"/>' +
             '</mergeCells>' +
+
             '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
-            '<pageSetup orientation="landscape" paperSize="9" fitToWidth="1" fitToHeight="0"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
         '</worksheet>';
 
+    /*
+     * Misma base visual utilizada en Users/Ubicación:
+     * - Navy #172B4D
+     * - Teal #0EA5A8
+     * - Bordes DDE3EA completos
+     * - Estados verde/rojo
+     */
     var stylesXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+
             '<fonts count="7">' +
-                '<font><sz val="10"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
                 '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
                 '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
                 '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
-                '<font><sz val="9"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
                 '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
                 '<font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
             '</fonts>' +
+
             '<fills count="7">' +
                 '<fill><patternFill patternType="none"/></fill>' +
                 '<fill><patternFill patternType="gray125"/></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/></patternFill></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF172B4D"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/><bgColor indexed="64"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/><bgColor indexed="64"/></patternFill></fill>' +
             '</fills>' +
+
             '<borders count="2">' +
                 '<border><left/><right/><top/><bottom/><diagonal/></border>' +
-                '<border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border>' +
+                '<border>' +
+                    '<left style="thin"><color rgb="FFDDE3EA"/></left>' +
+                    '<right style="thin"><color rgb="FFDDE3EA"/></right>' +
+                    '<top style="thin"><color rgb="FFDDE3EA"/></top>' +
+                    '<bottom style="thin"><color rgb="FFDDE3EA"/></bottom>' +
+                    '<diagonal/>' +
+                '</border>' +
             '</borders>' +
-            '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+
+            '<cellStyleXfs count="1">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+            '</cellStyleXfs>' +
+
             '<cellXfs count="11">' +
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
-                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1">' +
+                    '<alignment vertical="center"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1">' +
+                    '<alignment vertical="center" wrapText="1"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment horizontal="center" vertical="center" wrapText="1"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment vertical="center" wrapText="1"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment horizontal="center" vertical="center" wrapText="1"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment horizontal="center" vertical="center"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment horizontal="center" vertical="center"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1">' +
+                    '<alignment vertical="center"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment horizontal="center" vertical="center" wrapText="1"/>' +
+                '</xf>' +
+
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1">' +
+                    '<alignment horizontal="center" vertical="center" wrapText="1"/>' +
+                '</xf>' +
             '</cellXfs>' +
-            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+
+            '<cellStyles count="1">' +
+                '<cellStyle name="Normal" xfId="0" builtinId="0"/>' +
+            '</cellStyles>' +
+
         '</styleSheet>';
 
     var workbookXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
-        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<bookViews><workbookView activeTab="0"/></bookViews>' +
             '<sheets><sheet name="Empresas" sheetId="1" r:id="rId1"/></sheets>' +
         '</workbook>';
 
     var workbookRels =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
-            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+            '<Relationship Id="rId1" ' +
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" ' +
+                'Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" ' +
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" ' +
+                'Target="styles.xml"/>' +
         '</Relationships>';
 
     var rootRels =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+            '<Relationship Id="rId1" ' +
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" ' +
+                'Target="xl/workbook.xml"/>' +
         '</Relationships>';
 
     var contentTypes =
@@ -1743,9 +1899,12 @@ function exportarEmpresaExcelPremium() {
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
             '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
             '<Default Extension="xml" ContentType="application/xml"/>' +
-            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
-            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
-            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ' +
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ' +
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ' +
+                'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
         '</Types>';
 
     var zip = new JSZip();
@@ -1759,22 +1918,49 @@ function exportarEmpresaExcelPremium() {
 
     var opciones = {
         type: 'blob',
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         compression: 'DEFLATE'
     };
 
-    var promesa = typeof zip.generateAsync === 'function'
-        ? zip.generateAsync(opciones)
-        : Promise.resolve(zip.generate(opciones));
+    var promesa;
 
-    promesa.then(function (blob) {
-        empresaDescargarBlob(blob, 'Reporte_Empresas.xlsx');
-    }).catch(function (error) {
-        console.error(error);
-        showNotify('error', 'Error', 'No se pudo generar el archivo Excel.');
-    });
+    if (typeof zip.generateAsync === 'function') {
+        promesa = zip.generateAsync(opciones);
+    } else if (typeof zip.generate === 'function') {
+        try {
+            promesa = Promise.resolve(zip.generate(opciones));
+        } catch (errorGenerate) {
+            promesa = Promise.reject(errorGenerate);
+        }
+    } else {
+        promesa = Promise.reject(
+            new Error(
+                'La versión de JSZip cargada no soporta generateAsync() ni generate().'
+            )
+        );
+    }
+
+    promesa
+        .then(function (blob) {
+            empresaDescargarBlob(
+                blob,
+                'Reporte_Empresas.xlsx'
+            );
+        })
+        .catch(function (error) {
+            console.error(
+                'Error al generar Excel de empresas:',
+                error
+            );
+
+            showNotify(
+                'error',
+                'Error al generar Excel',
+                'No se pudo generar el archivo Excel.'
+            );
+        });
 }
-
 function empresaPdfDato(label, value, options) {
     options = options || {};
 

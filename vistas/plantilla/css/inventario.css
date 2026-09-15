@@ -1131,3 +1131,405 @@
     .movimientos-mini-field > strong { font-size:13px !important; }
     .movimientos-mini-field > span { font-size:10px !important; }
 }
+
+
+/* =========================================================
+   IZZY 6.0 | MODAL AUDITORÍA DE AJUSTES DE INVENTARIO
+   Mismo lenguaje visual limpio/premium usado en el sistema.
+   ========================================================= */
+#modal_consultar_inventario,
+#modal_consultar_inventario * {
+    box-sizing: border-box;
+}
+
+#modal_consultar_inventario .modal-auditoria-ajustes-dialog {
+    width: calc(100% - 30px);
+    max-width: 1380px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#modal_consultar_inventario .modal-content {
+    max-width: 100%;
+    overflow: hidden;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 22px 60px rgba(15, 23, 42, .20);
+}
+
+#modal_consultar_inventario .modal-header {
+    min-height: 66px;
+    display: flex;
+    align-items: center;
+    padding: 14px 18px;
+    border: 0;
+    border-bottom: 4px solid #20c997 !important;
+    background: #17324d !important;
+    color: #fff;
+}
+
+#modal_consultar_inventario .modal-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    color: #fff !important;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+#modal_consultar_inventario .modal-title i {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 9px;
+    background: rgba(255,255,255,.08);
+}
+
+#modal_consultar_inventario .modal-header .close {
+    width: 34px;
+    height: 34px;
+    margin: 0 0 0 auto;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff !important;
+    text-shadow: none;
+    opacity: .9;
+}
+
+#modal_consultar_inventario .modal-header .close:hover {
+    opacity: 1;
+}
+
+#modal_consultar_inventario .modal-body {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    max-height: calc(100vh - 180px);
+    padding: 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: #f7f9fc;
+}
+
+/* Panel de filtros */
+#modal_consultar_inventario #formConsultaInventario > .card {
+    border: 1px solid #dfe6ee !important;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(23, 50, 77, .06);
+    overflow: visible;
+}
+
+#modal_consultar_inventario #formConsultaInventario > .card > .card-header {
+    padding: 13px 16px;
+    border: 0;
+    border-bottom: 1px solid #e4eaf0;
+    border-radius: 12px 12px 0 0;
+    background: #fff !important;
+    color: #172b4d !important;
+}
+
+#modal_consultar_inventario #formConsultaInventario > .card > .card-header h5 {
+    color: #172b4d !important;
+    font-size: .96rem;
+    font-weight: 800;
+}
+
+#modal_consultar_inventario #formConsultaInventario > .card > .card-header i {
+    width: 31px;
+    height: 31px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px !important;
+    border: 1px solid #d9e7f3;
+    border-radius: 8px;
+    background: #eef6ff;
+    color: #2675b9;
+}
+
+#modal_consultar_inventario #formConsultaInventario > .card > .card-body {
+    padding: 16px;
+}
+
+#modal_consultar_inventario label {
+    margin-bottom: 6px;
+    color: #253858;
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+#modal_consultar_inventario .form-control {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+#modal_consultar_inventario .form-control {
+    min-height: 38px;
+    border-color: #ced4da;
+    border-radius: 8px;
+    box-shadow: none !important;
+}
+
+#modal_consultar_inventario .form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10) !important;
+}
+
+
+
+/* KPIs: sin degradados, mismo patrón blanco con acento lateral */
+#modal_consultar_inventario .auditoria-ajustes-resumen-row {
+    margin-left: -8px;
+    margin-right: -8px;
+}
+
+#modal_consultar_inventario .auditoria-ajustes-resumen-col {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+#modal_consultar_inventario .auditoria-resumen-card {
+    min-height: 108px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 15px 16px;
+    overflow: hidden;
+    border: 1px solid #dfe6ee;
+    border-left: 4px solid #2684ff;
+    border-radius: 11px;
+    background: #fff !important;
+    color: #172b4d !important;
+    box-shadow: 0 3px 10px rgba(23, 50, 77, .06);
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+#modal_consultar_inventario .auditoria-resumen-card::before,
+#modal_consultar_inventario .auditoria-resumen-card::after {
+    display: none !important;
+}
+
+#modal_consultar_inventario .auditoria-resumen-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 22px rgba(23, 43, 77, .10);
+}
+
+#modal_consultar_inventario .auditoria-card-total {
+    border-left-color: #2684ff;
+}
+
+#modal_consultar_inventario .auditoria-card-entradas {
+    border-left-color: #22a06b;
+}
+
+#modal_consultar_inventario .auditoria-card-sincambio {
+    border-left-color: #7a869a;
+}
+
+#modal_consultar_inventario .auditoria-card-balance {
+    border-left-color: #6554c0;
+}
+
+#modal_consultar_inventario .auditoria-resumen-info {
+    min-width: 0;
+}
+
+#modal_consultar_inventario .auditoria-resumen-label {
+    display: block;
+    margin-bottom: 4px;
+    color: #5e6c84;
+    font-size: .74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+#modal_consultar_inventario .auditoria-resumen-value {
+    margin: 0;
+    color: #172b4d !important;
+    font-size: 1.55rem;
+    line-height: 1.05;
+    font-weight: 800;
+}
+
+#modal_consultar_inventario .auditoria-resumen-help {
+    display: block;
+    margin-top: 6px;
+    color: #7a869a;
+    font-size: .76rem;
+}
+
+#modal_consultar_inventario .auditoria-resumen-icon {
+    width: 43px;
+    height: 43px;
+    flex: 0 0 43px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #f7f9fc !important;
+    color: #35526f !important;
+    box-shadow: none;
+}
+
+#modal_consultar_inventario .auditoria-resumen-icon i {
+    color: inherit !important;
+    font-size: 1.05rem;
+}
+
+/* Nota de auditoría */
+#modal_consultar_inventario .alert-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 11px 13px;
+    border: 1px solid #cfe2f3;
+    border-radius: 9px;
+    background: #eef6ff;
+    color: #35526f;
+    font-size: .82rem;
+    line-height: 1.4;
+}
+
+/* Tabla dentro de su propio contenedor, sin desbordar el modal */
+#modal_consultar_inventario .auditoria-ajustes-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(23, 50, 77, .05);
+}
+
+#modal_consultar_inventario #dataTablaConsultaInventario {
+    width: 100% !important;
+    margin: 0 !important;
+    color: #172b4d;
+    font-size: .82rem;
+}
+
+#modal_consultar_inventario #dataTablaConsultaInventario thead th {
+    padding: 10px 8px;
+    border: 0;
+    border-right: 1px solid rgba(255,255,255,.08);
+    background: #193b5a !important;
+    color: #fff;
+    font-size: .74rem;
+    font-weight: 800;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+#modal_consultar_inventario #dataTablaConsultaInventario tbody td {
+    padding: 10px 8px;
+    border-color: #e5ebf1;
+    vertical-align: middle;
+    background: #fff;
+}
+
+#modal_consultar_inventario #dataTablaConsultaInventario tbody tr {
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+
+#modal_consultar_inventario #dataTablaConsultaInventario tbody tr:hover td {
+    background: #fcfffe;
+}
+
+#modal_consultar_inventario .dataTables_wrapper,
+#modal_consultar_inventario .row {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Botones de filtros */
+#modal_consultar_inventario #btnLimpiarConsultaInventario,
+#modal_consultar_inventario #btnBuscarConsultaInventario {
+    min-height: 38px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+/* Footer */
+#modal_consultar_inventario .modal-footer {
+    min-height: 62px;
+    padding: 11px 16px;
+    border-top: 1px solid #e4eaf0;
+    background: #fff;
+}
+
+#modal_consultar_inventario .modal-footer .badge {
+    padding: 7px 10px !important;
+    border: 1px solid #cfe2f3;
+    border-radius: 8px;
+    background: #eef6ff !important;
+    color: #176fae !important;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+#modal_consultar_inventario .modal-footer .btn {
+    min-height: 38px;
+    border-radius: 8px;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+@media (max-width: 991.98px) {
+    #modal_consultar_inventario .modal-auditoria-ajustes-dialog {
+        width: calc(100% - 20px);
+        margin: 10px auto;
+    }
+
+    #modal_consultar_inventario .modal-body {
+        max-height: calc(100vh - 160px);
+        padding: 14px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #modal_consultar_inventario .modal-auditoria-ajustes-dialog {
+        width: calc(100% - 12px);
+        margin: 6px auto;
+    }
+
+    #modal_consultar_inventario .modal-body {
+        padding: 10px;
+    }
+
+    #modal_consultar_inventario .auditoria-resumen-card {
+        min-height: 96px;
+    }
+
+    #modal_consultar_inventario .modal-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #modal_consultar_inventario .modal-footer .mr-auto {
+        width: 100%;
+        margin-right: 0 !important;
+    }
+
+    #modal_consultar_inventario .movimiento-footer-botones,
+    #modal_consultar_inventario .movimiento-footer-botones .btn {
+        width: 100%;
+    }
+}
+

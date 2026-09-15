@@ -33,6 +33,7 @@ if (method_exists($insMainModel, 'validarSesion')) {
 
 $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
 $tipo_producto_id = isset($_POST['tipo_producto_id']) ? (int)$_POST['tipo_producto_id'] : 0;
+$categoria_id = isset($_POST['categoria_id']) ? (int)$_POST['categoria_id'] : 0;
 $productos_id = isset($_POST['productos_id']) ? (int)$_POST['productos_id'] : 0;
 
 if ($empresa_id <= 0) {
@@ -58,11 +59,16 @@ if ($tipo_producto_id > 0) {
     $where .= " AND p.tipo_producto_id = '$tipo_producto_id' ";
 }
 
+if ($categoria_id > 0) {
+    $where .= " AND p.categoria_id = '$categoria_id' ";
+}
+
 $sql = "
     SELECT
         p.productos_id,
         p.barCode,
         p.nombre AS producto,
+        COALESCE(p.file_name, '') AS image,
         COALESCE(c.nombre, 'Sin categoría') AS categoria,
         COALESCE(tp.nombre, 'Sin tipo') AS tipo_producto,
         COALESCE(SUM(fd.cantidad), 0) AS cantidad_vendida,
@@ -82,6 +88,7 @@ $sql = "
         p.productos_id,
         p.barCode,
         p.nombre,
+        p.file_name,
         c.nombre,
         tp.nombre
     HAVING cantidad_vendida > 0
@@ -106,6 +113,7 @@ if ($result) {
             'productos_id' => (int)$row['productos_id'],
             'barCode' => $row['barCode'],
             'producto' => $row['producto'],
+            'image' => $row['image'] ?? '',
             'categoria' => $row['categoria'],
             'tipo_producto' => $row['tipo_producto'],
             'cantidad_vendida' => $cantidad_vendida,

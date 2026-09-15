@@ -1,0 +1,271 @@
+/* =========================================================
+   IZZY 6.0 | FACTURAS - MODAL RETIRO DE DINERO DE CAJA
+   Ajuste responsive y eliminación de scroll horizontal.
+   Scoped únicamente a #modalRetiroCaja.
+   ========================================================= */
+
+#modalRetiroCaja,
+#modalRetiroCaja * {
+    box-sizing: border-box;
+}
+
+#modalRetiroCaja .modal-dialog {
+    width: calc(100% - 30px);
+    max-width: 1120px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#modalRetiroCaja .modal-content,
+#modalRetiroCaja .retiro-modal-content,
+#modalRetiroCaja #formRetiroCaja {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+#modalRetiroCaja .retiro-modal-content {
+    overflow: hidden;
+    border: 0;
+    border-radius: 14px;
+}
+
+#modalRetiroCaja .retiro-modal-header,
+#modalRetiroCaja .retiro-modal-footer {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+#modalRetiroCaja .retiro-modal-body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: calc(100vh - 190px);
+    padding: 18px 20px;
+    overflow-x: hidden !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+#modalRetiroCaja .retiro-alerta-pro,
+#modalRetiroCaja .retiro-resumen-grid,
+#modalRetiroCaja .retiro-medios-grid,
+#modalRetiroCaja .retiro-final-grid,
+#modalRetiroCaja .form-group,
+#modalRetiroCaja .retiro-resumen-card,
+#modalRetiroCaja .retiro-medio-card,
+#modalRetiroCaja .retiro-final-card,
+#modalRetiroCaja .retiro-medio-header,
+#modalRetiroCaja .retiro-input-claro {
+    min-width: 0;
+    max-width: 100%;
+}
+
+#modalRetiroCaja .retiro-alerta-pro {
+    width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* Resumen superior: tres tarjetas equilibradas */
+#modalRetiroCaja .retiro-resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+#modalRetiroCaja .retiro-resumen-card {
+    width: 100%;
+    overflow: hidden;
+}
+
+#modalRetiroCaja .retiro-resumen-card > div:last-child,
+#modalRetiroCaja .retiro-medio-header > div:last-child {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+#modalRetiroCaja .retiro-resumen-card span,
+#modalRetiroCaja .retiro-resumen-card strong,
+#modalRetiroCaja .retiro-resumen-card small,
+#modalRetiroCaja .retiro-medio-header span,
+#modalRetiroCaja .retiro-medio-header small {
+    overflow-wrap: anywhere;
+}
+
+/* Medios de retiro: dos columnas sin exceder el modal */
+#modalRetiroCaja .retiro-medios-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+#modalRetiroCaja .retiro-medio-card {
+    width: 100%;
+    overflow: hidden;
+}
+
+#modalRetiroCaja .retiro-medio-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+/* Inputs monetarios: ocupan solo el ancho disponible */
+#modalRetiroCaja .retiro-input-claro {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    overflow: hidden;
+}
+
+#modalRetiroCaja .retiro-input-claro > span {
+    flex: 0 0 auto;
+}
+
+#modalRetiroCaja .retiro-input-claro input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+}
+
+/* Resumen posterior: cuatro tarjetas proporcionadas */
+#modalRetiroCaja .retiro-final-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+#modalRetiroCaja .retiro-final-card {
+    width: 100%;
+    overflow: hidden;
+}
+
+#modalRetiroCaja .retiro-final-card span,
+#modalRetiroCaja .retiro-final-card strong {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+/* Select2 / controles del formulario: nunca más anchos que el modal */
+#modalRetiroCaja .select2-container,
+#modalRetiroCaja .select2-container--default,
+#modalRetiroCaja .bootstrap-select,
+#modalRetiroCaja select,
+#modalRetiroCaja textarea,
+#modalRetiroCaja .form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+}
+
+#modalRetiroCaja .select2-container .selection,
+#modalRetiroCaja .select2-selection,
+#modalRetiroCaja .select2-selection__rendered {
+    max-width: 100%;
+    min-width: 0;
+}
+
+/* Evitar que un texto largo fuerce ancho horizontal */
+#modalRetiroCaja label,
+#modalRetiroCaja small,
+#modalRetiroCaja span,
+#modalRetiroCaja strong,
+#modalRetiroCaja b {
+    max-width: 100%;
+}
+
+/* Footer siempre contenido dentro del ancho del modal */
+#modalRetiroCaja .retiro-modal-footer {
+    width: 100%;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    #modalRetiroCaja .modal-dialog {
+        width: calc(100% - 20px);
+        max-width: 900px;
+        margin: 10px auto;
+    }
+
+    #modalRetiroCaja .retiro-modal-body {
+        max-height: calc(100vh - 170px);
+        padding: 16px;
+    }
+
+    #modalRetiroCaja .retiro-resumen-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #modalRetiroCaja .retiro-resumen-total {
+        grid-column: 1 / -1;
+    }
+
+    #modalRetiroCaja .retiro-final-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Móvil */
+@media (max-width: 767.98px) {
+    #modalRetiroCaja .modal-dialog {
+        width: calc(100% - 12px);
+        margin: 6px auto;
+    }
+
+    #modalRetiroCaja .retiro-modal-body {
+        max-height: calc(100vh - 150px);
+        padding: 12px;
+    }
+
+    #modalRetiroCaja .retiro-resumen-grid,
+    #modalRetiroCaja .retiro-medios-grid,
+    #modalRetiroCaja .retiro-final-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    #modalRetiroCaja .retiro-resumen-total {
+        grid-column: auto;
+    }
+
+    #modalRetiroCaja .retiro-modal-footer {
+        padding: 10px 12px;
+    }
+
+    #modalRetiroCaja .retiro-modal-footer .btn {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 479.98px) {
+    #modalRetiroCaja .retiro-modal-header {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    #modalRetiroCaja .retiro-modal-header .modal-title {
+        font-size: 16px;
+    }
+
+    #modalRetiroCaja .retiro-modal-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #modalRetiroCaja .retiro-modal-footer .btn {
+        width: 100%;
+    }
+}

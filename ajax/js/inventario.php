@@ -381,7 +381,14 @@ function enfocarBusquedaTablaMovimientosSiAplica() {
       var form = this;
 
       setTimeout(function(){
-        $(form).find('.selectpicker').val('').selectpicker('refresh');
+        $(form).find('.selectpicker').each(function(){
+          $(this).selectpicker('refresh');
+        });
+
+        $(form).find('select.izzy-select2').each(function(){
+          refrescarSelectInventario($(this));
+        });
+
         listar_movimientos();
       }, 100);
     });
@@ -1860,6 +1867,25 @@ $("#putEditarBodega").on('click.movimientosTransferencia', function() {
 /* =========================================================
    COMBOS
 ========================================================= */
+function refrescarSelectInventario(selector) {
+  var $select = selector && selector.jquery ? selector : $(selector);
+
+  if (!$select.length) return;
+
+  if ($select.hasClass('izzy-select2')) {
+    if (typeof izzyRefreshSelect2 === 'function') {
+      izzyRefreshSelect2($select);
+    } else {
+      $select.trigger('change.select2');
+    }
+    return;
+  }
+
+  if ($select.hasClass('selectpicker') && $.fn.selectpicker) {
+    $select.selectpicker('refresh');
+  }
+}
+
 function seleccionarBodegaPrincipal(selector) {
   var $select = $(selector);
 
@@ -1872,7 +1898,7 @@ function seleccionarBodegaPrincipal(selector) {
     if (primerValor) $select.val(primerValor);
   }
 
-  $select.selectpicker('refresh');
+  refrescarSelectInventario($select);
 }
 
 function getAlmacen() {
@@ -1883,10 +1909,13 @@ function getAlmacen() {
     url: url,
     async:true,
     success:function(data){
-      $('#form_main_movimientos #almacen').html(data).selectpicker('refresh');
+      var $almacenFiltro = $('#form_main_movimientos #almacen');
+      $almacenFiltro.html(data);
+      refrescarSelectInventario($almacenFiltro);
+
       $('#formMovimientoInventario #almacen_modal').html(data).selectpicker('refresh');
 
-      seleccionarBodegaPrincipal('#form_main_movimientos #almacen');
+      seleccionarBodegaPrincipal($almacenFiltro);
       seleccionarBodegaPrincipal('#formMovimientoInventario #almacen_modal');
     }
   });
@@ -1949,7 +1978,9 @@ function getTipoProductos(){
     url: url,
     async:true,
     success:function(data){
-      $('#form_main_movimientos #inventario_tipo_productos_id').html(data).selectpicker('refresh');
+      var $tipoProductoFiltro = $('#form_main_movimientos #inventario_tipo_productos_id');
+      $tipoProductoFiltro.html(data);
+      refrescarSelectInventario($tipoProductoFiltro);
     }
   });
 }
@@ -1987,7 +2018,10 @@ function getProductosMovimientos(tipo_producto_id, callback){
     url: url,
     data:'tipo_producto_id='+tipo_producto_id,
     success:function(data){
-      $('#form_main_movimientos #producto_movimiento_filtro').html(data).selectpicker('refresh');
+      var $productoFiltro = $('#form_main_movimientos #producto_movimiento_filtro');
+      $productoFiltro.html(data);
+      refrescarSelectInventario($productoFiltro);
+
       $('#formMovimientos #movimiento_producto').html(data).selectpicker('refresh');
 
       if (typeof callback === 'function') {
@@ -2005,7 +2039,10 @@ function getClientes(){
     url: url,
     async:true,
     success:function(data){
-      $('#form_main_movimientos #cliente_movimiento_filtro').html(data).selectpicker('refresh');
+      var $clienteFiltro = $('#form_main_movimientos #cliente_movimiento_filtro');
+      $clienteFiltro.html(data);
+      refrescarSelectInventario($clienteFiltro);
+
       $('#formMovimientoInventario #cliente_movimientos').html(data).selectpicker('refresh');
     }
   });
@@ -3554,8 +3591,10 @@ function getAlmacenConsultaInventario() {
     type: 'POST',
     url: '<?php echo SERVERURL;?>core/getAlmacenCompras.php',
     success: function (data) {
-      $('#formConsultaInventario #consulta_almacen').html(data).selectpicker('refresh');
-      seleccionarBodegaPrincipal('#formConsultaInventario #consulta_almacen');
+      var $consultaAlmacen = $('#formConsultaInventario #consulta_almacen');
+      $consultaAlmacen.html(data);
+      refrescarSelectInventario($consultaAlmacen);
+      seleccionarBodegaPrincipal($consultaAlmacen);
     }
   });
 }
@@ -3565,7 +3604,9 @@ function getTipoProductosConsultaInventario() {
     type: 'POST',
     url: '<?php echo SERVERURL;?>core/getTipoProductoMovimientosModal.php',
     success: function (data) {
-      $('#formConsultaInventario #consulta_tipo_producto_id').html(data).selectpicker('refresh');
+      var $consultaTipo = $('#formConsultaInventario #consulta_tipo_producto_id');
+      $consultaTipo.html(data);
+      refrescarSelectInventario($consultaTipo);
     }
   });
 }
@@ -3578,7 +3619,9 @@ function getProductosConsultaInventario(tipo_producto_id, callback) {
       tipo_producto_id: tipo_producto_id || 1
     },
     success: function (data) {
-      $('#formConsultaInventario #consulta_producto').html(data).selectpicker('refresh');
+      var $consultaProducto = $('#formConsultaInventario #consulta_producto');
+      $consultaProducto.html(data);
+      refrescarSelectInventario($consultaProducto);
 
       if (typeof callback === 'function') {
         callback(data);
@@ -3601,9 +3644,15 @@ function limpiarFiltrosAuditoriaAjustes(recargar) {
   $('#formConsultaInventario #consulta_barcode').val('');
   $('#formConsultaInventario #consulta_fechai').val(fechaIso(primerDia));
   $('#formConsultaInventario #consulta_fechaf').val(fechaIso(hoy));
-  $('#formConsultaInventario #consulta_tipo_ajuste').val('').selectpicker('refresh');
-  $('#formConsultaInventario #consulta_tipo_producto_id').val('').selectpicker('refresh');
-  $('#formConsultaInventario #consulta_producto').val('').selectpicker('refresh');
+  $('#formConsultaInventario #consulta_tipo_ajuste').val('');
+  refrescarSelectInventario('#formConsultaInventario #consulta_tipo_ajuste');
+
+  $('#formConsultaInventario #consulta_tipo_producto_id').val('');
+  refrescarSelectInventario('#formConsultaInventario #consulta_tipo_producto_id');
+
+  $('#formConsultaInventario #consulta_producto').val('');
+  refrescarSelectInventario('#formConsultaInventario #consulta_producto');
+
   seleccionarBodegaPrincipal('#formConsultaInventario #consulta_almacen');
 
   if (recargar === true) {

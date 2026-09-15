@@ -1667,9 +1667,6 @@ function dashboardFiscalesExportarExcel() {
     promesa.then(function(blob) {
         dashboardFiscalesDescargarBlob(blob, dashboardFiscalesNombreArchivo('xlsx'));
 
-        if (typeof showNotify === 'function') {
-            showNotify('success', 'Excel generado', 'El reporte de documentos fiscales se generó correctamente.');
-        }
     }).catch(function(error) {
         console.error('Error generando Excel de documentos fiscales:', error);
 
@@ -1693,24 +1690,9 @@ function dashboardFiscalesAbrirPdfEnModal(pdfGenerator, tituloModal, nombreArchi
 
     var abrir = function(url) {
         abrirModalPdfPublico(url, tituloModal, nombreArchivo);
-
-        if (typeof showNotify === 'function') {
-            showNotify(
-                'success',
-                'PDF generado',
-                'El reporte está listo para visualizarse.'
-            );
-        }
     };
 
-    if (pdfGenerator && typeof pdfGenerator.getBlob === 'function') {
-        pdfGenerator.getBlob(function(blob) {
-            var url = URL.createObjectURL(blob);
-            abrir(url);
-        });
-        return;
-    }
-
+    /* Patrón aprobado: vista previa con Data URL; no usar Blob. */
     if (pdfGenerator && typeof pdfGenerator.getDataUrl === 'function') {
         pdfGenerator.getDataUrl(function(dataUrl) {
             abrir(dataUrl);
@@ -1734,109 +1716,615 @@ function dashboardFiscalesAbrirPdfEnModal(pdfGenerator, tituloModal, nombreArchi
     }
 }
 
+function dashboardFiscalesPdfDato(label, value, color) {
+    return {
+        stack: [
+            {
+                text: String(label || '').toUpperCase(),
+                fontSize: 6.2,
+                bold: true,
+                color: '#6B778C',
+                margin: [0, 0, 0, 2]
+            },
+            {
+                text: String(
+                    value === null ||
+                    typeof value === 'undefined' ||
+                    value === ''
+                        ? '—'
+                        : value
+                ),
+                fontSize: 7.8,
+                bold: true,
+                color: color || '#172B4D'
+            }
+        ]
+    };
+}
+
+function dashboardFiscalesPdfLogoPlate(logoDataUrl) {
+    var esImagen = (
+        typeof logoDataUrl === 'string' &&
+        logoDataUrl.indexOf('data:image/') === 0
+    );
+
+    return {
+        table: {
+            widths: ['*'],
+            body: [[
+                esImagen
+                    ? {
+                        image: logoDataUrl,
+                        fit: [62, 36],
+                        alignment: 'center',
+                        margin: [7, 5, 7, 5],
+                        fillColor: '#FFFFFF'
+                    }
+                    : {
+                        text: 'IZZY',
+                        fontSize: 15,
+                        bold: true,
+                        color: '#17324D',
+                        alignment: 'center',
+                        margin: [7, 12, 7, 12],
+                        fillColor: '#FFFFFF'
+                    }
+            ]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return .5; },
+            vLineWidth: function () { return .5; },
+            paddingLeft: function () { return 0; },
+            paddingRight: function () { return 0; },
+            paddingTop: function () { return 0; },
+            paddingBottom: function () { return 0; }
+        }
+    };
+}
+
+function dashboardFiscalesPdfFiltroTexto() {
+    var busqueda = $.trim($('#dashboard_fiscales_buscar').val() || '');
+    var vista = dashboardFiscalesVista === 'miniatura' ? 'Miniatura' : 'Detalle';
+
+    return 'Búsqueda: ' + (busqueda || 'Sin búsqueda') +
+        '   |   Vista: ' + vista;
+}
+
+function dashboardFiscalesPdfEncabezadoPremium(rows) {
+    var activos = rows.filter(function(row) {
+        return String(row.estado || '').toLowerCase() === 'activo';
+    }).length;
+
+    var conCai = rows.filter(function(row) {
+        return row.cai && row.cai !== 'Sin CAI';
+    }).length;
+
+    var disponibles = rows.reduce(function(acc, row) {
+        return acc + (parseInt(row.disponibles, 10) || 0);
+    }, 0);
+
+    var logoCell = dashboardFiscalesPdfLogoPlate(
+        typeof imagen !== 'undefined' ? imagen : ''
+    );
+
+    var header = {
+        table: {
+            widths: [100, '*', 155],
+            body: [[
+                {
+                    border: [false, false, false, false],
+                    fillColor: '#17324D',
+                    margin: [12, 10, 0, 10],
+                    stack: [logoCell]
+                },
+                {
+                    border: [false, false, false, false],
+                    fillColor: '#17324D',
+                    margin: [0, 10, 0, 10],
+                    stack: [
+                        {
+                            text: 'REPORTE DE DOCUMENTOS FISCALES',
+                            fontSize: 16,
+                            bold: true,
+                            color: '#FFFFFF'
+                        },
+                        {
+                            text: 'Control de secuencias, vigencia y disponibilidad fiscal',
+                            fontSize: 7.5,
+                            color: '#D8E5F0',
+                            margin: [0, 2, 0, 0]
+                        }
+                    ]
+                },
+                {
+                    border: [false, false, false, false],
+                    fillColor: '#17324D',
+                    margin: [0, 10, 12, 10],
+                    stack: [
+                        {
+                            text: 'REPORTE EJECUTIVO',
+                            fontSize: 6.5,
+                            bold: true,
+                            color: '#72E2E5',
+                            alignment: 'right'
+                        },
+                        {
+                            text: new Date().toLocaleDateString('es-HN'),
+                            fontSize: 9,
+                            bold: true,
+                            color: '#FFFFFF',
+                            alignment: 'right',
+                            margin: [0, 3, 0, 0]
+                        },
+                        {
+                            text: rows.length + ' registro(s) filtrado(s)',
+                            fontSize: 6.5,
+                            color: '#D8E5F0',
+                            alignment: 'right',
+                            margin: [0, 2, 0, 0]
+                        }
+                    ]
+                }
+            ]]
+        },
+        layout: {
+            hLineWidth: function () { return 0; },
+            vLineWidth: function () { return 0; }
+        },
+        margin: [0, 0, 0, 10]
+    };
+
+    var filtros = {
+        table: {
+            widths: ['*'],
+            body: [[{
+                text: 'Filtros aplicados: ' + dashboardFiscalesPdfFiltroTexto(),
+                fontSize: 6.8,
+                color: '#52627A',
+                margin: [10, 7, 10, 7],
+                fillColor: '#F7F9FC'
+            }]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return 0.6; },
+            vLineWidth: function () { return 0.6; }
+        },
+        margin: [0, 0, 0, 10]
+    };
+
+    var resumen = {
+        table: {
+            widths: ['*', '*', '*', '*'],
+            body: [[
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'REGISTROS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: String(rows.length), fontSize: 13, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'ACTIVAS', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: String(activos), fontSize: 13, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'CON CAI', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: String(conCai), fontSize: 13, bold: true, color: '#172B4D', margin: [0, 2, 0, 0]}
+                    ]
+                },
+                {
+                    fillColor: '#F7F9FC',
+                    margin: [8, 7, 8, 7],
+                    stack: [
+                        {text: 'DISPONIBLES', fontSize: 6.3, bold: true, color: '#6B778C'},
+                        {text: String(disponibles), fontSize: 13, bold: true, color: '#14804A', margin: [0, 2, 0, 0]}
+                    ]
+                }
+            ]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return 0.6; },
+            vLineWidth: function () { return 0.6; }
+        },
+        margin: [0, 0, 0, 12]
+    };
+
+    return [header, filtros, resumen];
+}
+
+function dashboardFiscalesPdfContenidoDetalle(rows) {
+    var body = [[
+        {text: 'EMPRESA', style: 'th', fillColor: '#17324D'},
+        {text: 'DOCUMENTO', style: 'th', fillColor: '#17324D'},
+        {text: 'ESTADO', style: 'th', fillColor: '#17324D'},
+        {text: 'CAI', style: 'th', fillColor: '#17324D'},
+        {text: 'PREFIJO', style: 'th', fillColor: '#17324D'},
+        {text: 'SIGUIENTE', style: 'th', fillColor: '#17324D'},
+        {text: 'RANGO', style: 'th', fillColor: '#17324D'},
+        {text: 'DISPONIBLES', style: 'th', fillColor: '#17324D'},
+        {text: 'VIGENCIA', style: 'th', fillColor: '#17324D'}
+    ]];
+
+    rows.forEach(function(row, index) {
+        var fill = index % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+        var activo = String(row.estado || '').toLowerCase() === 'activo';
+        var estadoColor = activo ? '#14804A' : '#C9372C';
+
+        body.push([
+            {text: row.empresa || 'Empresa', style: 'tdStrong', fillColor: fill},
+            {text: row.documento || 'Documento', style: 'tdLeft', fillColor: fill},
+            {text: row.estado || '—', style: 'tdCenter', fillColor: fill, color: estadoColor, bold: true},
+            {text: row.cai || 'Sin CAI', style: 'tdLeft', fillColor: fill},
+            {text: row.prefijo || '—', style: 'tdLeft', fillColor: fill},
+            {text: String(row.siguiente || '0'), style: 'tdCenter', fillColor: fill, bold: true},
+            {
+                text: String(row.rango_inicial || '') + ' - ' + String(row.rango_final || ''),
+                style: 'tdCenter',
+                fillColor: fill
+            },
+            {
+                text: String(row.disponibles || '0'),
+                style: 'tdCenter',
+                fillColor: fill,
+                color: '#14804A',
+                bold: true
+            },
+            {
+                text: row.vigencia || '—',
+                style: 'tdCenter',
+                fillColor: fill,
+                color: estadoColor,
+                bold: true
+            }
+        ]);
+    });
+
+    return [
+        {
+            text: 'VISTA DETALLE',
+            fontSize: 7,
+            bold: true,
+            color: '#17324D',
+            margin: [0, 1, 0, 7]
+        },
+        {
+            table: {
+                headerRows: 1,
+                widths: [82, 74, 48, 112, 62, 46, 92, 52, '*'],
+                body: body
+            },
+            layout: {
+                hLineColor: function () { return '#DDE3EA'; },
+                vLineColor: function () { return '#DDE3EA'; },
+                hLineWidth: function () { return 0.55; },
+                vLineWidth: function () { return 0.55; },
+                paddingLeft: function () { return 5; },
+                paddingRight: function () { return 5; },
+                paddingTop: function () { return 6; },
+                paddingBottom: function () { return 6; }
+            }
+        }
+    ];
+}
+
+function dashboardFiscalesPdfMiniCard(row) {
+    var activo = String(row.estado || '').toLowerCase() === 'activo';
+    var estadoColor = activo ? '#14804A' : '#C9372C';
+    var estadoFondo = activo ? '#E9F9EF' : '#FFF0EF';
+    var estadoBorde = activo ? '#BFE8CF' : '#F2C3BF';
+
+    return {
+        table: {
+            widths: ['*'],
+            body: [[{
+                margin: [10, 9, 10, 9],
+                stack: [
+                    {
+                        columns: [
+                            {
+                                width: '*',
+                                stack: [
+                                    {
+                                        text: row.empresa || 'Empresa',
+                                        fontSize: 10,
+                                        bold: true,
+                                        color: '#172B4D'
+                                    },
+                                    {
+                                        text: row.documento || 'Documento',
+                                        fontSize: 7,
+                                        color: '#6B778C',
+                                        margin: [0, 2, 0, 0]
+                                    }
+                                ]
+                            },
+                            {
+                                width: 'auto',
+                                table: {
+                                    body: [[{
+                                        text: row.estado || '—',
+                                        fontSize: 6.8,
+                                        bold: true,
+                                        color: estadoColor,
+                                        fillColor: estadoFondo,
+                                        margin: [6, 3, 6, 3]
+                                    }]]
+                                },
+                                layout: {
+                                    hLineColor: function () { return estadoBorde; },
+                                    vLineColor: function () { return estadoBorde; },
+                                    hLineWidth: function () { return 0.6; },
+                                    vLineWidth: function () { return 0.6; }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        canvas: [{
+                            type: 'line',
+                            x1: 0,
+                            y1: 0,
+                            x2: 250,
+                            y2: 0,
+                            lineWidth: 0.6,
+                            lineColor: '#DDE3EA'
+                        }],
+                        margin: [0, 7, 0, 7]
+                    },
+                    {
+                        columns: [
+                            {
+                                width: '50%',
+                                stack: [
+                                    dashboardFiscalesPdfDato('CAI', row.cai || 'Sin CAI'),
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            dashboardFiscalesPdfDato('Prefijo', row.prefijo || '—')
+                                        ]
+                                    },
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            dashboardFiscalesPdfDato(
+                                                'Rango',
+                                                String(row.rango_inicial || '') + ' - ' + String(row.rango_final || '')
+                                            )
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                width: '50%',
+                                stack: [
+                                    dashboardFiscalesPdfDato('Siguiente', String(row.siguiente || '0')),
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            dashboardFiscalesPdfDato(
+                                                'Disponibles',
+                                                String(row.disponibles || '0'),
+                                                '#14804A'
+                                            )
+                                        ]
+                                    },
+                                    {
+                                        margin: [0, 8, 0, 0],
+                                        stack: [
+                                            dashboardFiscalesPdfDato(
+                                                'Vigencia',
+                                                row.vigencia || '—',
+                                                estadoColor
+                                            )
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }]]
+        },
+        layout: {
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return 0.7; },
+            vLineWidth: function () { return 0.7; }
+        }
+    };
+}
+
+function dashboardFiscalesPdfContenidoMiniatura(rows) {
+    var contenido = [
+        {
+            text: 'VISTA MINIATURA',
+            fontSize: 7,
+            bold: true,
+            color: '#17324D',
+            margin: [0, 1, 0, 7]
+        }
+    ];
+
+    for (var i = 0; i < rows.length; i += 2) {
+        contenido.push({
+            columns: [
+                {
+                    width: '*',
+                    stack: [dashboardFiscalesPdfMiniCard(rows[i])]
+                },
+                {
+                    width: 10,
+                    text: ''
+                },
+                rows[i + 1]
+                    ? {
+                        width: '*',
+                        stack: [dashboardFiscalesPdfMiniCard(rows[i + 1])]
+                    }
+                    : {
+                        width: '*',
+                        text: ''
+                    }
+            ],
+            margin: [0, 0, 0, 9]
+        });
+    }
+
+    return contenido;
+}
 
 function dashboardFiscalesExportarPDF() {
     var rows = dashboardFiscalesDatosExportacion();
 
     if (!rows.length) {
         if (typeof showNotify === 'function') {
-            showNotify('warning', 'Sin información', 'No hay documentos fiscales para exportar.');
+            showNotify(
+                'warning',
+                'Sin información',
+                'No hay documentos fiscales para exportar.'
+            );
         }
         return;
     }
 
     if (typeof pdfMake === 'undefined') {
         if (typeof showNotify === 'function') {
-            showNotify('error', 'PDF no disponible', 'No se encontró pdfMake.');
+            showNotify(
+                'error',
+                'PDF no disponible',
+                'No se encontró pdfMake.'
+            );
         }
         return;
     }
 
-    var activos = rows.filter(function(row){return String(row.estado).toLowerCase()==='activo';}).length;
-    var conCai = rows.filter(function(row){return row.cai && row.cai !== 'Sin CAI';}).length;
-    var disponibles = rows.reduce(function(acc,row){return acc + (parseInt(row.disponibles,10)||0);},0);
-    var logo=(typeof imagen!=='undefined'&&imagen)?{image:imagen,width:50,height:24,alignment:'center',margin:[0,1,0,0]}:{text:'IZZY',fontSize:16,bold:true,color:'#FFFFFF',alignment:'center',margin:[0,4,0,0]};
-
-    var encabezado={table:{widths:[70,'*',150],body:[[
-        {border:[false,false,false,false],fillColor:'#17324D',margin:[12,10,0,10],stack:[logo]},
-        {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,0,10],stack:[
-            {text:'DOCUMENTOS FISCALES',fontSize:16,bold:true,color:'#FFFFFF'},
-            {text:'Control de secuencias, vigencia y disponibilidad fiscal',fontSize:7.5,color:'#D8E5F0',margin:[0,2,0,0]}
-        ]},
-        {border:[false,false,false,false],fillColor:'#17324D',margin:[0,10,12,10],stack:[
-            {text:'REPORTE EJECUTIVO',fontSize:6.5,bold:true,color:'#72E2E5',alignment:'right'},
-            {text:new Date().toLocaleDateString('es-HN'),fontSize:9,bold:true,color:'#FFFFFF',alignment:'right',margin:[0,3,0,0]},
-            {text:rows.length+' registro(s) filtrado(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right',margin:[0,2,0,0]}
-        ]}
-    ]]},layout:{hLineWidth:function(){return 0;},vLineWidth:function(){return 0;}},margin:[0,0,0,10]};
-
-    var filtros={table:{widths:['*'],body:[[{text:'Filtros aplicados: se respetan los filtros actuales del panel de Documentos Fiscales.',fontSize:6.8,color:'#52627A',margin:[10,7,10,7],fillColor:'#F7F9FC'}]]},
-        layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.6;},vLineWidth:function(){return 0.6;}},margin:[0,0,0,10]};
-
-    var resumen={table:{widths:['*','*','*','*'],body:[[
-        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'REGISTROS',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:13,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
-        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'ACTIVAS',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(activos),fontSize:13,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
-        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'CON CAI',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(conCai),fontSize:13,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
-        {fillColor:'#F7F9FC',margin:[8,7,8,7],stack:[{text:'DISPONIBLES',fontSize:6.3,bold:true,color:'#6B778C'},{text:String(disponibles),fontSize:13,bold:true,color:'#14804A',margin:[0,2,0,0]}]}
-    ]]},layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.6;},vLineWidth:function(){return 0.6;}},margin:[0,0,0,12]};
-
-    var vistaPdfFiscales = dashboardFiscalesState && dashboardFiscalesState.view ? dashboardFiscalesState.view : 'detalle';
-    var contenido=[];
-
-    if (vistaPdfFiscales === 'miniatura') {
-        function card(row) {
-            var estadoColor=String(row.estado||'').toLowerCase()==='activo'?'#14804A':'#C9372C';
-            return {table:{widths:['*'],body:[[{margin:[10,9,10,9],stack:[
-                {columns:[{width:'*',stack:[{text:row.empresa||'Empresa',fontSize:10,bold:true,color:'#172B4D'},{text:row.documento||'Documento',fontSize:7,color:'#6B778C',margin:[0,2,0,0]}]},{width:'auto',text:row.estado||'',fontSize:7,bold:true,color:estadoColor}]},
-                {canvas:[{type:'line',x1:0,y1:0,x2:250,y2:0,lineWidth:0.6,lineColor:'#DDE3EA'}],margin:[0,7,0,7]},
-                {columns:[
-                    {width:'50%',stack:[{text:'CAI',fontSize:6.2,bold:true,color:'#6B778C'},{text:row.cai||'Sin CAI',fontSize:7.5,bold:true,color:'#172B4D',margin:[0,2,0,0]},{text:'PREFIJO',fontSize:6.2,bold:true,color:'#6B778C',margin:[0,8,0,0]},{text:row.prefijo||'—',fontSize:7.5,bold:true,color:'#172B4D',margin:[0,2,0,0]}]},
-                    {width:'50%',stack:[{text:'SIGUIENTE',fontSize:6.2,bold:true,color:'#6B778C'},{text:String(row.siguiente||'0'),fontSize:9,bold:true,color:'#172B4D',margin:[0,2,0,0]},{text:'DISPONIBLES',fontSize:6.2,bold:true,color:'#6B778C',margin:[0,8,0,0]},{text:String(row.disponibles||'0'),fontSize:9,bold:true,color:'#14804A',margin:[0,2,0,0]}]}
-                ]},
-                {text:'Rango: '+String(row.rango_inicial||'')+' - '+String(row.rango_final||''),fontSize:6.5,color:'#6B778C',margin:[0,8,0,0]},
-                {text:'Vigencia: '+(row.vigencia||'—'),fontSize:7,bold:true,color:estadoColor,margin:[0,3,0,0]}
-            ]}]]},layout:{hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.7;},vLineWidth:function(){return 0.7;}}};
+    if (typeof abrirModalPdfPublico !== 'function') {
+        if (typeof showNotify === 'function') {
+            showNotify(
+                'error',
+                'Visor PDF no disponible',
+                'No se encontró el modal PDF público.'
+            );
         }
-        for(var i=0;i<rows.length;i+=2){
-            contenido.push({columns:[{width:'*',stack:[card(rows[i])]},{width:10,text:''},rows[i+1]?{width:'*',stack:[card(rows[i+1])]}:{width:'*',text:''}],margin:[0,0,0,9]});
-        }
-    } else {
-        var body=[[{text:'EMPRESA',style:'th',fillColor:'#17324D'},{text:'DOCUMENTO',style:'th',fillColor:'#17324D'},{text:'ESTADO',style:'th',fillColor:'#17324D'},{text:'CAI',style:'th',fillColor:'#17324D'},{text:'PREFIJO',style:'th',fillColor:'#17324D'},{text:'SIGUIENTE',style:'th',fillColor:'#17324D'},{text:'RANGO',style:'th',fillColor:'#17324D'},{text:'DISPONIBLES',style:'th',fillColor:'#17324D'},{text:'VIGENCIA',style:'th',fillColor:'#17324D'}]];
-        rows.forEach(function(row,index){
-            var fill=index%2===0?'#FFFFFF':'#F7F9FC';
-            var estadoColor=String(row.estado||'').toLowerCase()==='activo'?'#14804A':'#C9372C';
-            body.push([
-                {text:row.empresa||'Empresa',fillColor:fill,bold:true},
-                {text:row.documento||'Documento',fillColor:fill},
-                {text:row.estado||'',fillColor:fill,color:estadoColor,bold:true},
-                {text:row.cai||'Sin CAI',fillColor:fill},
-                {text:row.prefijo||'—',fillColor:fill},
-                {text:String(row.siguiente||'0'),fillColor:fill,alignment:'center',bold:true},
-                {text:String(row.rango_inicial||'')+' - '+String(row.rango_final||''),fillColor:fill},
-                {text:String(row.disponibles||'0'),fillColor:fill,alignment:'center',color:'#14804A',bold:true},
-                {text:row.vigencia||'—',fillColor:fill,color:estadoColor,bold:true}
-            ]);
-        });
-        contenido=[{table:{headerRows:1,widths:[82,74,48,112,62,46,92,52,'*'],body:body},layout:{
-            hLineColor:function(){return '#DDE3EA';},vLineColor:function(){return '#DDE3EA';},hLineWidth:function(){return 0.55;},vLineWidth:function(){return 0.55;},
-            paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 5;},paddingBottom:function(){return 5;}
-        }}];
+        return;
     }
 
-    var doc={pageSize:'LETTER',pageOrientation:'landscape',pageMargins:[28,28,28,34],
-        header:function(){return{margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},
-        footer:function(currentPage,pageCount){return{margin:[28,8,28,0],columns:[{text:'IZZY • Documentos Fiscales',fontSize:7,color:'#7A869A'},{text:'Página '+currentPage+' de '+pageCount,fontSize:7,color:'#7A869A',alignment:'right'}]};},
-        content:[encabezado,filtros,resumen,{text:vistaPdfFiscales==='miniatura'?'VISTA MINIATURA':'VISTA DETALLE',fontSize:7,bold:true,color:'#17324D',margin:[0,1,0,7]}].concat(contenido),
-        styles:{th:{fontSize:6.2,bold:true,color:'#FFFFFF',alignment:'center'}},
-        defaultStyle:{fontSize:8,color:'#253858'}
+    var esMiniatura = dashboardFiscalesVista === 'miniatura';
+
+    var contenido = dashboardFiscalesPdfEncabezadoPremium(rows).concat(
+        esMiniatura
+            ? dashboardFiscalesPdfContenidoMiniatura(rows)
+            : dashboardFiscalesPdfContenidoDetalle(rows)
+    );
+
+    var docDefinition = {
+        pageSize: 'LETTER',
+        pageOrientation: 'landscape',
+        pageMargins: [28, 28, 28, 34],
+
+        header: function () {
+            return {
+                margin: [28, 12, 28, 0],
+                canvas: [{
+                    type: 'line',
+                    x1: 0,
+                    y1: 0,
+                    x2: 736,
+                    y2: 0,
+                    lineWidth: 2,
+                    lineColor: '#0EA5A8'
+                }]
+            };
+        },
+
+        footer: function(currentPage, pageCount) {
+            return {
+                margin: [28, 8, 28, 0],
+                columns: [
+                    {
+                        text: 'IZZY • Documentos Fiscales',
+                        fontSize: 7,
+                        color: '#7A869A'
+                    },
+                    {
+                        text: 'Página ' + currentPage + ' de ' + pageCount,
+                        fontSize: 7,
+                        color: '#7A869A',
+                        alignment: 'right'
+                    }
+                ]
+            };
+        },
+
+        content: contenido,
+
+        styles: {
+            th: {
+                fontSize: 6.2,
+                bold: true,
+                color: '#FFFFFF',
+                alignment: 'center',
+                margin: [0, 1, 0, 1]
+            },
+            tdStrong: {
+                fontSize: 6.5,
+                bold: true,
+                color: '#172B4D',
+                alignment: 'left'
+            },
+            tdLeft: {
+                fontSize: 6.4,
+                color: '#253858',
+                alignment: 'left'
+            },
+            tdCenter: {
+                fontSize: 6.4,
+                color: '#253858',
+                alignment: 'center'
+            }
+        },
+
+        defaultStyle: {
+            fontSize: 8,
+            color: '#253858'
+        }
     };
 
     try {
-        var pdfGenerator=pdfMake.createPdf(doc);
-        dashboardFiscalesAbrirPdfEnModal(pdfGenerator,'Reporte de Documentos Fiscales',dashboardFiscalesNombreArchivo('pdf'));
+        var pdfGenerator = pdfMake.createPdf(docDefinition);
+
+        dashboardFiscalesAbrirPdfEnModal(
+            pdfGenerator,
+            'Reporte de Documentos Fiscales',
+            dashboardFiscalesNombreArchivo('pdf')
+        );
     } catch(error) {
-        console.error('Error generando PDF de documentos fiscales:',error);
-        if(typeof showNotify==='function'){showNotify('error','Error','No se pudo generar el reporte PDF.');}
+        console.error(
+            'Error generando PDF de documentos fiscales:',
+            error
+        );
+
+        if (typeof showNotify === 'function') {
+            showNotify(
+                'error',
+                'Error',
+                'No se pudo generar el reporte PDF.'
+            );
+        }
     }
 }
 

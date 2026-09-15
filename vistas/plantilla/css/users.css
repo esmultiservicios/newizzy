@@ -803,29 +803,19 @@
    Agregado sobre la versión completa del módulo Usuarios.
    ========================================================= */
 .usuarios-kpi {
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        border-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .usuarios-kpi:hover {
-    transform: translateY(-3px);
-    border-color: #cfd9e5;
-    box-shadow: 0 8px 20px rgba(23, 50, 77, .11);
+    transform: translateY(-4px);
 }
 
 .usuarios-kpi-icon {
-    transition:
-        transform .18s ease,
-        box-shadow .18s ease,
-        background-color .18s ease;
+    transition: transform .18s ease;
 }
 
 .usuarios-kpi:hover .usuarios-kpi-icon {
-    transform: translateY(-1px) scale(1.05);
-    background: #fff;
-    box-shadow: 0 5px 12px rgba(23, 50, 77, .10);
+    transform: scale(1.05);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1053,3 +1043,30 @@
     right: 5px;
     z-index: 6;
 }
+
+/* =========================================================
+   IZZY | USUARIOS
+   VISTA DETALLE | MOVIMIENTO PREMIUM
+   Mismo patrón visual aplicado en los módulos actuales.
+   ========================================================= */
+.usuarios-listado.vista-detalle .usuario-row:not(.usuario-row-header) {
+    transition: transform .18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .usuarios-listado.vista-detalle .usuario-row:not(.usuario-row-header):hover {
+        transform: translateY(-3px);
+        z-index: 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .usuarios-listado.vista-detalle .usuario-row:not(.usuario-row-header) {
+        transition: none;
+    }
+
+    .usuarios-listado.vista-detalle .usuario-row:not(.usuario-row-header):hover {
+        transform: none;
+    }
+}
+

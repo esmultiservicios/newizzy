@@ -683,25 +683,49 @@ function programaPuntosModernGenerarXlsx(rows) {
     var lastRow = Math.max(headerRow, headerRow + rows.length);
     var sheetRows = [];
 
+    var tituloFilaExcel =
+        programaPuntosModernExcelCell(
+            'A1',
+            'IZZY • ' + String(programaPuntosModernConfig.exportTitle || programaPuntosModernConfig.title || 'REPORTE').toUpperCase(),
+            1,
+            false
+        );
+
+    for (var tituloCol = 1; tituloCol < headers.length; tituloCol++) {
+        tituloFilaExcel += programaPuntosModernExcelCell(
+            programaPuntosModernExcelColName(tituloCol) + '1',
+            '',
+            1,
+            false
+        );
+    }
+
     sheetRows.push(
         '<row r="1" ht="30" customHeight="1">' +
-            programaPuntosModernExcelCell(
-                'A1',
-                'IZZY • ' + String(programaPuntosModernConfig.exportTitle || programaPuntosModernConfig.title || 'REPORTE').toUpperCase(),
-                1,
-                false
-            ) +
+            tituloFilaExcel +
         '</row>'
     );
 
+    var subtituloFilaExcel =
+        programaPuntosModernExcelCell(
+            'A2',
+            'Reporte profesional • Generado: ' + new Date().toLocaleDateString('es-HN'),
+            2,
+            false
+        );
+
+    for (var subtituloCol = 1; subtituloCol < headers.length; subtituloCol++) {
+        subtituloFilaExcel += programaPuntosModernExcelCell(
+            programaPuntosModernExcelColName(subtituloCol) + '2',
+            '',
+            2,
+            false
+        );
+    }
+
     sheetRows.push(
         '<row r="2" ht="20" customHeight="1">' +
-            programaPuntosModernExcelCell(
-                'A2',
-                'Reporte profesional • Generado: ' + new Date().toLocaleDateString('es-HN'),
-                2,
-                false
-            ) +
+            subtituloFilaExcel +
         '</row>'
     );
 
@@ -728,9 +752,26 @@ function programaPuntosModernGenerarXlsx(rows) {
     sheetRows.push(summaryValues);
     sheetRows.push('<row r="5"></row>');
 
+    var detalleTituloFila =
+        programaPuntosModernExcelCell(
+            'A6',
+            'Detalle de registros filtrados',
+            8,
+            false
+        );
+
+    for (var detalleCol = 1; detalleCol < headers.length; detalleCol++) {
+        detalleTituloFila += programaPuntosModernExcelCell(
+            programaPuntosModernExcelColName(detalleCol) + '6',
+            '',
+            8,
+            false
+        );
+    }
+
     sheetRows.push(
         '<row r="6" ht="18" customHeight="1">' +
-            programaPuntosModernExcelCell('A6', 'Detalle de registros filtrados', 8, false) +
+            detalleTituloFila +
         '</row>'
     );
 
@@ -801,9 +842,10 @@ function programaPuntosModernGenerarXlsx(rows) {
             '<cols>' + colsXml + '</cols>' +
             '<sheetData>' + sheetRows.join('') + '</sheetData>' +
             '<autoFilter ref="A' + headerRow + ':' + lastCol + lastRow + '"/>' +
-            '<mergeCells count="2">' +
+            '<mergeCells count="3">' +
                 '<mergeCell ref="A1:' + lastCol + '1"/>' +
                 '<mergeCell ref="A2:' + lastCol + '2"/>' +
+                '<mergeCell ref="A6:' + lastCol + '6"/>' +
             '</mergeCells>' +
             '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
             '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
@@ -845,14 +887,14 @@ function programaPuntosModernGenerarXlsx(rows) {
             '</cellStyleXfs>' +
             '<cellXfs count="11">' +
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
             '</cellXfs>' +

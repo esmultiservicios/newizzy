@@ -1,8 +1,212 @@
 <script>
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Conserva estilos existentes y completa todas las celdas
+   del rango combinado para evitar contornos incompletos.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (!xmlTexto || typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return xmlTexto;
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(/^\s*(<\?xml[^>]*\?>)/);
+            if (matchDeclaracion) declaracion = matchDeclaracion[1];
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(String(xmlTexto), 'application/xml');
+            if (documento.getElementsByTagName('parsererror').length) return xmlTexto;
+
+            var namespaceUri = documento.documentElement.namespaceURI || 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+            var sheetData = documento.getElementsByTagName('sheetData')[0];
+            var mergeCells = documento.getElementsByTagName('mergeCells')[0];
+            if (!sheetData || !mergeCells) return xmlTexto;
+
+            function columnaNumero(letras) {
+                var total = 0, texto = String(letras || '').toUpperCase();
+                for (var i = 0; i < texto.length; i++) total = (total * 26) + (texto.charCodeAt(i) - 64);
+                return total;
+            }
+            function columnaLetras(numero) {
+                var resultado = '', n = numero;
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado = String.fromCharCode(65 + resto) + resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+                return resultado;
+            }
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(/^([A-Z]+)(\d+)$/);
+                return match ? {col: columnaNumero(match[1]), row: parseInt(match[2], 10)} : null;
+            }
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+                for (var i = 0; i < filas.length; i++) {
+                    if (parseInt(filas[i].getAttribute('r'), 10) === numeroFila) return filas[i];
+                }
+                var nuevaFila = documento.createElementNS(namespaceUri, 'row');
+                nuevaFila.setAttribute('r', String(numeroFila));
+                var insertada = false;
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(filas[j].getAttribute('r'), 10);
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(nuevaFila, filas[j]);
+                        insertada = true;
+                        break;
+                    }
+                }
+                if (!insertada) sheetData.appendChild(nuevaFila);
+                return nuevaFila;
+            }
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+                for (var i = 0; i < celdas.length; i++) {
+                    if (celdas[i].getAttribute('r') === referencia) return celdas[i];
+                }
+                return null;
+            }
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(celdas[i].getAttribute('r'));
+                    if (refActual && refActual.col > colNumero) {
+                        fila.insertBefore(celda, celdas[i]);
+                        return;
+                    }
+                }
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(mergeCells.getElementsByTagName('mergeCell'));
+            merges.forEach(function (merge) {
+                var partes = String(merge.getAttribute('ref') || '').split(':');
+                if (partes.length !== 2) return;
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+                if (!inicio || !fin) return;
+
+                if (inicio.col === fin.col && inicio.row === fin.row) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(filaInicio, columnaLetras(inicio.col) + inicio.row);
+                if (!celdaInicio) return;
+                var estilo = celdaInicio.getAttribute('s');
+
+                for (var filaNumero = inicio.row; filaNumero <= fin.row; filaNumero++) {
+                    var fila = obtenerFila(filaNumero);
+                    for (var colNumero = inicio.col; colNumero <= fin.col; colNumero++) {
+                        var referencia = columnaLetras(colNumero) + filaNumero;
+                        var celda = buscarCelda(fila, referencia);
+                        if (!celda) {
+                            celda = documento.createElementNS(namespaceUri, 'c');
+                            celda.setAttribute('r', referencia);
+                            if (estilo !== null && estilo !== '') celda.setAttribute('s', estilo);
+                            insertarCeldaOrdenada(fila, celda, colNumero);
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales = mergeCells.getElementsByTagName('mergeCell');
+            mergeCells.setAttribute('count', String(mergeFinales.length));
+            var serializado = new XMLSerializer().serializeToString(documento.documentElement);
+            return declaracion ? declaracion + serializado : serializado;
+        } catch (error) {
+            console.error('No se pudieron completar los bordes del XLSX:', error);
+            return xmlTexto;
+        }
+    };
+}
+
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects existentes y dinámicos sin duplicarlos.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) return;
+        $select.each(function () {
+            var $el = $(this);
+            if (!$el.is('select')) return;
+
+            var $parent = $el.parent();
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) return false;
+                    var normalizada = clase.toLowerCase();
+                    return normalizada.slice(-6) !== 'picker' && normalizada !== 'bs-select-hidden';
+                });
+
+            if (clases.indexOf('izzy-select2') === -1) clases.push('izzy-select2');
+            $el.attr('class', clases.join(' '));
+            if ($el.attr('tabindex') === '-98') $el.removeAttr('tabindex');
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) return;
+        window.izzySelect2LimpiarControl($select);
+        if (typeof $.fn.select2 !== 'function') return;
+
+        $select.each(function () {
+            var $el = $(this);
+            if (!$el.is('select')) return;
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                $el.trigger('change.select2');
+                return;
+            }
+
+            var config = $.extend({
+                width: '100%',
+                minimumResultsForSearch: 0,
+                allowClear: false
+            }, options || {});
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+                if ($modal.length) config.dropdownParent = $modal;
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) return;
+        window.izzySoloSelect2($select, options);
+        $select.each(function () {
+            var $el = $(this);
+            if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
+        });
+    };
+}
+
 var inventarioResumenRowsCache = [];
 
 (function () {
   function inicializarInventarioTransferencia() {
+    window.izzySoloSelect2($('#form_main_movimientos_transferencia select, #formTransferencia select, #inventario_tipo_valorizacion'));
+
     transferenciaInicializarEventosUI();
     historicoInventarioInicializarEventos();
     inventario_transferencia();
@@ -20,17 +224,17 @@ var inventarioResumenRowsCache = [];
       var form = this;
 
       setTimeout(function(){
-        $(form).find('.selectpicker')
-          .val('')
-          .selectpicker('refresh');
+        var $selects = $(form).find('select');
+        $selects.val('');
+        window.izzySoloRefreshSelect2($selects);
 
         getProductosMovimientos(0);
         inventario_transferencia();
       }, 100);
     });
 
-    $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').off('changed.bs.select.inventarioCategoria change.inventarioCategoria');
-    $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').on('changed.bs.select.inventarioCategoria change.inventarioCategoria', function(){
+    $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').off('change.inventarioCategoria');
+    $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').on('change.inventarioCategoria', function(){
       var categoria_id = $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').val() || 0;
 
       getProductosMovimientos(categoria_id);
@@ -40,8 +244,8 @@ var inventarioResumenRowsCache = [];
       }, 250);
     });
 
-    $('#form_main_movimientos_transferencia #inventario_productos_id, #form_main_movimientos_transferencia #almacen').off('changed.bs.select.inventarioFiltro change.inventarioFiltro');
-    $('#form_main_movimientos_transferencia #inventario_productos_id, #form_main_movimientos_transferencia #almacen').on('changed.bs.select.inventarioFiltro change.inventarioFiltro', function(){
+    $('#form_main_movimientos_transferencia #inventario_productos_id, #form_main_movimientos_transferencia #almacen').off('change.inventarioFiltro');
+    $('#form_main_movimientos_transferencia #inventario_productos_id, #form_main_movimientos_transferencia #almacen').on('change.inventarioFiltro', function(){
       inventario_transferencia();
     });
 
@@ -60,8 +264,8 @@ var inventarioResumenRowsCache = [];
       cargarResumenInventario();
     });
 
-    $('#inventario_tipo_valorizacion').off('changed.bs.select.inventarioResumen change.inventarioResumen');
-    $('#inventario_tipo_valorizacion').on('changed.bs.select.inventarioResumen change.inventarioResumen', function(){
+    $('#inventario_tipo_valorizacion').off('change.inventarioResumen');
+    $('#inventario_tipo_valorizacion').on('change.inventarioResumen', function(){
       construirTablaResumenInventario(inventarioResumenRowsCache);
     });
 
@@ -908,7 +1112,7 @@ function transferenciaGenerarXlsx(rows) {
   zip.folder('xl').file('workbook.xml', workbookXml);
   zip.folder('xl').file('styles.xml', stylesXml);
   zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelCompletarBordesCombinados(sheetXml));
 
   var opts = {type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression:'DEFLATE'};
 
@@ -1207,7 +1411,7 @@ function mostrarVistaResumenInventario() {
   $('#vistaInventarioPrincipal').hide();
   $('#vistaResumenInventario').show();
 
-  $('#inventario_tipo_valorizacion').selectpicker('refresh');
+  window.izzySoloRefreshSelect2($('#inventario_tipo_valorizacion'));
 
   cargarResumenInventario();
   cargarHistoricoVendidoInventario();
@@ -1815,7 +2019,7 @@ function historicoInventarioGenerarXlsx(rows) {
   zip.folder('xl').file('workbook.xml', workbookXml);
   zip.folder('xl').file('styles.xml', stylesXml);
   zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelCompletarBordesCombinados(sheetXml));
 
   var opts = {
     type: 'blob',
@@ -2218,18 +2422,14 @@ function getTipoProductos(){
     url: url,
     async: true,
     success: function(data){
-      $('#form_main_movimientos_transferencia #inventario_tipo_productos_id')
-        .html(data)
-        .val('0')
-        .selectpicker('refresh');
+      var $tipoProducto = $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').html(data).val('0');
+      window.izzySoloRefreshSelect2($tipoProducto);
 
       getProductosMovimientos(0);
     },
     error: function(xhr){
-      $('#form_main_movimientos_transferencia #inventario_tipo_productos_id')
-        .html('<option value="">Error al cargar categorías</option>')
-        .val('')
-        .selectpicker('refresh');
+      var $tipoProducto = $('#form_main_movimientos_transferencia #inventario_tipo_productos_id').html('<option value="">Error al cargar categorías</option>').val('');
+      window.izzySoloRefreshSelect2($tipoProducto);
 
       console.log('Error categorías inventario:', xhr.responseText);
     }
@@ -2239,10 +2439,8 @@ function getTipoProductos(){
 function getProductosMovimientos(categoria_id){
   var url = '<?php echo SERVERURL; ?>core/inventario/getProductosMovimientosCategoriaInventario.php';
 
-  $('#form_main_movimientos_transferencia #inventario_productos_id')
-    .html('<option value="">Cargando productos...</option>')
-    .val('')
-    .selectpicker('refresh');
+  var $productos = $('#form_main_movimientos_transferencia #inventario_productos_id').html('<option value="">Cargando productos...</option>').val('');
+  window.izzySoloRefreshSelect2($productos);
 
   $.ajax({
     type: "POST",
@@ -2251,16 +2449,12 @@ function getProductosMovimientos(categoria_id){
       categoria_id: categoria_id
     },
     success: function(data){
-      $('#form_main_movimientos_transferencia #inventario_productos_id')
-        .html(data)
-        .val('0')
-        .selectpicker('refresh');
+      var $productos = $('#form_main_movimientos_transferencia #inventario_productos_id').html(data).val('0');
+      window.izzySoloRefreshSelect2($productos);
     },
     error: function(xhr){
-      $('#form_main_movimientos_transferencia #inventario_productos_id')
-        .html('<option value="">Error al cargar productos</option>')
-        .val('')
-        .selectpicker('refresh');
+      var $productos = $('#form_main_movimientos_transferencia #inventario_productos_id').html('<option value="">Error al cargar productos</option>').val('');
+      window.izzySoloRefreshSelect2($productos);
 
       console.log('Error productos inventario:', xhr.responseText);
     }
@@ -2271,61 +2465,10 @@ function transferenciaPrepararSelectAlmacen(){
   var $almacen = $('#form_main_movimientos_transferencia #almacen');
   if (!$almacen.length) return $almacen;
 
-  function mostrarFallbackNativo(){
-    try {
-      if ($.fn.selectpicker && $almacen.data('selectpicker')) {
-        $almacen.selectpicker('destroy');
-      }
-    } catch (e) {}
-
-    $almacen
-      .removeClass('selectpicker')
-      .addClass('transferencia-almacen-fallback')
-      .css({
-        display: 'block',
-        visibility: 'visible',
-        width: '100%'
-      });
-
-    return $almacen;
-  }
-
-  if (!$.fn.selectpicker) {
-    return mostrarFallbackNativo();
-  }
-
-  try {
-    if (!$almacen.data('selectpicker')) {
-      $almacen.selectpicker({
-        liveSearch: true,
-        width: '100%',
-        noneSelectedText: 'Todos los almacenes'
-      });
-    } else {
-      $almacen.selectpicker('refresh');
-    }
-
-    var $wrapper = $almacen.parent('.bootstrap-select');
-
-    if (!$wrapper.length) {
-      return mostrarFallbackNativo();
-    }
-
-    $almacen.removeClass('transferencia-almacen-fallback');
-
-    $wrapper
-      .removeClass('d-none')
-      .css({
-        display: 'block',
-        visibility: 'visible',
-        width: '100%'
-      });
-
-    $wrapper.children('.dropdown-toggle').css('width', '100%');
-  } catch (e) {
-    console.log('No se pudo inicializar bootstrap-select para Almacén:', e);
-    return mostrarFallbackNativo();
-  }
+  window.izzySoloSelect2($almacen, {
+    placeholder: 'Todos los almacenes',
+    allowClear: false
+  });
 
   return $almacen;
 }
@@ -2335,25 +2478,10 @@ function transferenciaActualizarSelectAlmacen(opciones, valor){
   if (!$almacen.length) return $almacen;
 
   $almacen.html(opciones).val(String(valor == null ? '0' : valor));
-
-  $almacen = transferenciaPrepararSelectAlmacen();
-
-  if ($.fn.selectpicker && $almacen.hasClass('selectpicker') && $almacen.data('selectpicker')) {
-    try {
-      $almacen.selectpicker('refresh');
-      $almacen.selectpicker('render');
-
-      $almacen.parent('.bootstrap-select')
-        .removeClass('d-none')
-        .css({
-          display: 'block',
-          visibility: 'visible',
-          width: '100%'
-        });
-    } catch (e) {
-      console.log('No se pudo refrescar Almacén:', e);
-    }
-  }
+  window.izzySoloRefreshSelect2($almacen, {
+    placeholder: 'Todos los almacenes',
+    allowClear: false
+  });
 
   return $almacen;
 }
@@ -2383,11 +2511,8 @@ function getAlmacen(){
       transferenciaActualizarSelectAlmacen(opciones, '0');
 
       if ($('#formTransferencia #id_bodega').length) {
-        $('#formTransferencia #id_bodega').html(opciones);
-
-        if ($.fn.selectpicker && $('#formTransferencia #id_bodega').hasClass('selectpicker')) {
-          $('#formTransferencia #id_bodega').selectpicker('refresh');
-        }
+        var $bodegaModal = $('#formTransferencia #id_bodega').html(opciones);
+        window.izzySoloRefreshSelect2($bodegaModal);
       }
     },
     error: function(xhr){

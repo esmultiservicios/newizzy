@@ -1250,3 +1250,724 @@
     }
 }
 
+
+
+/* =========================================================
+   CAJAS | MODALES DIV UNIFORMES CON EL LISTADO PRINCIPAL
+   Detalle = encabezado navy + filas blancas con línea teal.
+   Miniatura = mismo lenguaje visual de las tarjetas de cajas.
+   ========================================================= */
+#modalDetalleRetirosCaja .fm-directory-card,
+#modalDesgloseGananciaCaja .fm-directory-card {
+    min-width: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+#modalDetalleRetirosCaja .fm-list-toolbar,
+#modalDesgloseGananciaCaja .fm-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+#modalDetalleRetirosCaja .fm-toolbar-left,
+#modalDetalleRetirosCaja .fm-toolbar-right,
+#modalDesgloseGananciaCaja .fm-toolbar-left,
+#modalDesgloseGananciaCaja .fm-toolbar-right {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+#modalDetalleRetirosCaja .fm-toolbar-right,
+#modalDesgloseGananciaCaja .fm-toolbar-right {
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+#modalDetalleRetirosCaja .fm-page-size,
+#modalDesgloseGananciaCaja .fm-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #46556b;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+#modalDetalleRetirosCaja .fm-page-size label,
+#modalDesgloseGananciaCaja .fm-page-size label {
+    margin: 0;
+    color: #172033;
+    font-weight: 700;
+}
+
+#modalDetalleRetirosCaja .fm-page-size-select,
+#modalDesgloseGananciaCaja .fm-page-size-select {
+    width: 72px;
+    min-width: 72px;
+    min-height: 38px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #253858;
+}
+
+/* Selector Detalle / Miniatura: mismo estándar del principal. */
+#modalDetalleRetirosCaja .fm-view-switch,
+#modalDesgloseGananciaCaja .fm-view-switch {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+}
+
+#modalDetalleRetirosCaja .fm-view-btn,
+#modalDesgloseGananciaCaja .fm-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent !important;
+    color: #52627a !important;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+#modalDetalleRetirosCaja .fm-view-btn:hover,
+#modalDetalleRetirosCaja .fm-view-btn:focus,
+#modalDesgloseGananciaCaja .fm-view-btn:hover,
+#modalDesgloseGananciaCaja .fm-view-btn:focus {
+    background: #eaf4fc !important;
+    color: #176fae !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    opacity: 1 !important;
+}
+
+#modalDetalleRetirosCaja .fm-view-btn.active,
+#modalDetalleRetirosCaja .fm-view-btn.active:hover,
+#modalDetalleRetirosCaja .fm-view-btn.active:focus,
+#modalDesgloseGananciaCaja .fm-view-btn.active,
+#modalDesgloseGananciaCaja .fm-view-btn.active:hover,
+#modalDesgloseGananciaCaja .fm-view-btn.active:focus {
+    background: #2f9ddd !important;
+    color: #fff !important;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24) !important;
+    opacity: 1 !important;
+}
+
+#modalDetalleRetirosCaja .fm-search-wrap,
+#modalDesgloseGananciaCaja .fm-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 280px;
+    min-width: 210px;
+}
+
+#modalDetalleRetirosCaja .fm-search-wrap > i,
+#modalDesgloseGananciaCaja .fm-search-wrap > i {
+    position: absolute;
+    left: 12px;
+    z-index: 2;
+    color: #233b55;
+    pointer-events: none;
+}
+
+#modalDetalleRetirosCaja .fm-search-wrap .form-control,
+#modalDesgloseGananciaCaja .fm-search-wrap .form-control {
+    width: 100%;
+    min-height: 38px;
+    padding-left: 36px;
+    padding-right: 36px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #253858;
+    box-shadow: none;
+}
+
+#modalDetalleRetirosCaja .fm-search-wrap .form-control:focus,
+#modalDesgloseGananciaCaja .fm-search-wrap .form-control:focus {
+    border-color: #8fc8ed;
+    box-shadow: 0 0 0 2px rgba(47, 157, 221, .10);
+}
+
+#modalDetalleRetirosCaja .fm-search-clear,
+#modalDesgloseGananciaCaja .fm-search-clear {
+    position: absolute;
+    right: 7px;
+    top: 50%;
+    z-index: 3;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    cursor: pointer;
+    opacity: 1;
+}
+
+#modalDetalleRetirosCaja .fm-search-clear:hover,
+#modalDetalleRetirosCaja .fm-search-clear:focus,
+#modalDesgloseGananciaCaja .fm-search-clear:hover,
+#modalDesgloseGananciaCaja .fm-search-clear:focus {
+    background: #eaf4fc;
+    color: #176fae;
+    outline: 0;
+    opacity: 1;
+}
+
+.cajas-modal-listado {
+    min-width: 0;
+}
+
+.cajas-modal-vista-detalle {
+    display: block;
+}
+
+/* Vista detalle de modales: imita la tabla DIV del -view principal. */
+.cajas-modal-detail-table {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 2px;
+}
+
+.cajas-modal-detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 10px;
+}
+
+.cajas-modal-detail-grid {
+    display: grid;
+    min-width: 0;
+}
+
+.cajas-modal-detail-grid.is-retiros {
+    grid-template-columns:
+        112px
+        118px
+        98px
+        minmax(125px, 1fr)
+        minmax(145px, 1.15fr)
+        minmax(115px, .9fr)
+        minmax(92px, .75fr)
+        98px
+        88px
+        minmax(118px, .9fr);
+    min-width: 1110px;
+}
+
+.cajas-modal-detail-grid.is-ganancia {
+    grid-template-columns:
+        94px
+        78px
+        minmax(160px, 1.45fr)
+        72px
+        94px
+        98px
+        86px
+        98px
+        98px
+        98px
+        98px;
+    min-width: 1125px;
+}
+
+.cajas-modal-detail-header {
+    overflow: hidden;
+    border: 1px solid #1f354e;
+    border-radius: 10px;
+    background: #1f354e;
+    color: #fff;
+}
+
+.cajas-modal-detail-header > div {
+    min-width: 0;
+    padding: 11px 9px;
+    border-right: 1px solid rgba(255,255,255,.12);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.cajas-modal-detail-header > div:last-child {
+    border-right: 0;
+}
+
+.cajas-modal-detail-row {
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #0ea5a8;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .05);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.cajas-modal-detail-cell {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 12px 10px;
+    border-right: 1px solid #edf1f6;
+    color: #46556b;
+    font-size: 10.5px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.cajas-modal-detail-cell:last-child {
+    border-right: 0;
+}
+
+.cajas-modal-detail-value {
+    min-width: 0;
+    width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.cajas-modal-detail-cell.is-action,
+.cajas-modal-detail-cell.is-center {
+    justify-content: center;
+    text-align: center;
+}
+
+.cajas-modal-detail-cell.is-action .btn {
+    min-width: 92px;
+    white-space: nowrap;
+}
+
+.cajas-modal-detail-cell.is-money {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.cajas-modal-detail-cell.is-positive {
+    color: #14804a;
+}
+
+.cajas-modal-detail-cell.is-withdraw {
+    color: #b66a00;
+}
+
+.cajas-modal-detail-cell.is-negative {
+    color: #c9372c;
+}
+
+.cajas-modal-cell-stack {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.cajas-modal-cell-stack strong {
+    color: #172b4d;
+    overflow-wrap: anywhere;
+}
+
+/* Vista miniatura de modales: misma familia visual de .cajas-mini-card. */
+.cajas-modal-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.cajas-modal-mini-card {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+
+.cajas-modal-mini-topline {
+    display: block;
+    height: 3px;
+    background: #0ea5a8;
+    border-radius: 10px 10px 0 0;
+}
+
+.cajas-modal-mini-header {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 9px;
+    padding: 13px 14px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.cajas-modal-mini-title {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cajas-modal-mini-title strong {
+    min-width: 0;
+    color: #172b4d;
+    font-size: 12px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.cajas-modal-mini-title span {
+    color: #6b778c;
+    font-size: 10px;
+}
+
+.cajas-modal-mini-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 0;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.cajas-modal-field {
+    min-width: 0;
+    padding: 11px 14px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.cajas-modal-field:nth-child(2n) {
+    border-right: 0;
+}
+
+.cajas-modal-field:nth-last-child(-n+2) {
+    border-bottom: 0;
+}
+
+.cajas-modal-field-label {
+    display: block;
+    margin-bottom: 3px;
+    color: #6b778c;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cajas-modal-field-value {
+    min-width: 0;
+    color: #172b4d;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.cajas-modal-field.is-money .cajas-modal-field-value {
+    text-align: right;
+    white-space: normal;
+}
+
+.cajas-modal-mini-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+    padding: 11px 14px;
+}
+
+.cajas-modal-gain {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.cajas-modal-gain.is-positive {
+    color: #14804a;
+}
+
+.cajas-modal-gain.is-negative {
+    color: #c9372c;
+}
+
+/* Estado vacío sin marco punteado: mismo lenguaje limpio del principal. */
+.cajas-modal-empty {
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 42px 20px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #75849a;
+    text-align: center;
+}
+
+.cajas-modal-empty > i {
+    margin-bottom: 3px;
+    color: #2f9ddd;
+    font-size: 34px;
+}
+
+.cajas-modal-empty strong {
+    color: #3e4c61;
+    font-size: 14px;
+}
+
+/* Paginación igual al listado principal. */
+#retirosDetallePaginacion,
+#gananciaDetallePaginacion {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+#retirosDetallePaginacion button,
+#gananciaDetallePaginacion button {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #fff;
+    color: #405269;
+    font-size: 11px;
+    font-weight: 700;
+    box-shadow: none;
+    opacity: 1;
+}
+
+#retirosDetallePaginacion button:hover:not(:disabled):not(.active),
+#retirosDetallePaginacion button:focus:not(:disabled):not(.active),
+#gananciaDetallePaginacion button:hover:not(:disabled):not(.active),
+#gananciaDetallePaginacion button:focus:not(:disabled):not(.active) {
+    background: #edf6fd;
+    color: #176fae;
+    border-color: #c8deef;
+    outline: 0;
+    opacity: 1;
+}
+
+#retirosDetallePaginacion button.active,
+#retirosDetallePaginacion button.active:hover,
+#gananciaDetallePaginacion button.active,
+#gananciaDetallePaginacion button.active:hover {
+    border-color: #2f9ddd;
+    background: #2f9ddd;
+    color: #fff;
+    opacity: 1;
+}
+
+#retirosDetallePaginacion button:disabled,
+#gananciaDetallePaginacion button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* Hover claro y limpio: nunca opaco ni oscuro. */
+@media (hover: hover) and (pointer: fine) {
+    .cajas-modal-detail-row:hover,
+    .cajas-modal-mini-card:hover {
+        transform: translateY(-3px);
+        border-color: #b9ded5;
+        border-top-color: #20c997;
+        background: #fcfffe;
+        box-shadow: 0 10px 22px rgba(23, 43, 77, .10);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .cajas-modal-mini-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 991.98px) {
+    #modalDetalleRetirosCaja .fm-list-toolbar,
+    #modalDesgloseGananciaCaja .fm-list-toolbar {
+        gap: 12px;
+    }
+
+    #modalDetalleRetirosCaja .fm-toolbar-right,
+    #modalDesgloseGananciaCaja .fm-toolbar-right {
+        flex: 1 1 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #modalDetalleRetirosCaja .fm-list-toolbar,
+    #modalDesgloseGananciaCaja .fm-list-toolbar,
+    #modalDetalleRetirosCaja .fm-toolbar-right,
+    #modalDesgloseGananciaCaja .fm-toolbar-right {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #modalDetalleRetirosCaja .fm-toolbar-left,
+    #modalDetalleRetirosCaja .fm-toolbar-right,
+    #modalDesgloseGananciaCaja .fm-toolbar-left,
+    #modalDesgloseGananciaCaja .fm-toolbar-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+
+    #modalDetalleRetirosCaja .fm-page-size,
+    #modalDesgloseGananciaCaja .fm-page-size,
+    #modalDetalleRetirosCaja .fm-view-switch,
+    #modalDesgloseGananciaCaja .fm-view-switch,
+    #modalDetalleRetirosCaja .fm-search-wrap,
+    #modalDesgloseGananciaCaja .fm-search-wrap {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #modalDetalleRetirosCaja .fm-view-btn,
+    #modalDesgloseGananciaCaja .fm-view-btn {
+        flex: 1 1 50%;
+    }
+
+    .cajas-modal-detail-table {
+        overflow-x: visible;
+    }
+
+    .cajas-modal-detail-header {
+        display: none;
+    }
+
+    .cajas-modal-detail-grid.is-retiros,
+    .cajas-modal-detail-grid.is-ganancia {
+        grid-template-columns: 1fr;
+        min-width: 0;
+    }
+
+    .cajas-modal-detail-row {
+        overflow: hidden;
+    }
+
+    .cajas-modal-detail-cell {
+        display: grid;
+        grid-template-columns: minmax(105px, 34%) minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-right: 0;
+        border-bottom: 1px solid #edf1f6;
+        text-align: left;
+    }
+
+    .cajas-modal-detail-cell:last-child {
+        border-bottom: 0;
+    }
+
+    .cajas-modal-detail-cell::before {
+        content: attr(data-label);
+        color: #6b778c;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .cajas-modal-detail-cell.is-action,
+    .cajas-modal-detail-cell.is-center,
+    .cajas-modal-detail-cell.is-money {
+        justify-content: stretch;
+        text-align: left;
+    }
+
+    .cajas-modal-detail-cell.is-money .cajas-modal-detail-value {
+        text-align: left;
+    }
+
+    .cajas-modal-mini-grid,
+    .cajas-modal-mini-body {
+        grid-template-columns: 1fr;
+    }
+
+    .cajas-modal-field {
+        border-right: 0;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .cajas-modal-field:nth-last-child(-n+2) {
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .cajas-modal-field:last-child {
+        border-bottom: 0;
+    }
+
+    #retirosDetallePaginacion,
+    #gananciaDetallePaginacion {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .cajas-modal-mini-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cajas-modal-detail-cell {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cajas-modal-detail-row,
+    .cajas-modal-mini-card {
+        transition: none;
+    }
+
+    .cajas-modal-detail-row:hover,
+    .cajas-modal-mini-card:hover {
+        transform: none;
+    }
+}

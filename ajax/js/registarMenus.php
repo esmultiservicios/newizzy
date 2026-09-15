@@ -87,39 +87,39 @@
         }
     }
 
-    function inicializarSelectPicker($select) {
+    function inicializarSelect2($select) {
         if (!$select || $select.length === 0) {
             return;
         }
 
-        if (typeof $.fn.selectpicker !== "function") {
+        if (typeof $.fn.izzySelect2Bridge !== "function") {
             return;
         }
 
-        if ($select.hasClass("selectpicker")) {
+        if ($select.hasClass("izzy-select2")) {
             try {
-                $select.selectpicker("destroy");
+                $select.izzySelect2Bridge("destroy");
             } catch (e) {
 
             }
         }
 
-        $select.addClass("selectpicker").selectpicker({
+        $select.addClass("izzy-select2").izzySelect2Bridge({
             liveSearch: true,
             size: 10,
             noneSelectedText: "Seleccione una opción"
         });
 
-        $select.selectpicker("refresh");
+        $select.izzySelect2Bridge("refresh");
     }
 
-    function refrescarSelectPicker($select) {
+    function refrescarSelect2($select) {
         if (!$select || $select.length === 0) {
             return;
         }
 
-        if (typeof $.fn.selectpicker === "function" && $select.hasClass("selectpicker")) {
-            $select.selectpicker("refresh");
+        if (typeof $.fn.izzySelect2Bridge === "function" && $select.hasClass("izzy-select2")) {
+            $select.izzySelect2Bridge("refresh");
         }
     }
 
@@ -232,7 +232,7 @@
 
                 $select.html(options);
 
-                inicializarSelectPicker($select);
+                inicializarSelect2($select);
 
                 if (dependencyId !== null && dependencyId !== "") {
                     $select.val(dependencyId);
@@ -240,7 +240,7 @@
                     $select.val("");
                 }
 
-                refrescarSelectPicker($select);
+                refrescarSelect2($select);
             },
             error: function(xhr) {
                 console.error("Error cargando dependencias:", xhr.responseText);
@@ -264,7 +264,7 @@
             } else {
                 $dependenciaGroup.hide();
                 $("#dependencia_menu").val("");
-                refrescarSelectPicker($("#dependencia_menu"));
+                refrescarSelect2($("#dependencia_menu"));
             }
         });
     }
@@ -1209,9 +1209,9 @@
         zip.file("[Content_Types].xml", contentTypes);
         zip.folder("_rels").file(".rels", rootRels);
         zip.folder("xl").file("workbook.xml", workbookXml);
-        zip.folder("xl").file("styles.xml", stylesXml);
+        zip.folder("xl").file("styles.xml", (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
         zip.folder("xl").folder("_rels").file("workbook.xml.rels", workbookRels);
-        zip.folder("xl").folder("worksheets").file("sheet1.xml", sheetXml);
+        zip.folder("xl").folder("worksheets").file("sheet1.xml", (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
         const opciones = {
             type: "blob",
@@ -1485,10 +1485,10 @@
         $("#menu_id").val("");
 
         $("#tipo_menu").val("");
-        refrescarSelectPicker($("#tipo_menu"));
+        refrescarSelect2($("#tipo_menu"));
 
         $("#dependencia_menu").val("");
-        refrescarSelectPicker($("#dependencia_menu"));
+        refrescarSelect2($("#dependencia_menu"));
 
         $("#dependencia_menu_group").hide();
         $("#icono_preview").attr("class", "fas fa-question");
@@ -1648,7 +1648,7 @@
 
                         $("#menu_id").val(data.id);
                         $("#tipo_menu").val(type);
-                        refrescarSelectPicker($("#tipo_menu"));
+                        refrescarSelect2($("#tipo_menu"));
 
                         $("#nombre_menu").val(data.nombre);
                         $("#descripcion_menu").val(data.descripcion);
@@ -1664,7 +1664,7 @@
                         } else {
                             $("#dependencia_menu_group").hide();
                             $("#dependencia_menu").val("");
-                            refrescarSelectPicker($("#dependencia_menu"));
+                            refrescarSelect2($("#dependencia_menu"));
                         }
 
                         $("#form_title").html("Editar Elemento de Menú");

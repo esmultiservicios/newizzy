@@ -1,31 +1,4 @@
 <script>
-/* =========================================================
-   COMPATIBILIDAD SELECTPICKER
-   ---------------------------------------------------------
-   Evita errores cuando bootstrap-select no está cargado o se
-   carga después del JS de facturación.
-   No cambia la lógica existente: si selectpicker existe, usa
-   el plugin; si no existe, usa el select normal.
-========================================================= */
-if (window.jQuery && !$.fn.selectpicker) {
-    $.fn.selectpicker = function (accion, valor) {
-        if (accion === 'val') {
-            if (arguments.length > 1) {
-                this.val(valor);
-                return this;
-            }
-
-            return this.val();
-        }
-
-        if (accion === 'refresh' || accion === 'render' || accion === 'mobile' || accion === 'destroy' || accion === undefined) {
-            return this;
-        }
-
-        return this;
-    };
-}
-
 //FAactura.php - js de las facturas escritorio
 $(() => {
      // Evento para el botón de Generar Reporte
@@ -37,7 +10,7 @@ $(() => {
     // Evento para el botón de Limpiar Filtros
     $('#btn-limpiar-filtros').on('click', function() {
         $('#formulario_busqueda_cotizaciones')[0].reset();
-        $('#formulario_busqueda_cotizaciones .selectpicker').selectpicker('refresh');
+        $('#formulario_busqueda_cotizaciones .izzy-select2').izzySelect2Bridge('refresh');
         listar_busqueda_cotizaciones();
     });  
 
@@ -50,7 +23,7 @@ $(() => {
     // Evento para el botón de Limpiar Filtros
     $('#btn-limpiar-filtros').on('click', function() {
         $('#formulario_busqueda_cuentas_cobrar_clientes')[0].reset();
-        $('#formulario_busqueda_cuentas_cobrar_clientes .selectpicker').selectpicker('refresh');
+        $('#formulario_busqueda_cuentas_cobrar_clientes .izzy-select2').izzySelect2Bridge('refresh');
         listar_busqueda_cuentas_por_cobrar_clientes();
     });   
 
@@ -63,7 +36,7 @@ $(() => {
     // Evento para el botón de Limpiar Filtros
     $('#btn-limpiar-filtros').on('click', function() {
         $('#formulario_bill_draft')[0].reset();
-        $('#formulario_bill_draft .selectpicker').selectpicker('refresh');
+        $('#formulario_bill_draft .izzy-select2').izzySelect2Bridge('refresh');
         listar_busqueda_bill_draf();
     });
 
@@ -76,7 +49,7 @@ $(() => {
     // Evento para el botón de Limpiar Filtros
     $('#btn-limpiar-filtros').on('click', function() {
         $('#formulario_bill')[0].reset();
-        $('#formulario_bill .selectpicker').selectpicker('refresh');
+        $('#formulario_bill .izzy-select2').izzySelect2Bridge('refresh');
         listar_busqueda_bill();
     });
 
@@ -1225,9 +1198,9 @@ function cargarCajaFactura() {
 
     $('#btn_guardar_retiro_caja').prop('disabled', true);
 
-    if ($.fn.selectpicker) {
-        $('#retiro_categoria_gastos_id').selectpicker('val', '');
-        $('#retiro_categoria_gastos_id').selectpicker('refresh');
+    if ($.fn.izzySelect2Bridge) {
+        $('#retiro_categoria_gastos_id').izzySelect2Bridge('val', '');
+        $('#retiro_categoria_gastos_id').izzySelect2Bridge('refresh');
     }
 
     cargarSaldoRetiroCajaFactura(data.apertura_id, function () {
@@ -2959,7 +2932,7 @@ function getClientesFacturasCXC() {
         success: function(data) {
             $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes').html("");
             $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes').html(data);
-            $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes').selectpicker('refresh');
+            $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes').izzySelect2Bridge('refresh');
         }
     });
 }
@@ -2974,7 +2947,7 @@ function getFacturador() {
         success: function(data) {
             $('#formulario_bill #facturador').html("");
             $('#formulario_bill #facturador').html(data);
-            $('#formulario_bill #facturador').selectpicker('refresh');
+            $('#formulario_bill #facturador').izzySelect2Bridge('refresh');
         }
     });
 }
@@ -2990,7 +2963,7 @@ function getVendedores() {
 
             $('#formulario_bill #vendedor').html("");
             $('#formulario_bill #vendedor').html(data);
-            $('#formulario_bill #vendedor').selectpicker('refresh');
+            $('#formulario_bill #vendedor').izzySelect2Bridge('refresh');
         }
     });
 }
@@ -3565,8 +3538,8 @@ function abrirEditarClienteDesdeFacturacion(data) {
 
             $('#formClientes #departamento_cliente').val(respuesta.departamentos_id || '');
 
-            if ($.fn.selectpicker) {
-                $('#formClientes #departamento_cliente').selectpicker('refresh');
+            if ($.fn.izzySelect2Bridge) {
+                $('#formClientes #departamento_cliente').izzySelect2Bridge('refresh');
             }
 
             if (typeof getMunicipiosClientes === 'function') {
@@ -3576,8 +3549,8 @@ function abrirEditarClienteDesdeFacturacion(data) {
             setTimeout(function() {
                 $('#formClientes #municipio_cliente').val(respuesta.municipios_id || '');
 
-                if ($.fn.selectpicker) {
-                    $('#formClientes #municipio_cliente').selectpicker('refresh');
+                if ($.fn.izzySelect2Bridge) {
+                    $('#formClientes #municipio_cliente').izzySelect2Bridge('refresh');
                 }
             }, 250);
 
@@ -6570,7 +6543,7 @@ function getReporteCotizacion() {
         success: function(data) {
             $('#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte').html("");
             $('#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte').html(data);
-            $('#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte').selectpicker('refresh');
+            $('#formulario_busqueda_cotizaciones #tipo_cotizacion_reporte').izzySelect2Bridge('refresh');
         }
     });
 }
@@ -7655,7 +7628,7 @@ function getReporteFactura() {
         success: function(data) {
             $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').html("");
             $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').html(data);
-            $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').selectpicker('refresh');
+            $('#formulario_bill #tipo_factura, #tipo_factura_efectivo_reporte').izzySelect2Bridge('refresh');
         }
     });
 }
@@ -7670,7 +7643,7 @@ function getEstadoFacturaCredito() {
         success: function(data) {
             $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes_estado').html("");
             $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes_estado').html(data);
-            $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes_estado').selectpicker(
+            $('#formulario_busqueda_cuentas_cobrar_clientes #cobrar_clientes_estado').izzySelect2Bridge(
                 'refresh');
         }
     });
@@ -11080,7 +11053,7 @@ $('#modalConfigFactura')
             var form = this.form;
             if (!form) return;
             window.setTimeout(function () {
-                $(form).find('.selectpicker').selectpicker('refresh');
+                $(form).find('.izzy-select2').izzySelect2Bridge('refresh');
                 var id = form.id;
                 if (id === 'formulario_busqueda_cotizaciones') listar_busqueda_cotizaciones();
                 else if (id === 'formulario_busqueda_cuentas_cobrar_clientes') listar_busqueda_cuentas_por_cobrar_clientes();
@@ -11802,7 +11775,11 @@ $('#modalConfigFactura')
             return fmExcelCell(fmExcelCol(summaryCols[i])+'3',s.label||'',6,false);
         }).join('')+'</row>');
         sheetRows.push('<row r="4" ht="26" customHeight="1">'+summary.map(function(s,i){
-            return fmExcelCell(fmExcelCol(summaryCols[i])+'4',s.money?fmNumber(s.value):s.value,7,!!s.money||typeof s.value==='number');
+            var esMoneda=!!s.money;
+            var esNumero=!esMoneda && typeof s.value==='number';
+            var valor=esMoneda?fmNumber(s.value):s.value;
+            var estilo=esMoneda?7:11;
+            return fmExcelCell(fmExcelCol(summaryCols[i])+'4',valor,estilo,esMoneda||esNumero);
         }).join('')+'</row>');
         sheetRows.push('<row r="5"></row>');
         sheetRows.push('<row r="6" ht="18" customHeight="1">'+fmExcelCell('A6','Detalle de registros filtrados',8,false)+'</row>');
@@ -11840,6 +11817,7 @@ $('#modalConfigFactura')
         for(var c=0;c<headers.length;c++){
             var width=Math.min(34,Math.max(14,String(headers[c]||'').length+7));
             if(c===1||c===2) width=Math.max(width,24);
+            if(numeric.indexOf(c)!==-1) width=Math.max(width,20);
             cols+='<col min="'+(c+1)+'" max="'+(c+1)+'" width="'+width+'" customWidth="1"/>';
         }
 
@@ -11847,7 +11825,7 @@ $('#modalConfigFactura')
             '<mergeCell ref="A1:'+lastCol+'1"/>',
             '<mergeCell ref="A2:'+lastCol+'2"/>'
         ];
-        var sheetXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+        var sheetXml='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
             '<dimension ref="A1:'+lastCol+lastRow+'"/>'+
             '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A8" sqref="A8"/></sheetView></sheetViews>'+
@@ -11858,9 +11836,9 @@ $('#modalConfigFactura')
             '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>'+
             '</worksheet>';
 
-        var stylesXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+        var stylesXml='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
             '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
-            '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>'+
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>'+
             '<fonts count="8">'+
                 '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>'+
                 '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'+
@@ -11880,7 +11858,7 @@ $('#modalConfigFactura')
             '</fills>'+
             '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders>'+
             '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
-            '<cellXfs count="11">'+
+            '<cellXfs count="12">'+
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
                 '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'+
                 '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'+
@@ -11892,24 +11870,25 @@ $('#modalConfigFactura')
                 '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>'+
                 '<xf numFmtId="0" fontId="7" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>'+
                 '<xf numFmtId="164" fontId="7" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'+
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>'+
             '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
         var sheetName=(cfg.title||'Reporte').replace(/[\\\/\?\*\[\]:]/g,' ').substring(0,31)||'Reporte';
-        var workbookXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+        var workbookXml='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
             '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
             '<bookViews><workbookView activeTab="0"/></bookViews><sheets><sheet name="'+fmXmlEscape(sheetName)+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
 
-        var workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
-        var rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
-        var contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+        var workbookRels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        var rootRels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+        var contentTypes='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
 
         var zip=new JSZip();
         zip.file('[Content_Types].xml',contentTypes);
         zip.folder('_rels').file('.rels',rootRels);
         zip.folder('xl').file('workbook.xml',workbookXml);
-        zip.folder('xl').file('styles.xml',stylesXml);
+        zip.folder('xl').file('styles.xml',(window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
         zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels);
-        zip.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml',(window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
         var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
         if(typeof zip.generateAsync==='function') return zip.generateAsync(opts);
@@ -12151,6 +12130,10 @@ $('#modalConfigFactura')
         });
     }
 
+    $('#btnExcelCotizacionesFm').off('click.fm').on('click.fm',function(){fmExportExcel('cotizaciones');});
+    $('#btnPdfCotizacionesFm').off('click.fm').on('click.fm',function(){fmExportPdf('cotizaciones');});
+    $('#btnExcelBorradoresFm').off('click.fm').on('click.fm',function(){fmExportExcel('borradoresFactura');});
+    $('#btnPdfBorradoresFm').off('click.fm').on('click.fm',function(){fmExportPdf('borradoresFactura');});
     $('#btnExcelCxcFm').off('click.fm').on('click.fm',function(){fmExportExcel('cxcFactura');});
     $('#btnPdfCxcFm').off('click.fm').on('click.fm',function(){fmExportPdf('cxcFactura');});
     $('#btnExcelFacturasFm').off('click.fm').on('click.fm',function(){fmExportExcel('facturasEmitidas');});

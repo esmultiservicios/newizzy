@@ -322,8 +322,8 @@ function registrarControlFocusModalMovimientos() {
   window.__controlFocusModalMovimientosRegistrado = true;
 
   $(document)
-    .off('focusin.controlFocusMovimientos', '#modal_movimientos input, #modal_movimientos textarea, #modal_movimientos button, #modal_movimientos select, #modal_movimientos .bootstrap-select button')
-    .on('focusin.controlFocusMovimientos', '#modal_movimientos input, #modal_movimientos textarea, #modal_movimientos button, #modal_movimientos select, #modal_movimientos .bootstrap-select button', function () {
+    .off('focusin.controlFocusMovimientos', '#modal_movimientos input, #modal_movimientos textarea, #modal_movimientos button, #modal_movimientos select, #modal_movimientos .select2-selection')
+    .on('focusin.controlFocusMovimientos', '#modal_movimientos input, #modal_movimientos textarea, #modal_movimientos button, #modal_movimientos select, #modal_movimientos .select2-selection', function () {
       if ($(this).is(':visible') && !$(this).prop('disabled')) {
         MOVIMIENTOS_ULTIMO_FOCUS = this;
       }
@@ -381,8 +381,8 @@ function enfocarBusquedaTablaMovimientosSiAplica() {
       var form = this;
 
       setTimeout(function(){
-        $(form).find('.selectpicker').each(function(){
-          $(this).selectpicker('refresh');
+        $(form).find('.izzy-select2').each(function(){
+          $(this).izzySelect2Bridge('refresh');
         });
 
         $(form).find('select.izzy-select2').each(function(){
@@ -1273,9 +1273,9 @@ function movimientosGenerarXlsx(rows) {
   zip.file('[Content_Types].xml', contentTypes);
   zip.folder('_rels').file('.rels', rootRels);
   zip.folder('xl').file('workbook.xml', workbookXml);
-  zip.folder('xl').file('styles.xml', stylesXml);
+  zip.folder('xl').file('styles.xml', (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
   zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
   var opciones = {
     type: 'blob',
@@ -1872,18 +1872,7 @@ function refrescarSelectInventario(selector) {
 
   if (!$select.length) return;
 
-  if ($select.hasClass('izzy-select2')) {
-    if (typeof izzyRefreshSelect2 === 'function') {
-      izzyRefreshSelect2($select);
-    } else {
-      $select.trigger('change.select2');
-    }
-    return;
-  }
-
-  if ($select.hasClass('selectpicker') && $.fn.selectpicker) {
-    $select.selectpicker('refresh');
-  }
+  $select.izzySelect2Bridge('refresh');
 }
 
 function seleccionarBodegaPrincipal(selector) {
@@ -1913,7 +1902,7 @@ function getAlmacen() {
       $almacenFiltro.html(data);
       refrescarSelectInventario($almacenFiltro);
 
-      $('#formMovimientoInventario #almacen_modal').html(data).selectpicker('refresh');
+      $('#formMovimientoInventario #almacen_modal').html(data).izzySelect2Bridge('refresh');
 
       seleccionarBodegaPrincipal($almacenFiltro);
       seleccionarBodegaPrincipal('#formMovimientoInventario #almacen_modal');
@@ -1929,14 +1918,14 @@ function getAlmacenModal() {
     url: url,
     async:true,
     success:function(data){
-      $('#formMovimientos #almacen_modal').html(data).selectpicker('refresh');
+      $('#formMovimientos #almacen_modal').html(data).izzySelect2Bridge('refresh');
       seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
     }
   });
 }
 
-$('#formMovimientos #movimiento_producto').off('changed.bs.select.saldoMovimiento change.saldoMovimiento');
-$('#formMovimientos #movimiento_producto').on('changed.bs.select.saldoMovimiento change.saldoMovimiento', function(){
+$('#formMovimientos #movimiento_producto').off('change.saldoMovimiento');
+$('#formMovimientos #movimiento_producto').on('change.saldoMovimiento', function(){
   var producto_id = $(this).val();
 
   getLotesProductos(producto_id);
@@ -1946,13 +1935,13 @@ $('#formMovimientos #movimiento_producto').on('changed.bs.select.saldoMovimiento
   }, 350);
 });
 
-$('#formMovimientos #almacen_modal').off('changed.bs.select.saldoMovimiento change.saldoMovimiento');
-$('#formMovimientos #almacen_modal').on('changed.bs.select.saldoMovimiento change.saldoMovimiento', function(){
+$('#formMovimientos #almacen_modal').off('change.saldoMovimiento');
+$('#formMovimientos #almacen_modal').on('change.saldoMovimiento', function(){
   consultarSaldoProductoMovimiento();
 });
 
-$('#formMovimientos #movimiento_lote').off('changed.bs.select.saldoMovimiento change.saldoMovimiento');
-$('#formMovimientos #movimiento_lote').on('changed.bs.select.saldoMovimiento change.saldoMovimiento', function(){
+$('#formMovimientos #movimiento_lote').off('change.saldoMovimiento');
+$('#formMovimientos #movimiento_lote').on('change.saldoMovimiento', function(){
   consultarSaldoProductoMovimiento();
 });
 
@@ -1965,7 +1954,7 @@ function getLotesProductos(producto_id){
     data:{producto_id: producto_id},
     async:true,
     success:function(data){
-      $('#formMovimientos #movimiento_lote').html(data).selectpicker('refresh');
+      $('#formMovimientos #movimiento_lote').html(data).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -1993,7 +1982,7 @@ function getTipoProductosModal(){
     url: url,
     async:true,
     success:function(data){
-      $('#formMovimientos #movimientos_tipo_producto_id').html(data).selectpicker('refresh');
+      $('#formMovimientos #movimientos_tipo_producto_id').html(data).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2005,7 +1994,7 @@ function getProductoOperacion(){
     type:"POST",
     url: url,
     success:function(data){
-      $('#formMovimientoInventario #movimiento_producto').html(data).selectpicker('refresh');
+      $('#formMovimientoInventario #movimiento_producto').html(data).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2022,7 +2011,7 @@ function getProductosMovimientos(tipo_producto_id, callback){
       $productoFiltro.html(data);
       refrescarSelectInventario($productoFiltro);
 
-      $('#formMovimientos #movimiento_producto').html(data).selectpicker('refresh');
+      $('#formMovimientos #movimiento_producto').html(data).izzySelect2Bridge('refresh');
 
       if (typeof callback === 'function') {
         callback(data);
@@ -2043,7 +2032,7 @@ function getClientes(){
       $clienteFiltro.html(data);
       refrescarSelectInventario($clienteFiltro);
 
-      $('#formMovimientoInventario #cliente_movimientos').html(data).selectpicker('refresh');
+      $('#formMovimientoInventario #cliente_movimientos').html(data).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2056,7 +2045,7 @@ function getClientesModal(){
     url: url,
     async:true,
     success:function(data){
-      $('#formMovimientos #cliente_movimientos').html(data).selectpicker('refresh');
+      $('#formMovimientos #cliente_movimientos').html(data).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2090,9 +2079,9 @@ function aplicarOperacionMovimiento(tipoOperacion) {
   $('#formMovimientos #cliente_movimientos').prop('disabled', tipoOperacion !== 'salida');
 
   if (tipoOperacion !== 'salida') {
-    $('#formMovimientos #cliente_movimientos').val('').selectpicker('refresh');
+    $('#formMovimientos #cliente_movimientos').val('').izzySelect2Bridge('refresh');
   } else {
-    $('#formMovimientos #cliente_movimientos').selectpicker('refresh');
+    $('#formMovimientos #cliente_movimientos').izzySelect2Bridge('refresh');
   }
 
   $('#formMovimientos #proceso_movimientos').val(
@@ -2428,16 +2417,16 @@ function aplicarProductoMovimientoSeleccionado(row) {
   $('#formMovimientos #produto_barcode').val(barcode);
 
   if (almacenId !== '' && parseInt(almacenId || 0, 10) > 0) {
-    $('#formMovimientos #almacen_modal').val(almacenId).selectpicker('refresh');
+    $('#formMovimientos #almacen_modal').val(almacenId).izzySelect2Bridge('refresh');
   } else {
     seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
   }
 
   if (tipoProductoId !== '') {
-    $('#formMovimientos #movimientos_tipo_producto_id').val(tipoProductoId).selectpicker('refresh');
+    $('#formMovimientos #movimientos_tipo_producto_id').val(tipoProductoId).izzySelect2Bridge('refresh');
 
     getProductosMovimientos(tipoProductoId, function () {
-      $('#formMovimientos #movimiento_producto').val(productoId).selectpicker('refresh');
+      $('#formMovimientos #movimiento_producto').val(productoId).izzySelect2Bridge('refresh');
       getLotesProductos(productoId);
 
       setTimeout(function () {
@@ -2446,7 +2435,7 @@ function aplicarProductoMovimientoSeleccionado(row) {
       }, 450);
     });
   } else {
-    $('#formMovimientos #movimiento_producto').val(productoId).selectpicker('refresh');
+    $('#formMovimientos #movimiento_producto').val(productoId).izzySelect2Bridge('refresh');
     getLotesProductos(productoId);
 
     setTimeout(function () {
@@ -2582,10 +2571,10 @@ function limpiarFormularioMovimientoRapido() {
   $('#formMovimientos #movimiento_comentario').val('');
   $('#formMovimientos #movimiento_fecha_vencimiento').val('');
 
-  $('#formMovimientos #movimientos_tipo_producto_id').val('').selectpicker('refresh');
-  $('#formMovimientos #movimiento_producto').val('').selectpicker('refresh');
-  $('#formMovimientos #movimiento_lote').html('').selectpicker('refresh');
-  $('#formMovimientos #cliente_movimientos').val('').selectpicker('refresh');
+  $('#formMovimientos #movimientos_tipo_producto_id').val('').izzySelect2Bridge('refresh');
+  $('#formMovimientos #movimiento_producto').val('').izzySelect2Bridge('refresh');
+  $('#formMovimientos #movimiento_lote').html('').izzySelect2Bridge('refresh');
+  $('#formMovimientos #cliente_movimientos').val('').izzySelect2Bridge('refresh');
 
   limpiarSaldoProductoMovimiento();
 
@@ -2663,8 +2652,8 @@ const BusquedaProducto = (barcode) => {
     dataType:'json',
     success:function(registro){
       if (registro.success){
-        $('#formMovimientos #movimientos_tipo_producto_id').val(registro.tipo_producto_id).selectpicker('refresh');
-        $('#formMovimientos #movimiento_producto').val(registro.productos_id).selectpicker('refresh');
+        $('#formMovimientos #movimientos_tipo_producto_id').val(registro.tipo_producto_id).izzySelect2Bridge('refresh');
+        $('#formMovimientos #movimiento_producto').val(registro.productos_id).izzySelect2Bridge('refresh');
 
         seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
 
@@ -2710,13 +2699,13 @@ function validarMovimientoInventarioRapido() {
 
   if (!tipoProducto) {
     showNotify('warning', 'Atención', 'Debe seleccionar el tipo de producto');
-    $('#formMovimientos #movimientos_tipo_producto_id').selectpicker('toggle');
+    $('#formMovimientos #movimientos_tipo_producto_id').izzySelect2Bridge('toggle');
     return false;
   }
 
   if (!producto) {
     showNotify('warning', 'Atención', 'Debe seleccionar un producto');
-    $('#formMovimientos #movimiento_producto').selectpicker('toggle');
+    $('#formMovimientos #movimiento_producto').izzySelect2Bridge('toggle');
     return false;
   }
 
@@ -2838,10 +2827,10 @@ function restaurarOperacionDespuesDeReset() {
     $('#formMovimientos #movimiento_comentario').val('');
     $('#formMovimientos #movimiento_fecha_vencimiento').val('');
 
-    $('#formMovimientos #movimientos_tipo_producto_id').val('').selectpicker('refresh');
-    $('#formMovimientos #movimiento_producto').val('').selectpicker('refresh');
-    $('#formMovimientos #movimiento_lote').html('').selectpicker('refresh');
-    $('#formMovimientos #cliente_movimientos').val('').selectpicker('refresh');
+    $('#formMovimientos #movimientos_tipo_producto_id').val('').izzySelect2Bridge('refresh');
+    $('#formMovimientos #movimiento_producto').val('').izzySelect2Bridge('refresh');
+    $('#formMovimientos #movimiento_lote').html('').izzySelect2Bridge('refresh');
+    $('#formMovimientos #cliente_movimientos').val('').izzySelect2Bridge('refresh');
 
     seleccionarBodegaPrincipal('#formMovimientos #almacen_modal');
     cargarOperacionRecordada();
@@ -2901,9 +2890,9 @@ function limpiarFormularioAjusteInventario() {
   $('#formAjusteInventario #ajuste_fecha_vencimiento').val('');
   $('#formAjusteInventario #ajuste_comentario').val('');
 
-  $('#formAjusteInventario #ajuste_tipo_producto_id').val('').selectpicker('refresh');
-  $('#formAjusteInventario #ajuste_producto').val('').selectpicker('refresh');
-  $('#formAjusteInventario #ajuste_lote').html('').selectpicker('refresh');
+  $('#formAjusteInventario #ajuste_tipo_producto_id').val('').izzySelect2Bridge('refresh');
+  $('#formAjusteInventario #ajuste_producto').val('').izzySelect2Bridge('refresh');
+  $('#formAjusteInventario #ajuste_lote').html('').izzySelect2Bridge('refresh');
 
   $('#ajuste_resultado_info')
     .removeClass('alert-success alert-danger alert-warning alert-info')
@@ -2939,7 +2928,7 @@ function getTipoProductosAjuste() {
     type: 'POST',
     url: '<?php echo SERVERURL;?>core/getTipoProductoMovimientosModal.php',
     success: function (data) {
-      $('#formAjusteInventario #ajuste_tipo_producto_id').html(data).selectpicker('refresh');
+      $('#formAjusteInventario #ajuste_tipo_producto_id').html(data).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2949,7 +2938,7 @@ function getAlmacenAjuste() {
     type: 'POST',
     url: '<?php echo SERVERURL;?>core/getAlmacenCompras.php',
     success: function (data) {
-      $('#formAjusteInventario #ajuste_almacen').html(data).selectpicker('refresh');
+      $('#formAjusteInventario #ajuste_almacen').html(data).izzySelect2Bridge('refresh');
       seleccionarBodegaPrincipal('#formAjusteInventario #ajuste_almacen');
     }
   });
@@ -2963,7 +2952,7 @@ function getProductosAjuste(tipo_producto_id, callback) {
       tipo_producto_id: tipo_producto_id || 1
     },
     success: function (data) {
-      $('#formAjusteInventario #ajuste_producto').html(data).selectpicker('refresh');
+      $('#formAjusteInventario #ajuste_producto').html(data).izzySelect2Bridge('refresh');
 
       if (typeof callback === 'function') {
         callback(data);
@@ -2974,7 +2963,7 @@ function getProductosAjuste(tipo_producto_id, callback) {
 
 function getLotesProductosAjuste(producto_id, callback) {
   if (!producto_id) {
-    $('#formAjusteInventario #ajuste_lote').html('').selectpicker('refresh');
+    $('#formAjusteInventario #ajuste_lote').html('').izzySelect2Bridge('refresh');
     if (typeof callback === 'function') callback('');
     return;
   }
@@ -2986,7 +2975,7 @@ function getLotesProductosAjuste(producto_id, callback) {
       producto_id: producto_id
     },
     success: function (data) {
-      $('#formAjusteInventario #ajuste_lote').html(data).selectpicker('refresh');
+      $('#formAjusteInventario #ajuste_lote').html(data).izzySelect2Bridge('refresh');
 
       if (typeof callback === 'function') {
         callback(data);
@@ -3187,20 +3176,20 @@ function aplicarProductoAjusteSeleccionado(row) {
   $('#formAjusteInventario #ajuste_barcode').val(barcode);
 
   if (almacenId !== '' && parseInt(almacenId || 0, 10) > 0) {
-    $('#formAjusteInventario #ajuste_almacen').val(almacenId).selectpicker('refresh');
+    $('#formAjusteInventario #ajuste_almacen').val(almacenId).izzySelect2Bridge('refresh');
   } else {
     seleccionarBodegaPrincipal('#formAjusteInventario #ajuste_almacen');
   }
 
   if (tipoProductoId !== '') {
-    $('#formAjusteInventario #ajuste_tipo_producto_id').val(tipoProductoId).selectpicker('refresh');
+    $('#formAjusteInventario #ajuste_tipo_producto_id').val(tipoProductoId).izzySelect2Bridge('refresh');
 
     getProductosAjuste(tipoProductoId, function () {
-      $('#formAjusteInventario #ajuste_producto').val(productoId).selectpicker('refresh');
+      $('#formAjusteInventario #ajuste_producto').val(productoId).izzySelect2Bridge('refresh');
 
       getLotesProductosAjuste(productoId, function () {
         if (loteId !== '' && parseInt(loteId || 0, 10) > 0) {
-          $('#formAjusteInventario #ajuste_lote').val(loteId).selectpicker('refresh');
+          $('#formAjusteInventario #ajuste_lote').val(loteId).izzySelect2Bridge('refresh');
         }
 
         setTimeout(function () {
@@ -3210,11 +3199,11 @@ function aplicarProductoAjusteSeleccionado(row) {
       });
     });
   } else {
-    $('#formAjusteInventario #ajuste_producto').val(productoId).selectpicker('refresh');
+    $('#formAjusteInventario #ajuste_producto').val(productoId).izzySelect2Bridge('refresh');
 
     getLotesProductosAjuste(productoId, function () {
       if (loteId !== '' && parseInt(loteId || 0, 10) > 0) {
-        $('#formAjusteInventario #ajuste_lote').val(loteId).selectpicker('refresh');
+        $('#formAjusteInventario #ajuste_lote').val(loteId).izzySelect2Bridge('refresh');
       }
 
       setTimeout(function () {
@@ -3484,15 +3473,15 @@ $(document)
   });
 
 $(document)
-  .off('changed.bs.select.ajusteTipo change.ajusteTipo', '#formAjusteInventario #ajuste_tipo_producto_id')
-  .on('changed.bs.select.ajusteTipo change.ajusteTipo', '#formAjusteInventario #ajuste_tipo_producto_id', function () {
+  .off('change.ajusteTipo', '#formAjusteInventario #ajuste_tipo_producto_id')
+  .on('change.ajusteTipo', '#formAjusteInventario #ajuste_tipo_producto_id', function () {
     var tipo = $(this).val() || 1;
     getProductosAjuste(tipo);
   });
 
 $(document)
-  .off('changed.bs.select.ajusteProducto change.ajusteProducto', '#formAjusteInventario #ajuste_producto')
-  .on('changed.bs.select.ajusteProducto change.ajusteProducto', '#formAjusteInventario #ajuste_producto', function () {
+  .off('change.ajusteProducto', '#formAjusteInventario #ajuste_producto')
+  .on('change.ajusteProducto', '#formAjusteInventario #ajuste_producto', function () {
     var productoId = $(this).val();
 
     getLotesProductosAjuste(productoId, function () {
@@ -3501,14 +3490,14 @@ $(document)
   });
 
 $(document)
-  .off('changed.bs.select.ajusteAlmacen change.ajusteAlmacen', '#formAjusteInventario #ajuste_almacen')
-  .on('changed.bs.select.ajusteAlmacen change.ajusteAlmacen', '#formAjusteInventario #ajuste_almacen', function () {
+  .off('change.ajusteAlmacen', '#formAjusteInventario #ajuste_almacen')
+  .on('change.ajusteAlmacen', '#formAjusteInventario #ajuste_almacen', function () {
     consultarSaldoProductoAjuste();
   });
 
 $(document)
-  .off('changed.bs.select.ajusteLote change.ajusteLote', '#formAjusteInventario #ajuste_lote')
-  .on('changed.bs.select.ajusteLote change.ajusteLote', '#formAjusteInventario #ajuste_lote', function () {
+  .off('change.ajusteLote', '#formAjusteInventario #ajuste_lote')
+  .on('change.ajusteLote', '#formAjusteInventario #ajuste_lote', function () {
     consultarSaldoProductoAjuste();
   });
 
@@ -3939,15 +3928,15 @@ $(document)
   });
 
 $(document)
-  .off('changed.bs.select.consultaTipo change.consultaTipo', '#formConsultaInventario #consulta_tipo_producto_id')
-  .on('changed.bs.select.consultaTipo change.consultaTipo', '#formConsultaInventario #consulta_tipo_producto_id', function () {
+  .off('change.consultaTipo', '#formConsultaInventario #consulta_tipo_producto_id')
+  .on('change.consultaTipo', '#formConsultaInventario #consulta_tipo_producto_id', function () {
     var tipo = $(this).val() || 1;
     getProductosConsultaInventario(tipo);
   });
 
 $(document)
-  .off('changed.bs.select.consultaFiltro change.consultaFiltro', '#formConsultaInventario #consulta_almacen, #formConsultaInventario #consulta_producto, #formConsultaInventario #consulta_tipo_ajuste')
-  .on('changed.bs.select.consultaFiltro change.consultaFiltro', '#formConsultaInventario #consulta_almacen, #formConsultaInventario #consulta_producto, #formConsultaInventario #consulta_tipo_ajuste', function () {
+  .off('change.consultaFiltro', '#formConsultaInventario #consulta_almacen, #formConsultaInventario #consulta_producto, #formConsultaInventario #consulta_tipo_ajuste')
+  .on('change.consultaFiltro', '#formConsultaInventario #consulta_almacen, #formConsultaInventario #consulta_producto, #formConsultaInventario #consulta_tipo_ajuste', function () {
     listar_consulta_inventario();
   });
 

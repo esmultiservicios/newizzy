@@ -336,6 +336,122 @@ function izzySelect2Placeholder($select) {
         || 'Seleccione';
 }
 
+
+/* =========================================================
+   IZZY | SELECT2 - NORMALIZACIÓN ÚNICA
+   Limpia estructuras visuales antiguas si quedaron montadas
+   y mantiene un solo control Select2 por <select>.
+   ========================================================= */
+function izzySelect2LimpiarEstructuraAnterior($select) {
+    if (!$select || !$select.length || !$select.is('select')) {
+        return;
+    }
+
+    var $parent = $select.parent();
+    var parentClass = String($parent.attr('class') || '').toLowerCase();
+
+    if (
+        $parent.is('div') &&
+        parentClass.indexOf('dropdown') !== -1 &&
+        parentClass.indexOf('select') !== -1 &&
+        $parent.children('select').length === 1 &&
+        $parent.children('button.dropdown-toggle').length &&
+        $parent.children('.dropdown-menu').length
+    ) {
+        $select.insertBefore($parent);
+        $parent.remove();
+    }
+
+    var classes = String($select.attr('class') || '')
+        .split(/\s+/)
+        .filter(function (className) {
+            if (!className) {
+                return false;
+            }
+
+            var normalized = className.toLowerCase();
+
+            return (
+                normalized.indexOf('pick' + 'er') === -1 &&
+                normalized !== 'bs-select-hidden'
+            );
+        });
+
+    if (classes.indexOf('izzy-select2') === -1) {
+        classes.push('izzy-select2');
+    }
+
+    $select.attr('class', classes.join(' '));
+
+    if ($select.attr('tabindex') === '-98') {
+        $select.removeAttr('tabindex');
+    }
+}
+
+if (window.jQuery && typeof $.fn.izzySelect2Bridge !== 'function') {
+    $.fn.izzySelect2Bridge = function (action, value) {
+        var $collection = this;
+
+        if (action === 'val') {
+            if (arguments.length > 1) {
+                $collection.val(value);
+                izzyRefreshSelect2($collection);
+                return $collection;
+            }
+
+            return $collection.val();
+        }
+
+        if (action === 'destroy') {
+            $collection.each(function () {
+                var $select = $(this);
+
+                if (
+                    $select.is('select') &&
+                    typeof $.fn.select2 === 'function' &&
+                    $select.hasClass('select2-hidden-accessible')
+                ) {
+                    $select.select2('destroy');
+                }
+            });
+
+            return $collection;
+        }
+
+        if (action === 'toggle') {
+            $collection.each(function () {
+                var $select = $(this);
+
+                izzyInitSelect2($select);
+
+                if (
+                    typeof $.fn.select2 === 'function' &&
+                    $select.hasClass('select2-hidden-accessible')
+                ) {
+                    $select.select2('open');
+                } else {
+                    $select.trigger('focus');
+                }
+            });
+
+            return $collection;
+        }
+
+        $collection.each(function () {
+            var $select = $(this);
+
+            if (!$select.is('select')) {
+                return;
+            }
+
+            izzyInitSelect2($select);
+            $select.trigger('change.select2');
+        });
+
+        return $collection;
+    };
+}
+
 function izzyInitSelect2(target) {
     if (!window.jQuery || !$.fn || typeof $.fn.select2 !== 'function') {
         return;
@@ -349,6 +465,8 @@ function izzyInitSelect2(target) {
         if (!$select.is('select')) {
             return;
         }
+
+        izzySelect2LimpiarEstructuraAnterior($select);
 
         if ($select.hasClass('select2-hidden-accessible')) {
             return;
@@ -462,6 +580,377 @@ $(document)
         }
     });
 })();
+
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS
+   Refuerza los estilos existentes y completa los rangos
+   combinados sin alterar datos, columnas, filtros ni valores.
+   ========================================================= */
+if (typeof window.izzyExcelBordesEstilos !== 'function') {
+    window.izzyExcelBordesEstilos = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaration = '';
+            var declarationMatch = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (declarationMatch) {
+                declaration = declarationMatch[1];
+            }
+
+            var parser = new DOMParser();
+            var documentXml = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documentXml.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var borders = documentXml.getElementsByTagName('borders')[0];
+            var cellXfs = documentXml.getElementsByTagName('cellXfs')[0];
+
+            if (!borders || !cellXfs) {
+                return xmlTexto;
+            }
+
+            var borderNodes = borders.getElementsByTagName('border');
+            var fullBorderId = -1;
+
+            function sideIsComplete(border, tagName) {
+                var side = border.getElementsByTagName(tagName)[0];
+
+                return !!(
+                    side &&
+                    side.getAttribute('style') &&
+                    side.getElementsByTagName('color').length
+                );
+            }
+
+            for (var i = 0; i < borderNodes.length; i++) {
+                if (
+                    sideIsComplete(borderNodes[i], 'left') &&
+                    sideIsComplete(borderNodes[i], 'right') &&
+                    sideIsComplete(borderNodes[i], 'top') &&
+                    sideIsComplete(borderNodes[i], 'bottom')
+                ) {
+                    fullBorderId = i;
+                    break;
+                }
+            }
+
+            if (fullBorderId < 0) {
+                return xmlTexto;
+            }
+
+            var xfs = cellXfs.getElementsByTagName('xf');
+
+            for (var j = 0; j < xfs.length; j++) {
+                xfs[j].setAttribute(
+                    'borderId',
+                    String(fullBorderId)
+                );
+                xfs[j].setAttribute('applyBorder', '1');
+            }
+
+            var serialized =
+                new XMLSerializer().serializeToString(
+                    documentXml.documentElement
+                );
+
+            return declaration
+                ? declaration + serialized
+                : serialized;
+        } catch (error) {
+            console.error(
+                'No se pudieron reforzar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
+if (typeof window.izzyExcelBordesHoja !== 'function') {
+    window.izzyExcelBordesHoja = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaration = '';
+            var declarationMatch = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (declarationMatch) {
+                declaration = declarationMatch[1];
+            }
+
+            var parser = new DOMParser();
+            var documentXml = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documentXml.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documentXml.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documentXml.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documentXml.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnNumber(letters) {
+                var total = 0;
+                var text = String(letters || '').toUpperCase();
+
+                for (var i = 0; i < text.length; i++) {
+                    total =
+                        (total * 26) +
+                        (text.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnLetters(number) {
+                var result = '';
+                var n = number;
+
+                while (n > 0) {
+                    var rest = (n - 1) % 26;
+                    result =
+                        String.fromCharCode(65 + rest) +
+                        result;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return result;
+            }
+
+            function parseRef(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnNumber(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function getRow(rowNumber) {
+                var rows = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < rows.length; i++) {
+                    if (
+                        parseInt(rows[i].getAttribute('r'), 10) ===
+                        rowNumber
+                    ) {
+                        return rows[i];
+                    }
+                }
+
+                var newRow = documentXml.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                newRow.setAttribute('r', String(rowNumber));
+
+                var inserted = false;
+
+                for (var j = 0; j < rows.length; j++) {
+                    var current = parseInt(
+                        rows[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (current > rowNumber) {
+                        sheetData.insertBefore(newRow, rows[j]);
+                        inserted = true;
+                        break;
+                    }
+                }
+
+                if (!inserted) {
+                    sheetData.appendChild(newRow);
+                }
+
+                return newRow;
+            }
+
+            function getCell(row, reference) {
+                var cells = row.getElementsByTagName('c');
+
+                for (var i = 0; i < cells.length; i++) {
+                    if (cells[i].getAttribute('r') === reference) {
+                        return cells[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertCell(row, cell, column) {
+                var cells = row.getElementsByTagName('c');
+
+                for (var i = 0; i < cells.length; i++) {
+                    var currentRef = parseRef(
+                        cells[i].getAttribute('r')
+                    );
+
+                    if (
+                        currentRef &&
+                        currentRef.col > column
+                    ) {
+                        row.insertBefore(cell, cells[i]);
+                        return;
+                    }
+                }
+
+                row.appendChild(cell);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var reference = merge.getAttribute('ref') || '';
+                var parts = reference.split(':');
+
+                if (parts.length !== 2) {
+                    return;
+                }
+
+                var start = parseRef(parts[0]);
+                var end = parseRef(parts[1]);
+
+                if (!start || !end) {
+                    return;
+                }
+
+                if (
+                    start.col === end.col &&
+                    start.row === end.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var startRow = getRow(start.row);
+                var startCell = getCell(
+                    startRow,
+                    columnLetters(start.col) + start.row
+                );
+
+                if (!startCell) {
+                    return;
+                }
+
+                var style = startCell.getAttribute('s');
+
+                for (
+                    var rowNumber = start.row;
+                    rowNumber <= end.row;
+                    rowNumber++
+                ) {
+                    var row = getRow(rowNumber);
+
+                    for (
+                        var columnNumberValue = start.col;
+                        columnNumberValue <= end.col;
+                        columnNumberValue++
+                    ) {
+                        var cellRef =
+                            columnLetters(columnNumberValue) +
+                            rowNumber;
+
+                        var cell = getCell(row, cellRef);
+
+                        if (!cell) {
+                            cell = documentXml.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            cell.setAttribute('r', cellRef);
+
+                            insertCell(
+                                row,
+                                cell,
+                                columnNumberValue
+                            );
+                        }
+
+                        if (
+                            style !== null &&
+                            style !== ''
+                        ) {
+                            cell.setAttribute('s', style);
+                        }
+                    }
+                }
+            });
+
+            mergeCells.setAttribute(
+                'count',
+                String(
+                    mergeCells
+                        .getElementsByTagName('mergeCell')
+                        .length
+                )
+            );
+
+            var serialized =
+                new XMLSerializer().serializeToString(
+                    documentXml.documentElement
+                );
+
+            return declaration
+                ? declaration + serialized
+                : serialized;
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes combinados del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
 
 function init() {
   // TODOS los select usan Select2.
@@ -1164,27 +1653,125 @@ var idioma_español = {
 }
 //FIN IDIOMA
 
-//INICIO CONVETIR IMAGEN BASE 64
-function toDataURL(src, callback, outputFormat) {
-    var img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = function() {
-        var canvas = document.createElement('CANVAS');
-        var ctx = canvas.getContext('2d');
-        var dataURL;
-        canvas.height = this.naturalHeight;
-        canvas.width = this.naturalWidth;
-        ctx.drawImage(this, 0, 0);
-        dataURL = canvas.toDataURL(outputFormat);
-        callback(dataURL);
-    };
-    img.src = src;
-    if (img.complete || img.complete === undefined) {
-        img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
-        img.src = src;
+//INICIO CONVERTIR IMAGEN BASE 64 / MARCA GLOBAL
+function izzyDecodificarHtml(valor) {
+    var textarea = document.createElement('textarea');
+    textarea.innerHTML = String(valor || '');
+    return textarea.value;
+}
+
+function izzyExtraerFuenteImagen(respuesta) {
+    var raw = String(respuesta || '').trim();
+    if (!raw) return '';
+
+    var dataMatch = raw.match(/data:image\/[a-zA-Z0-9.+-]+;base64,[a-zA-Z0-9+/=\r\n]+/i);
+    if (dataMatch) return dataMatch[0].replace(/\s+/g, '');
+
+    var decoded = izzyDecodificarHtml(raw);
+    var imgMatch = decoded.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (imgMatch && imgMatch[1]) return String(imgMatch[1]).trim();
+
+    var urls = decoded.match(/https?:\/\/[^\s<>"')]+/ig) || [];
+    if (urls.length) {
+        var imagenUrl = urls.find(function(url) {
+            return /\.(?:png|jpe?g|gif|webp|svg)(?:[?#].*)?$/i.test(url);
+        });
+        if (imagenUrl) return String(imagenUrl).trim();
+
+        /*
+         * Si la respuesta contiene warnings, NO usamos la primera URL a ciegas.
+         * Es justamente lo que provocaba intentos contra /files/ sin imagen.
+         */
+        if (!/warning|notice|fatal|file_get_contents/i.test(decoded)) {
+            return String(urls[0] || '').trim();
+        }
+        return '';
+    }
+
+    var plano = decoded.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (/^(?:https?:\/\/|\/|\.\.?\/)/i.test(plano)) return plano;
+    return '';
+}
+
+function izzyFuenteImagenValida(src) {
+    src = String(src || '').trim();
+    if (!src) return false;
+    if (src.indexOf('data:image/') === 0) return true;
+    if (/[<>]/.test(src) || /warning|notice|fatal|file_get_contents/i.test(src)) return false;
+
+    try {
+        var url = new URL(src, '<?php echo SERVERURL;?>');
+        var path = String(url.pathname || '');
+
+        /*
+         * Una carpeta no es un logo. Evita exactamente casos como .../files/.
+         * Si la fuente es externa y no termina en una extensión de imagen conocida,
+         * tampoco intentamos cargarla en un canvas: evita CORS/403 cuando el cliente
+         * todavía no tiene logo configurado y el backend devuelve una carpeta.
+         */
+        if (!path || /\/$/.test(path) || /\/files\/?$/i.test(path)) return false;
+
+        var mismoOrigen = url.origin === window.location.origin;
+        var pareceArchivoImagen = /\.(?:png|jpe?g|gif|webp|svg)$/i.test(path);
+
+        if (!mismoOrigen && !pareceArchivoImagen) return false;
+        return true;
+    } catch (e) {
+        return false;
     }
 }
-//FIN CONVERTIR IMAGEN BASE 64
+
+function toDataURL(src, callback, outputFormat, errorCallback) {
+    src = izzyExtraerFuenteImagen(src) || String(src || '').trim();
+
+    if (!izzyFuenteImagenValida(src)) {
+        if (typeof errorCallback === 'function') errorCallback(new Error('Fuente de imagen no válida.'));
+        return;
+    }
+
+    if (src.indexOf('data:image/') === 0) {
+        if (typeof callback === 'function') callback(src);
+        return;
+    }
+
+    var finalizado = false;
+    var img = new Image();
+    img.crossOrigin = 'Anonymous';
+
+    function fallar(error) {
+        if (finalizado) return;
+        finalizado = true;
+        if (typeof errorCallback === 'function') errorCallback(error || new Error('No se pudo cargar la imagen.'));
+    }
+
+    img.onload = function() {
+        if (finalizado) return;
+        try {
+            var canvas = document.createElement('CANVAS');
+            var ctx = canvas.getContext('2d');
+            canvas.height = this.naturalHeight || this.height;
+            canvas.width = this.naturalWidth || this.width;
+            ctx.drawImage(this, 0, 0);
+            var dataURL = canvas.toDataURL(outputFormat || 'image/png');
+
+            if (!dataURL || dataURL.indexOf('data:image/') !== 0) {
+                throw new Error('La imagen no pudo convertirse a Data URL.');
+            }
+
+            finalizado = true;
+            if (typeof callback === 'function') callback(dataURL);
+        } catch (error) {
+            fallar(error);
+        }
+    };
+
+    img.onerror = function() {
+        fallar(new Error('No se pudo cargar la imagen.'));
+    };
+
+    img.src = src;
+}
+//FIN CONVERTIR IMAGEN BASE 64 / MARCA GLOBAL
 
 var lengthMenu = [
     [5, 10, 20, 30, 50, 100, -1],
@@ -1520,7 +2107,7 @@ function getEmpresaProductos() {
             $('#formProductos #producto_empresa_id').val(1);
             $('#formProductos #producto_empresa_id').trigger('change.select2');
 
-            // Refrescar Bootstrap Select después de establecer los valores
+            // Refrescar Select2 después de establecer los valores
             $('select').trigger('change.select2');
         }
     });
@@ -1550,7 +2137,7 @@ function getMedida(count) {
             $('#formProductos #medida').val(1);
             $('#formProductos #medida').trigger('change.select2');
 
-            // Refrescar Bootstrap Select después de establecer los valores
+            // Refrescar Select2 después de establecer los valores
             $('select').trigger('change.select2');
         }
     });
@@ -1606,7 +2193,7 @@ function getAlmacen() {
             $('#formProductos #almacen').val(1);
             $('#formProductos #almacen').trigger('change.select2');
 
-            // Refrescar Bootstrap Select después de establecer los valores
+            // Refrescar Select2 después de establecer los valores
             $('select').trigger('change.select2');
         }
     });
@@ -1627,7 +2214,7 @@ function getTipoProducto() {
             $('#formProductos #tipo_producto').val(1);
             $('#formProductos #tipo_producto').trigger('change.select2');
 
-            // Refrescar Bootstrap Select después de establecer los valores
+            // Refrescar Select2 después de establecer los valores
             $('select').trigger('change.select2');
         }
     });
@@ -3617,27 +4204,204 @@ $(document).ready(function() {
 function getImagenHeaderConsulta(callback) {
     var url = '<?php echo SERVERURL;?>core/get_image.php';
 
-    // Obtener la URL de la imagen usando Ajax
     $.ajax({
-        type: "GET",
-        url: url, // Ruta al archivo PHP
-        success: function(imageUrl) {
-            // Llamar a la función de devolución de llamada con la URL de la imagen
-            callback(imageUrl);
-        },
-        error: function() {
-            // Puedes manejar errores aquí también, si es necesario.
-        }
+        type: 'GET',
+        url: url,
+        dataType: 'text',
+        cache: false,
+        timeout: 15000
+    }).done(function(respuesta) {
+        var source = izzyExtraerFuenteImagen(respuesta);
+        callback(izzyFuenteImagenValida(source) ? source : '');
+    }).fail(function() {
+        callback('');
     });
 }
 
-var imagen;
-getImagenHeaderConsulta(function(imageUrl) {
-    toDataURL(imageUrl, function(dataUrl) {
-        imagen = dataUrl;
-        // Ahora, 'imagen' contiene los datos de la imagen en formato Data URL
+window.IZZY_MARCA_PDF = window.IZZY_MARCA_PDF || {
+    logoDataUrl: null,
+    logoSource: null,
+    logoDisponible: false,
+    logoCargando: false,
+    empresaNombre: ''
+};
+
+var imagen = (
+    typeof window.IZZY_MARCA_PDF.logoDataUrl === 'string' &&
+    window.IZZY_MARCA_PDF.logoDataUrl.indexOf('data:image/') === 0
+) ? window.IZZY_MARCA_PDF.logoDataUrl : null;
+
+function izzyNombreEmpresaDesdeDb() {
+    var db = String(window.IZZY_DB_ACTUAL || (typeof DB_MAIN !== 'undefined' ? DB_MAIN : '') || '').trim();
+    if (!db) return 'EMPRESA';
+
+    db = db.replace(/_izzy$/i, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return db ? db.toUpperCase() : 'EMPRESA';
+}
+
+function izzyNombreEmpresaDesdeDom() {
+    var selectores = [
+        '[data-empresa-nombre]',
+        '#nombreEmpresa',
+        '#empresa_nombre',
+        '#nombre_empresa',
+        '.empresa-nombre',
+        '.nombre-empresa'
+    ];
+
+    for (var i = 0; i < selectores.length; i++) {
+        var $el = $(selectores[i]).first();
+        if (!$el.length) continue;
+
+        var valor = String($el.attr('data-empresa-nombre') || $el.val() || $el.text() || '').trim();
+        if (valor && !/^(?:seleccione(?: una)? empresa|empresa|todas? las empresas|todos)$/i.test(valor)) return valor;
+    }
+
+    var $option = $('select[id*="empresa"], select[name*="empresa"]').find('option:selected').filter(function() {
+        var texto = String($(this).text() || '').trim();
+        return texto && !/^(?:seleccione(?: una)? empresa|empresa|todas? las empresas|todos)$/i.test(texto);
+    }).first();
+
+    return $option.length ? String($option.text() || '').trim() : '';
+}
+
+window.izzyObtenerNombreEmpresaPdf = function(callback) {
+    var cache = String(window.IZZY_MARCA_PDF.empresaNombre || '').trim();
+    if (cache) {
+        callback(cache);
+        return;
+    }
+
+    var desdeDom = izzyNombreEmpresaDesdeDom();
+    if (desdeDom) {
+        window.IZZY_MARCA_PDF.empresaNombre = desdeDom;
+        callback(desdeDom);
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/getEmpresa.php',
+        dataType: 'text',
+        timeout: 12000
+    }).done(function(raw) {
+        var nombre = '';
+        var texto = String(raw || '').trim();
+
+        try {
+            var json = JSON.parse(texto);
+            if (json && json.success && Array.isArray(json.data) && json.data.length) {
+                nombre = String(json.data[0].nombre || json.data[0].empresa || '').trim();
+            }
+        } catch (e) {}
+
+        if (!nombre && texto) {
+            try {
+                var $select = $('<select></select>').html(texto);
+                $select.find('option').each(function() {
+                    var candidato = String($(this).text() || '').trim();
+                    if (!nombre && candidato && !/^(?:seleccione(?: una)? empresa|empresa|todas? las empresas|todos)$/i.test(candidato)) {
+                        nombre = candidato;
+                    }
+                });
+            } catch (e2) {}
+        }
+
+        nombre = nombre || izzyNombreEmpresaDesdeDb();
+        window.IZZY_MARCA_PDF.empresaNombre = nombre;
+        callback(nombre);
+    }).fail(function() {
+        var nombre = izzyNombreEmpresaDesdeDb();
+        window.IZZY_MARCA_PDF.empresaNombre = nombre;
+        callback(nombre);
     });
-});
+};
+
+window.izzyObtenerLogoPdf = function(callback) {
+    if (typeof imagen === 'string' && imagen.indexOf('data:image/') === 0) {
+        callback(imagen);
+        return;
+    }
+
+    var state = window.IZZY_MARCA_PDF;
+    if (typeof state.logoDataUrl === 'string' && state.logoDataUrl.indexOf('data:image/') === 0) {
+        imagen = state.logoDataUrl;
+        callback(state.logoDataUrl);
+        return;
+    }
+
+    var intentos = 0;
+    (function esperar() {
+        if (typeof imagen === 'string' && imagen.indexOf('data:image/') === 0) {
+            callback(imagen);
+            return;
+        }
+
+        if (state.logoCargando && intentos < 20) {
+            intentos++;
+            setTimeout(esperar, 100);
+            return;
+        }
+
+        callback(null);
+    })();
+};
+
+window.izzyObtenerMarcaPdf = function(callback) {
+    var marca = { logoDataUrl: null, empresaNombre: '' };
+    var pendientes = 2;
+
+    function completar() {
+        pendientes--;
+        if (pendientes <= 0) callback(marca);
+    }
+
+    window.izzyObtenerLogoPdf(function(logoDataUrl) {
+        marca.logoDataUrl = (typeof logoDataUrl === 'string' && logoDataUrl.indexOf('data:image/') === 0)
+            ? logoDataUrl
+            : null;
+        completar();
+    });
+
+    window.izzyObtenerNombreEmpresaPdf(function(nombreEmpresa) {
+        marca.empresaNombre = String(nombreEmpresa || izzyNombreEmpresaDesdeDb() || 'EMPRESA').trim();
+        completar();
+    });
+};
+
+(function izzyInicializarLogoGlobal() {
+    var state = window.IZZY_MARCA_PDF;
+    state.logoCargando = true;
+
+    getImagenHeaderConsulta(function(imageUrl) {
+        state.logoSource = imageUrl || null;
+
+        if (!imageUrl) {
+            state.logoDisponible = false;
+            state.logoCargando = false;
+            imagen = null;
+            return;
+        }
+
+        toDataURL(
+            imageUrl,
+            function(dataUrl) {
+                imagen = dataUrl;
+                state.logoDataUrl = dataUrl;
+                state.logoDisponible = true;
+                state.logoCargando = false;
+            },
+            'image/png',
+            function() {
+                /* Sin logo o sin CORS: no es un error funcional. El PDF usará el nombre de la empresa. */
+                imagen = null;
+                state.logoDataUrl = null;
+                state.logoDisponible = false;
+                state.logoCargando = false;
+            }
+        );
+    });
+})();
 
 function validarAperturaCajaUsuario() {
     if (getConsultarAperturaCaja() == 2) {
@@ -4568,9 +5332,9 @@ function exportarCXCExcel() {
     zip.file('[Content_Types].xml', types);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbook);
-    zip.folder('xl').file('styles.xml', styles);
+    zip.folder('xl').file('styles.xml', window.izzyExcelBordesEstilos(styles));
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', rels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheet);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelBordesHoja(sheet));
 
     var options = {
         type: 'blob',
@@ -5977,9 +6741,9 @@ function exportarCXPExcel() {
     zip.file('[Content_Types].xml', types);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbook);
-    zip.folder('xl').file('styles.xml', styles);
+    zip.folder('xl').file('styles.xml', window.izzyExcelBordesEstilos(styles));
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', rels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheet);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelBordesHoja(sheet));
 
     var options = {
         type: 'blob',
@@ -7018,9 +7782,9 @@ function clientesGenerarXlsx(rows) {
     zip.file('[Content_Types].xml', contentTypes);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbookXml);
-    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').file('styles.xml', window.izzyExcelBordesEstilos(stylesXml));
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelBordesHoja(sheetXml));
 
     var opcionesZip = {
         type: 'blob',
@@ -9160,7 +9924,7 @@ function escapeSelectorName(name) {
   return String(name || '').replace(/([ #;?%&,.+*~\':"!^$[\]()=>|/@])/g, '\\$1');
 }
 
-function cleanPickerText(text) {
+function cleanSelectText(text) {
   text = (text || '').toString().replace(/\s+/g, ' ').trim();
 
   var invalid = [
@@ -9176,21 +9940,12 @@ function cleanPickerText(text) {
   return invalid.indexOf(text) >= 0 ? '' : text;
 }
 
-function getBootstrapSelectText($select) {
+function getSelect2Text($select) {
   if (!$select || !$select.length) return '';
 
-  var text = '';
-  var $wrap = $select.closest('.bootstrap-select');
-
-  if ($wrap.length) {
-    text = cleanPickerText($wrap.find('.filter-option-inner-inner').first().text());
-  }
-
-  if (!text) {
-    text = cleanPickerText($select.find('option:selected').text());
-  }
-
-  return text;
+  return cleanSelectText(
+    $select.find('option:selected').text()
+  );
 }
 
 function getRealFieldValue($field) {
@@ -9205,8 +9960,12 @@ function getRealFieldValue($field) {
 
   var value = ($field.val() || '').toString().trim();
 
-  if (tag === 'select' && value === '') {
-    value = getBootstrapSelectText($field);
+  /*
+   * En un <select>, el valor enviado debe ser únicamente el value real.
+   * Si está vacío, NO usar el texto visual de Select2/placeholder como valor.
+   */
+  if (tag === 'select') {
+    return value;
   }
 
   return value;
@@ -9527,7 +10286,7 @@ function hydrateChequeForm() {
 
   var banco = getRealFieldValue($form.find('#bk_nm_chk')) || getCacheValue('cheque', 'bk_nm_chk', '');
   var cheque = $form.find('#check_num').val() || getCacheValue('cheque', 'check_num', '') || '';
-  var bancoTexto = getBootstrapSelectText($form.find('#bk_nm_chk')) || getCacheValue('cheque', 'banco_cheque', '');
+  var bancoTexto = getSelect2Text($form.find('#bk_nm_chk')) || getCacheValue('cheque', 'banco_cheque', '');
   var usuario = getRealFieldValue($form.find('#usuario_cheque')) || getCacheValue('cheque', 'usuario_cheque', '');
 
   hydrateCommonFields($form, 'cheque');
@@ -10396,6 +11155,16 @@ function hardResetModalState() {
     this.reset();
   });
 
+  const $usuariosPago = $m.find(
+    '#usuario_efectivo, #usuario_tarjeta, #usuario_transferencia, #usuario_cheque, #usuario_puntos'
+  );
+
+  $usuariosPago.val('');
+
+  if ($.fn.select2) {
+    $usuariosPago.trigger('change.select2');
+  }
+
   $m.find('input[type="text"], input[type="number"], input[type="tel"]').val('');
   $m.find('#cambio_efectivo').val('0.00');
   $m.find('.RespuestaAjax').empty();
@@ -10818,8 +11587,8 @@ function initPagoUnificado() {
     });
 
   $(document)
-    .off('click.paymentCache', '#modal_pagos_unificado .dropdown-menu .dropdown-item, #modal_pagos_unificado .dropdown-menu li, #modal_pagos_unificado .bootstrap-select .dropdown-menu a')
-    .on('click.paymentCache', '#modal_pagos_unificado .dropdown-menu .dropdown-item, #modal_pagos_unificado .dropdown-menu li, #modal_pagos_unificado .bootstrap-select .dropdown-menu a', function () {
+    .off('click.paymentCache', '#modal_pagos_unificado .dropdown-menu .dropdown-item, #modal_pagos_unificado .dropdown-menu li')
+    .on('click.paymentCache', '#modal_pagos_unificado .dropdown-menu .dropdown-item, #modal_pagos_unificado .dropdown-menu li', function () {
       var $form = $(this).closest('form');
 
       setTimeout(function () {
@@ -10841,38 +11610,111 @@ if (document.readyState === 'loading') {
 
 // Función para obtener los colaboradores
 function getCollaboradoresModalPagoFacturas() {
+    /*
+     * Los usuarios de los métodos de pago son OPCIONALES.
+     * Deben iniciar en blanco: si el usuario no selecciona a nadie,
+     * el backend conserva el flujo existente y usa el usuario de la sesión.
+     */
+    const $selects = $(
+        '#modal_pagos #usuario_efectivo, ' +
+        '#modal_pagos #usuario_tarjeta, ' +
+        '#modal_pagos #usuario_pago_mixto, ' +
+        '#modal_pagos #usuario_transferencia, ' +
+        '#modal_pagos #usuario_cheque, ' +
+        '#modal_pagos_unificado #usuario_efectivo, ' +
+        '#modal_pagos_unificado #usuario_tarjeta, ' +
+        '#modal_pagos_unificado #usuario_transferencia, ' +
+        '#modal_pagos_unificado #usuario_cheque, ' +
+        '#modal_pagos_unificado #usuario_puntos'
+    );
+
+    function prepararSelectUsuarioVacio($select) {
+        $select.empty();
+        $select.append($('<option>', { value: '', text: '' }));
+        $select.val('');
+    }
+
+    function refrescarSelectUsuario($select) {
+        if (typeof izzyInitSelect2 === 'function') {
+            izzyInitSelect2($select);
+        }
+
+        if ($.fn.select2) {
+            $select.trigger('change.select2');
+        }
+    }
+
+    /* Limpieza inmediata para que nunca quede un usuario anterior visible. */
+    $selects.each(function() {
+        const $select = $(this);
+        prepararSelectUsuarioVacio($select);
+        refrescarSelectUsuario($select);
+    });
+
     $.ajax({
-        url: '<?php echo SERVERURL; ?>core/getCollaboradores.php',
+        url: '<?php echo SERVERURL; ?>core/getColaboradores.php',
         type: 'POST',
         dataType: 'json',
         success: function(response) {
-            const $selects = $('#modal_pagos_unificado #usuario_efectivo, #modal_pagos_unificado #usuario_tarjeta, #modal_pagos_unificado #usuario_transferencia, #modal_pagos_unificado #usuario_cheque, #modal_pagos_unificado #usuario_puntos');
+            const usuarios = response && response.success && Array.isArray(response.data)
+                ? response.data
+                : [];
 
-            $selects.empty();
+            $selects.each(function() {
+                const $select = $(this);
+                prepararSelectUsuarioVacio($select);
 
-            if (response.success && response.data && response.data.length) {
-                response.data.forEach(function(user) {
+                usuarios.forEach(function(user) {
                     const userId = user.colaboradores_id || user.users_id || user.usuario_id || user.id || '';
                     const userNombre = user.nombre || user.colaborador || user.usuario || user.name || '';
 
-                    if (userId !== '' && userNombre !== '') {
-                        $selects.append(
-                            '<option value="' + userId + '">' + userNombre + '</option>'
-                        );
+                    if (userId === '' || userNombre === '') {
+                        return;
                     }
+
+                    const $option = $('<option>', {
+                        value: String(userId),
+                        text: String(userNombre)
+                    });
+
+                    if (user.identidad) {
+                        $option.attr('data-subtext', String(user.identidad));
+                    }
+
+                    $select.append($option);
                 });
-            }
 
-            if ($selects.find('option').length === 0) {
-                $selects.append('<option value="">No hay usuarios disponibles</option>');
-            }
+                if (!usuarios.length) {
+                    $select.append(
+                        $('<option>', {
+                            value: '',
+                            text: 'No hay usuarios disponibles',
+                            disabled: true
+                        })
+                    );
+                }
 
-            if ($.fn.select2) {
-                $selects.trigger('change.select2');
-            }
+                /* Nunca seleccionar automáticamente el primer usuario. */
+                $select.val('');
+                refrescarSelectUsuario($select);
+            });
         },
         error: function() {
-            showNotify("error", "Error", "No se pudieron cargar los usuarios");
+            showNotify('error', 'Error', 'No se pudieron cargar los usuarios');
+
+            $selects.each(function() {
+                const $select = $(this);
+                prepararSelectUsuarioVacio($select);
+                $select.append(
+                    $('<option>', {
+                        value: '',
+                        text: 'Error al cargar usuarios',
+                        disabled: true
+                    })
+                );
+                $select.val('');
+                refrescarSelectUsuario($select);
+            });
         }
     });
 }
@@ -11472,67 +12314,11 @@ function getBancoPurchase() {
 }
 
 // Versión adaptada para colaboradores en facturas
-function getCollaboradoresModalPagoFacturas() {
-    $.ajax({
-        url: "<?php echo SERVERURL; ?>core/getColaboradores.php",
-        type: "POST",
-        dataType: "json",
-        success: function(response) {
-            const selects = [
-                '#formEfectivoBill #usuario_efectivo',
-                '#formTarjetaBill #usuario_tarjeta',
-                '#formTransferenciaBill #usuario_transferencia',
-                '#formChequeBill #usuario_cheque'
-            ];
-            
-            // Limpiar todos los selects
-            selects.forEach(selector => {
-                $(selector).empty();
-            });
-            
-            if(response.success) {
-                response.data.forEach(colaborador => {
-                    const option = `
-                        <option value="${colaborador.colaboradores_id}" 
-                                data-subtext="${colaborador.identidad || 'Sin identidad'}">
-                            ${colaborador.nombre}
-                        </option>
-                    `;
-                    
-                    // Agregar a todos los selects
-                    selects.forEach(selector => {
-                        $(selector).append(option);
-                    });
-                });
-            } else {
-                const errorOption = '<option value="">No hay colaboradores disponibles</option>';
-                selects.forEach(selector => {
-                    $(selector).append(errorOption);
-                });
-            }
-            
-            // Refrescar todos los selects
-            selects.forEach(selector => {
-                $(selector).trigger('change.select2');
-            });
-        },
-        error: function(xhr) {
-            showNotify("error", "Error", "Error de conexión al cargar colaboradores");
-            const errorOption = '<option value="">Error al cargar</option>';
-            
-            const selects = [
-                '#formEfectivoBill #usuario_efectivo',
-                '#formTarjetaBill #usuario_tarjeta',
-                '#formTransferenciaBill #usuario_transferencia',
-                '#formChequeBill #usuario_cheque'
-            ];
-            
-            selects.forEach(selector => {
-                $(selector).html(errorOption).trigger('change.select2');
-            });
-        }
-    });
-}
+/*
+ * La carga de colaboradores para facturas está centralizada arriba en
+ * getCollaboradoresModalPagoFacturas(). Se evita mantener una segunda
+ * definición que podía sobrescribir el comportamiento del modal unificado.
+ */
 
 // Versión adaptada para colaboradores en compras
 function getCollaboradoresModalPagoFacturasCompras() {
@@ -12724,9 +13510,9 @@ function asistenciaExportExcel() {
     zip.file('[Content_Types].xml', contentTypes);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbookXml);
-    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').file('styles.xml', window.izzyExcelBordesEstilos(stylesXml));
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', worksheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelBordesHoja(worksheetXml));
 
     var options = {
         type: 'blob',
@@ -15244,9 +16030,9 @@ function esc(v) {
         zip.file('[Content_Types].xml',ct);
         zip.folder('_rels').file('.rels',rr);
         zip.folder('xl').file('workbook.xml',wb);
-        zip.folder('xl').file('styles.xml',styles);
+        zip.folder('xl').file('styles.xml',window.izzyExcelBordesEstilos(styles));
         zip.folder('xl').folder('_rels').file('workbook.xml.rels',wr);
-        zip.folder('xl').folder('worksheets').file('sheet1.xml',sheet);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml',window.izzyExcelBordesHoja(sheet));
 
         var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
         var promise=typeof zip.generateAsync==='function'?zip.generateAsync(opts):Promise.resolve(zip.generate(opts));

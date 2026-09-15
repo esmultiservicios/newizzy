@@ -524,9 +524,9 @@
                 $('#formProveedores #nombre_proveedores').val(valores[0]);
                 $('#formProveedores #rtn_proveedores').val(valores[1]);
                 $('#formProveedores #fecha_proveedores').attr('disabled', true).val(valores[2]);
-                $('#formProveedores #departamento_proveedores').val(valores[3]).selectpicker('refresh');
+                $('#formProveedores #departamento_proveedores').val(valores[3]).izzySelect2Bridge('refresh');
                 getMunicipiosProveedores(valores[4]);
-                $('#formProveedores #municipio_proveedores').val(valores[4]).selectpicker('refresh');
+                $('#formProveedores #municipio_proveedores').val(valores[4]).izzySelect2Bridge('refresh');
                 $('#formProveedores #dirección_proveedores').val(valores[5]);
                 $('#formProveedores #telefono_proveedores').val(valores[6]);
                 $('#formProveedores #correo_proveedores').val(valores[7]);
@@ -938,9 +938,9 @@
         zip.file('[Content_Types].xml', contentTypes);
         zip.folder('_rels').file('.rels', rootRels);
         zip.folder('xl').file('workbook.xml', workbookXml);
-        zip.folder('xl').file('styles.xml', stylesXml);
+        zip.folder('xl').file('styles.xml', (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
         zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-        zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml', (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
         var opcionesZip = {
             type: 'blob',
@@ -1469,8 +1469,8 @@
                 var form = this;
 
                 window.setTimeout(function () {
-                    $(form).find('.selectpicker').val('').selectpicker('refresh');
-                    $('#estado_proveedores').val('1').selectpicker('refresh');
+                    $(form).find('.izzy-select2').val('').izzySelect2Bridge('refresh');
+                    $('#estado_proveedores').val('1').izzySelect2Bridge('refresh');
                     proveedoresState.search = '';
                     $('#buscarProveedoresListado').val('');
                     proveedoresState.page = 1;
@@ -1601,8 +1601,8 @@
                 $('#form_main_proveedores #estado_proveedores').html(data);
                 $('#form_main_proveedores #estado_proveedores').val('1');
 
-                if ($.fn.selectpicker) {
-                    $('#form_main_proveedores #estado_proveedores').selectpicker('refresh');
+                if ($.fn.izzySelect2Bridge) {
+                    $('#form_main_proveedores #estado_proveedores').izzySelect2Bridge('refresh');
                 }
             }
         });
@@ -1635,7 +1635,7 @@
 
             if ($estado.val() === null || $estado.val() === undefined || $estado.val() === '') {
                 $estado.val('1');
-                if ($.fn.selectpicker) $estado.selectpicker('refresh');
+                if ($.fn.izzySelect2Bridge) $estado.izzySelect2Bridge('refresh');
             }
 
             listar_proveedores();
@@ -1771,7 +1771,7 @@ function getEstadoProveedores() {
             $('#form_main_proveedores #estado_proveedores').html("");
             $('#form_main_proveedores #estado_proveedores').html(data);
             $('#form_main_proveedores #estado_proveedores').val('1');
-            $('#form_main_proveedores #estado_proveedores').selectpicker('refresh');
+            $('#form_main_proveedores #estado_proveedores').izzySelect2Bridge('refresh');
         }
     });
 }

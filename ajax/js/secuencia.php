@@ -1,4 +1,206 @@
 <script>
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Conserva estilos existentes y completa todas las celdas
+   del rango combinado para evitar contornos incompletos.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (!xmlTexto || typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return xmlTexto;
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(/^\s*(<\?xml[^>]*\?>)/);
+            if (matchDeclaracion) declaracion = matchDeclaracion[1];
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(String(xmlTexto), 'application/xml');
+            if (documento.getElementsByTagName('parsererror').length) return xmlTexto;
+
+            var namespaceUri = documento.documentElement.namespaceURI || 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+            var sheetData = documento.getElementsByTagName('sheetData')[0];
+            var mergeCells = documento.getElementsByTagName('mergeCells')[0];
+            if (!sheetData || !mergeCells) return xmlTexto;
+
+            function columnaNumero(letras) {
+                var total = 0, texto = String(letras || '').toUpperCase();
+                for (var i = 0; i < texto.length; i++) total = (total * 26) + (texto.charCodeAt(i) - 64);
+                return total;
+            }
+            function columnaLetras(numero) {
+                var resultado = '', n = numero;
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado = String.fromCharCode(65 + resto) + resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+                return resultado;
+            }
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(/^([A-Z]+)(\d+)$/);
+                return match ? {col: columnaNumero(match[1]), row: parseInt(match[2], 10)} : null;
+            }
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+                for (var i = 0; i < filas.length; i++) {
+                    if (parseInt(filas[i].getAttribute('r'), 10) === numeroFila) return filas[i];
+                }
+                var nuevaFila = documento.createElementNS(namespaceUri, 'row');
+                nuevaFila.setAttribute('r', String(numeroFila));
+                var insertada = false;
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(filas[j].getAttribute('r'), 10);
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(nuevaFila, filas[j]);
+                        insertada = true;
+                        break;
+                    }
+                }
+                if (!insertada) sheetData.appendChild(nuevaFila);
+                return nuevaFila;
+            }
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+                for (var i = 0; i < celdas.length; i++) {
+                    if (celdas[i].getAttribute('r') === referencia) return celdas[i];
+                }
+                return null;
+            }
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(celdas[i].getAttribute('r'));
+                    if (refActual && refActual.col > colNumero) {
+                        fila.insertBefore(celda, celdas[i]);
+                        return;
+                    }
+                }
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(mergeCells.getElementsByTagName('mergeCell'));
+            merges.forEach(function (merge) {
+                var partes = String(merge.getAttribute('ref') || '').split(':');
+                if (partes.length !== 2) return;
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+                if (!inicio || !fin) return;
+
+                if (inicio.col === fin.col && inicio.row === fin.row) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(filaInicio, columnaLetras(inicio.col) + inicio.row);
+                if (!celdaInicio) return;
+                var estilo = celdaInicio.getAttribute('s');
+
+                for (var filaNumero = inicio.row; filaNumero <= fin.row; filaNumero++) {
+                    var fila = obtenerFila(filaNumero);
+                    for (var colNumero = inicio.col; colNumero <= fin.col; colNumero++) {
+                        var referencia = columnaLetras(colNumero) + filaNumero;
+                        var celda = buscarCelda(fila, referencia);
+                        if (!celda) {
+                            celda = documento.createElementNS(namespaceUri, 'c');
+                            celda.setAttribute('r', referencia);
+                            if (estilo !== null && estilo !== '') celda.setAttribute('s', estilo);
+                            insertarCeldaOrdenada(fila, celda, colNumero);
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales = mergeCells.getElementsByTagName('mergeCell');
+            mergeCells.setAttribute('count', String(mergeFinales.length));
+            var serializado = new XMLSerializer().serializeToString(documento.documentElement);
+            return declaracion ? declaracion + serializado : serializado;
+        } catch (error) {
+            console.error('No se pudieron completar los bordes del XLSX:', error);
+            return xmlTexto;
+        }
+    };
+}
+
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects existentes y dinámicos sin duplicarlos.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) return;
+        $select.each(function () {
+            var $el = $(this);
+            if (!$el.is('select')) return;
+
+            var $parent = $el.parent();
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) return false;
+                    var normalizada = clase.toLowerCase();
+                    return normalizada.slice(-6) !== 'picker' && normalizada !== 'bs-select-hidden';
+                });
+
+            if (clases.indexOf('izzy-select2') === -1) clases.push('izzy-select2');
+            $el.attr('class', clases.join(' '));
+            if ($el.attr('tabindex') === '-98') $el.removeAttr('tabindex');
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) return;
+        window.izzySelect2LimpiarControl($select);
+        if (typeof $.fn.select2 !== 'function') return;
+
+        $select.each(function () {
+            var $el = $(this);
+            if (!$el.is('select')) return;
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                $el.trigger('change.select2');
+                return;
+            }
+
+            var config = $.extend({
+                width: '100%',
+                minimumResultsForSearch: 0,
+                allowClear: false
+            }, options || {});
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+                if ($modal.length) config.dropdownParent = $modal;
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) return;
+        window.izzySoloSelect2($select, options);
+        $select.each(function () {
+            var $el = $(this);
+            if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
+        });
+    };
+}
+
 (function ($) {
     'use strict';
 
@@ -35,6 +237,8 @@
 
 
     $(document).ready(function () {
+        window.izzySoloSelect2($('#form_main_secuencia select, #formSecuencia select, #modal_documentos_secuencia select'));
+
         inicializarEstadoPersistenteSecuencia();
         inicializarVistaSecuencia();
         inicializarEventosSecuencia();
@@ -205,7 +409,9 @@
         $('#form_main_secuencia').off('reset.secuencia').on('reset.secuencia', function () {
             var form = this;
             setTimeout(function () {
-                $(form).find('.selectpicker').val('').selectpicker('refresh');
+                var $selects = $(form).find('select');
+                $selects.val('');
+                window.izzySoloRefreshSelect2($selects);
                 $('#filtro_secuencia_general, #secuencia_buscar_listado').val('');
                 secuenciaState.page = 1;
                 aplicarFiltrosYRender();
@@ -247,8 +453,8 @@
         });
 
         $('#estado_secuencia_main, #documento_secuencia_main, #vencimiento_secuencia_main')
-            .off('changed.bs.select.secuencia change.secuencia')
-            .on('changed.bs.select.secuencia change.secuencia', function () {
+            .off('change.secuencia')
+            .on('change.secuencia', function () {
                 secuenciaState.page = 1;
                 aplicarFiltrosYRender();
             });
@@ -1089,7 +1295,8 @@
     };
 
     function habilitarCamposSecuenciaNueva() {
-        $('#empresa_secuencia, #documento_secuencia').prop('disabled', false).selectpicker('refresh');
+        var $selects = $('#empresa_secuencia, #documento_secuencia').prop('disabled', false);
+        window.izzySoloRefreshSelect2($selects);
         $('#cai_secuencia, #prefijo_secuencia, #relleno_secuencia, #incremento_secuencia, #siguiente_secuencia, #rango_inicial_secuencia, #rango_final_secuencia, #fecha_activacion_secuencia, #fecha_limite_secuencia').prop('readonly', false);
         $('#estado_secuencia').prop('disabled', false).prop('checked', true);
         $('#estado_secuencia_container').show();
@@ -1136,7 +1343,7 @@
                 $('#reg_secuencia').hide();
                 $('#edi_secuencia').show();
 
-                $('#empresa_secuencia').val(valores[0]).prop('disabled', true).selectpicker('refresh');
+                $('#empresa_secuencia').val(valores[0]).prop('disabled', true);
                 $('#cai_secuencia').val(valores[1]);
                 $('#prefijo_secuencia').val(valores[2]);
                 $('#relleno_secuencia').val(valores[3]);
@@ -1147,7 +1354,9 @@
                 $('#fecha_activacion_secuencia').val(valores[8]);
                 $('#fecha_limite_secuencia').val(valores[9]);
                 $('#estado_secuencia').prop('checked', parseInt(valores[10], 10) === 1).prop('disabled', false);
-                $('#documento_secuencia').val(valores[11]).prop('disabled', true).selectpicker('refresh');
+                $('#documento_secuencia').val(valores[11]).prop('disabled', true);
+
+                window.izzySoloRefreshSelect2($('#empresa_secuencia, #documento_secuencia'));
 
                 $('#cai_secuencia, #prefijo_secuencia, #relleno_secuencia, #incremento_secuencia, #rango_inicial_secuencia, #rango_final_secuencia, #fecha_activacion_secuencia, #fecha_limite_secuencia').prop('readonly', true);
                 $('#siguiente_secuencia').prop('readonly', false);
@@ -1237,7 +1446,7 @@
             } else {
                 $select.append('<option value="">No hay empresas disponibles</option>');
             }
-            $select.selectpicker('refresh');
+            window.izzySoloRefreshSelect2($select);
         }).fail(function () {
             showNotify('error', 'Error', 'Error de conexión al cargar empresas.');
         });
@@ -1301,8 +1510,7 @@
             $filterSelect.val(valorFiltro);
         }
 
-        $modalSelect.selectpicker('refresh');
-        $filterSelect.selectpicker('refresh');
+        window.izzySoloRefreshSelect2($modalSelect.add($filterSelect));
     }
 
     function abrirModalDocumentosSecuencia(desdeSecuencia) {
@@ -1731,7 +1939,7 @@
         zip.folder('xl').file('workbook.xml', workbookXml);
         zip.folder('xl').file('styles.xml', stylesXml);
         zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-        zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelCompletarBordesCombinados(sheetXml));
 
         var opcionesZip = {
             type: 'blob',

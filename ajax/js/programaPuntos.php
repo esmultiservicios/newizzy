@@ -100,7 +100,16 @@ function programaPuntosModernFormatoCampo(row, field, forExport) {
             return forExport ? '' : '<span>No registrado</span>';
         }
 
-        return (forExport ? 'L ' : '<strong>L ') + programaPuntosModernEscape(text) + (forExport ? '' : '</strong>');
+        if (forExport) {
+            var numeroDinero = parseFloat(String(value == null ? 0 : value).replace(/[^\d.-]/g, ''));
+            if (isNaN(numeroDinero)) numeroDinero = 0;
+            return 'L. ' + numeroDinero.toLocaleString('es-HN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        return '<strong>L ' + programaPuntosModernEscape(text) + '</strong>';
     }
 
     if (field.type === 'percent') {
@@ -641,6 +650,12 @@ function programaPuntosModernFechaArchivo() {
 function programaPuntosModernDatosExcel() {
     return (programaPuntosModern.filtered || []).map(function(row) {
         return programaPuntosModernConfig.fields.map(function(field) {
+            if (field.type === 'money') {
+                var raw = row ? row[field.key] : 0;
+                var numero = parseFloat(String(raw == null ? 0 : raw).replace(/[^\d.-]/g, ''));
+                return isNaN(numero) ? 0 : numero;
+            }
+
             return programaPuntosModernFormatoCampo(row, field, true);
         });
     });
@@ -661,6 +676,13 @@ function programaPuntosModernGenerarXlsx(rows) {
     }
 
     var statusIndex = -1;
+    var moneyIndexes = [];
+
+    fields.forEach(function(field, index) {
+        if (field.type === 'money') {
+            moneyIndexes.push(index);
+        }
+    });
 
     fields.some(function(field, index) {
         if (field.type === 'status') {
@@ -795,8 +817,11 @@ function programaPuntosModernGenerarXlsx(rows) {
 
         var cells = row.map(function(value, colIndex) {
             var style = 4;
+            var money = moneyIndexes.indexOf(colIndex) !== -1;
 
-            if (colIndex === statusIndex) {
+            if (money) {
+                style = 11;
+            } else if (colIndex === statusIndex) {
                 style = String(value || '').toLowerCase() === 'activo' ? 9 : 10;
             }
 
@@ -804,7 +829,7 @@ function programaPuntosModernGenerarXlsx(rows) {
                 programaPuntosModernExcelColName(colIndex) + excelRow,
                 value,
                 style,
-                false
+                money
             );
         }).join('');
 
@@ -823,6 +848,10 @@ function programaPuntosModernGenerarXlsx(rows) {
         fields[index] && fields[index].type === 'emailTech'
             ? width = 42
             : width;
+
+        if (fields[index] && fields[index].type === 'money') {
+            width = Math.max(width, 20);
+        }
 
         colsXml += '<col min="' + (index + 1) + '" max="' + (index + 1) +
             '" width="' + width + '" customWidth="1"/>';
@@ -854,6 +883,7 @@ function programaPuntosModernGenerarXlsx(rows) {
     var stylesXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>' +
             '<fonts count="7">' +
                 '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
                 '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
@@ -885,7 +915,7 @@ function programaPuntosModernGenerarXlsx(rows) {
             '<cellStyleXfs count="1">' +
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
             '</cellStyleXfs>' +
-            '<cellXfs count="11">' +
+            '<cellXfs count="12">' +
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
                 '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
@@ -897,6 +927,7 @@ function programaPuntosModernGenerarXlsx(rows) {
                 '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
             '</cellXfs>' +
             '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
         '</styleSheet>';
@@ -946,9 +977,9 @@ function programaPuntosModernGenerarXlsx(rows) {
     zip.file('[Content_Types].xml', contentTypes);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbookXml);
-    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').file('styles.xml', (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
     var opcionesZip = {
         type: 'blob',

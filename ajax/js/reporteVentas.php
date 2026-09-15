@@ -13,13 +13,13 @@
     getReporteFactura(function () {
       restaurarCategoriaFacturaReporteVentas();
       setCategoriaFacturaDefaultActivas();
-      refrescarSelectpickersReporteVentas();
+      refrescarSelect2ReporteVentas();
       listar_reporte_ventas();
     });
 
     $('#form_main_ventas #factura_reporte, #form_main_ventas #tipo_factura_reporte')
-      .off('changed.bs.select.reporteVentasMemoria change.reporteVentasMemoria')
-      .on('changed.bs.select.reporteVentasMemoria change.reporteVentasMemoria', function () {
+      .off('change.reporteVentasMemoria')
+      .on('change.reporteVentasMemoria', function () {
         guardarFiltrosReporteVentas();
       });
 
@@ -34,11 +34,11 @@
       var form = this;
 
       setTimeout(function () {
-        $(form).find('.selectpicker').val('').selectpicker('refresh');
+        $(form).find('.izzy-select2').val('').izzySelect2Bridge('refresh');
         $('#form_main_ventas #factura_reporte').val('1');
         $('#form_main_ventas #tipo_factura_reporte').val('1');
         guardarFiltrosReporteVentas();
-        refrescarSelectpickersReporteVentas();
+        refrescarSelect2ReporteVentas();
         listar_reporte_ventas();
       }, 50);
     });
@@ -68,9 +68,9 @@
 var RV_STORAGE_TIPO_FACTURA = 'izzy_reporte_ventas_tipo_factura';
 var RV_STORAGE_CATEGORIA_FACTURA = 'izzy_reporte_ventas_categoria_factura';
 
-function refrescarSelectpickersReporteVentas() {
-    if ($.fn.selectpicker) {
-        $('#form_main_ventas .selectpicker').selectpicker('refresh');
+function refrescarSelect2ReporteVentas() {
+    if ($.fn.izzySelect2Bridge) {
+        $('#form_main_ventas .izzy-select2').izzySelect2Bridge('refresh');
     }
 }
 
@@ -94,7 +94,7 @@ function restaurarTipoFacturaReporteVentas() {
     }
 
     $('#form_main_ventas #factura_reporte').val(String(normalizarTipoFacturaReporte(guardado)));
-    refrescarSelectpickersReporteVentas();
+    refrescarSelect2ReporteVentas();
 }
 
 function restaurarCategoriaFacturaReporteVentas() {
@@ -107,7 +107,7 @@ function restaurarCategoriaFacturaReporteVentas() {
     }
 
     $('#form_main_ventas #tipo_factura_reporte').val(String(normalizarCategoriaFacturaReporte(guardado)));
-    refrescarSelectpickersReporteVentas();
+    refrescarSelect2ReporteVentas();
 }
 
 function guardarFiltrosReporteVentas() {
@@ -184,8 +184,8 @@ function setCategoriaFacturaDefaultActivas() {
         $select.val('1');
     }
 
-    if ($.fn.selectpicker) {
-        $select.selectpicker('refresh');
+    if ($.fn.izzySelect2Bridge) {
+        $select.izzySelect2Bridge('refresh');
     }
 }
 
@@ -972,7 +972,7 @@ var listar_reporte_ventas = function () {
       url: '<?php echo SERVERURL;?>core/getFacturador.php',
       async: true,
       success: function (data) {
-        $('#form_main_ventas #facturador').html(data).selectpicker('refresh');
+        $('#form_main_ventas #facturador').html(data).izzySelect2Bridge('refresh');
       }
     });
   }
@@ -983,8 +983,8 @@ var listar_reporte_ventas = function () {
       url: '<?php echo SERVERURL;?>core/getColaboradores.php',
       async: true,
       success: function (data) {
-        $('#form_main_ventas #vendedor').html(data).selectpicker('refresh');
-        $('#FormDetalleVentas #DetalleVendedores').html(data).selectpicker('refresh');
+        $('#form_main_ventas #vendedor').html(data).izzySelect2Bridge('refresh');
+        $('#FormDetalleVentas #DetalleVendedores').html(data).izzySelect2Bridge('refresh');
       }
     });
   }
@@ -995,7 +995,7 @@ var listar_reporte_ventas = function () {
       url: '<?php echo SERVERURL;?>core/getProductos.php',
       async: true,
       success: function (data) {
-        $('#FormDetalleVentas #DetallesProductos').html(data).selectpicker('refresh');
+        $('#FormDetalleVentas #DetallesProductos').html(data).izzySelect2Bridge('refresh');
       }
     });
   }
@@ -1271,7 +1271,7 @@ function modal_pagos_cliente(){
 
   $m.off('click', '#btnLimpiarPagosCliente').on('click', '#btnLimpiarPagosCliente', function(){
     $m.find('#ClientePagos').val('');
-    if ($.fn.selectpicker) $m.find('#ClientePagos').selectpicker('refresh');
+    if ($.fn.izzySelect2Bridge) $m.find('#ClientePagos').izzySelect2Bridge('refresh');
     listar_pagos_cliente();
   });
 
@@ -1301,11 +1301,11 @@ function getClientesPagos(){
     }else{
       $sel.append('<option value="">Sin clientes</option>');
     }
-    if ($.fn.selectpicker) $sel.selectpicker('refresh');
+    if ($.fn.izzySelect2Bridge) $sel.izzySelect2Bridge('refresh');
   }).fail(function(){
     const $sel = $('#ModalPagosCliente #ClientePagos');
     $sel.html('<option value="">Error al cargar</option>');
-    if ($.fn.selectpicker) $sel.selectpicker('refresh');
+    if ($.fn.izzySelect2Bridge) $sel.izzySelect2Bridge('refresh');
   });
 }
 
@@ -1737,14 +1737,14 @@ function getClientesPagos(){
       });
       sr.push('<row r="'+totalRow+'" ht="30" customHeight="1">'+cells+'</row>');
     }
-    var cols=headers.map(function(h,i){var w=Math.min(34,Math.max(13,String(h).length+7));return'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';}).join('');
+    var cols=headers.map(function(h,i){var w=Math.min(34,Math.max(13,String(h).length+7));if(numeric.indexOf(i)!==-1)w=Math.max(w,20);return'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';}).join('');
     var sheet='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+last+lastRow+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>'+cols+'</cols><sheetData>'+sr.join('')+'</sheetData><autoFilter ref="A7:'+last+(headerRow+rows.length)+'"/><mergeCells count="'+(totalCols.length?'3':'2')+'"><mergeCell ref="A1:'+last+'1"/><mergeCell ref="A2:'+last+'2"/>'+(totalCols.length?'<mergeCell ref="A'+totalRow+':'+rvCol(Math.min.apply(null,totalCols)-1)+totalRow+'"/>':'')+'</mergeCells><pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/></worksheet>';
-    var styles='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts><fonts count="8"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font><font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font><font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0"/><xf numFmtId="0" fontId="2" fillId="4" borderId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="4" fillId="0" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="5" fillId="4" borderId="0"/><xf numFmtId="0" fontId="6" fillId="4" borderId="0"/><xf numFmtId="0" fontId="7" fillId="0" borderId="0"/><xf numFmtId="0" fontId="7" fillId="4" borderId="1"/><xf numFmtId="164" fontId="7" fillId="4" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    var styles='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts><fonts count="8"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font><font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font><font><b/><sz val="15"/><color rgb="FF172B4D"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0"/><xf numFmtId="0" fontId="2" fillId="4" borderId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="4" fillId="0" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf><xf numFmtId="0" fontId="5" fillId="4" borderId="0"/><xf numFmtId="0" fontId="6" fillId="4" borderId="0"/><xf numFmtId="0" fontId="7" fillId="0" borderId="0"/><xf numFmtId="0" fontId="7" fillId="4" borderId="1"/><xf numFmtId="164" fontId="7" fillId="4" borderId="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
     var workbook='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Reporte" sheetId="1" r:id="rId1"/></sheets></workbook>';
     var rels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
     var root='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
     var types='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
-    var zip=new JSZip();zip.file('[Content_Types].xml',types);zip.folder('_rels').file('.rels',root);zip.folder('xl').file('workbook.xml',workbook);zip.folder('xl').file('styles.xml',styles);zip.folder('xl').folder('_rels').file('workbook.xml.rels',rels);zip.folder('xl').folder('worksheets').file('sheet1.xml',sheet);
+    var zip=new JSZip();zip.file('[Content_Types].xml',types);zip.folder('_rels').file('.rels',root);zip.folder('xl').file('workbook.xml',workbook);zip.folder('xl').file('styles.xml',(window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(styles) : styles));zip.folder('xl').folder('_rels').file('workbook.xml.rels',rels);zip.folder('xl').folder('worksheets').file('sheet1.xml',(window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheet) : sheet));
     var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
     var promise=typeof zip.generateAsync==='function'?zip.generateAsync(opts):Promise.resolve(zip.generate(opts));
     promise.then(function(blob){rvDownload(blob,cfg.file+'_'+rvDateFile()+'.xlsx');}).catch(function(e){console.error(e);showNotify('error','Excel','No se pudo generar el archivo Excel.');});
@@ -1943,7 +1943,7 @@ function getClientesPagos(){
   rvSincronizarBotonesVista();
 
   // Reset detail
-  $('#FormDetalleVentas').off('reset.rv').on('reset.rv',function(){setTimeout(function(){try{$('#DetallesProductos,#DetalleVendedores').val('').selectpicker('refresh');}catch(e){}ListarDetalleVenas();},50);});
+  $('#FormDetalleVentas').off('reset.rv').on('reset.rv',function(){setTimeout(function(){try{$('#DetallesProductos,#DetalleVendedores').val('').izzySelect2Bridge('refresh');}catch(e){}ListarDetalleVenas();},50);});
 
   // Rebind Pagos modal buttons because original implementation referenced DataTable state.
   var originalModalPagos=modal_pagos_cliente;
@@ -1951,7 +1951,7 @@ function getClientesPagos(){
     var $m=$('#ModalPagosCliente'),hoy=new Date(),first=new Date(hoy.getFullYear(),hoy.getMonth(),1).toISOString().slice(0,10),today=new Date().toISOString().slice(0,10);
     $m.find('#PagosFechai').val(first);$m.find('#PagosFechaf').val(today);getClientesPagos();
     $m.off('click.rv','#btnFiltrarPagosCliente').on('click.rv','#btnFiltrarPagosCliente',listar_pagos_cliente);
-    $m.off('click.rv','#btnLimpiarPagosCliente').on('click.rv','#btnLimpiarPagosCliente',function(){$m.find('#ClientePagos').val('');if($.fn.selectpicker)$m.find('#ClientePagos').selectpicker('refresh');listar_pagos_cliente();});
+    $m.off('click.rv','#btnLimpiarPagosCliente').on('click.rv','#btnLimpiarPagosCliente',function(){$m.find('#ClientePagos').val('');if($.fn.izzySelect2Bridge)$m.find('#ClientePagos').izzySelect2Bridge('refresh');listar_pagos_cliente();});
     $m.modal({show:true,keyboard:false,backdrop:'static'});setTimeout(listar_pagos_cliente,120);
   };
 

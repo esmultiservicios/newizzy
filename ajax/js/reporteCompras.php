@@ -8,7 +8,7 @@ $(() => {
 
     $('#form_main_compras #tipo_compras_reporte').val(1);
     try {
-        $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+        $('#form_main_compras #tipo_compras_reporte').izzySelect2Bridge('refresh');
     } catch (e) {}
 
     $('#form_main_compras').off('submit.reporteCompras');
@@ -23,13 +23,13 @@ $(() => {
 
         setTimeout(function() {
             try {
-                $form.find('.selectpicker').selectpicker('refresh');
+                $form.find('.izzy-select2').izzySelect2Bridge('refresh');
             } catch (e) {}
 
             $('#form_main_compras #tipo_compras_reporte').val(1);
 
             try {
-                $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+                $('#form_main_compras #tipo_compras_reporte').izzySelect2Bridge('refresh');
             } catch (e) {}
 
             listar_reporte_compras();
@@ -917,7 +917,7 @@ function exportarReporteComprasExcel() {
         '</row>'
     );
 
-    var widths = [13, 14, 18, 30, 20, 16, 14, 16, 17];
+    var widths = [13, 14, 18, 30, 20, 20, 20, 20, 20];
 
     var cols = widths.map(function(width, index) {
         return '<col min="' + (index + 1) +
@@ -951,7 +951,7 @@ function exportarReporteComprasExcel() {
     var styles =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-            '<numFmts count="1"><numFmt numFmtId="164" formatCode="L. #,##0.00"/></numFmts>' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>' +
             '<fonts count="8">' +
                 '<font><sz val="10"/><name val="Calibri"/></font>' +
                 '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
@@ -1030,9 +1030,9 @@ function exportarReporteComprasExcel() {
     zip.file('[Content_Types].xml', types);
     zip.folder('_rels').file('.rels', rootRels);
     zip.folder('xl').file('workbook.xml', workbook);
-    zip.folder('xl').file('styles.xml', styles);
+    zip.folder('xl').file('styles.xml', (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(styles) : styles));
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', rels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheet);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheet) : sheet));
 
     var options = {
         type: 'blob',
@@ -1514,7 +1514,7 @@ function getReporteCompras() {
             $('#form_main_compras #tipo_compras_reporte').html(data);
 
             try {
-                $('#form_main_compras #tipo_compras_reporte').selectpicker('refresh');
+                $('#form_main_compras #tipo_compras_reporte').izzySelect2Bridge('refresh');
             } catch (e) {}
         },
         error: function() {

@@ -1,4 +1,206 @@
 <script>
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Conserva estilos existentes y completa todas las celdas
+   del rango combinado para evitar contornos incompletos.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (!xmlTexto || typeof DOMParser === 'undefined' || typeof XMLSerializer === 'undefined') return xmlTexto;
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(/^\s*(<\?xml[^>]*\?>)/);
+            if (matchDeclaracion) declaracion = matchDeclaracion[1];
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(String(xmlTexto), 'application/xml');
+            if (documento.getElementsByTagName('parsererror').length) return xmlTexto;
+
+            var namespaceUri = documento.documentElement.namespaceURI || 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+            var sheetData = documento.getElementsByTagName('sheetData')[0];
+            var mergeCells = documento.getElementsByTagName('mergeCells')[0];
+            if (!sheetData || !mergeCells) return xmlTexto;
+
+            function columnaNumero(letras) {
+                var total = 0, texto = String(letras || '').toUpperCase();
+                for (var i = 0; i < texto.length; i++) total = (total * 26) + (texto.charCodeAt(i) - 64);
+                return total;
+            }
+            function columnaLetras(numero) {
+                var resultado = '', n = numero;
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado = String.fromCharCode(65 + resto) + resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+                return resultado;
+            }
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(/^([A-Z]+)(\d+)$/);
+                return match ? {col: columnaNumero(match[1]), row: parseInt(match[2], 10)} : null;
+            }
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+                for (var i = 0; i < filas.length; i++) {
+                    if (parseInt(filas[i].getAttribute('r'), 10) === numeroFila) return filas[i];
+                }
+                var nuevaFila = documento.createElementNS(namespaceUri, 'row');
+                nuevaFila.setAttribute('r', String(numeroFila));
+                var insertada = false;
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(filas[j].getAttribute('r'), 10);
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(nuevaFila, filas[j]);
+                        insertada = true;
+                        break;
+                    }
+                }
+                if (!insertada) sheetData.appendChild(nuevaFila);
+                return nuevaFila;
+            }
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+                for (var i = 0; i < celdas.length; i++) {
+                    if (celdas[i].getAttribute('r') === referencia) return celdas[i];
+                }
+                return null;
+            }
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(celdas[i].getAttribute('r'));
+                    if (refActual && refActual.col > colNumero) {
+                        fila.insertBefore(celda, celdas[i]);
+                        return;
+                    }
+                }
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(mergeCells.getElementsByTagName('mergeCell'));
+            merges.forEach(function (merge) {
+                var partes = String(merge.getAttribute('ref') || '').split(':');
+                if (partes.length !== 2) return;
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+                if (!inicio || !fin) return;
+
+                if (inicio.col === fin.col && inicio.row === fin.row) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(filaInicio, columnaLetras(inicio.col) + inicio.row);
+                if (!celdaInicio) return;
+                var estilo = celdaInicio.getAttribute('s');
+
+                for (var filaNumero = inicio.row; filaNumero <= fin.row; filaNumero++) {
+                    var fila = obtenerFila(filaNumero);
+                    for (var colNumero = inicio.col; colNumero <= fin.col; colNumero++) {
+                        var referencia = columnaLetras(colNumero) + filaNumero;
+                        var celda = buscarCelda(fila, referencia);
+                        if (!celda) {
+                            celda = documento.createElementNS(namespaceUri, 'c');
+                            celda.setAttribute('r', referencia);
+                            if (estilo !== null && estilo !== '') celda.setAttribute('s', estilo);
+                            insertarCeldaOrdenada(fila, celda, colNumero);
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales = mergeCells.getElementsByTagName('mergeCell');
+            mergeCells.setAttribute('count', String(mergeFinales.length));
+            var serializado = new XMLSerializer().serializeToString(documento.documentElement);
+            return declaracion ? declaracion + serializado : serializado;
+        } catch (error) {
+            console.error('No se pudieron completar los bordes del XLSX:', error);
+            return xmlTexto;
+        }
+    };
+}
+
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects existentes y dinámicos sin duplicarlos.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) return;
+        $select.each(function () {
+            var $el = $(this);
+            if (!$el.is('select')) return;
+
+            var $parent = $el.parent();
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) return false;
+                    var normalizada = clase.toLowerCase();
+                    return normalizada.slice(-6) !== 'picker' && normalizada !== 'bs-select-hidden';
+                });
+
+            if (clases.indexOf('izzy-select2') === -1) clases.push('izzy-select2');
+            $el.attr('class', clases.join(' '));
+            if ($el.attr('tabindex') === '-98') $el.removeAttr('tabindex');
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) return;
+        window.izzySelect2LimpiarControl($select);
+        if (typeof $.fn.select2 !== 'function') return;
+
+        $select.each(function () {
+            var $el = $(this);
+            if (!$el.is('select')) return;
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                $el.trigger('change.select2');
+                return;
+            }
+
+            var config = $.extend({
+                width: '100%',
+                minimumResultsForSearch: 0,
+                allowClear: false
+            }, options || {});
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+                if ($modal.length) config.dropdownParent = $modal;
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) return;
+        window.izzySoloSelect2($select, options);
+        $select.each(function () {
+            var $el = $(this);
+            if ($el.hasClass('select2-hidden-accessible')) $el.trigger('change.select2');
+        });
+    };
+}
+
 var usuariosState = {
     registros: [],
     filtrados: [],
@@ -23,6 +225,8 @@ function usuariosEsPantallaPequena() {
 }
 
 $(document).ready(function () {
+    window.izzySoloSelect2($('#form_main_usuarios select, #formUsers select'));
+
     inicializarVistaUsuarios();
     inicializarDropdownAccionesUsuarios();
     listar_usuarios();
@@ -40,9 +244,9 @@ $(document).ready(function () {
 
     $('#form_main_usuarios').on('reset', function () {
         setTimeout(function () {
-            $('#form_main_usuarios .selectpicker')
-                .val('')
-                .selectpicker('refresh');
+            var $selects = $('#form_main_usuarios select');
+            $selects.val('');
+            window.izzySoloRefreshSelect2($selects);
 
             usuariosState.pagina = 1;
             listar_usuarios();
@@ -116,8 +320,8 @@ $(document).ready(function () {
     );
 
     $('#filtroTipoUsuario, #filtroPrivilegioUsuario')
-        .off('changed.bs.select.usuarios change.usuarios')
-        .on('changed.bs.select.usuarios change.usuarios', function () {
+        .off('change.usuarios')
+        .on('change.usuarios', function () {
             usuariosState.pagina = 1;
             aplicarFiltroUsuarios();
         });
@@ -127,7 +331,7 @@ $(document).ready(function () {
         $('#es_nuevo_colaborador').val(tab === '#nuevo' ? '1' : '0');
     });
 
-    $('#formUsers #colaboradores_id').on('changed.bs.select', function () {
+    $('#formUsers #colaboradores_id').on('change.usuariosColaborador', function () {
         var colaboradorId = $(this).val();
 
         if (colaboradorId) {
@@ -208,29 +412,9 @@ function enfocarPrimerCampoDisponibleUsuarios() {
         var $campo = $(this);
 
         /*
-         * Bootstrap Select: el <select> original está oculto.
-         * Enfocamos únicamente su botón visible, sin abrir el menú.
+         * Select2: enfocar la selección visible sin abrirla.
          */
-        if ($campo.is('select') && $campo.hasClass('selectpicker')) {
-            var $bootstrapSelect = $campo.closest('.bootstrap-select');
-            var $bootstrapToggle = $bootstrapSelect
-                .find('> .dropdown-toggle')
-                .filter(':visible')
-                .first();
-
-            if ($bootstrapToggle.length) {
-                $bootstrapToggle.trigger('focus');
-                enfocado = true;
-                return false;
-            }
-        }
-
-        /*
-         * Compatibilidad preventiva con Select2:
-         * si este formulario migra a Select2, el cursor seguirá
-         * cayendo sobre el primer selector visible disponible.
-         */
-        if ($campo.is('select') && $campo.next('.select2').length) {
+        if ($campo.is('select') && $campo.hasClass('select2-hidden-accessible')) {
             var $select2Selection = $campo
                 .next('.select2')
                 .find('.select2-selection')
@@ -556,9 +740,7 @@ function actualizarFiltrosCatalogoUsuarios() {
             $select.val('');
         }
 
-        if ($.fn.selectpicker && $select.hasClass('selectpicker')) {
-            $select.selectpicker('refresh');
-        }
+        window.izzySoloRefreshSelect2($select);
     }
 
     poblar('#filtroTipoUsuario', tipos);
@@ -1108,9 +1290,7 @@ function editarUsuarioPorId(id) {
         $('#es_nuevo_colaborador').val('0');
         $('#existente-tab').tab('show');
 
-        $('#formUsers #colaboradores_id')
-            .val(response.data.colaboradores_id)
-            .selectpicker('refresh');
+        $('#formUsers #colaboradores_id').val(response.data.colaboradores_id);
 
         $('#info_nombre').text(
             response.data.nombre_completo ||
@@ -1139,17 +1319,13 @@ function editarUsuarioPorId(id) {
         $('#info_colaborador').show();
         $('#correo_usuario').val(response.data.correo);
 
-        $('#empresa_usuario')
-            .val(response.data.empresa_id)
-            .selectpicker('refresh');
+        $('#empresa_usuario').val(response.data.empresa_id);
 
-        $('#tipo_user')
-            .val(response.data.tipo_user_id)
-            .selectpicker('refresh');
+        $('#tipo_user').val(response.data.tipo_user_id);
 
-        $('#privilegio_id')
-            .val(response.data.privilegio_id)
-            .selectpicker('refresh');
+        $('#privilegio_id').val(response.data.privilegio_id);
+
+        window.izzySoloRefreshSelect2($('#formUsers #colaboradores_id, #empresa_usuario, #tipo_user, #privilegio_id'));
 
         $('#server_customers_id').val(response.data.server_customers_id);
 
@@ -1244,13 +1420,9 @@ function eliminarUsuarioPorId(id) {
 function modal_usuarios() {
     $('#formUsers')[0].reset();
 
-    $('#empresa_usuario, #privilegio_id, #tipo_user, #puesto_colaborador')
-        .val('')
-        .selectpicker('refresh');
-
-    $('#colaboradores_id')
-        .val('')
-        .selectpicker('refresh');
+    var $selectsUsuario = $('#empresa_usuario, #privilegio_id, #tipo_user, #puesto_colaborador, #colaboradores_id');
+    $selectsUsuario.val('');
+    window.izzySoloRefreshSelect2($selectsUsuario);
 
     $('#info_colaborador').hide();
     $('#es_nuevo_colaborador').val('0');
@@ -1389,7 +1561,7 @@ function getEmpresaUsers() {
             );
         }
 
-        $select.selectpicker('refresh');
+        window.izzySoloRefreshSelect2($select);
 
         /*
          * La carga de empresas y usuarios ocurre en paralelo. Cuando ya
@@ -1448,7 +1620,7 @@ function cargarSelectUsuario(url, selector, idKey, textKey, nombre) {
             );
         }
 
-        $select.selectpicker('refresh');
+        window.izzySoloRefreshSelect2($select);
     })
     .fail(function () {
         showNotify(
@@ -1489,7 +1661,7 @@ function getColaboradoresUsuario() {
             );
         }
 
-        $select.selectpicker('refresh');
+        window.izzySoloRefreshSelect2($select);
     })
     .fail(function () {
         showNotify(
@@ -1814,7 +1986,7 @@ function usuariosGenerarXlsx(rows) {
     zip.folder('xl').file('workbook.xml', workbookXml);
     zip.folder('xl').file('styles.xml', stylesXml);
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelCompletarBordesCombinados(sheetXml));
 
     var opcionesZip = {
         type: 'blob',

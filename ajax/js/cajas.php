@@ -1,4 +1,308 @@
 <script>
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Mantiene intacto el contenido del reporte y completa las
+   celdas internas de mergeCells con el estilo ya existente.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (matchDeclaracion) {
+                declaracion = matchDeclaracion[1];
+            }
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documento.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documento.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documento.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documento.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnaNumero(letras) {
+                var total = 0;
+                var texto = String(letras || '').toUpperCase();
+
+                for (var i = 0; i < texto.length; i++) {
+                    total = (total * 26) +
+                        (texto.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnaLetras(numero) {
+                var resultado = '';
+                var n = numero;
+
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado =
+                        String.fromCharCode(65 + resto) +
+                        resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return resultado;
+            }
+
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnaNumero(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < filas.length; i++) {
+                    if (
+                        parseInt(
+                            filas[i].getAttribute('r'),
+                            10
+                        ) === numeroFila
+                    ) {
+                        return filas[i];
+                    }
+                }
+
+                var nuevaFila = documento.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                nuevaFila.setAttribute(
+                    'r',
+                    String(numeroFila)
+                );
+
+                var insertada = false;
+
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(
+                        filas[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(
+                            nuevaFila,
+                            filas[j]
+                        );
+                        insertada = true;
+                        break;
+                    }
+                }
+
+                if (!insertada) {
+                    sheetData.appendChild(nuevaFila);
+                }
+
+                return nuevaFila;
+            }
+
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    if (
+                        celdas[i].getAttribute('r') ===
+                        referencia
+                    ) {
+                        return celdas[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(
+                        celdas[i].getAttribute('r')
+                    );
+
+                    if (
+                        refActual &&
+                        refActual.col > colNumero
+                    ) {
+                        fila.insertBefore(
+                            celda,
+                            celdas[i]
+                        );
+                        return;
+                    }
+                }
+
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var ref = merge.getAttribute('ref') || '';
+                var partes = ref.split(':');
+
+                if (partes.length !== 2) {
+                    return;
+                }
+
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+
+                if (!inicio || !fin) {
+                    return;
+                }
+
+                /* Elimina combinaciones inválidas como I3:I3. */
+                if (
+                    inicio.col === fin.col &&
+                    inicio.row === fin.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(
+                    filaInicio,
+                    columnaLetras(inicio.col) +
+                    inicio.row
+                );
+
+                if (!celdaInicio) {
+                    return;
+                }
+
+                var estilo = celdaInicio.getAttribute('s');
+
+                /*
+                 * Completa todo el rango con el mismo estilo
+                 * ya definido por el reporte. No crea estilos nuevos.
+                 */
+                for (
+                    var filaNumero = inicio.row;
+                    filaNumero <= fin.row;
+                    filaNumero++
+                ) {
+                    var fila = obtenerFila(filaNumero);
+
+                    for (
+                        var colNumero = inicio.col;
+                        colNumero <= fin.col;
+                        colNumero++
+                    ) {
+                        var referencia =
+                            columnaLetras(colNumero) +
+                            filaNumero;
+
+                        var celda = buscarCelda(
+                            fila,
+                            referencia
+                        );
+
+                        if (!celda) {
+                            celda = documento.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            celda.setAttribute(
+                                'r',
+                                referencia
+                            );
+
+                            if (
+                                estilo !== null &&
+                                estilo !== ''
+                            ) {
+                                celda.setAttribute(
+                                    's',
+                                    estilo
+                                );
+                            }
+
+                            insertarCeldaOrdenada(
+                                fila,
+                                celda,
+                                colNumero
+                            );
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales =
+                mergeCells.getElementsByTagName('mergeCell');
+
+            mergeCells.setAttribute(
+                'count',
+                String(mergeFinales.length)
+            );
+
+            var serializado =
+                new XMLSerializer().serializeToString(
+                    documento.documentElement
+                );
+
+            return declaracion
+                ? declaracion + serializado
+                : serializado;
+
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
 // caja.js - LISTADO MODERNIZADO SIN DATATABLE
 var cajasState = {
     registros: [],
@@ -155,6 +459,9 @@ $(() => {
     retiro_caja_dataTable();
     detalle_retiros_caja_dataTable();
     cuadre_dia_caja_dataTable();
+
+    // Los modales de retiros y ganancia trabajan únicamente con DIV/Grid/Flex.
+    inicializarListadosDetalleCajaDiv();
 });
 
 /* =========================================================
@@ -1361,14 +1668,13 @@ function exportarCajasExcelPremium() {
             '</cols>' +
             '<sheetData>' + sheetRows.join('') + '</sheetData>' +
             '<autoFilter ref="A7:I' + lastRow + '"/>' +
-            '<mergeCells count="12">' +
+            '<mergeCells count="10">' +
                 '<mergeCell ref="A1:I1"/>' +
                 '<mergeCell ref="A2:I2"/>' +
                 '<mergeCell ref="A3:B3"/><mergeCell ref="A4:B4"/>' +
                 '<mergeCell ref="C3:D3"/><mergeCell ref="C4:D4"/>' +
                 '<mergeCell ref="E3:F3"/><mergeCell ref="E4:F4"/>' +
                 '<mergeCell ref="G3:H3"/><mergeCell ref="G4:H4"/>' +
-                '<mergeCell ref="I3:I3"/><mergeCell ref="I4:I4"/>' +
             '</mergeCells>' +
             '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
             '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
@@ -1390,7 +1696,7 @@ function exportarCajasExcelPremium() {
             '<fills count="7">' +
                 '<fill><patternFill patternType="none"/></fill>' +
                 '<fill><patternFill patternType="gray125"/></fill>' +
-                '<fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF1F354E"/></patternFill></fill>' +
                 '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
                 '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
                 '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/></patternFill></fill>' +
@@ -1403,17 +1709,17 @@ function exportarCajasExcelPremium() {
             '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
             '<cellXfs count="12">' +
                 '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-                '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="2" fillId="4" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
                 '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
             '</cellXfs>' +
             '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
         '</styleSheet>';
@@ -1454,7 +1760,7 @@ function exportarCajasExcelPremium() {
     zip.folder('xl').file('workbook.xml', workbookXml);
     zip.folder('xl').file('styles.xml', stylesXml);
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelCompletarBordesCombinados(sheetXml));
 
     var opciones = {
         type: 'blob',
@@ -1634,14 +1940,14 @@ function cajasPdfEncabezadoPremium(rows) {
             widths: [100, '*', 155],
             body: [[
                 {
-                    border: [false, false, false, false],
-                    fillColor: '#17324D',
+                    border: [true, true, true, true],
+                    fillColor: '#1F354E',
                     margin: [12, 10, 0, 10],
                     stack: [logoCell]
                 },
                 {
-                    border: [false, false, false, false],
-                    fillColor: '#17324D',
+                    border: [true, true, true, true],
+                    fillColor: '#1F354E',
                     margin: [0, 10, 0, 10],
                     stack: [
                         {
@@ -1659,8 +1965,8 @@ function cajasPdfEncabezadoPremium(rows) {
                     ]
                 },
                 {
-                    border: [false, false, false, false],
-                    fillColor: '#17324D',
+                    border: [true, true, true, true],
+                    fillColor: '#1F354E',
                     margin: [0, 10, 12, 10],
                     stack: [
                         {
@@ -1690,8 +1996,10 @@ function cajasPdfEncabezadoPremium(rows) {
             ]]
         },
         layout: {
-            hLineWidth: function () { return 0; },
-            vLineWidth: function () { return 0; }
+            hLineColor: function () { return '#DDE3EA'; },
+            vLineColor: function () { return '#DDE3EA'; },
+            hLineWidth: function () { return .55; },
+            vLineWidth: function () { return .55; }
         },
         margin: [0, 0, 0, 10]
     };
@@ -1782,19 +2090,19 @@ function cajasPdfEncabezadoPremium(rows) {
 
 function cajasPdfContenidoDetalle(rows) {
     var body = [[
-        {text: 'FECHA', style: 'th', fillColor: '#17324D'},
-        {text: 'USUARIO', style: 'th', fillColor: '#17324D'},
-        {text: 'FACTURA INICIAL', style: 'th', fillColor: '#17324D'},
-        {text: 'FACTURA FINAL', style: 'th', fillColor: '#17324D'},
-        {text: 'APERTURA', style: 'th', fillColor: '#17324D'},
-        {text: 'VENTA', style: 'th', fillColor: '#17324D'},
-        {text: 'RETIROS', style: 'th', fillColor: '#17324D'},
-        {text: 'NETO', style: 'th', fillColor: '#17324D'},
-        {text: 'ESTADO', style: 'th', fillColor: '#17324D'}
+        {text: 'FECHA', style: 'th', fillColor: '#1F354E'},
+        {text: 'USUARIO', style: 'th', fillColor: '#1F354E'},
+        {text: 'FACTURA INICIAL', style: 'th', fillColor: '#1F354E'},
+        {text: 'FACTURA FINAL', style: 'th', fillColor: '#1F354E'},
+        {text: 'APERTURA', style: 'th', fillColor: '#1F354E'},
+        {text: 'VENTA', style: 'th', fillColor: '#1F354E'},
+        {text: 'RETIROS', style: 'th', fillColor: '#1F354E'},
+        {text: 'NETO', style: 'th', fillColor: '#1F354E'},
+        {text: 'ESTADO', style: 'th', fillColor: '#1F354E'}
     ]];
 
     rows.forEach(function (row, index) {
-        var fill = index % 2 === 0 ? '#FFFFFF' : '#F7F9FC';
+        var fill = '#FFFFFF';
 
         body.push([
             {text: row.fecha, style: 'tdCenter', fillColor: fill},
@@ -2597,171 +2905,1208 @@ function refrescarDetalleRetirosCaja() {
 }
 
 /* =========================================================
-   HEADER Y FOOTER DINÁMICO - DETALLE RETIROS CAJA
+   DETALLE RETIROS CAJA | LISTADO DIV / GRID / FLEX
    ========================================================= */
-function construirHeaderFooterDetalleRetirosCaja() {
-    var $tabla = $('#dataTableDetalleRetirosCaja');
+var cajasRetirosDetalleUI = {
+    rows: [],
+    filtered: [],
+    page: 1,
+    pageSize: 10,
+    view: 'detalle',
+    search: ''
+};
 
-    $tabla.empty();
+function cajaModalDetalleNormalizar(value) {
+    var text = String(value === null || value === undefined ? '' : value)
+        .toLowerCase();
 
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Acciones</th>' +
-                '<th>Caja</th>' +
-                '<th>Fecha</th>' +
-                '<th>Motivo</th>' +
-                '<th>Observación</th>' +
-                '<th>Cuenta</th>' +
-                '<th>Egreso</th>' +
-                '<th>Monto</th>' +
-                '<th>Estado</th>' +
-                '<th>Registrado</th>' +
-            '</tr>' +
-        '</thead>' +
-        '<tfoot>' +
-            '<tr>' +
-                '<th colspan="7" class="text-right">Total activo:</th>' +
-                '<th id="dr_footer_total">L. 0.00</th>' +
-                '<th colspan="2"></th>' +
-            '</tr>' +
-        '</tfoot>'
+    try {
+        text = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (error) {}
+
+    return text;
+}
+
+function cajaModalDetalleCampo(label, value, className) {
+    return '' +
+        '<div class="cajas-modal-field ' + (className || '') + '">' +
+            '<span class="cajas-modal-field-label">' + cajaEscape(label) + '</span>' +
+            '<div class="cajas-modal-field-value">' +
+                (value === null || value === undefined || value === '' ? '—' : value) +
+            '</div>' +
+        '</div>';
+}
+
+function cajaModalDetalleCelda(label, value, className) {
+    return '' +
+        '<div class="cajas-modal-detail-cell ' + (className || '') + '" ' +
+            'data-label="' + cajaEscape(label) + '">' +
+            '<div class="cajas-modal-detail-value">' +
+                (value === null || value === undefined || value === '' ? '—' : value) +
+            '</div>' +
+        '</div>';
+}
+
+function cajaModalDetalleHeader(headers, gridClass) {
+    return '' +
+        '<div class="cajas-modal-detail-header cajas-modal-detail-grid ' + (gridClass || '') + '">' +
+            headers.map(function (header) {
+                return '<div>' + cajaEscape(header) + '</div>';
+            }).join('') +
+        '</div>';
+}
+
+function cajaModalDetalleInfo(selector, total, start, end) {
+    $(selector).text(
+        total === 0
+            ? '0 registros'
+            : 'Mostrando ' + (start + 1) + ' a ' + end + ' de ' + total + ' registros'
     );
 }
 
-/* =========================================================
-   DATATABLE - DETALLE RETIROS CAJA
-   ========================================================= */
-function cargarTablaDetalleRetirosCaja(detalles) {
-    if ($.fn.DataTable.isDataTable('#dataTableDetalleRetirosCaja')) {
-        $('#dataTableDetalleRetirosCaja').DataTable().clear().destroy();
+function cajaModalDetallePaginacion(selector, state, listKey, totalPages) {
+    var $paginacion = $(selector);
+
+    if (!$paginacion.length) {
+        return;
     }
 
-    construirHeaderFooterDetalleRetirosCaja();
+    var current = state.page;
+    var buttons = [];
 
-    $('#dataTableDetalleRetirosCaja').DataTable({
-        destroy: true,
-        autoWidth: false,
-        data: detalles,
-        columns: [
-            {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: "text-center text-nowrap",
-                render: function (data, type, row) {
-                    if (type !== 'display') {
-                        return '';
-                    }
+    function add(label, page, disabled, active, title) {
+        buttons.push(
+            '<button type="button" class="' + (active ? 'active' : '') + '" ' +
+                'data-caja-modal-list="' + cajaEscape(listKey) + '" ' +
+                'data-page="' + page + '" ' +
+                (disabled ? 'disabled ' : '') +
+                'title="' + cajaEscape(title || '') + '">' +
+                label +
+            '</button>'
+        );
+    }
 
-                    if (parseInt(row.puede_reintegrar || 0) === 1) {
-                        return '' +
-                            '<button type="button" class="btn btn-sm btn-success btn-reintegrar-retiro" ' +
-                                'data-caja-retiros-id="' + row.caja_retiros_id + '" ' +
-                                'data-apertura-id="' + row.apertura_id + '" ' +
-                                'data-monto="' + row.monto + '">' +
-                                '<i class="fas fa-undo-alt"></i> Reintegrar' +
-                            '</button>';
-                    }
+    add(
+        '<i class="fas fa-angle-double-left"></i><span class="d-none d-md-inline ml-1">Inicio</span>',
+        1,
+        current <= 1,
+        false,
+        'Inicio'
+    );
 
-                    return '<span class="badge badge-secondary">No disponible</span>';
-                }
-            },
-            {
-                data: "apertura_id",
-                className: "text-center text-nowrap",
-                render: function (data, type, row) {
-                    if (type !== 'display') {
-                        return data;
-                    }
+    add(
+        '<i class="fas fa-angle-left"></i><span class="d-none d-md-inline ml-1">Anterior</span>',
+        current - 1,
+        current <= 1,
+        false,
+        'Anterior'
+    );
 
-                    var estadoCaja = parseInt(row.estado_caja || 0) === 1
-                        ? '<span class="badge badge-success ml-1">Abierta</span>'
-                        : '<span class="badge badge-secondary ml-1">Cerrada</span>';
+    var from = Math.max(1, current - 2);
+    var to = Math.min(totalPages, from + 4);
+    from = Math.max(1, to - 4);
 
-                    return '#' + data + ' ' + estadoCaja;
-                }
-            },
-            { data: "fecha" },
-            { data: "motivo" },
-            { data: "observacion" },
-            { data: "cuenta" },
-            { data: "factura_egreso" },
-            {
-                data: "monto",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "estado_label",
-                className: "text-center",
-                render: function (data, type, row) {
-                    if (type !== 'display') {
-                        return data;
-                    }
+    for (var page = from; page <= to; page++) {
+        add(String(page), page, false, page === current, 'Página ' + page);
+    }
 
-                    if (parseInt(row.estado || 0) === 1) {
-                        return '<span class="badge badge-success">Activo</span>';
-                    }
+    add(
+        '<span class="d-none d-md-inline mr-1">Siguiente</span><i class="fas fa-angle-right"></i>',
+        current + 1,
+        current >= totalPages,
+        false,
+        'Siguiente'
+    );
 
-                    return '<span class="badge badge-danger">Anulado</span>';
-                }
-            },
-            { data: "fecha_registro" }
-        ],
-        columnDefs: [
-            {
-                targets: [7],
-                className: "text-right text-nowrap"
-            },
-            {
-                targets: [0, 1, 2, 6, 8, 9],
-                className: "text-center text-nowrap"
+    add(
+        '<span class="d-none d-md-inline mr-1">Final</span><i class="fas fa-angle-double-right"></i>',
+        totalPages,
+        current >= totalPages,
+        false,
+        'Final'
+    );
+
+    $paginacion.html(buttons.join(''));
+}
+
+function cajaModalDetalleSincronizarVista(listKey, state) {
+    $('.fm-view-btn[data-list="' + listKey + '"]')
+        .removeClass('active')
+        .attr('aria-pressed', 'false');
+
+    $('.fm-view-btn[data-list="' + listKey + '"][data-view="' + state.view + '"]')
+        .addClass('active')
+        .attr('aria-pressed', 'true');
+}
+
+function cajaModalDetalleFiltrar(state, fields) {
+    var query = cajaModalDetalleNormalizar(state.search).trim();
+
+    state.filtered = !query
+        ? state.rows.slice()
+        : state.rows.filter(function (row) {
+            return fields.some(function (field) {
+                return cajaModalDetalleNormalizar(row && row[field]).indexOf(query) !== -1;
+            });
+        });
+
+    var totalPages = Math.max(
+        1,
+        Math.ceil(state.filtered.length / state.pageSize)
+    );
+
+    if (state.page > totalPages) {
+        state.page = totalPages;
+    }
+
+    if (state.page < 1) {
+        state.page = 1;
+    }
+}
+
+function cajaRetirosDetalleAccion(row) {
+    if (parseInt(row.puede_reintegrar || 0, 10) === 1) {
+        return '' +
+            '<button type="button" class="btn btn-sm btn-success btn-reintegrar-retiro" ' +
+                'data-caja-retiros-id="' + cajaEscape(row.caja_retiros_id || '') + '" ' +
+                'data-apertura-id="' + cajaEscape(row.apertura_id || '') + '" ' +
+                'data-monto="' + cajaEscape(row.monto || 0) + '">' +
+                '<i class="fas fa-undo-alt mr-1"></i> Reintegrar' +
+            '</button>';
+    }
+
+    return '<span class="badge badge-secondary">No disponible</span>';
+}
+
+function cajaRetirosDetalleEstadoCaja(row) {
+    return parseInt(row.estado_caja || 0, 10) === 1
+        ? '<span class="badge badge-success">Abierta</span>'
+        : '<span class="badge badge-secondary">Cerrada</span>';
+}
+
+function cajaRetirosDetalleEstado(row) {
+    return parseInt(row.estado || 0, 10) === 1
+        ? '<span class="badge badge-success">Activo</span>'
+        : '<span class="badge badge-danger">Anulado</span>';
+}
+
+function renderRetirosDetalleCaja() {
+    var state = cajasRetirosDetalleUI;
+    var $container = $('#dataTableDetalleRetirosCaja');
+
+    if (!$container.length) {
+        return;
+    }
+
+    cajaModalDetalleFiltrar(
+        state,
+        [
+            'apertura_id',
+            'fecha',
+            'motivo',
+            'observacion',
+            'cuenta',
+            'factura_egreso',
+            'monto',
+            'estado_label',
+            'fecha_registro'
+        ]
+    );
+
+    var total = state.filtered.length;
+    var totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+    var start = (state.page - 1) * state.pageSize;
+    var end = Math.min(start + state.pageSize, total);
+    var visible = state.filtered.slice(start, end);
+
+    $container
+        .removeClass('cajas-modal-vista-detalle cajas-modal-vista-miniatura')
+        .addClass(
+            'cajas-modal-listado ' +
+            (state.view === 'miniatura'
+                ? 'cajas-modal-vista-miniatura'
+                : 'cajas-modal-vista-detalle')
+        );
+
+    if (!visible.length) {
+        $container.html(
+            '<div class="cajas-modal-empty">' +
+                '<i class="fas fa-money-bill-wave"></i>' +
+                '<strong>Sin retiros</strong>' +
+                '<span>No hay retiros que coincidan con los criterios actuales.</span>' +
+            '</div>'
+        );
+    } else if (state.view === 'miniatura') {
+        var miniHtml = '<div class="cajas-modal-mini-grid">';
+
+        visible.forEach(function (row) {
+            miniHtml += '' +
+                '<article class="cajas-modal-mini-card">' +
+                    '<div class="cajas-modal-mini-topline"></div>' +
+                    '<div class="cajas-modal-mini-header">' +
+                        '<div class="cajas-modal-mini-title">' +
+                            '<strong>' + formatoMoneda(row.monto) + '</strong>' +
+                            '<span>Caja #' + cajaEscape(row.apertura_id || '—') + '</span>' +
+                        '</div>' +
+                        cajaRetirosDetalleEstado(row) +
+                    '</div>' +
+                    '<div class="cajas-modal-mini-body">' +
+                        cajaModalDetalleCampo('Fecha', cajaEscape(row.fecha || '—')) +
+                        cajaModalDetalleCampo('Motivo', cajaEscape(row.motivo || '—')) +
+                        cajaModalDetalleCampo('Cuenta', cajaEscape(row.cuenta || '—')) +
+                        cajaModalDetalleCampo('Egreso', cajaEscape(row.factura_egreso || '—')) +
+                    '</div>' +
+                    '<div class="cajas-modal-mini-footer">' +
+                        cajaRetirosDetalleAccion(row) +
+                    '</div>' +
+                '</article>';
+        });
+
+        miniHtml += '</div>';
+        $container.html(miniHtml);
+    } else {
+        var detailHtml = '' +
+            '<div class="cajas-modal-detail-table">' +
+                cajaModalDetalleHeader(
+                    [
+                        'Acción',
+                        'Caja / Estado',
+                        'Fecha',
+                        'Motivo',
+                        'Observación',
+                        'Cuenta',
+                        'Egreso',
+                        'Monto',
+                        'Estado',
+                        'Registrado'
+                    ],
+                    'is-retiros'
+                ) +
+                '<div class="cajas-modal-detail-body">';
+
+        visible.forEach(function (row) {
+            detailHtml += '' +
+                '<article class="cajas-modal-detail-row cajas-modal-detail-grid is-retiros">' +
+                    cajaModalDetalleCelda(
+                        'Acción',
+                        cajaRetirosDetalleAccion(row),
+                        'is-action'
+                    ) +
+                    cajaModalDetalleCelda(
+                        'Caja / Estado',
+                        '<div class="cajas-modal-cell-stack">' +
+                            '<strong>Caja #' + cajaEscape(row.apertura_id || '—') + '</strong>' +
+                            cajaRetirosDetalleEstadoCaja(row) +
+                        '</div>'
+                    ) +
+                    cajaModalDetalleCelda('Fecha', cajaEscape(row.fecha || '—')) +
+                    cajaModalDetalleCelda('Motivo', cajaEscape(row.motivo || '—')) +
+                    cajaModalDetalleCelda('Observación', cajaEscape(row.observacion || '—')) +
+                    cajaModalDetalleCelda('Cuenta', cajaEscape(row.cuenta || '—')) +
+                    cajaModalDetalleCelda('Egreso', cajaEscape(row.factura_egreso || '—')) +
+                    cajaModalDetalleCelda(
+                        'Monto',
+                        '<strong>' + formatoMoneda(row.monto) + '</strong>',
+                        'is-money is-withdraw'
+                    ) +
+                    cajaModalDetalleCelda('Estado', cajaRetirosDetalleEstado(row), 'is-center') +
+                    cajaModalDetalleCelda('Registrado', cajaEscape(row.fecha_registro || '—')) +
+                '</article>';
+        });
+
+        detailHtml += '</div></div>';
+        $container.html(detailHtml);
+    }
+
+    cajaModalDetalleInfo(
+        '#retirosDetalleInfo',
+        total,
+        start,
+        end
+    );
+
+    cajaModalDetallePaginacion(
+        '#retirosDetallePaginacion',
+        state,
+        'retirosDetalle',
+        totalPages
+    );
+
+    cajaModalDetalleSincronizarVista(
+        'retirosDetalle',
+        state
+    );
+}
+
+/*
+ * Se conserva el nombre público porque cargarDetalleRetirosCaja(),
+ * reintegros y refrescos ya lo utilizan. La implementación ahora
+ * trabaja exclusivamente con DIV/Grid/Flex.
+ */
+function cargarTablaDetalleRetirosCaja(detalles) {
+    cajasRetirosDetalleUI.rows = Array.isArray(detalles)
+        ? detalles.slice()
+        : [];
+
+    cajasRetirosDetalleUI.search = String(
+        $('#retirosDetalleSearch').val() || ''
+    );
+
+    cajasRetirosDetalleUI.page = 1;
+
+    renderRetirosDetalleCaja();
+}
+
+function construirHeaderFooterDetalleRetirosCaja() {
+    /*
+     * Compatibilidad intencional con llamadas antiguas.
+     * El contenedor actual es un DIV, por lo que no se crean
+     * thead/tfoot ni se inicializa ningún plugin de tabla.
+     */
+    renderRetirosDetalleCaja();
+}
+
+function inicializarListadosDetalleCajaDiv() {
+    var retiroView = 'detalle';
+    var gananciaView = 'detalle';
+
+    try {
+        retiroView = localStorage.getItem('izzy.cajas.retirosDetalle.vista') || 'detalle';
+        gananciaView = localStorage.getItem('izzy.cajas.gananciaDetalle.vista') || 'detalle';
+    } catch (error) {}
+
+    cajasRetirosDetalleUI.view = retiroView === 'miniatura'
+        ? 'miniatura'
+        : 'detalle';
+
+    if (typeof cajasGananciaDetalleUI !== 'undefined') {
+        cajasGananciaDetalleUI.view = gananciaView === 'miniatura'
+            ? 'miniatura'
+            : 'detalle';
+    }
+
+    $('#retirosDetalleSearch')
+        .off('input.cajasModalRetiros')
+        .on('input.cajasModalRetiros', function () {
+            cajasRetirosDetalleUI.search = String($(this).val() || '');
+            cajasRetirosDetalleUI.page = 1;
+            renderRetirosDetalleCaja();
+        });
+
+    $('#gananciaDetalleSearch')
+        .off('input.cajasModalGanancia')
+        .on('input.cajasModalGanancia', function () {
+            if (typeof cajasGananciaDetalleUI === 'undefined') {
+                return;
             }
-        ],
-        lengthMenu: lengthMenu,
-        language: idioma_español,
-        dom: dom,
-        buttons: [
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Detalle de Retiros de Caja',
-                className: 'btn btn-success'
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                title: 'Detalle de Retiros de Caja',
-                className: 'btn btn-danger'
+
+            cajasGananciaDetalleUI.search = String($(this).val() || '');
+            cajasGananciaDetalleUI.page = 1;
+            renderGananciaDetalleCaja();
+        });
+
+    $('.fm-search-clear[data-list="retirosDetalle"]')
+        .off('click.cajasModalRetiros')
+        .on('click.cajasModalRetiros', function () {
+            $('#retirosDetalleSearch').val('').focus();
+            cajasRetirosDetalleUI.search = '';
+            cajasRetirosDetalleUI.page = 1;
+            renderRetirosDetalleCaja();
+        });
+
+    $('.fm-search-clear[data-list="gananciaDetalle"]')
+        .off('click.cajasModalGanancia')
+        .on('click.cajasModalGanancia', function () {
+            $('#gananciaDetalleSearch').val('').focus();
+
+            if (typeof cajasGananciaDetalleUI === 'undefined') {
+                return;
             }
+
+            cajasGananciaDetalleUI.search = '';
+            cajasGananciaDetalleUI.page = 1;
+            renderGananciaDetalleCaja();
+        });
+
+    $('#retirosDetallePageSize')
+        .off('change.cajasModalRetiros')
+        .on('change.cajasModalRetiros', function () {
+            cajasRetirosDetalleUI.pageSize =
+                parseInt($(this).val(), 10) || 10;
+
+            cajasRetirosDetalleUI.page = 1;
+            renderRetirosDetalleCaja();
+        });
+
+    $('#gananciaDetallePageSize')
+        .off('change.cajasModalGanancia')
+        .on('change.cajasModalGanancia', function () {
+            if (typeof cajasGananciaDetalleUI === 'undefined') {
+                return;
+            }
+
+            cajasGananciaDetalleUI.pageSize =
+                parseInt($(this).val(), 10) || 10;
+
+            cajasGananciaDetalleUI.page = 1;
+            renderGananciaDetalleCaja();
+        });
+
+    $('.fm-view-btn[data-list="retirosDetalle"]')
+        .off('click.cajasModalRetiros')
+        .on('click.cajasModalRetiros', function () {
+            cajasRetirosDetalleUI.view =
+                $(this).data('view') === 'miniatura'
+                    ? 'miniatura'
+                    : 'detalle';
+
+            try {
+                localStorage.setItem(
+                    'izzy.cajas.retirosDetalle.vista',
+                    cajasRetirosDetalleUI.view
+                );
+            } catch (error) {}
+
+            cajasRetirosDetalleUI.page = 1;
+            renderRetirosDetalleCaja();
+        });
+
+    $('.fm-view-btn[data-list="gananciaDetalle"]')
+        .off('click.cajasModalGanancia')
+        .on('click.cajasModalGanancia', function () {
+            if (typeof cajasGananciaDetalleUI === 'undefined') {
+                return;
+            }
+
+            cajasGananciaDetalleUI.view =
+                $(this).data('view') === 'miniatura'
+                    ? 'miniatura'
+                    : 'detalle';
+
+            try {
+                localStorage.setItem(
+                    'izzy.cajas.gananciaDetalle.vista',
+                    cajasGananciaDetalleUI.view
+                );
+            } catch (error) {}
+
+            cajasGananciaDetalleUI.page = 1;
+            renderGananciaDetalleCaja();
+        });
+
+    $('#retirosDetallePaginacion')
+        .off('click.cajasModalRetiros')
+        .on('click.cajasModalRetiros', 'button[data-page]', function () {
+            if ($(this).prop('disabled')) {
+                return;
+            }
+
+            var page = parseInt($(this).data('page'), 10);
+
+            if (!isNaN(page)) {
+                cajasRetirosDetalleUI.page = page;
+                renderRetirosDetalleCaja();
+            }
+        });
+
+    $('#gananciaDetallePaginacion')
+        .off('click.cajasModalGanancia')
+        .on('click.cajasModalGanancia', 'button[data-page]', function () {
+            if (
+                $(this).prop('disabled') ||
+                typeof cajasGananciaDetalleUI === 'undefined'
+            ) {
+                return;
+            }
+
+            var page = parseInt($(this).data('page'), 10);
+
+            if (!isNaN(page)) {
+                cajasGananciaDetalleUI.page = page;
+                renderGananciaDetalleCaja();
+            }
+        });
+
+    $('#dataTableDetalleRetirosCaja')
+        .off('click.cajasReintegrar', '.btn-reintegrar-retiro')
+        .on('click.cajasReintegrar', '.btn-reintegrar-retiro', function () {
+            abrirModalReintegroRetiroCaja(
+                $(this).data('caja-retiros-id'),
+                $(this).data('apertura-id'),
+                $(this).data('monto')
+            );
+        });
+
+    $('#btnActualizarRetirosDetalleFm')
+        .off('click.cajasModalRetiros')
+        .on('click.cajasModalRetiros', refrescarDetalleRetirosCaja);
+
+    $('#btnActualizarGananciaDetalleFm')
+        .off('click.cajasModalGanancia')
+        .on('click.cajasModalGanancia', refrescarDesgloseGananciaCaja);
+
+    $('#btnExcelRetirosDetalleFm')
+        .off('click.cajasModalRetiros')
+        .on('click.cajasModalRetiros', function () {
+            exportarDetalleCajaExcel('retiros');
+        });
+
+    $('#btnPdfRetirosDetalleFm')
+        .off('click.cajasModalRetiros')
+        .on('click.cajasModalRetiros', function () {
+            previsualizarDetalleCajaPdf('retiros');
+        });
+
+    $('#btnExcelGananciaDetalleFm')
+        .off('click.cajasModalGanancia')
+        .on('click.cajasModalGanancia', function () {
+            exportarDetalleCajaExcel('ganancia');
+        });
+
+    $('#btnPdfGananciaDetalleFm')
+        .off('click.cajasModalGanancia')
+        .on('click.cajasModalGanancia', function () {
+            previsualizarDetalleCajaPdf('ganancia');
+        });
+}
+
+/* =========================================================
+   EXCEL / PDF DE LOS LISTADOS DIV
+   ========================================================= */
+function cajaModalDetalleConfigExport(tipo) {
+    if (tipo === 'retiros') {
+        return {
+            title: 'DETALLE DE RETIROS DE CAJA',
+            subtitle: 'Retiros, estado, cuenta y trazabilidad',
+            file: 'Detalle_Retiros_Caja',
+            sheet: 'Retiros',
+            rows: cajasRetirosDetalleUI.filtered || [],
+            filters: $('#dr_contexto_caja').text() || 'Detalle de retiros',
+            headers: [
+                'Caja',
+                'Fecha',
+                'Motivo',
+                'Observación',
+                'Cuenta',
+                'Egreso',
+                'Monto',
+                'Estado',
+                'Registrado'
+            ],
+            numeric: [6],
+            money: [6],
+            statusIndex: 7,
+            row: function (row) {
+                return [
+                    row.apertura_id || '',
+                    row.fecha || '',
+                    row.motivo || '',
+                    row.observacion || '',
+                    row.cuenta || '',
+                    row.factura_egreso || '',
+                    parseMonto(row.monto),
+                    row.estado_label || (
+                        parseInt(row.estado || 0, 10) === 1
+                            ? 'Activo'
+                            : 'Anulado'
+                    ),
+                    row.fecha_registro || ''
+                ];
+            },
+            summary: function (rows) {
+                var total = rows.reduce(function (sum, row) {
+                    return sum + (
+                        parseInt(row.estado || 0, 10) === 1
+                            ? parseMonto(row.monto)
+                            : 0
+                    );
+                }, 0);
+
+                var cajas = {};
+
+                rows.forEach(function (row) {
+                    if (row.apertura_id) {
+                        cajas[String(row.apertura_id)] = true;
+                    }
+                });
+
+                return 'Registros: ' + rows.length +
+                    '   |   Total activo: ' + formatoMoneda(total) +
+                    '   |   Cajas: ' + Object.keys(cajas).length;
+            }
+        };
+    }
+
+    return {
+        title: 'DETALLE DE GANANCIA DE CAJA',
+        subtitle: 'Venta, costo, ISV y ganancia por producto',
+        file: 'Detalle_Ganancia_Caja',
+        sheet: 'Ganancia',
+        rows: (
+            typeof cajasGananciaDetalleUI !== 'undefined'
+                ? cajasGananciaDetalleUI.filtered
+                : []
+        ) || [],
+        filters: $('#dg_contexto_consulta').text() || 'Detalle de ganancia',
+        headers: [
+            'Factura',
+            'Tipo',
+            'Producto',
+            'Cantidad',
+            'Costo Unit.',
+            'Precio Venta',
+            'ISV',
+            'Total Costo',
+            'Total Venta',
+            'Total c/ISV',
+            'Ganancia'
         ],
-        footerCallback: function () {
-            var api = this.api();
-
-            var total = api.rows({ page: 'current' }).data().reduce(function (acum, row) {
-                if (parseInt(row.estado || 0) === 1) {
-                    return acum + parseMonto(row.monto);
-                }
-
-                return acum;
+        numeric: [3, 4, 5, 6, 7, 8, 9, 10],
+        money: [4, 5, 6, 7, 8, 9, 10],
+        statusIndex: -1,
+        row: function (row) {
+            return [
+                row.factura || '',
+                row.tipo_documento || '',
+                row.producto || '',
+                parseMonto(row.cantidad),
+                parseMonto(row.costo_unitario),
+                parseMonto(row.precio_venta),
+                parseMonto(row.isv_detalle),
+                parseMonto(row.total_costo),
+                parseMonto(row.total_venta),
+                parseMonto(row.total_con_isv),
+                parseMonto(row.ganancia)
+            ];
+        },
+        summary: function (rows) {
+            var totalVenta = rows.reduce(function (sum, row) {
+                return sum + parseMonto(row.total_venta);
             }, 0);
 
-            $('#dr_footer_total').html('<span>' + formatoMoneda(total) + '</span>');
-        },
-        drawCallback: function () {
-            $('.btn-reintegrar-retiro').off('click').on('click', function () {
-                abrirModalReintegroRetiroCaja(
-                    $(this).data('caja-retiros-id'),
-                    $(this).data('apertura-id'),
-                    $(this).data('monto')
-                );
-            });
+            var totalGanancia = rows.reduce(function (sum, row) {
+                return sum + parseMonto(row.ganancia);
+            }, 0);
+
+            return 'Líneas: ' + rows.length +
+                '   |   Venta: ' + formatoMoneda(totalVenta) +
+                '   |   Ganancia: ' + formatoMoneda(totalGanancia);
         }
+    };
+}
+
+function exportarDetalleCajaExcel(tipo) {
+    var config = cajaModalDetalleConfigExport(tipo);
+    var rows = config.rows || [];
+
+    if (!rows.length) {
+        showNotify(
+            'warning',
+            'Sin información',
+            'No hay registros para exportar.'
+        );
+        return;
+    }
+
+    if (typeof JSZip === 'undefined') {
+        showNotify(
+            'error',
+            'Excel no disponible',
+            'No se encontró JSZip para generar el archivo XLSX.'
+        );
+        return;
+    }
+
+    var lastCol = cajasExcelCol(config.headers.length - 1);
+    var headerRow = 7;
+    var firstDataRow = 8;
+    var lastRow = Math.max(headerRow, headerRow + rows.length);
+    var sheetRows = [];
+
+    sheetRows.push(
+        '<row r="1" ht="30" customHeight="1">' +
+            cajasExcelCell('A1', 'IZZY • ' + config.title, 1, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="2" ht="20" customHeight="1">' +
+            cajasExcelCell(
+                'A2',
+                config.subtitle +
+                ' • Generado: ' +
+                new Date().toLocaleDateString('es-HN'),
+                2,
+                false
+            ) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="3" ht="20" customHeight="1">' +
+            cajasExcelCell('A3', 'FILTROS: ' + config.filters, 6, false) +
+        '</row>'
+    );
+
+    sheetRows.push(
+        '<row r="4" ht="24" customHeight="1">' +
+            cajasExcelCell('A4', config.summary(rows), 7, false) +
+        '</row>'
+    );
+
+    sheetRows.push('<row r="5"></row>');
+
+    sheetRows.push(
+        '<row r="6" ht="20" customHeight="1">' +
+            cajasExcelCell('A6', 'VISTA DETALLE', 8, false) +
+        '</row>'
+    );
+
+    var headerCells = config.headers.map(function (header, index) {
+        return cajasExcelCell(
+            cajasExcelCol(index) + headerRow,
+            header,
+            3,
+            false
+        );
+    }).join('');
+
+    sheetRows.push(
+        '<row r="' + headerRow + '" ht="28" customHeight="1">' +
+            headerCells +
+        '</row>'
+    );
+
+    rows.forEach(function (row, rowIndex) {
+        var excelRow = firstDataRow + rowIndex;
+        var values = config.row(row);
+
+        var cells = values.map(function (value, colIndex) {
+            var isNumeric = config.numeric.indexOf(colIndex) !== -1;
+            var isMoney = config.money.indexOf(colIndex) !== -1;
+            var style = isMoney
+                ? 11
+                : (isNumeric ? 12 : 4);
+
+            if (config.statusIndex === colIndex) {
+                style = cajaModalDetalleNormalizar(value) === 'activo'
+                    ? 9
+                    : 10;
+            }
+
+            return cajasExcelCell(
+                cajasExcelCol(colIndex) + excelRow,
+                value,
+                style,
+                isNumeric
+            );
+        }).join('');
+
+        sheetRows.push(
+            '<row r="' + excelRow + '" ht="28" customHeight="1">' +
+                cells +
+            '</row>'
+        );
+    });
+
+    var sheetXml =
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
+            '<sheetViews><sheetView workbookViewId="0" showGridLines="0">' +
+                '<pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>' +
+                '<selection pane="bottomLeft" activeCell="A8" sqref="A8"/>' +
+            '</sheetView></sheetViews>' +
+            '<sheetFormatPr defaultRowHeight="15"/>' +
+            '<cols>' +
+                '<col min="1" max="' + config.headers.length + '" width="22" customWidth="1"/>' +
+            '</cols>' +
+            '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+            '<autoFilter ref="A7:' + lastCol + lastRow + '"/>' +
+            '<mergeCells count="5">' +
+                '<mergeCell ref="A1:' + lastCol + '1"/>' +
+                '<mergeCell ref="A2:' + lastCol + '2"/>' +
+                '<mergeCell ref="A3:' + lastCol + '3"/>' +
+                '<mergeCell ref="A4:' + lastCol + '4"/>' +
+                '<mergeCell ref="A6:' + lastCol + '6"/>' +
+            '</mergeCells>' +
+            '<pageMargins left="0.25" right="0.25" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+            '<pageSetup orientation="landscape" paperSize="1" fitToWidth="1" fitToHeight="0"/>' +
+        '</worksheet>';
+
+    var stylesXml =
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+            '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>' +
+            '<fonts count="7">' +
+                '<font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
+                '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
+                '<font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="8"/><color rgb="FF6B778C"/><name val="Calibri"/></font>' +
+                '<font><b/><sz val="14"/><color rgb="FF172B4D"/><name val="Calibri"/></font>' +
+            '</fonts>' +
+            '<fills count="7">' +
+                '<fill><patternFill patternType="none"/></fill>' +
+                '<fill><patternFill patternType="gray125"/></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF1F354E"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F9FC"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFE3FCEF"/></patternFill></fill>' +
+                '<fill><patternFill patternType="solid"><fgColor rgb="FFFFEBE6"/></patternFill></fill>' +
+            '</fills>' +
+            '<borders count="2">' +
+                '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+                '<border>' +
+                    '<left style="thin"><color rgb="FFDDE3EA"/></left>' +
+                    '<right style="thin"><color rgb="FFDDE3EA"/></right>' +
+                    '<top style="thin"><color rgb="FFDDE3EA"/></top>' +
+                    '<bottom style="thin"><color rgb="FFDDE3EA"/></bottom>' +
+                    '<diagonal/>' +
+                '</border>' +
+            '</borders>' +
+            '<cellStyleXfs count="1">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' +
+            '</cellStyleXfs>' +
+            '<cellXfs count="13">' +
+                '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+                '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="2" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="3" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="6" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+                '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+                '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+            '</cellXfs>' +
+            '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+        '</styleSheet>';
+
+    var workbookXml =
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+            '<bookViews><workbookView activeTab="0"/></bookViews>' +
+            '<sheets><sheet name="' + cajasXmlEscape(config.sheet) + '" sheetId="1" r:id="rId1"/></sheets>' +
+        '</workbook>';
+
+    var workbookRels =
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>';
+
+    var rootRels =
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>';
+
+    var contentTypes =
+        '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>';
+
+    var zip = new JSZip();
+
+    zip.file('[Content_Types].xml', contentTypes);
+    zip.folder('_rels').file('.rels', rootRels);
+    zip.folder('xl').file('workbook.xml', workbookXml);
+    zip.folder('xl').file('styles.xml', stylesXml);
+    zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
+    zip.folder('xl').folder('worksheets').file(
+        'sheet1.xml',
+        window.izzyExcelCompletarBordesCombinados(sheetXml)
+    );
+
+    var options = {
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE'
+    };
+
+    var promise = typeof zip.generateAsync === 'function'
+        ? zip.generateAsync(options)
+        : Promise.resolve(zip.generate(options));
+
+    promise
+        .then(function (blob) {
+            cajasDescargarBlob(blob, config.file + '.xlsx');
+        })
+        .catch(function (error) {
+            console.error(error);
+            showNotify(
+                'error',
+                'Error',
+                'No se pudo generar el archivo Excel.'
+            );
+        });
+}
+
+function previsualizarDetalleCajaPdf(tipo) {
+    var config = cajaModalDetalleConfigExport(tipo);
+    var rows = config.rows || [];
+
+    if (!rows.length) {
+        showNotify(
+            'warning',
+            'Sin información',
+            'No hay registros para generar el PDF.'
+        );
+        return;
+    }
+
+    if (typeof pdfMake === 'undefined') {
+        showNotify(
+            'error',
+            'PDF no disponible',
+            'No se encontró pdfMake.'
+        );
+        return;
+    }
+
+    if (typeof abrirModalPdfPublico !== 'function') {
+        showNotify(
+            'error',
+            'Visor PDF no disponible',
+            'No se encontró el visor PDF.'
+        );
+        return;
+    }
+
+    if (
+        !(
+            typeof imagen !== 'undefined' &&
+            typeof imagen === 'string' &&
+            imagen.indexOf('data:image/') === 0
+        )
+    ) {
+        cajasObtenerLogoPdf(function (logoDataUrl) {
+            try {
+                imagen = logoDataUrl;
+            } catch (error) {}
+
+            previsualizarDetalleCajaPdf(tipo);
+        });
+
+        return;
+    }
+
+    var body = [
+        config.headers.map(function (header) {
+            return {
+                text: header,
+                fillColor: '#1F354E',
+                color: '#FFFFFF',
+                bold: true,
+                alignment: 'center',
+                fontSize: 5.2,
+                margin: [2, 3, 2, 3]
+            };
+        })
+    ];
+
+    rows.forEach(function (row) {
+        var values = config.row(row);
+
+        body.push(
+            values.map(function (value, index) {
+                var isMoney = config.money.indexOf(index) !== -1;
+                var isNumeric = config.numeric.indexOf(index) !== -1;
+
+                return {
+                    text: isMoney
+                        ? formatoMoneda(value)
+                        : String(value === null || value === undefined ? '' : value),
+                    fontSize: 5.1,
+                    color: '#253858',
+                    alignment: isMoney
+                        ? 'right'
+                        : (isNumeric ? 'center' : 'left'),
+                    margin: [2, 2, 2, 2]
+                };
+            })
+        );
+    });
+
+    var docDefinition = {
+        pageSize: 'LETTER',
+        pageOrientation: 'landscape',
+        pageMargins: [24, 26, 24, 34],
+
+        header: function () {
+            return {
+                margin: [24, 10, 24, 0],
+                canvas: [{
+                    type: 'line',
+                    x1: 0,
+                    y1: 0,
+                    x2: 744,
+                    y2: 0,
+                    lineWidth: 2,
+                    lineColor: '#0EA5A8'
+                }]
+            };
+        },
+
+        footer: function (currentPage, pageCount) {
+            return {
+                margin: [24, 8, 24, 0],
+                columns: [
+                    {
+                        text: 'IZZY • ' + config.title,
+                        fontSize: 7,
+                        color: '#7A869A'
+                    },
+                    {
+                        text: 'Página ' + currentPage + ' de ' + pageCount,
+                        fontSize: 7,
+                        color: '#7A869A',
+                        alignment: 'right'
+                    }
+                ]
+            };
+        },
+
+        content: [
+            {
+                table: {
+                    widths: [92, '*', 150],
+                    body: [[
+                        {
+                            border: [true, true, true, true],
+                            fillColor: '#1F354E',
+                            margin: [10, 8, 0, 8],
+                            stack: [cajasPdfLogoPlate(imagen)]
+                        },
+                        {
+                            border: [true, true, true, true],
+                            fillColor: '#1F354E',
+                            color: '#FFFFFF',
+                            margin: [12, 12, 8, 10],
+                            stack: [
+                                {
+                                    text: 'REPORTE EJECUTIVO',
+                                    fontSize: 8,
+                                    bold: true,
+                                    color: '#73D7DB'
+                                },
+                                {
+                                    text: config.title,
+                                    fontSize: 14,
+                                    bold: true,
+                                    margin: [0, 3, 0, 0]
+                                }
+                            ]
+                        },
+                        {
+                            border: [true, true, true, true],
+                            fillColor: '#1F354E',
+                            color: '#FFFFFF',
+                            alignment: 'right',
+                            margin: [8, 12, 12, 10],
+                            stack: [
+                                {
+                                    text: new Date().toLocaleDateString('es-HN'),
+                                    fontSize: 8,
+                                    bold: true
+                                },
+                                {
+                                    text: rows.length + ' registros',
+                                    fontSize: 7,
+                                    margin: [0, 4, 0, 0]
+                                }
+                            ]
+                        }
+                    ]]
+                },
+                layout: {
+                    hLineColor: function () { return '#DDE3EA'; },
+                    vLineColor: function () { return '#DDE3EA'; },
+                    hLineWidth: function () { return .55; },
+                    vLineWidth: function () { return .55; }
+                },
+                margin: [0, 0, 0, 8]
+            },
+            {
+                table: {
+                    widths: ['*'],
+                    body: [[{
+                        text: 'FILTROS: ' + config.filters,
+                        fillColor: '#F7F9FC',
+                        color: '#52627A',
+                        fontSize: 7,
+                        margin: [7, 5, 7, 5]
+                    }]]
+                },
+                layout: {
+                    hLineColor: function () { return '#DDE3EA'; },
+                    vLineColor: function () { return '#DDE3EA'; },
+                    hLineWidth: function () { return .5; },
+                    vLineWidth: function () { return .5; }
+                },
+                margin: [0, 0, 0, 8]
+            },
+            {
+                text: 'VISTA DETALLE',
+                fontSize: 8,
+                bold: true,
+                color: '#172B4D',
+                margin: [0, 0, 0, 5]
+            },
+            {
+                table: {
+                    headerRows: 1,
+                    widths: config.headers.map(function () { return '*'; }),
+                    body: body
+                },
+                layout: {
+                    hLineColor: function () { return '#DDE3EA'; },
+                    vLineColor: function () { return '#DDE3EA'; },
+                    hLineWidth: function () { return .45; },
+                    vLineWidth: function () { return .45; },
+                    paddingLeft: function () { return 1; },
+                    paddingRight: function () { return 1; },
+                    paddingTop: function () { return 1; },
+                    paddingBottom: function () { return 1; }
+                }
+            }
+        ],
+
+        defaultStyle: {
+            fontSize: 7,
+            color: '#253858'
+        }
+    };
+
+    var pdf = pdfMake.createPdf(docDefinition);
+
+    if (typeof pdf.getDataUrl !== 'function') {
+        showNotify(
+            'error',
+            'PDF no disponible',
+            'La versión actual de pdfMake no permite una vista previa compatible.'
+        );
+        return;
+    }
+
+    pdf.getDataUrl(function (dataUrl) {
+        abrirModalPdfPublico(
+            dataUrl,
+            config.title,
+            config.file + '.pdf'
+        );
     });
 }
 
@@ -3069,164 +4414,189 @@ function refrescarDesgloseGananciaCaja() {
 }
 
 /* =========================================================
-   HEADER Y FOOTER DINÁMICO - DETALLE GANANCIA CAJA
+   DETALLE GANANCIA CAJA | LISTADO DIV / GRID / FLEX
    ========================================================= */
-function construirHeaderFooterDetalleGananciaCaja() {
-    var $tabla = $('#dataTableDetalleGananciaCaja');
+var cajasGananciaDetalleUI = {
+    rows: [],
+    filtered: [],
+    page: 1,
+    pageSize: 10,
+    view: 'detalle',
+    search: ''
+};
 
-    $tabla.empty();
+function renderGananciaDetalleCaja() {
+    var state = cajasGananciaDetalleUI;
+    var $container = $('#dataTableDetalleGananciaCaja');
 
-    $tabla.append(
-        '<thead>' +
-            '<tr>' +
-                '<th>Factura</th>' +
-                '<th>Tipo</th>' +
-                '<th>Producto</th>' +
-                '<th>Cantidad</th>' +
-                '<th>Costo Unit.</th>' +
-                '<th>Precio Venta</th>' +
-                '<th>ISV</th>' +
-                '<th>Total Costo</th>' +
-                '<th>Total Venta</th>' +
-                '<th>Total c/ISV</th>' +
-                '<th>Ganancia</th>' +
-            '</tr>' +
-        '</thead>' +
-        '<tfoot>' +
-            '<tr>' +
-                '<th colspan="6" class="text-right">Totales:</th>' +
-                '<th id="dg_footer_total_isv">L. 0.00</th>' +
-                '<th id="dg_footer_total_costo">L. 0.00</th>' +
-                '<th id="dg_footer_total_venta">L. 0.00</th>' +
-                '<th id="dg_footer_total_con_isv">L. 0.00</th>' +
-                '<th id="dg_footer_total_ganancia">L. 0.00</th>' +
-            '</tr>' +
-        '</tfoot>'
+    if (!$container.length) {
+        return;
+    }
+
+    cajaModalDetalleFiltrar(
+        state,
+        [
+            'factura',
+            'tipo_documento',
+            'producto',
+            'cantidad',
+            'costo_unitario',
+            'precio_venta',
+            'isv_detalle',
+            'total_costo',
+            'total_venta',
+            'total_con_isv',
+            'ganancia'
+        ]
+    );
+
+    var total = state.filtered.length;
+    var totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+    var start = (state.page - 1) * state.pageSize;
+    var end = Math.min(start + state.pageSize, total);
+    var visible = state.filtered.slice(start, end);
+
+    $container
+        .removeClass('cajas-modal-vista-detalle cajas-modal-vista-miniatura')
+        .addClass(
+            'cajas-modal-listado ' +
+            (state.view === 'miniatura'
+                ? 'cajas-modal-vista-miniatura'
+                : 'cajas-modal-vista-detalle')
+        );
+
+    if (!visible.length) {
+        $container.html(
+            '<div class="cajas-modal-empty">' +
+                '<i class="fas fa-chart-line"></i>' +
+                '<strong>Sin detalle de ganancia</strong>' +
+                '<span>No hay productos que coincidan con los criterios actuales.</span>' +
+            '</div>'
+        );
+    } else if (state.view === 'miniatura') {
+        var miniHtml = '<div class="cajas-modal-mini-grid">';
+
+        visible.forEach(function (row) {
+            var ganancia = parseMonto(row.ganancia);
+
+            miniHtml += '' +
+                '<article class="cajas-modal-mini-card">' +
+                    '<div class="cajas-modal-mini-topline"></div>' +
+                    '<div class="cajas-modal-mini-header">' +
+                        '<div class="cajas-modal-mini-title">' +
+                            '<strong>' + cajaEscape(row.producto || 'Sin producto') + '</strong>' +
+                            '<span>Factura: ' + cajaEscape(row.factura || '—') + '</span>' +
+                        '</div>' +
+                        '<span class="cajas-modal-gain ' +
+                            (ganancia < 0 ? 'is-negative' : 'is-positive') + '">' +
+                            formatoMoneda(ganancia) +
+                        '</span>' +
+                    '</div>' +
+                    '<div class="cajas-modal-mini-body">' +
+                        cajaModalDetalleCampo('Tipo', cajaEscape(row.tipo_documento || '—')) +
+                        cajaModalDetalleCampo('Cantidad', cajaEscape(row.cantidad || 0)) +
+                        cajaModalDetalleCampo('Costo unit.', formatoMoneda(row.costo_unitario), 'is-money') +
+                        cajaModalDetalleCampo('Precio venta', formatoMoneda(row.precio_venta), 'is-money') +
+                        cajaModalDetalleCampo('Total venta', formatoMoneda(row.total_venta), 'is-money') +
+                        cajaModalDetalleCampo('ISV', formatoMoneda(row.isv_detalle), 'is-money') +
+                    '</div>' +
+                '</article>';
+        });
+
+        miniHtml += '</div>';
+        $container.html(miniHtml);
+    } else {
+        var detailHtml = '' +
+            '<div class="cajas-modal-detail-table">' +
+                cajaModalDetalleHeader(
+                    [
+                        'Factura',
+                        'Tipo',
+                        'Producto',
+                        'Cantidad',
+                        'Costo Unit.',
+                        'Precio Venta',
+                        'ISV',
+                        'Total Costo',
+                        'Total Venta',
+                        'Total c/ISV',
+                        'Ganancia'
+                    ],
+                    'is-ganancia'
+                ) +
+                '<div class="cajas-modal-detail-body">';
+
+        visible.forEach(function (row) {
+            var ganancia = parseMonto(row.ganancia);
+
+            detailHtml += '' +
+                '<article class="cajas-modal-detail-row cajas-modal-detail-grid is-ganancia">' +
+                    cajaModalDetalleCelda('Factura', cajaEscape(row.factura || '—')) +
+                    cajaModalDetalleCelda('Tipo', cajaEscape(row.tipo_documento || '—'), 'is-center') +
+                    cajaModalDetalleCelda('Producto', '<strong>' + cajaEscape(row.producto || 'Sin producto') + '</strong>') +
+                    cajaModalDetalleCelda('Cantidad', cajaEscape(row.cantidad || 0), 'is-center') +
+                    cajaModalDetalleCelda('Costo Unit.', formatoMoneda(row.costo_unitario), 'is-money') +
+                    cajaModalDetalleCelda('Precio Venta', formatoMoneda(row.precio_venta), 'is-money') +
+                    cajaModalDetalleCelda('ISV', formatoMoneda(row.isv_detalle), 'is-money') +
+                    cajaModalDetalleCelda('Total Costo', formatoMoneda(row.total_costo), 'is-money') +
+                    cajaModalDetalleCelda('Total Venta', formatoMoneda(row.total_venta), 'is-money is-positive') +
+                    cajaModalDetalleCelda('Total c/ISV', formatoMoneda(row.total_con_isv), 'is-money') +
+                    cajaModalDetalleCelda(
+                        'Ganancia',
+                        '<strong>' + formatoMoneda(ganancia) + '</strong>',
+                        'is-money ' + (ganancia < 0 ? 'is-negative' : 'is-positive')
+                    ) +
+                '</article>';
+        });
+
+        detailHtml += '</div></div>';
+        $container.html(detailHtml);
+    }
+
+    cajaModalDetalleInfo(
+        '#gananciaDetalleInfo',
+        total,
+        start,
+        end
+    );
+
+    cajaModalDetallePaginacion(
+        '#gananciaDetallePaginacion',
+        state,
+        'gananciaDetalle',
+        totalPages
+    );
+
+    cajaModalDetalleSincronizarVista(
+        'gananciaDetalle',
+        state
     );
 }
 
-/* =========================================================
-   DATATABLE - DETALLE GANANCIA CAJA
-   ========================================================= */
+/*
+ * Se conserva el nombre público usado por cargarDesgloseGananciaCaja().
+ * Ya no inicializa ningún plugin de tablas.
+ */
 function cargarTablaDetalleGananciaCaja(detalles) {
-    if ($.fn.DataTable.isDataTable('#dataTableDetalleGananciaCaja')) {
-        $('#dataTableDetalleGananciaCaja').DataTable().clear().destroy();
-    }
+    cajasGananciaDetalleUI.rows = Array.isArray(detalles)
+        ? detalles.slice()
+        : [];
 
-    construirHeaderFooterDetalleGananciaCaja();
+    cajasGananciaDetalleUI.search = String(
+        $('#gananciaDetalleSearch').val() || ''
+    );
 
-    $('#dataTableDetalleGananciaCaja').DataTable({
-        destroy: true,
-        autoWidth: false,
-        data: detalles,
-        columns: [
-            { data: "factura" },
-            { data: "tipo_documento" },
-            { data: "producto" },
-            { data: "cantidad" },
-            {
-                data: "costo_unitario",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "precio_venta",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "isv_detalle",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "total_costo",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "total_venta",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "total_con_isv",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            },
-            {
-                data: "ganancia",
-                render: function (data, type) {
-                    return type === 'display' ? formatoMoneda(data) : parseMonto(data);
-                }
-            }
-        ],
-        columnDefs: [
-            {
-                targets: [3],
-                className: "text-center text-nowrap"
-            },
-            {
-                targets: [4, 5, 6, 7, 8, 9, 10],
-                className: "text-right text-nowrap"
-            }
-        ],
-        lengthMenu: lengthMenu,
-        language: idioma_español,
-        dom: dom,
-        buttons: [
-            {
-                extend: 'excelHtml5',
-                text: '<i class="fas fa-file-excel fa-lg"></i> Excel',
-                titleAttr: 'Excel',
-                title: 'Detalle de Ganancia de Caja',
-                className: 'btn btn-success'
-            },
-            {
-                extend: 'pdf',
-                text: '<i class="fas fa-file-pdf fa-lg"></i> PDF',
-                titleAttr: 'PDF',
-                orientation: 'landscape',
-                title: 'Detalle de Ganancia de Caja',
-                className: 'btn btn-danger'
-            }
-        ],
-        footerCallback: function () {
-            var api = this.api();
+    cajasGananciaDetalleUI.page = 1;
 
-            var totalIsv = api.column(6, { page: 'current' }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
+    renderGananciaDetalleCaja();
+}
 
-            var totalCosto = api.column(7, { page: 'current' }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            var totalVenta = api.column(8, { page: 'current' }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            var totalConIsv = api.column(9, { page: 'current' }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            var totalGanancia = api.column(10, { page: 'current' }).data().reduce(function (a, b) {
-                return parseMonto(a) + parseMonto(b);
-            }, 0);
-
-            $('#dg_footer_total_isv').html('<span>' + formatoMoneda(totalIsv) + '</span>');
-            $('#dg_footer_total_costo').html('<span>' + formatoMoneda(totalCosto) + '</span>');
-            $('#dg_footer_total_venta').html('<span>' + formatoMoneda(totalVenta) + '</span>');
-            $('#dg_footer_total_con_isv').html('<span>' + formatoMoneda(totalConIsv) + '</span>');
-            $('#dg_footer_total_ganancia').html('<span>' + formatoMoneda(totalGanancia) + '</span>');
-        }
-    });
+function construirHeaderFooterDetalleGananciaCaja() {
+    /*
+     * Compatibilidad con llamadas antiguas.
+     * El destino es DIV/Grid/Flex y no una tabla.
+     */
+    renderGananciaDetalleCaja();
 }
 
 /* =========================================================

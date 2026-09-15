@@ -32,7 +32,7 @@
       var form = this;
 
       setTimeout(function() {
-        $(form).find('.selectpicker').val('').selectpicker('refresh');
+        $(form).find('.izzy-select2').val('').izzySelect2Bridge('refresh');
         $('#form_main_productos #buscar_productos_general').val('');
         listar_productos();
       }, 100);
@@ -46,8 +46,8 @@
     });
 
     $('#form_main_productos #categoria_producto_filtro, #form_main_productos #isv_producto_filtro')
-      .off('changed.bs.select.productos change.productos')
-      .on('changed.bs.select.productos change.productos', function() {
+      .off('change.productos')
+      .on('change.productos', function() {
         productosUIState.page = 1;
         productosAplicarFiltrosUI();
       });
@@ -1541,14 +1541,14 @@ function productosEditar(data) {
       $('#formProductos #proceso_productos').val("Editar Productos");
 
       evaluarCategoriaDetalle(datos[13]);
-      $('#formProductos #medida').val(datos[1]).selectpicker('refresh');
-      $('#formProductos #almacen').val(datos[0]).selectpicker('refresh');
+      $('#formProductos #medida').val(datos[1]).izzySelect2Bridge('refresh');
+      $('#formProductos #almacen').val(datos[0]).izzySelect2Bridge('refresh');
       $('#formProductos #producto').val(datos[2]);
       $('#formProductos #descripcion').val(datos[3]);
       $('#formProductos #precio_compra').val(datos[4]);
       $('#formProductos #precio_venta').val(datos[5]);
-      $('#formProductos #tipo_producto').val(datos[6]).selectpicker('refresh');
-      $('#formProductos #producto_empresa_id').val(datos[11]).selectpicker('refresh');
+      $('#formProductos #tipo_producto').val(datos[6]).izzySelect2Bridge('refresh');
+      $('#formProductos #producto_empresa_id').val(datos[11]).izzySelect2Bridge('refresh');
       $('#formProductos #porcentaje_venta').val(datos[13]);
       $('#formProductos #cantidad_minima').val(datos[14]);
       $('#formProductos #cantidad_maxima').val(datos[15]);
@@ -2017,9 +2017,9 @@ function productosGenerarXlsx(rows) {
   zip.file('[Content_Types].xml', contentTypes);
   zip.folder('_rels').file('.rels', rootRels);
   zip.folder('xl').file('workbook.xml', workbookXml);
-  zip.folder('xl').file('styles.xml', stylesXml);
+  zip.folder('xl').file('styles.xml', (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
   zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
   var opciones = {
     type: 'blob',
@@ -2444,8 +2444,8 @@ function productosInicializarEventosUI() {
       var form = this;
 
       setTimeout(function() {
-        $(form).find('.selectpicker').val('').selectpicker('refresh');
-        $('#estado_producto').val('1').selectpicker('refresh');
+        $(form).find('.izzy-select2').val('').izzySelect2Bridge('refresh');
+        $('#estado_producto').val('1').izzySelect2Bridge('refresh');
         productosUIState.search = '';
         $('#buscar_productos_general').val('');
         productosUIState.page = 1;
@@ -2636,7 +2636,7 @@ function getEstadoProducto() {
     async: true
   })
   .then(function(data) {
-    $('#form_main_productos #estado_producto').html(data).selectpicker('refresh');
+    $('#form_main_productos #estado_producto').html(data).izzySelect2Bridge('refresh');
   });
 }
 
@@ -2649,7 +2649,7 @@ function getCategoriasProducto() {
     async: true
   })
   .then(function(data) {
-    $('#form_main_productos #categoria_producto_filtro').html(data).selectpicker('refresh');
+    $('#form_main_productos #categoria_producto_filtro').html(data).izzySelect2Bridge('refresh');
   });
 }
 

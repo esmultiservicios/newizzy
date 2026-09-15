@@ -1,0 +1,1869 @@
+/* =========================================================
+   IZZY | DETALLES DE FACTURACIÓN
+   Estilo único del módulo. Basado en el patrón de Usuarios.
+   ========================================================= */
+
+.df-page,
+.df-page * {
+    box-sizing: border-box;
+}
+
+.df-page {
+    padding-bottom: 24px;
+}
+
+/* =========================================================
+   CARDS / ENCABEZADOS
+   ========================================================= */
+.df-section-card,
+.df-list-card {
+    margin-bottom: 16px;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(23, 50, 77, .06);
+}
+
+.df-section-header,
+.df-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #e4eaf0;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+}
+
+.df-section-heading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.df-section-heading > div {
+    min-width: 0;
+}
+
+.df-section-heading h5 {
+    margin: 0;
+    color: #172b4d;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.df-section-heading small {
+    display: block;
+    margin-top: 3px;
+    color: #6b778c;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.df-section-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: #edf5ff;
+    color: #176fbc;
+    font-size: 15px;
+}
+
+.df-toggle-section {
+    min-width: 104px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 7px;
+    font-weight: 700;
+}
+
+.df-section-body,
+.df-list-body {
+    padding: 16px 18px 18px;
+}
+
+.df-update-footer {
+    padding: 10px 18px;
+    border-top: 1px solid #e4eaf0;
+    background: #fbfcfe;
+    border-radius: 0 0 10px 10px;
+}
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+.df-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    align-items: end;
+}
+
+.df-field,
+.df-filter-actions {
+    min-width: 0;
+}
+
+.df-field-wide {
+    grid-column: span 2;
+}
+
+.df-field label {
+    display: block;
+    margin: 0 0 6px;
+    color: #253858;
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.df-field label i {
+    width: 16px;
+    margin-right: 4px;
+    color: #2878bb;
+    text-align: center;
+}
+
+.df-field .form-control {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+    color: #253858;
+}
+
+.df-field .form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10);
+}
+
+.df-filter-actions {
+    grid-column: 4;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.df-filter-actions .btn {
+    min-height: 38px;
+    min-width: 108px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* Select2 únicamente. */
+.df-field .select2-container {
+    width: 100% !important;
+    max-width: 100%;
+}
+
+.df-field .select2-container .select2-selection--single {
+    height: 38px;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.df-field .select2-container .select2-selection--single .select2-selection__rendered {
+    width: 100%;
+    padding-left: 12px;
+    padding-right: 34px;
+    color: #253858;
+    line-height: 36px;
+}
+
+.df-field .select2-container .select2-selection--single .select2-selection__arrow {
+    top: 50%;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    transform: translateY(-50%);
+}
+
+/* =========================================================
+   KPI
+   ========================================================= */
+.df-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.df-kpi-card {
+    position: relative;
+    min-width: 0;
+    min-height: 104px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 16px;
+    overflow: hidden;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .05);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.df-kpi-card:hover {
+    transform: translateY(-4px);
+    border-color: #c9d9e8;
+    border-top-color: #1fc79a;
+    box-shadow: 0 10px 22px rgba(23, 50, 77, .10);
+}
+
+.df-kpi-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: transform .18s ease;
+}
+
+.df-kpi-card:hover .df-kpi-icon {
+    transform: scale(1.05);
+}
+
+.df-kpi-blue { background: #edf5ff; color: #176fbc; }
+.df-kpi-green { background: #e9f8f0; color: #14804a; }
+.df-kpi-teal { background: #e8f7f7; color: #0d8588; }
+.df-kpi-red { background: #fff0ee; color: #c9372c; }
+
+.df-kpi-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.df-kpi-copy > span {
+    color: #5e6c84;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+.df-kpi-copy strong {
+    margin-top: 4px;
+    color: #172b4d;
+    font-size: 1.45rem;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.df-kpi-copy small {
+    margin-top: 6px;
+    color: #7a869a;
+    font-size: 11px;
+}
+
+/* =========================================================
+   TOOLBAR LISTADO
+   ========================================================= */
+.df-list-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.df-toolbar-left,
+.df-toolbar-right {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.df-toolbar-left {
+    flex: 0 0 auto;
+    gap: 10px;
+}
+
+.df-toolbar-left .btn {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding-left: 14px;
+    padding-right: 14px;
+    border-radius: 7px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.df-toolbar-right {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.df-page-size {
+    margin: 0;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: #46556b;
+    font-size: 13px;
+}
+
+/*
+ * MOSTRAR X REGISTROS
+ * Mismo tamaño compacto de Usuarios. El control nunca puede crecer ni
+ * invadir Detalle/Miniatura; aplica al listado principal y al modal.
+ */
+.df-page-size {
+    width: auto !important;
+    max-width: max-content;
+    flex: 0 0 auto !important;
+}
+
+.df-page-size > span {
+    flex: 0 0 auto;
+}
+
+.df-page-size select.form-control,
+#dfPageSize,
+#dfModalPageSize {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 4px 24px 4px 8px !important;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #253858;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: none;
+}
+
+/* Si algún helper global llegara a envolver el select, conserva exactamente
+   el mismo ancho para que tampoco se estire. */
+.df-page-size > .select2-container {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+}
+
+.df-page-size > .select2-container .select2-selection--single {
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px;
+}
+
+.df-view-switch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+    box-shadow: 0 2px 7px rgba(31, 47, 67, .04);
+}
+
+.df-view-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 11px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.df-view-btn:hover,
+.df-view-btn:focus {
+    color: #176fae;
+    background: #eaf4fc;
+    outline: 0;
+}
+
+.df-view-btn.active {
+    color: #fff;
+    background: #2f9ddd;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .24);
+}
+
+.df-search-wrap {
+    position: relative;
+    flex: 0 1 300px;
+    width: 300px;
+    min-width: 220px;
+    max-width: 300px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.df-search-wrap:focus-within {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 .15rem rgba(0, 123, 255, .10);
+}
+
+.df-search-wrap > i {
+    width: 40px;
+    min-width: 40px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #ced4da;
+    background: #f7f9fc;
+    color: #5e6c84;
+}
+
+.df-search-wrap .form-control {
+    min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    padding: 6px 38px 6px 12px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+    box-shadow: none !important;
+}
+
+.df-search-clear {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    z-index: 5;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #7a869a;
+    cursor: pointer;
+}
+
+.df-search-clear:hover,
+.df-search-clear:focus {
+    background: #f1f4f8;
+    color: #42526e;
+    outline: 0;
+}
+
+#dfListadoSearch::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* =========================================================
+   LISTADO DETALLE - DIV / GRID
+   ========================================================= */
+.df-listado,
+.df-detail-table,
+.df-detail-body,
+.df-detail-row,
+.df-detail-cell,
+.df-mini-card,
+.df-mini-header,
+.df-mini-footer {
+    min-width: 0;
+}
+
+.df-listado,
+.df-detail-table,
+.df-detail-body,
+.df-detail-row,
+.df-mini-card,
+.df-mini-footer,
+.factura-acciones-dropdown {
+    overflow: visible;
+}
+
+.df-view-detalle,
+.df-detail-table,
+.df-detail-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.df-view-detalle {
+    gap: 0;
+}
+
+.df-detail-table {
+    gap: 12px;
+}
+
+.df-detail-body {
+    gap: 12px;
+}
+
+.df-detail-grid {
+    display: grid;
+    grid-template-columns:
+        128px
+        96px
+        minmax(185px, 1.15fr)
+        minmax(210px, 1.35fr)
+        95px
+        minmax(145px, 1fr)
+        repeat(4, minmax(100px, .82fr));
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+}
+
+.df-detail-header {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    overflow: visible;
+    padding: 13px 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #17324d;
+    color: #fff;
+    box-shadow: none;
+}
+
+.df-detail-header > div {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-transform: none;
+}
+
+.df-detail-header > div:nth-last-child(-n+4) {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.df-detail-row {
+    position: relative;
+    z-index: 0;
+    min-height: 62px;
+    padding: 14px;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .05);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.df-detail-row.df-dropdown-open {
+    z-index: 60;
+}
+
+.df-detail-cell {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    color: #172b4d;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.df-detail-cell.is-actions {
+    overflow: visible;
+}
+
+.df-detail-cell.is-date,
+.df-detail-cell.is-type,
+.df-detail-cell.is-money {
+    white-space: nowrap;
+}
+
+.df-detail-cell.is-number .factura-numero,
+.df-detail-cell.is-client .factura-cliente {
+    min-width: 0;
+    display: block;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.df-detail-cell.is-number .factura-numero {
+    color: #0065b3;
+    font-weight: 800;
+}
+
+.df-detail-cell.is-client .factura-cliente {
+    color: #172b4d;
+    font-weight: 600;
+}
+
+.df-detail-cell.is-money {
+    justify-content: flex-end;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-detail-cell.is-total {
+    color: #087e3f;
+    font-weight: 800;
+}
+
+.df-detail-cell::before {
+    display: none;
+}
+
+/* Badges */
+.badge-factura {
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border: 1px solid #d9e2ec;
+    border-radius: 999px;
+    background: #f5f7fa;
+    color: #42526e;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.badge-factura-tipo {
+    white-space: nowrap;
+    background: #f4f7fa;
+    color: #42526e;
+}
+
+.badge-factura-success {
+    border-color: #b9ebcf;
+    background: #e9f8f0;
+    color: #14804a;
+}
+
+.badge-factura-warning {
+    border-color: #f7d774;
+    background: #fff8e1;
+    color: #8a5b00;
+}
+
+.badge-factura-danger {
+    border-color: #f1bbb5;
+    background: #fff0ee;
+    color: #c9372c;
+}
+
+.badge-factura-secondary {
+    border-color: #d9e2ec;
+    background: #f4f7fa;
+    color: #52627a;
+}
+
+/* Acciones */
+.factura-acciones-dropdown {
+    position: relative;
+    display: inline-block;
+    z-index: auto;
+}
+
+.df-page .btn-acciones {
+    min-width: 112px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 11px;
+    border: 0;
+    border-radius: 8px;
+    background: #2f6fed;
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(47, 111, 237, .20);
+}
+
+.df-page .btn-acciones:hover,
+.df-page .btn-acciones:focus,
+.df-page .factura-acciones-dropdown.show .btn-acciones {
+    background: #245ed0;
+    color: #fff;
+    outline: 0;
+}
+
+.factura-acciones-menu {
+    min-width: 205px;
+    z-index: 1200;
+    padding: 6px;
+    border: 1px solid #dfe6ee;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(23, 50, 77, .16);
+}
+
+.factura-acciones-menu .accion-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #253858;
+    font-size: 12px;
+    text-align: left;
+}
+
+.factura-acciones-menu .accion-item:hover,
+.factura-acciones-menu .accion-item:focus {
+    background: #f4f7fb;
+    color: #172b4d;
+    outline: 0;
+}
+
+.accion-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+}
+
+.accion-icon-info { background: #eaf4fc; color: #176fae; }
+.accion-icon-primary { background: #edf5ff; color: #176fbc; }
+.accion-icon-success { background: #e9f8f0; color: #14804a; }
+
+/* Totales: alineados con Subtotal / ISV / Descuento / Total. */
+.df-detail-total {
+    padding: 11px 14px;
+    border: 1px solid #d7e5ef;
+    border-radius: 8px;
+    background: #eaf4fc;
+}
+
+.df-detail-total-label,
+.df-detail-total-money {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    color: #172b4d;
+    font-size: 12.5px;
+    font-weight: 800;
+}
+
+.df-detail-total-label {
+    grid-column: 1 / 7;
+}
+
+.df-detail-total-money {
+    justify-content: flex-end;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-detail-total-money.is-grand-total {
+    color: #087e3f;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .df-detail-row:hover {
+        z-index: 2;
+        transform: translateY(-3px);
+        border-color: #b9ded5;
+        border-top-color: #1fc79a;
+        box-shadow: 0 9px 20px rgba(23, 50, 77, .09);
+    }
+}
+
+/* =========================================================
+   MINIATURA
+   ========================================================= */
+.df-view-miniatura {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.df-mini-card {
+    position: relative;
+    z-index: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(23, 50, 77, .06);
+    transition: transform .20s ease, box-shadow .20s ease, border-color .20s ease;
+}
+
+.df-mini-card.df-dropdown-open {
+    z-index: 60;
+}
+
+.df-mini-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 13px 14px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.df-mini-title {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.df-mini-title strong,
+.df-mini-title small {
+    display: block;
+}
+
+.df-mini-title strong {
+    color: #0065b3;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.df-mini-title small {
+    margin-top: 5px;
+    color: #52627a;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.df-mini-actions {
+    flex: 0 0 auto;
+}
+
+.df-mini-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.df-mini-field {
+    min-width: 0;
+    padding: 12px 14px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.df-mini-field:nth-child(2n) {
+    border-right: 0;
+}
+
+.df-mini-field > span,
+.df-mini-field > strong {
+    display: block;
+}
+
+.df-mini-field > span {
+    margin-bottom: 4px;
+    color: #6b778c;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.df-mini-field > strong {
+    color: #172b4d;
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.df-mini-field > strong.is-money {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-mini-footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+}
+
+.df-mini-footer .factura-total {
+    color: #087e3f;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .df-mini-card:hover {
+        transform: translateY(-5px);
+        border-color: #c9d9e8;
+        border-top-color: #1fc79a;
+        box-shadow: 0 12px 26px rgba(23, 50, 77, .13);
+    }
+}
+
+/* =========================================================
+   VACÍO / CARGANDO / FOOTER / PAGINACIÓN
+   ========================================================= */
+.df-empty,
+.df-modal-loading,
+.df-modal-empty {
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #7a869a;
+}
+
+.df-empty > i,
+.df-modal-empty > i {
+    margin-bottom: 10px;
+    color: #97a0af;
+    font-size: 2.4rem;
+}
+
+.df-empty strong {
+    color: #42526e;
+}
+
+.df-empty span {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.df-list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 13px;
+    border-top: 1px solid #edf1f6;
+}
+
+.df-results-info {
+    color: #6b778c;
+    font-size: 12px;
+}
+
+.df-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.df-page-btn {
+    min-width: 34px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 9px;
+    border: 1px solid #dfe6ee;
+    border-radius: 7px;
+    background: #fff;
+    color: #52627a;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.df-page-btn:hover:not(:disabled),
+.df-page-btn:focus:not(:disabled) {
+    border-color: #b9d9ef;
+    background: #eaf4fc;
+    color: #176fae;
+    outline: 0;
+}
+
+.df-page-btn.active {
+    border-color: #2f9ddd;
+    background: #2f9ddd;
+    color: #fff;
+}
+
+.df-page-btn:disabled {
+    cursor: default;
+    opacity: .45;
+}
+
+/* =========================================================
+   MODAL DETALLE - DIV / GRID / FLEX, MISMO PATRÓN VISUAL
+   ========================================================= */
+.df-modal-content {
+    overflow: hidden;
+    border: 0;
+    border-radius: 11px;
+    background: #fff;
+    box-shadow: 0 18px 42px rgba(23, 50, 77, .20);
+}
+
+.df-modal-header {
+    min-height: 58px;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 3px solid #1fc79a;
+    background: #17324d;
+    color: #fff;
+}
+
+.df-modal-header .modal-title {
+    margin: 0;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.df-modal-header .close {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+    color: #fff;
+    opacity: 1;
+    text-shadow: none;
+}
+
+.df-modal-header .close:hover,
+.df-modal-header .close:focus {
+    background: rgba(255, 255, 255, .10);
+    color: #fff;
+    opacity: 1;
+    outline: 0;
+}
+
+.df-modal-content .modal-body {
+    padding: 20px;
+    background: #fff;
+}
+
+.df-detail-summary {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #dfe6ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .04);
+}
+
+.df-detail-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.factura-detalle-item {
+    min-width: 0;
+    min-height: 74px;
+    padding: 14px 16px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.factura-detalle-item:nth-child(3n) {
+    border-right: 0;
+}
+
+.factura-detalle-item:nth-last-child(-n+3) {
+    border-bottom: 0;
+}
+
+.factura-detalle-item > span,
+.factura-detalle-item > strong {
+    display: block;
+}
+
+.factura-detalle-item > span {
+    margin-bottom: 6px;
+    color: #6b778c;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+.factura-detalle-item > strong {
+    color: #172b4d;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+/* Toolbar/listado del modal: mismo patrón visual del listado principal. */
+.df-modal-directory-card {
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+}
+
+.df-modal-list-toolbar {
+    margin-bottom: 14px;
+}
+
+.df-modal-content .df-toolbar-left .btn {
+    min-width: 104px;
+}
+
+.df-modal-listado {
+    min-width: 0;
+    overflow: visible;
+}
+
+.df-modal-list-footer {
+    padding-top: 14px;
+    border-top: 1px solid #edf1f6;
+}
+
+.df-modal-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.df-modal-mini-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .05);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.df-modal-mini-card:hover {
+    transform: translateY(-3px);
+    border-color: #c9d9e8;
+    border-top-color: #1fc79a;
+    box-shadow: 0 9px 20px rgba(23, 50, 77, .09);
+    opacity: 1;
+}
+
+.df-modal-mini-header {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #edf1f6;
+    background: #fbfdff;
+}
+
+.df-modal-mini-header strong {
+    min-width: 0;
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.df-modal-mini-header span {
+    flex: 0 0 auto;
+    color: #087e3f;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.df-modal-mini-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.df-modal-mini-field {
+    min-width: 0;
+    padding: 11px 13px;
+    border-right: 1px solid #edf1f6;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.df-modal-mini-field:nth-child(2n) {
+    border-right: 0;
+}
+
+.df-modal-mini-field:nth-last-child(-n+2) {
+    border-bottom: 0;
+}
+
+.df-modal-mini-field span,
+.df-modal-mini-field strong {
+    display: block;
+}
+
+.df-modal-mini-field span {
+    margin-bottom: 4px;
+    color: #6b778c;
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.df-modal-mini-field strong {
+    color: #172b4d;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.df-modal-empty strong {
+    margin-top: 2px;
+    color: #42526e;
+}
+
+.df-modal-empty span {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+/*
+ * El detalle visual NO usa DataTable ni <table>.
+ * Es un encabezado grid + filas DIV independientes, igual al listado principal.
+ */
+.df-modal-lines {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.df-modal-lines-header,
+.df-modal-line-row,
+.df-modal-totals-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.55fr) 100px 130px 115px 120px 130px;
+    align-items: stretch;
+    width: 100%;
+}
+
+.df-modal-lines-header {
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #17324d;
+    color: #fff;
+}
+
+.df-modal-lines-header > div {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 11px 12px;
+    border-right: 1px solid rgba(255, 255, 255, .14);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: none;
+}
+
+.df-modal-lines-header > div:nth-child(n+3) {
+    justify-content: flex-end;
+    text-align: right;
+}
+
+.df-modal-lines-header > div:last-child {
+    border-right: 0;
+}
+
+.df-modal-lines-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.df-modal-line-row {
+    position: relative;
+    min-height: 54px;
+    overflow: visible;
+    border: 1px solid #dfe6ee;
+    border-top: 3px solid #1fc79a;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .05);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.df-modal-line-row:hover {
+    transform: translateY(-2px);
+    border-color: #c9d9e8;
+    border-top-color: #1fc79a;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(23, 50, 77, .09);
+    opacity: 1;
+}
+
+.df-modal-line-cell {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-right: 1px solid #edf1f6;
+    color: #253858;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.df-modal-line-cell:last-child {
+    border-right: 0;
+}
+
+.df-modal-line-cell.is-product {
+    color: #172b4d;
+    font-weight: 700;
+}
+
+.df-modal-line-cell.is-quantity {
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.df-modal-line-cell.is-money {
+    justify-content: flex-end;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-modal-line-cell.is-line-total {
+    color: #087e3f;
+    font-weight: 800;
+}
+
+.df-modal-line-cell::before {
+    display: none;
+}
+
+.df-modal-totals-grid {
+    overflow: hidden;
+    border: 1px solid #cfe0ee;
+    border-top: 3px solid #2f9ddd;
+    border-radius: 9px;
+    background: #eaf4fc;
+    box-shadow: 0 1px 3px rgba(9, 30, 66, .04);
+}
+
+.df-modal-totals-label {
+    grid-column: 1 / span 2;
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-right: 1px solid #d7e5ef;
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.df-modal-total-cell {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    padding: 10px 12px;
+    border-right: 1px solid #d7e5ef;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.df-modal-total-cell:last-child {
+    border-right: 0;
+}
+
+.df-modal-total-cell span {
+    color: #6b778c;
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.df-modal-total-cell strong {
+    color: #172b4d;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.df-modal-total-cell.is-grand-total strong {
+    color: #087e3f;
+    font-size: 14px;
+}
+
+.factura-notas-box {
+    padding: 14px 16px;
+    border: 1px solid #dfe6ee;
+    border-radius: 9px;
+    background: #fbfcfe;
+}
+
+.factura-notas-box h6 {
+    margin: 0 0 7px;
+    color: #172b4d;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.factura-notas-box p {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.df-modal-footer {
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #e4eaf0;
+    background: #fbfcfe;
+}
+
+.df-modal-footer .btn {
+    min-width: 118px;
+    min-height: 38px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 1399.98px) {
+    .df-list-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .df-toolbar-right {
+        flex: 1 1 100%;
+        width: 100%;
+        justify-content: flex-end;
+        margin-left: 0;
+    }
+
+    .df-detail-grid {
+        grid-template-columns:
+            120px
+            90px
+            minmax(165px, 1.05fr)
+            minmax(180px, 1.2fr)
+            90px
+            130px
+            repeat(4, minmax(90px, .75fr));
+        gap: 8px;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .df-filter-grid,
+    .df-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-filter-actions {
+        grid-column: 2;
+        justify-self: end;
+    }
+
+    .df-modal-mini-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-view-miniatura {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-detail-header {
+        display: none;
+    }
+
+    .df-detail-row {
+        display: grid;
+        grid-template-columns: 132px repeat(2, minmax(0, 1fr));
+        padding: 14px;
+        gap: 10px;
+    }
+
+    .df-detail-cell {
+        display: block;
+        padding: 8px 10px;
+        border-right: 0;
+        border-bottom: 1px solid #edf1f6;
+        text-align: left !important;
+        white-space: normal !important;
+        font-size: 13px;
+    }
+
+    .df-detail-cell::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: #6b778c;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .df-detail-cell.is-actions {
+        grid-row: 1 / span 3;
+        align-self: start;
+        padding-left: 0;
+        border-bottom: 0;
+    }
+
+    .df-detail-cell.is-actions::before {
+        display: none;
+    }
+
+    .df-detail-cell.is-money {
+        justify-content: initial;
+        text-align: left !important;
+    }
+
+    .df-detail-total {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .df-detail-total-label,
+    .df-detail-total-money {
+        grid-column: auto;
+        min-height: 36px;
+        justify-content: space-between;
+        border-right: 0;
+        border-bottom: 1px solid #d7e5ef;
+    }
+
+    .df-detail-total-money::before {
+        color: #6b778c;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .df-detail-total-money:nth-child(2)::before { content: 'Subtotal'; }
+    .df-detail-total-money:nth-child(3)::before { content: 'ISV'; }
+    .df-detail-total-money:nth-child(4)::before { content: 'Descuento'; }
+    .df-detail-total-money:nth-child(5)::before { content: 'Total'; }
+    .df-detail-total-money:last-child { border-bottom: 0; }
+}
+
+@media (max-width: 991.98px) {
+    .df-toolbar-right {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .df-search-wrap {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .df-modal-lines-header {
+        display: none;
+    }
+
+    .df-modal-line-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-modal-line-cell {
+        display: block;
+        padding: 11px 12px;
+        border-right: 0;
+        border-bottom: 1px solid #edf1f6;
+        text-align: left !important;
+        white-space: normal !important;
+    }
+
+    .df-modal-line-cell:nth-last-child(-n+2) {
+        border-bottom: 0;
+    }
+
+    .df-modal-line-cell::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        color: #6b778c;
+        font-size: 9.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .df-modal-totals-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .df-modal-totals-label {
+        grid-column: 1 / -1;
+        border-right: 0;
+        border-bottom: 1px solid #d7e5ef;
+    }
+
+    .df-modal-total-cell {
+        align-items: flex-start;
+        border-bottom: 1px solid #d7e5ef;
+        text-align: left;
+    }
+
+    .df-modal-total-cell:nth-last-child(-n+2) {
+        border-bottom: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .df-section-header,
+    .df-list-header,
+    .df-list-toolbar,
+    .df-list-footer,
+    .df-toolbar-right {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .df-toggle-section {
+        width: 100%;
+    }
+
+    .df-filter-grid,
+    .df-kpi-grid,
+    .df-view-miniatura,
+    .df-detail-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .df-field-wide {
+        grid-column: auto;
+    }
+
+    .df-filter-actions,
+    .df-toolbar-left {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .df-filter-actions {
+        grid-column: 1;
+        justify-self: stretch;
+    }
+
+    .df-modal-mini-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .df-filter-actions .btn,
+    .df-toolbar-left .btn {
+        flex: 1 1 calc(50% - 8px);
+    }
+
+    .df-page-size,
+    .df-view-switch,
+    .df-search-wrap {
+        width: 100%;
+    }
+
+    .df-view-btn {
+        flex: 1 1 50%;
+    }
+
+    .df-view-btn[data-df-view="detalle"] {
+        display: none !important;
+    }
+
+    .df-view-btn[data-df-view="miniatura"] {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .df-detail-row {
+        grid-template-columns: 1fr;
+        padding: 12px;
+    }
+
+    .df-detail-cell.is-actions {
+        grid-row: auto;
+        padding-left: 0;
+    }
+
+    .df-list-footer {
+        gap: 10px;
+    }
+
+    .df-pagination {
+        justify-content: center;
+    }
+
+    .df-page-label-long {
+        display: none;
+    }
+
+    .factura-detalle-item,
+    .factura-detalle-item:nth-child(3n),
+    .factura-detalle-item:nth-last-child(-n+3) {
+        border-right: 0;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .factura-detalle-item:last-child {
+        border-bottom: 0;
+    }
+
+    .df-modal-line-row,
+    .df-modal-totals-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .df-modal-line-cell,
+    .df-modal-line-cell:nth-last-child(-n+2) {
+        border-right: 0;
+        border-bottom: 1px solid #edf1f6;
+    }
+
+    .df-modal-line-cell:last-child {
+        border-bottom: 0;
+    }
+
+    .df-modal-totals-label {
+        grid-column: auto;
+    }
+
+    .df-modal-total-cell,
+    .df-modal-total-cell:nth-last-child(-n+2) {
+        align-items: flex-start;
+        border-right: 0;
+        border-bottom: 1px solid #d7e5ef;
+        text-align: left;
+    }
+
+    .df-modal-total-cell:last-child {
+        border-bottom: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .df-section-body,
+    .df-list-body {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .df-mini-body {
+        grid-template-columns: 1fr;
+    }
+
+    .df-mini-field,
+    .df-mini-field:nth-child(2n) {
+        border-right: 0;
+    }
+
+    .df-mini-header,
+    .df-mini-footer {
+        flex-wrap: wrap;
+    }
+
+    .df-mini-actions {
+        width: 100%;
+    }
+
+    .df-mini-actions .factura-acciones-dropdown,
+    .df-mini-actions .btn-acciones {
+        width: 100%;
+    }
+
+    .factura-acciones-menu {
+        max-width: calc(100vw - 24px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .df-kpi-card,
+    .df-kpi-icon,
+    .df-detail-row,
+    .df-mini-card {
+        transition: none;
+    }
+
+    .df-kpi-card:hover,
+    .df-kpi-card:hover .df-kpi-icon,
+    .df-detail-row:hover,
+    .df-mini-card:hover {
+        transform: none;
+    }
+}

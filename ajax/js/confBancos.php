@@ -1,4 +1,422 @@
 <script>
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects dinámicos sin depender de otro componente.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            /*
+             * Si quedó un wrapper visual anterior alrededor del
+             * select, recuperar el <select> original antes de usar
+             * Select2. Se detecta por estructura, no por librería.
+             */
+            var $parent = $el.parent();
+
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) {
+                        return false;
+                    }
+
+                    var normalizada = clase.toLowerCase();
+
+                    return (
+                        normalizada.indexOf('picker') === -1 &&
+                        normalizada !== 'bs-select-hidden'
+                    );
+                });
+
+            $el.attr('class', clases.join(' '));
+
+            if ($el.attr('tabindex') === '-98') {
+                $el.removeAttr('tabindex');
+            }
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySelect2LimpiarControl($select);
+
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+
+            var config = $.extend(
+                {
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    allowClear: false
+                },
+                options || {}
+            );
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+
+                if ($modal.length) {
+                    config.dropdownParent = $modal;
+                }
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySoloSelect2($select, options);
+        $select.trigger('change.select2');
+    };
+}
+
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Mantiene intacto el contenido del reporte y completa las
+   celdas internas de mergeCells con el estilo ya existente.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (matchDeclaracion) {
+                declaracion = matchDeclaracion[1];
+            }
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documento.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documento.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documento.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documento.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnaNumero(letras) {
+                var total = 0;
+                var texto = String(letras || '').toUpperCase();
+
+                for (var i = 0; i < texto.length; i++) {
+                    total = (total * 26) +
+                        (texto.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnaLetras(numero) {
+                var resultado = '';
+                var n = numero;
+
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado =
+                        String.fromCharCode(65 + resto) +
+                        resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return resultado;
+            }
+
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnaNumero(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < filas.length; i++) {
+                    if (
+                        parseInt(
+                            filas[i].getAttribute('r'),
+                            10
+                        ) === numeroFila
+                    ) {
+                        return filas[i];
+                    }
+                }
+
+                var nuevaFila = documento.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                nuevaFila.setAttribute(
+                    'r',
+                    String(numeroFila)
+                );
+
+                var insertada = false;
+
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(
+                        filas[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(
+                            nuevaFila,
+                            filas[j]
+                        );
+                        insertada = true;
+                        break;
+                    }
+                }
+
+                if (!insertada) {
+                    sheetData.appendChild(nuevaFila);
+                }
+
+                return nuevaFila;
+            }
+
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    if (
+                        celdas[i].getAttribute('r') ===
+                        referencia
+                    ) {
+                        return celdas[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(
+                        celdas[i].getAttribute('r')
+                    );
+
+                    if (
+                        refActual &&
+                        refActual.col > colNumero
+                    ) {
+                        fila.insertBefore(
+                            celda,
+                            celdas[i]
+                        );
+                        return;
+                    }
+                }
+
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var ref = merge.getAttribute('ref') || '';
+                var partes = ref.split(':');
+
+                if (partes.length !== 2) {
+                    return;
+                }
+
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+
+                if (!inicio || !fin) {
+                    return;
+                }
+
+                /* Elimina combinaciones inválidas como I3:I3. */
+                if (
+                    inicio.col === fin.col &&
+                    inicio.row === fin.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(
+                    filaInicio,
+                    columnaLetras(inicio.col) +
+                    inicio.row
+                );
+
+                if (!celdaInicio) {
+                    return;
+                }
+
+                var estilo = celdaInicio.getAttribute('s');
+
+                /*
+                 * Completa todo el rango con el mismo estilo
+                 * ya definido por el reporte. No crea estilos nuevos.
+                 */
+                for (
+                    var filaNumero = inicio.row;
+                    filaNumero <= fin.row;
+                    filaNumero++
+                ) {
+                    var fila = obtenerFila(filaNumero);
+
+                    for (
+                        var colNumero = inicio.col;
+                        colNumero <= fin.col;
+                        colNumero++
+                    ) {
+                        var referencia =
+                            columnaLetras(colNumero) +
+                            filaNumero;
+
+                        var celda = buscarCelda(
+                            fila,
+                            referencia
+                        );
+
+                        if (!celda) {
+                            celda = documento.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            celda.setAttribute(
+                                'r',
+                                referencia
+                            );
+
+                            if (
+                                estilo !== null &&
+                                estilo !== ''
+                            ) {
+                                celda.setAttribute(
+                                    's',
+                                    estilo
+                                );
+                            }
+
+                            insertarCeldaOrdenada(
+                                fila,
+                                celda,
+                                colNumero
+                            );
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales =
+                mergeCells.getElementsByTagName('mergeCell');
+
+            mergeCells.setAttribute(
+                'count',
+                String(mergeFinales.length)
+            );
+
+            var serializado =
+                new XMLSerializer().serializeToString(
+                    documento.documentElement
+                );
+
+            return declaracion
+                ? declaracion + serializado
+                : serializado;
+
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
 (function($){
     'use strict';
 
@@ -40,13 +458,7 @@
             return;
         }
 
-        try{
-            if($.fn.selectpicker && ($select.hasClass('selectpicker') || $select.data('selectpicker'))){
-                $select.selectpicker('destroy');
-            }
-        }catch(e){}
-
-        $select.removeClass('selectpicker');
+        window.izzySelect2LimpiarControl($select);
 
         if($select.hasClass('select2-hidden-accessible')){
             $select.select2('destroy');
@@ -1049,7 +1461,7 @@
         zip.folder('xl').file('workbook.xml',workbookXml);
         zip.folder('xl').file('styles.xml',stylesXml);
         zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels);
-        zip.folder('xl').folder('worksheets').file('sheet1.xml',worksheetXml);
+        zip.folder('xl').folder('worksheets').file('sheet1.xml',window.izzyExcelCompletarBordesCombinados(worksheetXml));
 
         var options = {
             type:'blob',

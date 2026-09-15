@@ -23,7 +23,7 @@ $(() => {
     var $form = $(this);
 
     setTimeout(function () {
-      $form.find('.selectpicker').val('').selectpicker('refresh');
+      $form.find('.izzy-select2').val('').izzySelect2Bridge('refresh');
       listar_ingresos_contabilidad();
     }, 0);
   });
@@ -59,8 +59,8 @@ $(() => {
   // =========================================================
   // RESUMEN PREMIUM DE CUENTA EN FOOTER DEL MODAL
   // =========================================================
-  $(document).off("changed.bs.select change", "#formIngresosContables #cuenta_ingresos");
-  $(document).on("changed.bs.select change", "#formIngresosContables #cuenta_ingresos", function () {
+  $(document).off("change", "#formIngresosContables #cuenta_ingresos");
+  $(document).on("change", "#formIngresosContables #cuenta_ingresos", function () {
     actualizarResumenFooterCuentaIngreso();
   });
 
@@ -311,14 +311,6 @@ function obtenerTextoSelectPremium(selector) {
   }
 
   texto = limpiarTextoSelectPremium(texto);
-
-  if (!texto && $select.hasClass("selectpicker")) {
-    var $button = $select.parent(".bootstrap-select").find(".filter-option-inner-inner");
-
-    if ($button.length) {
-      texto = limpiarTextoSelectPremium($button.text());
-    }
-  }
 
   return texto;
 }
@@ -695,7 +687,7 @@ if (!data || !data.ingresos_id) {
       beforeSend: function () {
         $('#formIngresosContables #recibide_ingresos')
           .html('<option value="">Cargando clientes...</option>')
-          .selectpicker('refresh');
+          .izzySelect2Bridge('refresh');
       }
     }).done(function (response) {
       const $form = $('#formIngresosContables');
@@ -714,10 +706,10 @@ if (!data || !data.ingresos_id) {
           );
         });
 
-        $sel.selectpicker('refresh');
+        $sel.izzySelect2Bridge('refresh');
       } else {
         $sel.append('<option value="">No hay clientes disponibles</option>');
-        $sel.selectpicker('refresh');
+        $sel.izzySelect2Bridge('refresh');
       }
 
       $.ajax({
@@ -797,8 +789,8 @@ if (!data || !data.ingresos_id) {
           $form.find('#total_ingresos').val(v.total || "0.00");
           $form.find('#observacion_ingresos').val(v.observacion || "");
 
-          $form.find('#cuenta_ingresos').val(v.cuentas_id || "").selectpicker('refresh');
-          $form.find('#empresa_ingresos').val(v.empresa_id || "").selectpicker('refresh');
+          $form.find('#cuenta_ingresos').val(v.cuentas_id || "").izzySelect2Bridge('refresh');
+          $form.find('#empresa_ingresos').val(v.empresa_id || "").izzySelect2Bridge('refresh');
 
           actualizarResumenFooterCuentaIngreso();
 
@@ -814,15 +806,15 @@ if (!data || !data.ingresos_id) {
               $sel.append('<option value="' + escapeHtmlIngresos(clienteId) + '">' + escapeHtmlIngresos(clienteTexto) + '</option>');
             }
 
-            $sel.selectpicker('val', clienteId);
+            $sel.izzySelect2Bridge('val', clienteId);
           } else {
-            $sel.selectpicker('val', '');
+            $sel.izzySelect2Bridge('val', '');
           }
 
-          $sel.prop('disabled', true).selectpicker('refresh');
+          $sel.prop('disabled', true).izzySelect2Bridge('refresh');
 
-          $form.find('#cuenta_ingresos').prop('disabled', true).selectpicker('refresh');
-          $form.find('#empresa_ingresos').prop('disabled', true).selectpicker('refresh');
+          $form.find('#cuenta_ingresos').prop('disabled', true).izzySelect2Bridge('refresh');
+          $form.find('#empresa_ingresos').prop('disabled', true).izzySelect2Bridge('refresh');
 
           actualizarResumenFooterCuentaIngreso();
 
@@ -852,7 +844,7 @@ if (!data || !data.ingresos_id) {
 
       $('#formIngresosContables #recibide_ingresos')
         .html('<option value="">Error al cargar clientes</option>')
-        .selectpicker('refresh');
+        .izzySelect2Bridge('refresh');
 
       showNotify("error", "Error", "No se pudieron cargar los clientes");
     });
@@ -973,7 +965,7 @@ if (!data || !data.ingresos_id) {
 
 function ingresosExcelEscape(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function ingresosExcelCol(i){var n='';while(i>=0){n=String.fromCharCode((i%26)+65)+n;i=Math.floor(i/26)-1;}return n;}
-function ingresosExcelCell(ref,v,style){return '<c r="'+ref+'" s="'+style+'" t="inlineStr"><is><t>'+ingresosExcelEscape(v)+'</t></is></c>';}
+function ingresosExcelCell(ref,v,style,numeric){if(numeric){var n=toNumber(v);return '<c r="'+ref+'" s="'+style+'"><v>'+n+'</v></c>';}return '<c r="'+ref+'" s="'+style+'" t="inlineStr"><is><t>'+ingresosExcelEscape(v)+'</t></is></c>';}
 
 function ingresosGenerarExcel(){
   var rows=ingresosUI.filtered||[];if(!rows.length){showNotify('warning','Sin información','No hay ingresos para exportar.');return;}if(typeof JSZip==='undefined'){showNotify('error','Excel no disponible','JSZip no está disponible.');return;}
@@ -981,17 +973,20 @@ function ingresosGenerarExcel(){
   var headers=['Fecha Registro','Tipo','Ingreso #','Fecha Factura','Forma de Pago','Recibí de','Número Factura','Subtotal','Impuesto','Descuento','Total','Observación','Estado'],sr=[];
   sr.push('<row r="1" ht="30" customHeight="1">'+ingresosExcelCell('A1','IZZY • REPORTE DE INGRESOS',1)+'</row>');
   sr.push('<row r="2">'+ingresosExcelCell('A2','Período: '+$('#fechai').val()+' a '+$('#fechaf').val()+' • Registros: '+rows.length,2)+'</row>');
-  sr.push('<row r="3">'+ingresosExcelCell('A3','Subtotal: L '+formatMoney(subtotal)+' | Impuesto: L '+formatMoney(impuesto)+' | Descuento: L '+formatMoney(descuento)+' | Total: L '+formatMoney(total),2)+'</row>');
+  sr.push('<row r="3">'+ingresosExcelCell('A3','Subtotal: L. '+formatMoney(subtotal)+' | Impuesto: L. '+formatMoney(impuesto)+' | Descuento: L. '+formatMoney(descuento)+' | Total: L. '+formatMoney(total),2)+'</row>');
   sr.push('<row r="5" ht="26" customHeight="1">'+headers.map(function(h,i){return ingresosExcelCell(ingresosExcelCol(i)+'5',h,3);}).join('')+'</row>');
-  rows.forEach(function(r,i){var rr=6+i,vals=[r.fecha_registro,r.tipo_ingreso,r.ingresos_id,r.fecha,r.nombre,r.cliente,r.factura,'L '+formatMoney(toNumber(r.subtotal)),'L '+formatMoney(toNumber(r.impuesto)),'L '+formatMoney(toNumber(r.descuento)),'L '+formatMoney(toNumber(r.total)),r.observacion,parseInt(r.estado,10)===1?'Activo':'Inactivo'];sr.push('<row r="'+rr+'">'+vals.map(function(v,c){return ingresosExcelCell(ingresosExcelCol(c)+rr,v,4);}).join('')+'</row>');});
-  var tr=6+rows.length;sr.push('<row r="'+tr+'">'+ingresosExcelCell('A'+tr,'TOTALES',5)+ingresosExcelCell('H'+tr,'L '+formatMoney(subtotal),5)+ingresosExcelCell('I'+tr,'L '+formatMoney(impuesto),5)+ingresosExcelCell('J'+tr,'L '+formatMoney(descuento),5)+ingresosExcelCell('K'+tr,'L '+formatMoney(total),5)+'</row>');
-  var sheet='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:M'+tr+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="1" width="19" customWidth="1"/><col min="2" max="7" width="18" customWidth="1"/><col min="8" max="11" width="15" customWidth="1"/><col min="12" max="12" width="30" customWidth="1"/><col min="13" max="13" width="13" customWidth="1"/></cols><sheetData>'+sr.join('')+'</sheetData><autoFilter ref="A5:M'+(5+rows.length)+'"/><mergeCells count="3"><mergeCell ref="A1:M1"/><mergeCell ref="A2:M2"/><mergeCell ref="A3:M3"/></mergeCells></worksheet>';
-  var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF1F7"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  rows.forEach(function(r,i){
+    var rr=6+i,vals=[r.fecha_registro,r.tipo_ingreso,r.ingresos_id,r.fecha,r.nombre,r.cliente,r.factura,toNumber(r.subtotal_raw!=null?r.subtotal_raw:r.subtotal),toNumber(r.impuesto_raw!=null?r.impuesto_raw:r.impuesto),toNumber(r.descuento_raw!=null?r.descuento_raw:r.descuento),toNumber(r.total_raw!=null?r.total_raw:r.total),r.observacion,parseInt(r.estado,10)===1?'Activo':'Inactivo'];
+    sr.push('<row r="'+rr+'">'+vals.map(function(v,c){var money=c>=7&&c<=10;return ingresosExcelCell(ingresosExcelCol(c)+rr,v,money?6:4,money);}).join('')+'</row>');
+  });
+  var tr=6+rows.length;sr.push('<row r="'+tr+'">'+ingresosExcelCell('A'+tr,'TOTALES',5,false)+ingresosExcelCell('H'+tr,subtotal,7,true)+ingresosExcelCell('I'+tr,impuesto,7,true)+ingresosExcelCell('J'+tr,descuento,7,true)+ingresosExcelCell('K'+tr,total,7,true)+'</row>');
+  var sheet='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:M'+tr+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="1" width="19" customWidth="1"/><col min="2" max="7" width="18" customWidth="1"/><col min="8" max="11" width="20" customWidth="1"/><col min="12" max="12" width="30" customWidth="1"/><col min="13" max="13" width="13" customWidth="1"/></cols><sheetData>'+sr.join('')+'</sheetData><autoFilter ref="A5:M'+(5+rows.length)+'"/><mergeCells count="3"><mergeCell ref="A1:M1"/><mergeCell ref="A2:M2"/><mergeCell ref="A3:M3"/></mergeCells></worksheet>';
+  var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts><fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF1F7"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf><xf numFmtId="164" fontId="4" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
   var wb='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Ingresos" sheetId="1" r:id="rId1"/></sheets></workbook>';
   var wbr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
   var rr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
   var ct='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
-  var zip=new JSZip();zip.file('[Content_Types].xml',ct);zip.folder('_rels').file('.rels',rr);zip.folder('xl').file('workbook.xml',wb);zip.folder('xl').file('styles.xml',styles);zip.folder('xl').folder('_rels').file('workbook.xml.rels',wbr);zip.folder('xl').folder('worksheets').file('sheet1.xml',sheet);
+  var zip=new JSZip();zip.file('[Content_Types].xml',ct);zip.folder('_rels').file('.rels',rr);zip.folder('xl').file('workbook.xml',wb);zip.folder('xl').file('styles.xml',(window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(styles) : styles));zip.folder('xl').folder('_rels').file('workbook.xml.rels',wbr);zip.folder('xl').folder('worksheets').file('sheet1.xml',(window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheet) : sheet));
   var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'},promise=typeof zip.generateAsync==='function'?zip.generateAsync(opts):Promise.resolve(zip.generate(opts));
   promise.then(function(blob){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Reporte_Ingresos.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}).catch(function(e){console.error(e);showNotify('error','Error','No se pudo generar el Excel.');});
 }
@@ -1006,13 +1001,13 @@ function ingresosGenerarPdf(){
   ingresosObtenerLogoPdf(function(logo){
     var subtotal=0,impuesto=0,descuento=0,total=0;rows.forEach(function(r){subtotal+=toNumber(r.subtotal);impuesto+=toNumber(r.impuesto);descuento+=toNumber(r.descuento);total+=toNumber(r.total);});
     var body=[[{text:'FECHA',style:'th'},{text:'TIPO',style:'th'},{text:'INGRESO #',style:'th'},{text:'FECHA FACT.',style:'th'},{text:'FORMA PAGO',style:'th'},{text:'RECIBÍ DE',style:'th'},{text:'FACTURA',style:'th'},{text:'SUBTOTAL',style:'th'},{text:'IMPUESTO',style:'th'},{text:'DESCUENTO',style:'th'},{text:'TOTAL',style:'th'}]];
-    rows.forEach(function(r,i){var fill=i%2===0?'#FFFFFF':'#F7F9FC';body.push([{text:String(r.fecha_registro||''),style:'td',fillColor:fill},{text:String(r.tipo_ingreso||''),style:'td',fillColor:fill},{text:String(r.ingresos_id||''),style:'td',fillColor:fill},{text:String(r.fecha||''),style:'td',fillColor:fill},{text:String(r.nombre||''),style:'td',fillColor:fill},{text:String(r.cliente||''),style:'td',fillColor:fill},{text:String(r.factura||''),style:'td',fillColor:fill},{text:'L '+formatMoney(toNumber(r.subtotal)),style:'tdn',fillColor:fill},{text:'L '+formatMoney(toNumber(r.impuesto)),style:'tdn',fillColor:fill},{text:'L '+formatMoney(toNumber(r.descuento)),style:'tdn',fillColor:fill},{text:'L '+formatMoney(toNumber(r.total)),style:'tdn',fillColor:fill,bold:true,color:'#14804A'}]);});
-    body.push([{text:'TOTALES',colSpan:7,style:'totalLabel',fillColor:'#EAF1F7'},{},{},{},{},{},{},{text:'L '+formatMoney(subtotal),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L '+formatMoney(impuesto),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L '+formatMoney(descuento),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L '+formatMoney(total),style:'totalMoneyCurrent',fillColor:'#EAF1F7'}]);
+    rows.forEach(function(r,i){var fill=i%2===0?'#FFFFFF':'#F7F9FC';body.push([{text:String(r.fecha_registro||''),style:'td',fillColor:fill},{text:String(r.tipo_ingreso||''),style:'td',fillColor:fill},{text:String(r.ingresos_id||''),style:'td',fillColor:fill},{text:String(r.fecha||''),style:'td',fillColor:fill},{text:String(r.nombre||''),style:'td',fillColor:fill},{text:String(r.cliente||''),style:'td',fillColor:fill},{text:String(r.factura||''),style:'td',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.subtotal)),style:'tdn',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.impuesto)),style:'tdn',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.descuento)),style:'tdn',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.total)),style:'tdn',fillColor:fill,bold:true,color:'#14804A'}]);});
+    body.push([{text:'TOTALES',colSpan:7,style:'totalLabel',fillColor:'#EAF1F7'},{},{},{},{},{},{},{text:'L. '+formatMoney(subtotal),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L. '+formatMoney(impuesto),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L. '+formatMoney(descuento),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L. '+formatMoney(total),style:'totalMoneyCurrent',fillColor:'#EAF1F7'}]);
     var logoCell=logo?{table:{widths:['*'],body:[[{image:logo,fit:[74,44],alignment:'center',margin:[7,5,7,5],fillColor:'#FFFFFF'}]]},layout:'noBorders',fillColor:'#17324D',margin:[8,7,8,7]}:{text:'IZZY',bold:true,fontSize:18,color:'#17324D',alignment:'center',fillColor:'#FFFFFF',margin:[8,14,8,14]};
     var doc={pageSize:'LEGAL',pageOrientation:'landscape',pageMargins:[28,28,28,34],header:function(){return{margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:952,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},footer:function(page,pages){return{margin:[28,8,28,0],columns:[{text:'IZZY • Reporte de Ingresos',fontSize:7,color:'#7A869A'},{text:'Página '+page+' de '+pages,fontSize:7,color:'#7A869A',alignment:'right'}]};},content:[
       {table:{widths:[110,'*',165],body:[[logoCell,{stack:[{text:'REPORTE DE INGRESOS',bold:true,fontSize:16,color:'#FFFFFF'},{text:'Registro contable de ingresos por período',fontSize:8,color:'#D8E5F0',margin:[0,2,0,0]}],fillColor:'#17324D',margin:[0,10,0,10]},{stack:[{text:'REPORTE EJECUTIVO',bold:true,fontSize:6.5,color:'#72E2E5',alignment:'right'},{text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},{text:rows.length+' registro(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right'}],fillColor:'#17324D',margin:[0,10,12,10]}]]},layout:'noBorders',margin:[0,0,0,10]},
       {table:{widths:['*'],body:[[{text:'Estado: '+($('#estado_ingresos option:selected').text()||'Todos')+'   |   Período: '+($('#fechai').val()||'')+' a '+($('#fechaf').val()||'')+'   |   Búsqueda: '+($.trim($('#buscarIngresosListado').val())||'Sin búsqueda'),fontSize:7,color:'#52627A',fillColor:'#F7F9FC',margin:[8,6,8,6]}]]},layout:'lightHorizontalLines',margin:[0,0,0,10]},
-      {table:{widths:['*','*','*','*'],body:[[{stack:[{text:'REGISTROS',fontSize:6.2,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:12,bold:true,color:'#17324D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'SUBTOTAL',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L '+formatMoney(subtotal),fontSize:11,bold:true,color:'#17324D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'IMPUESTO',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L '+formatMoney(impuesto),fontSize:11,bold:true,color:'#0EA5A8'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'TOTAL',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L '+formatMoney(total),fontSize:11,bold:true,color:'#14804A'}],fillColor:'#F7F9FC',margin:[8,7,8,7]}]]},layout:{hLineColor:function(){return'#DDE3EA';},vLineColor:function(){return'#DDE3EA';},hLineWidth:function(){return .5;},vLineWidth:function(){return .5;}},margin:[0,0,0,10]},
+      {table:{widths:['*','*','*','*'],body:[[{stack:[{text:'REGISTROS',fontSize:6.2,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:12,bold:true,color:'#17324D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'SUBTOTAL',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L. '+formatMoney(subtotal),fontSize:11,bold:true,color:'#17324D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'IMPUESTO',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L. '+formatMoney(impuesto),fontSize:11,bold:true,color:'#0EA5A8'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'TOTAL',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L. '+formatMoney(total),fontSize:11,bold:true,color:'#14804A'}],fillColor:'#F7F9FC',margin:[8,7,8,7]}]]},layout:{hLineColor:function(){return'#DDE3EA';},vLineColor:function(){return'#DDE3EA';},hLineWidth:function(){return .5;},vLineWidth:function(){return .5;}},margin:[0,0,0,10]},
       {table:{headerRows:1,widths:[74,68,56,66,88,112,88,78,76,76,82],body:body},margin:[0,0,0,0],layout:{hLineColor:function(){return'#DDE3EA';},vLineColor:function(){return'#DDE3EA';},hLineWidth:function(){return .55;},vLineWidth:function(){return .55;},paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 5;},paddingBottom:function(){return 5;}}}
     ],styles:{th:{fontSize:5.9,bold:true,color:'#FFFFFF',fillColor:'#17324D',alignment:'center'},td:{fontSize:6.1,color:'#253858',noWrap:false},tdn:{fontSize:6.1,color:'#253858',alignment:'right',noWrap:false},totalLabel:{fontSize:6.4,bold:true,color:'#17324D'},totalMoney:{fontSize:6.4,bold:true,color:'#17324D',alignment:'right'},totalMoneyCurrent:{fontSize:6.4,bold:true,color:'#14804A',alignment:'right'}}};
     pdfMake.createPdf(doc).getDataUrl(function(url){abrirModalPdfPublico(url,'Reporte de Ingresos','Reporte_Ingresos.pdf');});
@@ -1170,7 +1165,7 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
       beforeSend: function () {
         $('#formIngresosContables #recibide_ingresos')
           .html('<option value="">Cargando clientes...</option>')
-          .selectpicker('refresh');
+          .izzySelect2Bridge('refresh');
       }
     }).done(function (response) {
       const $form = $('#formIngresosContables');
@@ -1189,10 +1184,10 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
           );
         });
 
-        $sel.selectpicker('refresh');
+        $sel.izzySelect2Bridge('refresh');
       } else {
         $sel.append('<option value="">No hay clientes disponibles</option>');
-        $sel.selectpicker('refresh');
+        $sel.izzySelect2Bridge('refresh');
       }
 
       $.ajax({
@@ -1272,8 +1267,8 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
           $form.find('#total_ingresos').val(v.total || "0.00");
           $form.find('#observacion_ingresos').val(v.observacion || "");
 
-          $form.find('#cuenta_ingresos').val(v.cuentas_id || "").selectpicker('refresh');
-          $form.find('#empresa_ingresos').val(v.empresa_id || "").selectpicker('refresh');
+          $form.find('#cuenta_ingresos').val(v.cuentas_id || "").izzySelect2Bridge('refresh');
+          $form.find('#empresa_ingresos').val(v.empresa_id || "").izzySelect2Bridge('refresh');
 
           actualizarResumenFooterCuentaIngreso();
 
@@ -1289,15 +1284,15 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
               $sel.append('<option value="' + escapeHtmlIngresos(clienteId) + '">' + escapeHtmlIngresos(clienteTexto) + '</option>');
             }
 
-            $sel.selectpicker('val', clienteId);
+            $sel.izzySelect2Bridge('val', clienteId);
           } else {
-            $sel.selectpicker('val', '');
+            $sel.izzySelect2Bridge('val', '');
           }
 
-          $sel.prop('disabled', true).selectpicker('refresh');
+          $sel.prop('disabled', true).izzySelect2Bridge('refresh');
 
-          $form.find('#cuenta_ingresos').prop('disabled', true).selectpicker('refresh');
-          $form.find('#empresa_ingresos').prop('disabled', true).selectpicker('refresh');
+          $form.find('#cuenta_ingresos').prop('disabled', true).izzySelect2Bridge('refresh');
+          $form.find('#empresa_ingresos').prop('disabled', true).izzySelect2Bridge('refresh');
 
           actualizarResumenFooterCuentaIngreso();
 
@@ -1327,7 +1322,7 @@ var edit_reporte_ingresos_dataTable = function (tbody, table) {
 
       $('#formIngresosContables #recibide_ingresos')
         .html('<option value="">Error al cargar clientes</option>')
-        .selectpicker('refresh');
+        .izzySelect2Bridge('refresh');
 
       showNotify("error", "Error", "No se pudieron cargar los clientes");
     });
@@ -1387,7 +1382,7 @@ function modal_ingresos_contabilidad() {
     $form[0].reset();
   }
 
-  $form.find('select.selectpicker').prop('disabled', false).val('').selectpicker('refresh');
+  $form.find('select.izzy-select2').prop('disabled', false).val('').izzySelect2Bridge('refresh');
   $form.find('input[type="text"], input[type="number"], textarea').prop('disabled', false).val('');
 
   limpiarResumenFooterCuentaIngreso();
@@ -1433,17 +1428,17 @@ function modal_ingresos_contabilidad() {
   $('#formIngresosContables #cuenta_nombre').prop("readonly", false);
   $('#formIngresosContables #cuentas_activo').prop('disabled', false).prop('checked', false);
 
-  function enablePicker(sel) {
+  function enableSelectControl(sel) {
     var $el = $form.find(sel);
 
     $el.prop('disabled', false).removeAttr('disabled');
-    $el.selectpicker('val', '');
-    $el.selectpicker('refresh');
+    $el.izzySelect2Bridge('val', '');
+    $el.izzySelect2Bridge('refresh');
   }
 
-  enablePicker('#cuenta_ingresos');
-  enablePicker('#empresa_ingresos');
-  enablePicker('#recibide_ingresos');
+  enableSelectControl('#cuenta_ingresos');
+  enableSelectControl('#empresa_ingresos');
+  enableSelectControl('#recibide_ingresos');
 
   $('#formIngresosContables #subtotal_ingresos').prop('disabled', false).val('');
   $('#formIngresosContables #isv_ingresos').prop('disabled', false).val('');
@@ -1472,7 +1467,7 @@ function getEmpresaIngresos() {
     url: '<?php echo SERVERURL;?>core/getEmpresa.php',
     async: true,
     success: function (data) {
-      $('#formIngresosContables #empresa_ingresos').html(data).selectpicker('refresh');
+      $('#formIngresosContables #empresa_ingresos').html(data).izzySelect2Bridge('refresh');
     },
     error: function () {
       showNotify("error", "Error", "No se pudieron cargar las empresas");
@@ -1486,7 +1481,7 @@ function getCuentaIngresos() {
     url: '<?php echo SERVERURL;?>core/getCuenta.php',
     async: true,
     success: function (data) {
-      $('#formIngresosContables #cuenta_ingresos').html(data).selectpicker('refresh');
+      $('#formIngresosContables #cuenta_ingresos').html(data).izzySelect2Bridge('refresh');
 
       actualizarResumenFooterCuentaIngreso();
 

@@ -1,5 +1,424 @@
 <script>
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects dinámicos sin depender de otro componente.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            /*
+             * Si quedó un wrapper visual anterior alrededor del
+             * select, recuperar el <select> original antes de usar
+             * Select2. Se detecta por estructura, no por librería.
+             */
+            var $parent = $el.parent();
+
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) {
+                        return false;
+                    }
+
+                    var normalizada = clase.toLowerCase();
+
+                    return (
+                        normalizada.indexOf('picker') === -1 &&
+                        normalizada !== 'bs-select-hidden'
+                    );
+                });
+
+            $el.attr('class', clases.join(' '));
+
+            if ($el.attr('tabindex') === '-98') {
+                $el.removeAttr('tabindex');
+            }
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySelect2LimpiarControl($select);
+
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+
+            var config = $.extend(
+                {
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    allowClear: false
+                },
+                options || {}
+            );
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+
+                if ($modal.length) {
+                    config.dropdownParent = $modal;
+                }
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySoloSelect2($select, options);
+        $select.trigger('change.select2');
+    };
+}
+
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Mantiene intacto el contenido del reporte y completa las
+   celdas internas de mergeCells con el estilo ya existente.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (matchDeclaracion) {
+                declaracion = matchDeclaracion[1];
+            }
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documento.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documento.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documento.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documento.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnaNumero(letras) {
+                var total = 0;
+                var texto = String(letras || '').toUpperCase();
+
+                for (var i = 0; i < texto.length; i++) {
+                    total = (total * 26) +
+                        (texto.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnaLetras(numero) {
+                var resultado = '';
+                var n = numero;
+
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado =
+                        String.fromCharCode(65 + resto) +
+                        resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return resultado;
+            }
+
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnaNumero(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < filas.length; i++) {
+                    if (
+                        parseInt(
+                            filas[i].getAttribute('r'),
+                            10
+                        ) === numeroFila
+                    ) {
+                        return filas[i];
+                    }
+                }
+
+                var nuevaFila = documento.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                nuevaFila.setAttribute(
+                    'r',
+                    String(numeroFila)
+                );
+
+                var insertada = false;
+
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(
+                        filas[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(
+                            nuevaFila,
+                            filas[j]
+                        );
+                        insertada = true;
+                        break;
+                    }
+                }
+
+                if (!insertada) {
+                    sheetData.appendChild(nuevaFila);
+                }
+
+                return nuevaFila;
+            }
+
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    if (
+                        celdas[i].getAttribute('r') ===
+                        referencia
+                    ) {
+                        return celdas[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(
+                        celdas[i].getAttribute('r')
+                    );
+
+                    if (
+                        refActual &&
+                        refActual.col > colNumero
+                    ) {
+                        fila.insertBefore(
+                            celda,
+                            celdas[i]
+                        );
+                        return;
+                    }
+                }
+
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var ref = merge.getAttribute('ref') || '';
+                var partes = ref.split(':');
+
+                if (partes.length !== 2) {
+                    return;
+                }
+
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+
+                if (!inicio || !fin) {
+                    return;
+                }
+
+                /* Elimina combinaciones inválidas como I3:I3. */
+                if (
+                    inicio.col === fin.col &&
+                    inicio.row === fin.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(
+                    filaInicio,
+                    columnaLetras(inicio.col) +
+                    inicio.row
+                );
+
+                if (!celdaInicio) {
+                    return;
+                }
+
+                var estilo = celdaInicio.getAttribute('s');
+
+                /*
+                 * Completa todo el rango con el mismo estilo
+                 * ya definido por el reporte. No crea estilos nuevos.
+                 */
+                for (
+                    var filaNumero = inicio.row;
+                    filaNumero <= fin.row;
+                    filaNumero++
+                ) {
+                    var fila = obtenerFila(filaNumero);
+
+                    for (
+                        var colNumero = inicio.col;
+                        colNumero <= fin.col;
+                        colNumero++
+                    ) {
+                        var referencia =
+                            columnaLetras(colNumero) +
+                            filaNumero;
+
+                        var celda = buscarCelda(
+                            fila,
+                            referencia
+                        );
+
+                        if (!celda) {
+                            celda = documento.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            celda.setAttribute(
+                                'r',
+                                referencia
+                            );
+
+                            if (
+                                estilo !== null &&
+                                estilo !== ''
+                            ) {
+                                celda.setAttribute(
+                                    's',
+                                    estilo
+                                );
+                            }
+
+                            insertarCeldaOrdenada(
+                                fila,
+                                celda,
+                                colNumero
+                            );
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales =
+                mergeCells.getElementsByTagName('mergeCell');
+
+            mergeCells.setAttribute(
+                'count',
+                String(mergeFinales.length)
+            );
+
+            var serializado =
+                new XMLSerializer().serializeToString(
+                    documento.documentElement
+                );
+
+            return declaracion
+                ? declaracion + serializado
+                : serializado;
+
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
 $(() => {
+    window.izzySoloSelect2($('#formMainCuentasContabilidad select'));
     inicializarVistaCuentas();
     listar_cuentas_contabilidad();
 
@@ -17,8 +436,8 @@ $(() => {
         }
     });
 
-    $('#formMainCuentasContabilidad #estado_cuentasContabilidad, #formMainCuentasContabilidad #tipo_cuenta, #formMainCuentasContabilidad #tipo_saldo, #formMainCuentasContabilidad #orden_cuentas').off('changed.bs.select change');
-    $('#formMainCuentasContabilidad #estado_cuentasContabilidad, #formMainCuentasContabilidad #tipo_cuenta, #formMainCuentasContabilidad #tipo_saldo, #formMainCuentasContabilidad #orden_cuentas').on('changed.bs.select change', function() {
+    $('#formMainCuentasContabilidad #estado_cuentasContabilidad, #formMainCuentasContabilidad #tipo_cuenta, #formMainCuentasContabilidad #tipo_saldo, #formMainCuentasContabilidad #orden_cuentas').off('change.cuentasFiltros');
+    $('#formMainCuentasContabilidad #estado_cuentasContabilidad, #formMainCuentasContabilidad #tipo_cuenta, #formMainCuentasContabilidad #tipo_saldo, #formMainCuentasContabilidad #orden_cuentas').on('change.cuentasFiltros', function() {
         listar_cuentas_contabilidad();
     });
 
@@ -27,12 +446,15 @@ $(() => {
         var form = this;
 
         setTimeout(function() {
+            var $selects = $(form).find('select');
+
             $(form).find('#buscar_cuenta').val('');
-            $(form).find('#estado_cuentasContabilidad').selectpicker('val', '');
-            $(form).find('#tipo_cuenta').selectpicker('val', '');
-            $(form).find('#tipo_saldo').selectpicker('val', '');
-            $(form).find('#orden_cuentas').selectpicker('val', 'neto_desc');
-            $(form).find('.selectpicker').selectpicker('refresh');
+            $(form).find('#estado_cuentasContabilidad').val('');
+            $(form).find('#tipo_cuenta').val('');
+            $(form).find('#tipo_saldo').val('');
+            $(form).find('#orden_cuentas').val('neto_desc');
+
+            window.izzySoloRefreshSelect2($selects);
 
             listar_cuentas_contabilidad();
         }, 0);
@@ -651,7 +1073,11 @@ function cuentasExportarExcel() {
         return n;
     }
 
-    function cell(ref, v, style) {
+    function cell(ref, v, style, numeric) {
+        if (numeric) {
+            var n = cuentasNumero(v);
+            return '<c r="' + ref + '" s="' + style + '"><v>' + n + '</v></c>';
+        }
         return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' + esc(v) + '</t></is></c>';
     }
 
@@ -670,7 +1096,10 @@ function cuentasExportarExcel() {
             Number(r.estado) === 1 ? 'Activa' : 'Inactiva',
             Number(r.es_inversion) === 1 ? 'Inversión' : 'Normal'
         ];
-        sheetRows.push('<row r="' + rr + '">' + vals.map(function(v,c){return cell(col(c)+rr,v,4);}).join('') + '</row>');
+        sheetRows.push('<row r="' + rr + '">' + vals.map(function(v,c){
+            var money = c >= 2 && c <= 6;
+            return cell(col(c)+rr,v,money ? 5 : 4,money);
+        }).join('') + '</row>');
     });
 
     var lastRow = Math.max(4, 4 + rows.length);
@@ -679,7 +1108,7 @@ function cuentasExportarExcel() {
         '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
         '<dimension ref="A1:I' + lastRow + '"/>' +
         '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
-        '<cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="30" customWidth="1"/><col min="3" max="7" width="18" customWidth="1"/><col min="8" max="9" width="14" customWidth="1"/></cols>' +
+        '<cols><col min="1" max="1" width="14" customWidth="1"/><col min="2" max="2" width="30" customWidth="1"/><col min="3" max="7" width="20" customWidth="1"/><col min="8" max="9" width="14" customWidth="1"/></cols>' +
         '<sheetData>' + sheetRows.join('') + '</sheetData>' +
         '<autoFilter ref="A4:I' + lastRow + '"/>' +
         '<mergeCells count="2"><mergeCell ref="A1:I1"/><mergeCell ref="A2:I2"/></mergeCells>' +
@@ -688,11 +1117,12 @@ function cuentasExportarExcel() {
     var stylesXml =
         '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
         '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+        '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>' +
         '<fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts>' +
         '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill></fills>' +
         '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders>' +
         '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-        '<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs>' +
+        '<cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf></cellXfs>' +
         '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
     var workbookXml = '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
@@ -710,7 +1140,7 @@ function cuentasExportarExcel() {
     zip.folder('xl').file('workbook.xml', workbookXml);
     zip.folder('xl').file('styles.xml', stylesXml);
     zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml', window.izzyExcelCompletarBordesCombinados(sheetXml));
 
     var opts = {type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression:'DEFLATE'};
     var promise = typeof zip.generateAsync === 'function'
@@ -824,11 +1254,11 @@ function cuentasExportarPdf() {
             body.push([
                 {text:String(r.codigo || ''),style:'td',fillColor:fill},
                 {text:String(r.nombre || ''),style:'td',fillColor:fill},
-                {text:String(r.saldo_anterior || ''),style:'tdn',fillColor:fill},
-                {text:String(r.ingreso || ''),style:'tdn',fillColor:fill,color:'#14804A'},
-                {text:String(r.egreso || ''),style:'tdn',fillColor:fill,color:'#C9372C'},
-                {text:String(r.saldo_cierre || ''),style:'tdn',fillColor:fill},
-                {text:String(r.neto || ''),style:'tdn',fillColor:fill,bold:true,color:cuentasNumero(r.neto) >= 0 ? '#14804A' : '#C9372C'},
+                {text:cuentasFormato(r.saldo_anterior),style:'tdn',fillColor:fill},
+                {text:cuentasFormato(r.ingreso),style:'tdn',fillColor:fill,color:'#14804A'},
+                {text:cuentasFormato(r.egreso),style:'tdn',fillColor:fill,color:'#C9372C'},
+                {text:cuentasFormato(r.saldo_cierre),style:'tdn',fillColor:fill},
+                {text:cuentasFormato(r.neto),style:'tdn',fillColor:fill,bold:true,color:cuentasNumero(r.neto) >= 0 ? '#14804A' : '#C9372C'},
                 {text:Number(r.estado) === 1 ? 'Activa' : 'Inactiva',style:'td',fillColor:fill},
                 {text:Number(r.es_inversion) === 1 ? 'Inversión' : 'Normal',style:'td',fillColor:fill}
             ]);

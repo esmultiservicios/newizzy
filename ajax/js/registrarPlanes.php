@@ -1211,9 +1211,9 @@
             zip.file("[Content_Types].xml", contentTypes);
             zip.folder("_rels").file(".rels", rootRels);
             zip.folder("xl").file("workbook.xml", workbookXml);
-            zip.folder("xl").file("styles.xml", stylesXml);
+            zip.folder("xl").file("styles.xml", (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
             zip.folder("xl").folder("_rels").file("workbook.xml.rels", workbookRels);
-            zip.folder("xl").folder("worksheets").file("sheet1.xml", sheetXml);
+            zip.folder("xl").folder("worksheets").file("sheet1.xml", (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
             const opciones = {
                 type: "blob",
@@ -2977,9 +2977,9 @@
             zip.file("[Content_Types].xml", contentTypes);
             zip.folder("_rels").file(".rels", rootRels);
             zip.folder("xl").file("workbook.xml", workbookXml);
-            zip.folder("xl").file("styles.xml", planesAuxExcelStyleXml());
+            zip.folder("xl").file("styles.xml", (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(planesAuxExcelStyleXml()) : planesAuxExcelStyleXml()));
             zip.folder("xl").folder("_rels").file("workbook.xml.rels", workbookRels);
-            zip.folder("xl").folder("worksheets").file("sheet1.xml", sheetXml);
+            zip.folder("xl").folder("worksheets").file("sheet1.xml", (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
             const opciones = {
                 type: "blob",

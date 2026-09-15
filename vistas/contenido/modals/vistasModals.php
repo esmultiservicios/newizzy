@@ -1351,6 +1351,7 @@
  class="col-12 izzy-select2"
  data-width="100%"
  title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
+                                                                            <option value=""></option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1444,6 +1445,7 @@
  class="col-12 izzy-select2"
  data-width="100%"
  title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
+                                                                            <option value=""></option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1556,6 +1558,7 @@
  class="col-12 izzy-select2"
  data-width="100%"
  title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
+                                                                            <option value=""></option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1648,6 +1651,7 @@
  class="col-12 izzy-select2"
  data-width="100%"
  title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
+                                                                            <option value=""></option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1732,6 +1736,7 @@
  class="col-12 izzy-select2"
  data-width="100%"
  title="Usuario que Recibe" data-placeholder="Usuario que Recibe">
+                                                                            <option value=""></option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1922,7 +1927,9 @@
 
                 <div class="payment-form-group">
                   <select id="usuario_efectivo" name="usuario_efectivo" class="form-control izzy-select2"
- title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe">
+                    <option value=""></option>
+                  </select>
                   <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -1986,7 +1993,9 @@
 
                 <div class="payment-form-group">
                   <select id="usuario_tarjeta" name="usuario_tarjeta" class="form-control izzy-select2"
- title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe">
+                    <option value=""></option>
+                  </select>
                     <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2041,7 +2050,9 @@
 
                 <div class="payment-form-group">
                   <select id="usuario_transferencia" name="usuario_transferencia" class="form-control izzy-select2"
- title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe">
+                    <option value=""></option>
+                  </select>
                   <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2095,7 +2106,9 @@
 
                 <div class="payment-form-group">
                   <select id="usuario_cheque" name="usuario_cheque" class="form-control izzy-select2"
- title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe">
+                    <option value=""></option>
+                  </select>
                     <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 
@@ -2153,7 +2166,9 @@
 
                 <div class="payment-form-group">
                   <select id="usuario_puntos" name="usuario_puntos" class="form-control izzy-select2"
- title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe"></select>
+ title="Usuario que Recibe" data-width="100%" data-placeholder="Usuario que Recibe">
+                    <option value=""></option>
+                  </select>
                 <small class="payment-help-text"><i class="fas fa-info-circle"></i>Opcional, pero recomendado para control y auditoría.</small>
                 </div>
 

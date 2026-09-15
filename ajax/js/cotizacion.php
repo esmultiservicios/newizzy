@@ -1,4 +1,118 @@
 <script>
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects dinámicos sin depender de otro componente.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            /*
+             * Si quedó un wrapper visual anterior alrededor del
+             * select, recuperar el <select> original antes de usar
+             * Select2. Se detecta por estructura, no por librería.
+             */
+            var $parent = $el.parent();
+
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) {
+                        return false;
+                    }
+
+                    var normalizada = clase.toLowerCase();
+
+                    return (
+                        normalizada.indexOf('picker') === -1 &&
+                        normalizada !== 'bs-select-hidden'
+                    );
+                });
+
+            $el.attr('class', clases.join(' '));
+
+            if ($el.attr('tabindex') === '-98') {
+                $el.removeAttr('tabindex');
+            }
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySelect2LimpiarControl($select);
+
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+
+            var config = $.extend(
+                {
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    allowClear: false
+                },
+                options || {}
+            );
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+
+                if ($modal.length) {
+                    config.dropdownParent = $modal;
+                }
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySoloSelect2($select, options);
+        $select.trigger('change.select2');
+    };
+}
+
     $(() => {
         cleanQuote();
         getVigencia();
@@ -2366,13 +2480,8 @@ $('#editarPrecioModal').on('hidden.bs.modal.editarPrecioCotizacion', function ()
 
         if (!$('#cotizacionFiltroProductosCard').length) {
             var $select = $form.find('#almacen');
-            var $selectVisual = $select.closest('.bootstrap-select');
 
-            if (!$selectVisual.length) {
-                $selectVisual = $select;
-            } else {
-                $selectVisual = $selectVisual.add($select);
-            }
+            window.izzySelect2LimpiarControl($select);
 
             var $card = $(
                 '<div class="fm-section-card mb-3" id="cotizacionFiltroProductosCard">' +
@@ -2389,7 +2498,15 @@ $('#editarPrecioModal').on('hidden.bs.modal.editarPrecioCotizacion', function ()
             );
 
             $form.prepend($card);
-            $('#cotizacionFiltroBodegaHost').append($selectVisual);
+
+            $('#cotizacionFiltroBodegaHost').append($select);
+
+            window.izzySoloSelect2(
+                $select,
+                {
+                    dropdownParent: $modal
+                }
+            );
 
             $form.children('.form-group').not('#cotizacionFiltroProductosCard').each(function () {
                 if (!$(this).find('input,select,textarea').length) {
@@ -2397,9 +2514,12 @@ $('#editarPrecioModal').on('hidden.bs.modal.editarPrecioCotizacion', function ()
                 }
             });
 
-            try {
-                $select.selectpicker('refresh');
-            } catch (e) {}
+            window.izzySoloRefreshSelect2(
+                $select,
+                {
+                    dropdownParent: $modal
+                }
+            );
         }
 
         if (!$('#productosCotizacionListado').length) {

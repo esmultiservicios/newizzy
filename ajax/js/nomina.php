@@ -14,7 +14,7 @@ $(() => {
     listar_nominas();
 
     $('#form_main_nominas #estado_nomina').val(0);
-    $('#form_main_nominas #estado_nomina').selectpicker('refresh');
+    $('#form_main_nominas #estado_nomina').izzySelect2Bridge('refresh');
 
     $('#form_main_nominas #search').on("click", function(e) {
         e.preventDefault();
@@ -23,7 +23,7 @@ $(() => {
 
     // Evento para el botón de Limpiar (reset)
     $('#form_main_nominas').on('reset', function() {
-        $(this).find('.selectpicker').val('').selectpicker('refresh');
+        $(this).find('.izzy-select2').val('').izzySelect2Bridge('refresh');
         listar_nominas();
     });	   
 });
@@ -346,7 +346,7 @@ $('#formNominaDetalles #nomina_id').val(data.nomina_id);
         $("#form_main_nominas_detalles #nomina_id").val(data.nomina_id);
         $('#formNominaDetalles #nominad_detalle').val(data.detalle);
         $('#formNominaDetalles #pago_planificado_id').val(data.pago_planificado_id);
-        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado).selectpicker('refresh');
+        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado).izzySelect2Bridge('refresh');
         $('#form_main_nominas_detalles #fecha_inicio').val(data.fecha_inicio);
         $('#form_main_nominas_detalles #fecha_fin').val(data.fecha_fin);
 
@@ -394,14 +394,14 @@ var url = '<?php echo SERVERURL;?>core/editarNominas.php';
 
                 // Cargar valores
                 $('#formNomina #nomina_detale').val(valores[0]);
-                $('#formNomina #nomina_pago_planificado_id').val(valores[1]).selectpicker('refresh');
-                $('#formNomina #nomina_empresa_id').val(valores[2]).selectpicker('refresh');
+                $('#formNomina #nomina_pago_planificado_id').val(valores[1]).izzySelect2Bridge('refresh');
+                $('#formNomina #nomina_empresa_id').val(valores[2]).izzySelect2Bridge('refresh');
                 $('#formNomina #nomina_fecha_inicio').val(valores[3]);
                 $('#formNomina #nomina_fecha_fin').val(valores[4]);
                 $('#formNomina #nomina_importe').val(valores[5]);
                 $('#formNomina #nomina_notas').val(valores[6]);
-                $('#formNomina #tipo_nomina').val(valores[8]).selectpicker('refresh');
-                $('#formNomina #pago_nomina').val(valores[9]).selectpicker('refresh');
+                $('#formNomina #tipo_nomina').val(valores[8]).izzySelect2Bridge('refresh');
+                $('#formNomina #pago_nomina').val(valores[9]).izzySelect2Bridge('refresh');
 
                 if (data.estado == 1) {
                     $('#edi_nomina').attr('disabled', true);
@@ -514,7 +514,7 @@ var url = '<?php echo SERVERURL;?>core/editarNominasDetalles.php';
                 $('#formNominaDetalles #colaboradores_id').val(valores[31]);
 
                 $('#formNominaDetalles #nominad_numero').val(valores[0]);
-                $('#formNominaDetalles #nominad_empleados').val(valores[31]).selectpicker('refresh');
+                $('#formNominaDetalles #nominad_empleados').val(valores[31]).izzySelect2Bridge('refresh');
                 $('#formNominaDetalles #nominad_puesto').val(valores[5]);
                 $('#formNominaDetalles #nominad_identidad').val(valores[6]);
                 $('#formNominaDetalles #nominad_contrato_id').val(valores[7]);
@@ -621,7 +621,7 @@ var url = '<?php echo SERVERURL;?>core/editarNominasDetalles.php';
                 $('#formNominaDetalles #nomina_id').val(valores[0]);
                 $('#formNominaDetalles #nomina_detalles_id').val(valores[1]);
                 $('#formNominaDetalles #pago_planificado_id').val(valores[2]);
-                $('#formNominaDetalles #colaboradores_id').val(valores[3]).selectpicker('refresh');
+                $('#formNominaDetalles #colaboradores_id').val(valores[3]).izzySelect2Bridge('refresh');
                 $('#formNominaDetalles #nominad_numero').val(valores[0]);
                 $('#formNominaDetalles #nominad_empleados').val(valores[4]);
                 $('#formNominaDetalles #nominad_puesto').val(valores[5]);
@@ -816,7 +816,7 @@ var crear_nominas_dataTable = function(tbody, table) {
         $("#form_main_nominas_detalles #nomina_id").val(data.nomina_id);
         $('#formNominaDetalles #nominad_detalle').val(data.detalle);
         $('#formNominaDetalles #pago_planificado_id').val(data.pago_planificado_id);
-        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado).selectpicker('refresh');
+        $('#form_main_nominas_detalles #estado_nomina_detalles').val(data.estado).izzySelect2Bridge('refresh');
         $('#form_main_nominas_detalles #fecha_inicio').val(data.fecha_inicio);
         $('#form_main_nominas_detalles #fecha_fin').val(data.fecha_fin);
 
@@ -897,14 +897,14 @@ var editar_nominas_dataTable = function(tbody, table) {
 
                 // Cargar valores
                 $('#formNomina #nomina_detale').val(valores[0]);
-                $('#formNomina #nomina_pago_planificado_id').val(valores[1]).selectpicker('refresh');
-                $('#formNomina #nomina_empresa_id').val(valores[2]).selectpicker('refresh');
+                $('#formNomina #nomina_pago_planificado_id').val(valores[1]).izzySelect2Bridge('refresh');
+                $('#formNomina #nomina_empresa_id').val(valores[2]).izzySelect2Bridge('refresh');
                 $('#formNomina #nomina_fecha_inicio').val(valores[3]);
                 $('#formNomina #nomina_fecha_fin').val(valores[4]);
                 $('#formNomina #nomina_importe').val(valores[5]);
                 $('#formNomina #nomina_notas').val(valores[6]);
-                $('#formNomina #tipo_nomina').val(valores[8]).selectpicker('refresh');
-                $('#formNomina #pago_nomina').val(valores[9]).selectpicker('refresh');
+                $('#formNomina #tipo_nomina').val(valores[8]).izzySelect2Bridge('refresh');
+                $('#formNomina #pago_nomina').val(valores[9]).izzySelect2Bridge('refresh');
 
                 if (data.estado == 1) {
                     $('#edi_nomina').attr('disabled', true);
@@ -1008,8 +1008,8 @@ function modal_nominas() {
     $('#edi_nomina').hide();
     $('#delete_nomina').hide();
 
-    $('#formNomina #nomina_empresa_id').val(1).selectpicker('refresh');
-    $('#formNomina #tipo_nomina').val(1).selectpicker('refresh');
+    $('#formNomina #nomina_empresa_id').val(1).izzySelect2Bridge('refresh');
+    $('#formNomina #tipo_nomina').val(1).izzySelect2Bridge('refresh');
 
     $("#formNomina #grupo_salario").hide();
 
@@ -1064,7 +1064,7 @@ $(document).off('submit', '#formNomina').on('submit', '#formNomina', function (e
         if (res.status === 'success') {
             $('#modal_registrar_nomina').modal('hide');
             $form[0].reset();
-            $form.find('.selectpicker').selectpicker('refresh');
+            $form.find('.izzy-select2').izzySelect2Bridge('refresh');
 
             if (res.run) { try { eval(res.run); } catch(e){} }
 
@@ -1314,8 +1314,8 @@ function getTipoNomina() {
         url: url,
         async: true,
         success: function(data) {
-            $('#formNomina #tipo_nomina').html("").html(data).selectpicker('refresh');
-            $('#formNomina #tipo_nomina').val(1).selectpicker('refresh');
+            $('#formNomina #tipo_nomina').html("").html(data).izzySelect2Bridge('refresh');
+            $('#formNomina #tipo_nomina').val(1).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -1327,7 +1327,7 @@ function getTipoContrato() {
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_nominas #tipo_contrato_nomina').html("").html(data).selectpicker('refresh');
+            $('#form_main_nominas #tipo_contrato_nomina').html("").html(data).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -1339,8 +1339,8 @@ function getPagoPlanificado() {
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_nominas #pago_planificado_nomina').html("").html(data).selectpicker('refresh');
-            $('#formNomina #nomina_pago_planificado_id').html("").html(data).selectpicker('refresh');
+            $('#form_main_nominas #pago_planificado_nomina').html("").html(data).izzySelect2Bridge('refresh');
+            $('#formNomina #nomina_pago_planificado_id').html("").html(data).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -1352,7 +1352,7 @@ function getTipoEmpleado() {
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_contrato #tipo_empleado').html("").html(data).selectpicker('refresh');
+            $('#form_main_contrato #tipo_empleado').html("").html(data).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -1372,17 +1372,17 @@ function getEmpresa() {
                 });
                 if(response.data.length > 0) {
                     select.val(1);
-                    select.selectpicker('refresh');
+                    select.izzySelect2Bridge('refresh');
                 }
             } else {
                 select.append('<option value="">No hay empresas disponibles</option>');
                 showNotify("warning", "Advertencia", response.message || "No se encontraron empresas");
             }
-            select.selectpicker('refresh');
+            select.izzySelect2Bridge('refresh');
         },
         error: function() {
             showNotify("error", "Error", "Error de conexión al cargar empresas");
-            $('#formNomina #nomina_empresa_id').html('<option value="">Error al cargar</option>').selectpicker('refresh');
+            $('#formNomina #nomina_empresa_id').html('<option value="">Error al cargar</option>').izzySelect2Bridge('refresh');
         }
     });
 }
@@ -1399,15 +1399,15 @@ function getEmpleado() {
 
       // Modal Nomina Detalles (alta/edición)
       $('#formNominaDetalles #nominad_empleados')
-        .html(opciones).selectpicker('refresh');
+        .html(opciones).izzySelect2Bridge('refresh');
 
       // Filtro en la vista de detalles (ESTE ES EL QUE TE FALTABA)
       $('#form_main_nominas_detalles #detalle_nomina_empleado')
-        .html(opciones).selectpicker('refresh');
+        .html(opciones).izzySelect2Bridge('refresh');
 
       // Por si quieres también mantener este otro (vales)
       $('#formVales #vale_empleado')
-        .html(opciones).selectpicker('refresh');
+        .html(opciones).izzySelect2Bridge('refresh');
     },
     error: function(){
       showNotify('error', 'Error', 'Error de conexión al cargar empleados');
@@ -1422,7 +1422,7 @@ function getEmpleadoVales() {
         url: url,
         async: true,
         success: function(data) {
-            $('#formVales #vale_empleado').html("").html(data).selectpicker('refresh');
+            $('#formVales #vale_empleado').html("").html(data).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -1542,7 +1542,7 @@ var editar_nominas_detalles_dataTable = function(tbody, table) {
                 $('#formNominaDetalles #colaboradores_id').val(valores[31]);
 
                 $('#formNominaDetalles #nominad_numero').val(valores[0]);
-                $('#formNominaDetalles #nominad_empleados').val(valores[31]).selectpicker('refresh');
+                $('#formNominaDetalles #nominad_empleados').val(valores[31]).izzySelect2Bridge('refresh');
                 $('#formNominaDetalles #nominad_puesto').val(valores[5]);
                 $('#formNominaDetalles #nominad_identidad').val(valores[6]);
                 $('#formNominaDetalles #nominad_contrato_id').val(valores[7]);
@@ -1653,7 +1653,7 @@ var eliminar_nominas_detalles_dataTable = function(tbody, table) {
                 $('#formNominaDetalles #nomina_id').val(valores[0]);
                 $('#formNominaDetalles #nomina_detalles_id').val(valores[1]);
                 $('#formNominaDetalles #pago_planificado_id').val(valores[2]);
-                $('#formNominaDetalles #colaboradores_id').val(valores[3]).selectpicker('refresh');
+                $('#formNominaDetalles #colaboradores_id').val(valores[3]).izzySelect2Bridge('refresh');
                 $('#formNominaDetalles #nominad_numero').val(valores[0]);
                 $('#formNominaDetalles #nominad_empleados').val(valores[4]);
                 $('#formNominaDetalles #nominad_puesto').val(valores[5]);
@@ -1882,7 +1882,7 @@ function getCuentaNominas() {
         url: url,
         async: true,
         success: function(data) {
-            $('#formNomina #pago_nomina').html("").html(data).selectpicker('refresh');
+            $('#formNomina #pago_nomina').html("").html(data).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -2169,7 +2169,7 @@ $(() => {
     $('#btnNominaDetalleActualizar').on('click.nominaUI',listar_nominas_detalles);
     $('#btnNominaDetalleAgregar').on('click.nominaUI',modalNominasDetalles);
     $('#btnNominaDetalleFiltrar').on('click.nominaUI',listar_nominas_detalles);
-    $('#btnNominaDetalleLimpiar').on('click.nominaUI',function(){$('#detalle_nomina_empleado').val('').selectpicker('refresh');listar_nominas_detalles();});
+    $('#btnNominaDetalleLimpiar').on('click.nominaUI',function(){$('#detalle_nomina_empleado').val('').izzySelect2Bridge('refresh');listar_nominas_detalles();});
 
     $('#nominaListado')
       .on('click.nominaUI','.nomina-ui-generar',function(){var r=nominaUI.filtered[parseInt($(this).data('index'),10)];if(r)nominaUIAccionGenerar(r);})
@@ -2209,21 +2209,24 @@ $(() => {
 function escXml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function colName(i){var n='';while(i>=0){n=String.fromCharCode((i%26)+65)+n;i=Math.floor(i/26)-1;}return n;}
 function cell(ref,v,s,numeric){if(numeric){var x=nominaNum(v);return '<c r="'+ref+'" s="'+s+'" t="n"><v>'+x+'</v></c>';}return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t>'+escXml(v)+'</t></is></c>';}
-function xlsx(rows,headers,map,file,sheet){
+function reportMoney(v){return 'L. ' + nominaNum(v).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function xlsx(rows,headers,map,file,sheet,moneyCols){
+    moneyCols=Array.isArray(moneyCols)?moneyCols:[];
     if(typeof JSZip==='undefined'){showNotify('error','Excel no disponible','JSZip no está disponible.');return;}
     var sr=[];
     sr.push('<row r="1" ht="30" customHeight="1">'+cell('A1','IZZY • '+sheet.toUpperCase(),1,false)+'</row>');
     sr.push('<row r="2">'+cell('A2','Generado: '+new Date().toLocaleDateString('es-HN')+' • '+rows.length+' registro(s)',2,false)+'</row>');
     sr.push('<row r="4" ht="26" customHeight="1">'+headers.map(function(h,i){return cell(colName(i)+'4',h,3,false);}).join('')+'</row>');
-    rows.forEach(function(r,i){var rr=5+i;sr.push('<row r="'+rr+'">'+map(r).map(function(v,c){return cell(colName(c)+rr,v,4,false);}).join('')+'</row>');});
+    rows.forEach(function(r,i){var rr=5+i;sr.push('<row r="'+rr+'">'+map(r).map(function(v,c){var money=moneyCols.indexOf(c)!==-1;return cell(colName(c)+rr,v,money?5:4,money);}).join('')+'</row>');});
     var last=colName(headers.length-1),lastRow=Math.max(4,4+rows.length);
-    var sheetXml='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+last+lastRow+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>'+sr.join('')+'</sheetData><autoFilter ref="A4:'+last+lastRow+'"/><mergeCells count="2"><mergeCell ref="A1:'+last+'1"/><mergeCell ref="A2:'+last+'2"/></mergeCells></worksheet>';
-    var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+    var cols=headers.map(function(h,i){var w=moneyCols.indexOf(i)!==-1?20:Math.min(34,Math.max(14,String(h||'').length+7));return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';}).join('');
+    var sheetXml='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+last+lastRow+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+cols+'</cols><sheetData>'+sr.join('')+'</sheetData><autoFilter ref="A4:'+last+lastRow+'"/><mergeCells count="2"><mergeCell ref="A1:'+last+'1"/><mergeCell ref="A2:'+last+'2"/></mergeCells></worksheet>';
+    var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts><fonts count="5"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
     var wb='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+escXml(sheet)+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
     var wr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
     var rr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
     var ct='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
-    var z=new JSZip();z.file('[Content_Types].xml',ct);z.folder('_rels').file('.rels',rr);z.folder('xl').file('workbook.xml',wb);z.folder('xl').file('styles.xml',styles);z.folder('xl').folder('_rels').file('workbook.xml.rels',wr);z.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+    var z=new JSZip();z.file('[Content_Types].xml',ct);z.folder('_rels').file('.rels',rr);z.folder('xl').file('workbook.xml',wb);z.folder('xl').file('styles.xml',(window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(styles) : styles));z.folder('xl').folder('_rels').file('workbook.xml.rels',wr);z.folder('xl').folder('worksheets').file('sheet1.xml',(window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
     var opt={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
     var p=typeof z.generateAsync==='function'?z.generateAsync(opt):Promise.resolve(z.generate(opt));
     p.then(function(blob){var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=file;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},1000);}).catch(function(e){console.error(e);showNotify('error','Excel','No se pudo generar el archivo.');});
@@ -2235,9 +2238,9 @@ function pdf(rows,title,headers,map,file){
     var doc={pageSize:'LETTER',pageOrientation:'landscape',pageMargins:[28,30,28,34],header:function(){return {margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:736,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},footer:function(p,pc){return {margin:[28,8,28,0],columns:[{text:'IZZY • Nómina',fontSize:7,color:'#7A869A'},{text:'Página '+p+' de '+pc,fontSize:7,color:'#7A869A',alignment:'right'}]};},content:[{table:{widths:[110,'*',120],body:[[{text:'IZZY',bold:true,fontSize:18,color:'#17324D',fillColor:'#FFFFFF',margin:[10,9,10,9]},{stack:[{text:title.toUpperCase(),bold:true,fontSize:16,color:'#FFFFFF'},{text:'Reporte ejecutivo de nómina',fontSize:8,color:'#D8E5F0'}],fillColor:'#17324D',margin:[8,10,8,10]},{stack:[{text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},{text:rows.length+' registro(s)',fontSize:7,color:'#D8E5F0',alignment:'right'}],fillColor:'#17324D',margin:[8,10,10,10]}]]},layout:'noBorders',margin:[0,0,0,12]},{table:{headerRows:1,widths:Array(headers.length).fill('*'),body:body},layout:'lightHorizontalLines'}]};
     pdfMake.createPdf(doc).getDataUrl(function(url){abrirModalPdfPublico(url,title,file);});
 }
-$('#btnNominaExcel').off('click.nominaExport').on('click.nominaExport',function(){xlsx(nominaUI.filtered||[],['Código','Detalle','Empresa','Inicio','Fin','Importe','Notas','Estado'],function(r){return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,nominaMoney(r.importe),r.notas,Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Empleados.xlsx','Nómina');});
-$('#btnNominaPdf').off('click.nominaExport').on('click.nominaExport',function(){pdf(nominaUI.filtered||[],'Reporte de Nómina',['Código','Detalle','Empresa','Inicio','Fin','Importe','Estado'],function(r){return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,nominaMoney(r.importe),Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Empleados.pdf');});
-$('#btnNominaDetalleExcel').off('click.nominaExport').on('click.nominaExport',function(){xlsx(nominaDetalleUI.filtered||[],['Nómina','Contrato','Empresa','Empleado','Ingresos','Egresos','Neto','Notas','Estado'],function(r){return [r.nomina_id,r.contrato,r.empresa,r.empleado,nominaMoney(r.neto_ingresos),nominaMoney(r.neto_egresos),nominaMoney(r.neto),r.notas,Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Detalle_Empleados.xlsx','Detalle Nómina');});
-$('#btnNominaDetallePdf').off('click.nominaExport').on('click.nominaExport',function(){pdf(nominaDetalleUI.filtered||[],'Detalle de Nómina',['Empleado','Contrato','Empresa','Ingresos','Egresos','Neto','Estado'],function(r){return [r.empleado,r.contrato,r.empresa,nominaMoney(r.neto_ingresos),nominaMoney(r.neto_egresos),nominaMoney(r.neto),Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Detalle_Empleados.pdf');});
+$('#btnNominaExcel').off('click.nominaExport').on('click.nominaExport',function(){xlsx(nominaUI.filtered||[],['Código','Detalle','Empresa','Inicio','Fin','Importe','Notas','Estado'],function(r){return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,nominaNum(r.importe),r.notas,Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Empleados.xlsx','Nómina',[5]);});
+$('#btnNominaPdf').off('click.nominaExport').on('click.nominaExport',function(){pdf(nominaUI.filtered||[],'Reporte de Nómina',['Código','Detalle','Empresa','Inicio','Fin','Importe','Estado'],function(r){return [r.nomina_id,r.detalle,r.empresa,r.fecha_inicio,r.fecha_fin,reportMoney(r.importe),Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Empleados.pdf');});
+$('#btnNominaDetalleExcel').off('click.nominaExport').on('click.nominaExport',function(){xlsx(nominaDetalleUI.filtered||[],['Nómina','Contrato','Empresa','Empleado','Ingresos','Egresos','Neto','Notas','Estado'],function(r){return [r.nomina_id,r.contrato,r.empresa,r.empleado,nominaNum(r.neto_ingresos),nominaNum(r.neto_egresos),nominaNum(r.neto),r.notas,Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Detalle_Empleados.xlsx','Detalle Nómina',[4,5,6]);});
+$('#btnNominaDetallePdf').off('click.nominaExport').on('click.nominaExport',function(){pdf(nominaDetalleUI.filtered||[],'Detalle de Nómina',['Empleado','Contrato','Empresa','Ingresos','Egresos','Neto','Estado'],function(r){return [r.empleado,r.contrato,r.empresa,reportMoney(r.neto_ingresos),reportMoney(r.neto_egresos),reportMoney(r.neto),Number(r.estado)===1?'Generada':'Sin Generar'];},'Nomina_Detalle_Empleados.pdf');});
 })();
 </script>

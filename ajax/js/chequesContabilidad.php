@@ -1,4 +1,422 @@
 <script>
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects dinámicos sin depender de otro componente.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            /*
+             * Si quedó un wrapper visual anterior alrededor del
+             * select, recuperar el <select> original antes de usar
+             * Select2. Se detecta por estructura, no por librería.
+             */
+            var $parent = $el.parent();
+
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) {
+                        return false;
+                    }
+
+                    var normalizada = clase.toLowerCase();
+
+                    return (
+                        normalizada.indexOf('picker') === -1 &&
+                        normalizada !== 'bs-select-hidden'
+                    );
+                });
+
+            $el.attr('class', clases.join(' '));
+
+            if ($el.attr('tabindex') === '-98') {
+                $el.removeAttr('tabindex');
+            }
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySelect2LimpiarControl($select);
+
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+
+            var config = $.extend(
+                {
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    allowClear: false
+                },
+                options || {}
+            );
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+
+                if ($modal.length) {
+                    config.dropdownParent = $modal;
+                }
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySoloSelect2($select, options);
+        $select.trigger('change.select2');
+    };
+}
+
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Mantiene intacto el contenido del reporte y completa las
+   celdas internas de mergeCells con el estilo ya existente.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (matchDeclaracion) {
+                declaracion = matchDeclaracion[1];
+            }
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documento.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documento.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documento.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documento.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnaNumero(letras) {
+                var total = 0;
+                var texto = String(letras || '').toUpperCase();
+
+                for (var i = 0; i < texto.length; i++) {
+                    total = (total * 26) +
+                        (texto.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnaLetras(numero) {
+                var resultado = '';
+                var n = numero;
+
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado =
+                        String.fromCharCode(65 + resto) +
+                        resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return resultado;
+            }
+
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnaNumero(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < filas.length; i++) {
+                    if (
+                        parseInt(
+                            filas[i].getAttribute('r'),
+                            10
+                        ) === numeroFila
+                    ) {
+                        return filas[i];
+                    }
+                }
+
+                var nuevaFila = documento.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                nuevaFila.setAttribute(
+                    'r',
+                    String(numeroFila)
+                );
+
+                var insertada = false;
+
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(
+                        filas[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(
+                            nuevaFila,
+                            filas[j]
+                        );
+                        insertada = true;
+                        break;
+                    }
+                }
+
+                if (!insertada) {
+                    sheetData.appendChild(nuevaFila);
+                }
+
+                return nuevaFila;
+            }
+
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    if (
+                        celdas[i].getAttribute('r') ===
+                        referencia
+                    ) {
+                        return celdas[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(
+                        celdas[i].getAttribute('r')
+                    );
+
+                    if (
+                        refActual &&
+                        refActual.col > colNumero
+                    ) {
+                        fila.insertBefore(
+                            celda,
+                            celdas[i]
+                        );
+                        return;
+                    }
+                }
+
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var ref = merge.getAttribute('ref') || '';
+                var partes = ref.split(':');
+
+                if (partes.length !== 2) {
+                    return;
+                }
+
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+
+                if (!inicio || !fin) {
+                    return;
+                }
+
+                /* Elimina combinaciones inválidas como I3:I3. */
+                if (
+                    inicio.col === fin.col &&
+                    inicio.row === fin.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(
+                    filaInicio,
+                    columnaLetras(inicio.col) +
+                    inicio.row
+                );
+
+                if (!celdaInicio) {
+                    return;
+                }
+
+                var estilo = celdaInicio.getAttribute('s');
+
+                /*
+                 * Completa todo el rango con el mismo estilo
+                 * ya definido por el reporte. No crea estilos nuevos.
+                 */
+                for (
+                    var filaNumero = inicio.row;
+                    filaNumero <= fin.row;
+                    filaNumero++
+                ) {
+                    var fila = obtenerFila(filaNumero);
+
+                    for (
+                        var colNumero = inicio.col;
+                        colNumero <= fin.col;
+                        colNumero++
+                    ) {
+                        var referencia =
+                            columnaLetras(colNumero) +
+                            filaNumero;
+
+                        var celda = buscarCelda(
+                            fila,
+                            referencia
+                        );
+
+                        if (!celda) {
+                            celda = documento.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            celda.setAttribute(
+                                'r',
+                                referencia
+                            );
+
+                            if (
+                                estilo !== null &&
+                                estilo !== ''
+                            ) {
+                                celda.setAttribute(
+                                    's',
+                                    estilo
+                                );
+                            }
+
+                            insertarCeldaOrdenada(
+                                fila,
+                                celda,
+                                colNumero
+                            );
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales =
+                mergeCells.getElementsByTagName('mergeCell');
+
+            mergeCells.setAttribute(
+                'count',
+                String(mergeFinales.length)
+            );
+
+            var serializado =
+                new XMLSerializer().serializeToString(
+                    documento.documentElement
+                );
+
+            return declaracion
+                ? declaracion + serializado
+                : serializado;
+
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
 (function($){
     'use strict';
 
@@ -74,7 +492,7 @@
             $select.val(value);
         }
 
-        if ($.fn.selectpicker) $select.selectpicker('refresh');
+        window.izzySoloRefreshSelect2($select);
     }
 
     function cargarCatalogos(callback) {
@@ -102,16 +520,16 @@
             var $cuenta = $('#cheque_cuenta');
             if (cuenta) {
                 $cuenta.html('<option value="'+chequesEsc(cuenta.cuentas_id)+'">'+chequesEsc((cuenta.codigo?cuenta.codigo+' - ':'')+cuenta.cuenta)+'</option>').val(String(cuenta.cuentas_id));
-                if ($.fn.selectpicker) $cuenta.selectpicker('refresh');
+                window.izzySoloRefreshSelect2($cuenta);
 
                 $('#cheque_saldo_cuenta').text('Saldo disponible: '+chequesMoney(cuenta.saldo));
                 $('#resumenCuentaCheque').text((cuenta.codigo?cuenta.codigo+' - ':'')+cuenta.cuenta);
                 $('#resumenSaldoCheque').text(chequesMoney(cuenta.saldo));
                 $('#config_cuenta_cheque').val(String(cuenta.cuentas_id));
-                if ($.fn.selectpicker) $('#config_cuenta_cheque').selectpicker('refresh');
+                window.izzySoloRefreshSelect2($('#config_cuenta_cheque'));
             } else {
                 $cuenta.html('<option value="">No configurada</option>');
-                if ($.fn.selectpicker) $cuenta.selectpicker('refresh');
+                window.izzySoloRefreshSelect2($cuenta);
                 $('#cheque_saldo_cuenta').text('Saldo disponible: L. 0.00');
                 $('#resumenCuentaCheque').text('No configurada');
                 $('#resumenSaldoCheque').text('L. 0.00');
@@ -330,7 +748,7 @@
             $('#formCheque')[0].reset();
             $('#cheque_fecha').val(new Date().toISOString().slice(0,10));
             $('#cheque_proveedor,#cheque_categoria').val('');
-            if($.fn.selectpicker)$('#cheque_proveedor,#cheque_categoria').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#cheque_proveedor,#cheque_categoria'));
             actualizarSaldoDespuesCheque();
             $('#modalCheque').modal({show:true,keyboard:true,backdrop:'static'});
             $('#modalCheque').one('shown.bs.modal',function(){$('#cheque_numero').focus();});
@@ -447,7 +865,7 @@
                 $('#modalConfigCuentaCheque').modal({show:true,keyboard:true,backdrop:'static'});
                 $('#modalConfigCuentaCheque').one('shown.bs.modal',function(){
                     actualizarVistaConfigCuentaCheque();
-                    if($.fn.selectpicker) $('#config_cuenta_cheque').selectpicker('refresh');
+                    window.izzySoloRefreshSelect2($('#config_cuenta_cheque'));
                 });
             });
         },{
@@ -780,30 +1198,46 @@
 
         function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
         function col(i){var n='';while(i>=0){n=String.fromCharCode((i%26)+65)+n;i=Math.floor(i/26)-1;}return n;}
-        function cell(ref,v,s){return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t>'+esc(v)+'</t></is></c>';}
+        function cell(ref,v,s,numeric){
+            if(numeric){
+                var n=chequesNum(v);
+                return '<c r="'+ref+'" s="'+s+'"><v>'+n+'</v></c>';
+            }
+            return '<c r="'+ref+'" s="'+s+'" t="inlineStr"><is><t>'+esc(v)+'</t></is></c>';
+        }
 
         var headers=['Fecha','Cheque','Beneficiario','Cuenta','Categoría','Factura','Importe','Estado','Observación','Fecha Anulación','Motivo Anulación'];
         var rs=[],total=0;
         rs.push('<row r="1" ht="30" customHeight="1">'+cell('A1','IZZY • REPORTE DE CHEQUES',1)+'</row>');
         rs.push('<row r="2">'+cell('A2','Período: '+$('#fechai').val()+' a '+$('#fechaf').val()+' • Registros: '+rows.length,2)+'</row>');
         rs.push('<row r="4" ht="28" customHeight="1">'+headers.map(function(h,i){return cell(col(i)+'4',h,3);}).join('')+'</row>');
-        rows.forEach(function(r,i){var rr=5+i;total+=chequesNum(r.importe_valor);var vals=[r.fecha,r.numero_cheque||r.cheque_id,r.proveedor,(r.cuenta_codigo?r.cuenta_codigo+' - ':'')+r.cuenta_nombre,r.categoria,r.factura,chequesMoney(r.importe_valor),parseInt(r.estado,10)===1?'Activo':'Anulado',r.observacion,r.fecha_anulacion,r.motivo_anulacion];rs.push('<row r="'+rr+'">'+vals.map(function(v,c){return cell(col(c)+rr,v,4);}).join('')+'</row>');});
-        var tr=5+rows.length;rs.push('<row r="'+tr+'">'+cell('A'+tr,'TOTAL',5)+cell('G'+tr,chequesMoney(total),5)+'</row>');
+        rows.forEach(function(r,i){
+            var rr=5+i;
+            total+=chequesNum(r.importe_valor);
+            var vals=[r.fecha,r.numero_cheque||r.cheque_id,r.proveedor,(r.cuenta_codigo?r.cuenta_codigo+' - ':'')+r.cuenta_nombre,r.categoria,r.factura,chequesNum(r.importe_valor),parseInt(r.estado,10)===1?'Activo':'Anulado',r.observacion,r.fecha_anulacion,r.motivo_anulacion];
+            rs.push('<row r="'+rr+'">'+vals.map(function(v,c){var money=c===6;return cell(col(c)+rr,v,money?6:4,money);}).join('')+'</row>');
+        });
+        var tr=5+rows.length;
+        rs.push('<row r="'+tr+'">'+cell('A'+tr,'TOTAL',5,false)+cell('G'+tr,total,7,true)+'</row>');
 
-        var sheet='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:K'+tr+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="2" width="16" customWidth="1"/><col min="3" max="5" width="25" customWidth="1"/><col min="6" max="8" width="18" customWidth="1"/><col min="9" max="11" width="34" customWidth="1"/></cols><sheetData>'+rs.join('')+'</sheetData><autoFilter ref="A4:K'+(tr-1)+'"/><mergeCells count="2"><mergeCell ref="A1:K1"/><mergeCell ref="A2:K2"/></mergeCells></worksheet>';
-        var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="6"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FF17324D"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF1F7"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+        var sheet='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:K'+tr+'"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="2" width="16" customWidth="1"/><col min="3" max="5" width="25" customWidth="1"/><col min="6" max="6" width="18" customWidth="1"/><col min="7" max="7" width="20" customWidth="1"/><col min="8" max="8" width="18" customWidth="1"/><col min="9" max="11" width="34" customWidth="1"/></cols><sheetData>'+rs.join('')+'</sheetData><autoFilter ref="A4:K'+(tr-1)+'"/><mergeCells count="2"><mergeCell ref="A1:K1"/><mergeCell ref="A2:K2"/></mergeCells></worksheet>';
+        var styles='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts><fonts count="6"><font><sz val="10"/><name val="Calibri"/></font><font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="9"/><color rgb="FF5E6C84"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font><font><sz val="10"/><color rgb="FF172B4D"/><name val="Calibri"/></font><font><b/><sz val="10"/><color rgb="FF17324D"/><name val="Calibri"/></font></fonts><fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF17324D"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0EA5A8"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF1F7"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFDDE3EA"/></left><right style="thin"><color rgb="FFDDE3EA"/></right><top style="thin"><color rgb="FFDDE3EA"/></top><bottom style="thin"><color rgb="FFDDE3EA"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf><xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf><xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf><xf numFmtId="164" fontId="5" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
         var workbook='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Cheques" sheetId="1" r:id="rId1"/></sheets></workbook>';
         var wr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
         var rr='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
         var ct='<'+'?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
 
-        var zip=new JSZip();zip.file('[Content_Types].xml',ct);zip.folder('_rels').file('.rels',rr);zip.folder('xl').file('workbook.xml',workbook);zip.folder('xl').file('styles.xml',styles);zip.folder('xl').folder('_rels').file('workbook.xml.rels',wr);zip.folder('xl').folder('worksheets').file('sheet1.xml',sheet);
+        var zip=new JSZip();zip.file('[Content_Types].xml',ct);zip.folder('_rels').file('.rels',rr);zip.folder('xl').file('workbook.xml',workbook);zip.folder('xl').file('styles.xml',styles);zip.folder('xl').folder('_rels').file('workbook.xml.rels',wr);zip.folder('xl').folder('worksheets').file('sheet1.xml',window.izzyExcelCompletarBordesCombinados(sheet));
         var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
         var promise=typeof zip.generateAsync==='function'?zip.generateAsync(opts):Promise.resolve(zip.generate(opts));
         promise.then(function(blob){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Reporte_Cheques.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}).catch(function(e){console.error(e);showNotify('error','Excel','No se pudo generar el Excel.');});
     }
 
     function init(){
+        window.izzySoloSelect2(
+            $('#formMainChequesContabilidad select, #formCheque select, #modalConfigCuentaCheque select')
+        );
+
         chequesPanel('#btnToggleFiltrosCheques','#chequesFiltrosContenido','izzy.cheques.filtros.visible');
         chequesPanel('#btnToggleKpisCheques','#chequesKpisContenido','izzy.cheques.kpis.visible');
 
@@ -815,7 +1249,19 @@
         cargarCatalogos(listar);
 
         $('#formMainChequesContabilidad').off('submit.cheques').on('submit.cheques',function(e){e.preventDefault();listar();});
-        $('#formMainChequesContabilidad').off('reset.cheques').on('reset.cheques',function(){var f=this;setTimeout(function(){$(f).find('.selectpicker').val('').selectpicker('refresh');$('#estado_cheques').val('').selectpicker('refresh');listar();},0);});
+        $('#formMainChequesContabilidad').off('reset.cheques').on('reset.cheques',function(){
+            var f=this;
+
+            setTimeout(function(){
+                var $selects=$(f).find('select');
+
+                $selects.val('');
+                $('#estado_cheques').val('');
+                window.izzySoloRefreshSelect2($selects);
+
+                listar();
+            },0);
+        });
 
         $('#btnChequesActualizar').off('click.cheques').on('click.cheques',function(){cargarCatalogos(listar);});
         $('#btnNuevoCheque').off('click.cheques').on('click.cheques',abrirCheque);

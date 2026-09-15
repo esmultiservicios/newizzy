@@ -350,14 +350,6 @@ function obtenerTextoSelectPremiumEgresos(selector) {
 
   texto = limpiarTextoSelectPremiumEgresos(texto);
 
-  if (!texto && $select.hasClass("selectpicker")) {
-    var $button = $select.parent(".bootstrap-select").find(".filter-option-inner-inner");
-
-    if ($button.length) {
-      texto = limpiarTextoSelectPremiumEgresos($button.text());
-    }
-  }
-
   return texto;
 }
 
@@ -543,14 +535,14 @@ $(() => {
     var $form = $(this);
 
     setTimeout(function() {
-      $form.find('.selectpicker').val('').selectpicker('refresh');
-      $form.find('#estado_egresos').val(1).selectpicker('refresh');
+      $form.find('.izzy-select2').val('').izzySelect2Bridge('refresh');
+      $form.find('#estado_egresos').val(1).izzySelect2Bridge('refresh');
       listar_gastos_contabilidad();
     }, 0);
   });
 
-  $(document).off("changed.bs.select change", "#formEgresosContables #cuenta_egresos");
-  $(document).on("changed.bs.select change", "#formEgresosContables #cuenta_egresos", function () {
+  $(document).off("change", "#formEgresosContables #cuenta_egresos");
+  $(document).on("change", "#formEgresosContables #cuenta_egresos", function () {
     actualizarResumenFooterCuentaEgreso();
   });
 
@@ -641,6 +633,10 @@ function egresosValor(value, fallback) {
 
 function egresosMoney(value) {
   return 'L ' + formatMoney(toNumber(value));
+}
+
+function egresosReportMoney(value) {
+  return 'L. ' + formatMoney(toNumber(value));
 }
 
 function egresosConfigurarPanel(btn, contenido, key) {
@@ -1085,12 +1081,12 @@ function editar_egreso_ui(data) {
       const $emp    = $form.find('#empresa_egresos');
       const $cat    = $form.find('#categoria_gastos');
 
-      $prov.html('<option value="">Cargando proveedores...</option>').selectpicker('refresh');
-      $cuenta.html('<option value="">Cargando cuentas...</option>').selectpicker('refresh');
-      $emp.html('<option value="">Cargando empresas...</option>').selectpicker('refresh');
+      $prov.html('<option value="">Cargando proveedores...</option>').izzySelect2Bridge('refresh');
+      $cuenta.html('<option value="">Cargando cuentas...</option>').izzySelect2Bridge('refresh');
+      $emp.html('<option value="">Cargando empresas...</option>').izzySelect2Bridge('refresh');
 
       if ($cat.length) {
-        $cat.html('<option value="">Cargando categorías...</option>').selectpicker('refresh');
+        $cat.html('<option value="">Cargando categorías...</option>').izzySelect2Bridge('refresh');
       }
 
       limpiarResumenFooterCuentaEgreso();
@@ -1135,13 +1131,13 @@ function editar_egreso_ui(data) {
           $prov.append('<option value="">No hay proveedores disponibles</option>');
         }
 
-        $prov.selectpicker('refresh');
+        $prov.izzySelect2Bridge('refresh');
 
-        $cuenta.html(ctaRes[0] || '').selectpicker('refresh');
-        $emp.html(empRes[0] || '').selectpicker('refresh');
+        $cuenta.html(ctaRes[0] || '').izzySelect2Bridge('refresh');
+        $emp.html(empRes[0] || '').izzySelect2Bridge('refresh');
 
         if ($cat.length) {
-          $cat.html(catRes[0] || '').selectpicker('refresh');
+          $cat.html(catRes[0] || '').izzySelect2Bridge('refresh');
         }
 
         $.ajax({
@@ -1218,12 +1214,12 @@ function editar_egreso_ui(data) {
             $form.find('#total_egresos').val(v.total || "0.00");
             $form.find('#observacion_egresos').val(v.observacion || "");
 
-            setSelectpickerByValueOrText($prov,   (v.proveedores_id || data.proveedores_id || data.proveedor_egresos), v.proveedor || data.proveedor);
-            setSelectpickerByValueOrText($cuenta, (v.cuentas_id     || data.cuentas_id     || data.cuenta_egresos),    v.nombre_cuenta || data.nombre_cuenta || data.nombre);
-            setSelectpickerByValueOrText($emp,    (v.empresa_id     || data.empresa_id     || data.empresa_egresos),   v.nombre_empresa || data.nombre_empresa);
+            setSelect2ByValueOrText($prov,   (v.proveedores_id || data.proveedores_id || data.proveedor_egresos), v.proveedor || data.proveedor);
+            setSelect2ByValueOrText($cuenta, (v.cuentas_id     || data.cuentas_id     || data.cuenta_egresos),    v.nombre_cuenta || data.nombre_cuenta || data.nombre);
+            setSelect2ByValueOrText($emp,    (v.empresa_id     || data.empresa_id     || data.empresa_egresos),   v.nombre_empresa || data.nombre_empresa);
 
             if ($cat.length) {
-              setSelectpickerByValueOrText($cat, (v.categoria_gastos_id || data.categoria_gastos_id || data.categoria_id), v.categoria || data.categoria);
+              setSelect2ByValueOrText($cat, (v.categoria_gastos_id || data.categoria_gastos_id || data.categoria_id), v.categoria || data.categoria);
             }
 
             actualizarResumenFooterCuentaEgreso();
@@ -1268,12 +1264,12 @@ function editar_egreso_ui(data) {
 
             setupFileUpload();
 
-            $prov.prop('disabled', true).selectpicker('refresh');
-            $cuenta.prop('disabled', true).selectpicker('refresh');
-            $emp.prop('disabled', true).selectpicker('refresh');
+            $prov.prop('disabled', true).izzySelect2Bridge('refresh');
+            $cuenta.prop('disabled', true).izzySelect2Bridge('refresh');
+            $emp.prop('disabled', true).izzySelect2Bridge('refresh');
 
             if ($cat.length) {
-              $cat.prop('disabled', true).selectpicker('refresh');
+              $cat.prop('disabled', true).izzySelect2Bridge('refresh');
             }
 
             actualizarResumenFooterCuentaEgreso();
@@ -1302,12 +1298,12 @@ function editar_egreso_ui(data) {
 
         showNotify("error", "Error", "No se pudieron cargar proveedores/cuentas/empresas/categorías");
 
-        $prov.html('<option value="">Error al cargar proveedores</option>').selectpicker('refresh');
-        $cuenta.html('<option value="">Error al cargar cuentas</option>').selectpicker('refresh');
-        $emp.html('<option value="">Error al cargar empresas</option>').selectpicker('refresh');
+        $prov.html('<option value="">Error al cargar proveedores</option>').izzySelect2Bridge('refresh');
+        $cuenta.html('<option value="">Error al cargar cuentas</option>').izzySelect2Bridge('refresh');
+        $emp.html('<option value="">Error al cargar empresas</option>').izzySelect2Bridge('refresh');
 
         if ($cat.length) {
-          $cat.html('<option value="">Error al cargar categorías</option>').selectpicker('refresh');
+          $cat.html('<option value="">Error al cargar categorías</option>').izzySelect2Bridge('refresh');
         }
       });
 }
@@ -1437,7 +1433,12 @@ function egresosExcelCol(index) {
   return name;
 }
 
-function egresosExcelCell(ref, value, style) {
+function egresosExcelCell(ref, value, style, numeric) {
+  if (numeric) {
+    var n = toNumber(value);
+    return '<c r="' + ref + '" s="' + style + '"><v>' + n + '</v></c>';
+  }
+
   return '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t>' +
     egresosExcelEscape(value) + '</t></is></c>';
 }
@@ -1487,11 +1488,11 @@ function egresosGenerarExcel() {
   sheetRows.push('<row r="3">' +
     egresosExcelCell(
       'A3',
-      'Subtotal: L ' + formatMoney(subtotal) +
-      ' • Impuesto: L ' + formatMoney(impuesto) +
-      ' • Descuento: L ' + formatMoney(descuento) +
-      ' • Nota Crédito: L ' + formatMoney(nc) +
-      ' • Total: L ' + formatMoney(total),
+      'Subtotal: L. ' + formatMoney(subtotal) +
+      ' • Impuesto: L. ' + formatMoney(impuesto) +
+      ' • Descuento: L. ' + formatMoney(descuento) +
+      ' • Nota Crédito: L. ' + formatMoney(nc) +
+      ' • Total: L. ' + formatMoney(total),
       2
     ) + '</row>');
 
@@ -1511,18 +1512,19 @@ function egresosGenerarExcel() {
       r.nombre,
       r.proveedor,
       r.factura,
-      egresosMoney(r.subtotal),
-      egresosMoney(r.impuesto),
-      egresosMoney(r.descuento),
-      egresosMoney(r.nc),
-      egresosMoney(r.total),
+      toNumber(r.subtotal_raw != null ? r.subtotal_raw : r.subtotal),
+      toNumber(r.isv_raw != null ? r.isv_raw : r.impuesto),
+      toNumber(r.descuento_raw != null ? r.descuento_raw : r.descuento),
+      toNumber(r.nc_raw != null ? r.nc_raw : r.nc),
+      toNumber(r.total_raw != null ? r.total_raw : r.total),
       r.observacion,
       Number(r.estado) === 1 ? 'Activo' : 'Inactivo'
     ];
 
     sheetRows.push('<row r="' + rr + '">' +
       vals.map(function(v, c) {
-        return egresosExcelCell(egresosExcelCol(c) + rr, v, 4);
+        var money = c >= 7 && c <= 11;
+        return egresosExcelCell(egresosExcelCol(c) + rr, v, money ? 6 : 4, money);
       }).join('') +
     '</row>');
   });
@@ -1530,17 +1532,18 @@ function egresosGenerarExcel() {
   var totalRow = 6 + rows.length;
   var totalVals = [
     'TOTALES','','','','','','',
-    'L ' + formatMoney(subtotal),
-    'L ' + formatMoney(impuesto),
-    'L ' + formatMoney(descuento),
-    'L ' + formatMoney(nc),
-    'L ' + formatMoney(total),
+    subtotal,
+    impuesto,
+    descuento,
+    nc,
+    total,
     '',''
   ];
 
   sheetRows.push('<row r="' + totalRow + '" ht="24" customHeight="1">' +
     totalVals.map(function(v, c) {
-      return egresosExcelCell(egresosExcelCol(c) + totalRow, v, 5);
+      var money = c >= 7 && c <= 11;
+      return egresosExcelCell(egresosExcelCol(c) + totalRow, v, money ? 7 : 5, money);
     }).join('') +
   '</row>');
 
@@ -1558,7 +1561,7 @@ function egresosGenerarExcel() {
         '<col min="4" max="4" width="16" customWidth="1"/>' +
         '<col min="5" max="6" width="24" customWidth="1"/>' +
         '<col min="7" max="7" width="22" customWidth="1"/>' +
-        '<col min="8" max="12" width="17" customWidth="1"/>' +
+        '<col min="8" max="12" width="20" customWidth="1"/>' +
         '<col min="13" max="13" width="34" customWidth="1"/>' +
         '<col min="14" max="14" width="13" customWidth="1"/>' +
       '</cols>' +
@@ -1574,6 +1577,7 @@ function egresosGenerarExcel() {
   var stylesXml =
     '<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;L. &quot;#,##0.00"/></numFmts>' +
       '<fonts count="6">' +
         '<font><sz val="10"/><name val="Calibri"/></font>' +
         '<font><b/><sz val="16"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' +
@@ -1600,13 +1604,15 @@ function egresosGenerarExcel() {
         '</border>' +
       '</borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="6">' +
+      '<cellXfs count="8">' +
         '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
         '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/>' +
         '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>' +
         '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf>' +
         '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf>' +
         '<xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment wrapText="1"/></xf>' +
+        '<xf numFmtId="164" fontId="4" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
+        '<xf numFmtId="164" fontId="5" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right"/></xf>' +
       '</cellXfs>' +
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
     '</styleSheet>';
@@ -1645,9 +1651,9 @@ function egresosGenerarExcel() {
   zip.file('[Content_Types].xml', contentTypes);
   zip.folder('_rels').file('.rels', rootRels);
   zip.folder('xl').file('workbook.xml', workbookXml);
-  zip.folder('xl').file('styles.xml', stylesXml);
+  zip.folder('xl').file('styles.xml', (window.izzyExcelBordesEstilos ? window.izzyExcelBordesEstilos(stylesXml) : stylesXml));
   zip.folder('xl').folder('_rels').file('workbook.xml.rels', workbookRels);
-  zip.folder('xl').folder('worksheets').file('sheet1.xml', sheetXml);
+  zip.folder('xl').folder('worksheets').file('sheet1.xml', (window.izzyExcelBordesHoja ? window.izzyExcelBordesHoja(sheetXml) : sheetXml));
 
   var opts = {
     type: 'blob',
@@ -1776,22 +1782,22 @@ function egresosGenerarPdf() {
         {text:egresosValor(r.nombre,''),style:'td',fillColor:fill},
         {text:egresosValor(r.proveedor,''),style:'td',fillColor:fill},
         {text:egresosValor(r.factura,''),style:'td',fillColor:fill},
-        {text:egresosMoney(r.subtotal),style:'tdn',fillColor:fill},
-        {text:egresosMoney(r.impuesto),style:'tdn',fillColor:fill},
-        {text:egresosMoney(r.descuento),style:'tdn',fillColor:fill},
-        {text:egresosMoney(r.nc),style:'tdn',fillColor:fill},
-        {text:egresosMoney(r.total),style:'tdn',fillColor:fill,bold:true,color:'#C9372C'}
+        {text:egresosReportMoney(r.subtotal),style:'tdn',fillColor:fill},
+        {text:egresosReportMoney(r.impuesto),style:'tdn',fillColor:fill},
+        {text:egresosReportMoney(r.descuento),style:'tdn',fillColor:fill},
+        {text:egresosReportMoney(r.nc),style:'tdn',fillColor:fill},
+        {text:egresosReportMoney(r.total),style:'tdn',fillColor:fill,bold:true,color:'#C9372C'}
       ]);
     });
 
     body.push([
       {text:'TOTALES',colSpan:7,style:'totalLabel',fillColor:'#EAF1F7'},
       {},{},{},{},{},{},
-      {text:'L ' + formatMoney(subtotal),style:'totalMoney',fillColor:'#EAF1F7'},
-      {text:'L ' + formatMoney(impuesto),style:'totalMoney',fillColor:'#EAF1F7'},
-      {text:'L ' + formatMoney(descuento),style:'totalMoney',fillColor:'#EAF1F7'},
-      {text:'L ' + formatMoney(nc),style:'totalMoney',fillColor:'#EAF1F7'},
-      {text:'L ' + formatMoney(total),style:'totalMoneyDanger',fillColor:'#EAF1F7'}
+      {text:'L. ' + formatMoney(subtotal),style:'totalMoney',fillColor:'#EAF1F7'},
+      {text:'L. ' + formatMoney(impuesto),style:'totalMoney',fillColor:'#EAF1F7'},
+      {text:'L. ' + formatMoney(descuento),style:'totalMoney',fillColor:'#EAF1F7'},
+      {text:'L. ' + formatMoney(nc),style:'totalMoney',fillColor:'#EAF1F7'},
+      {text:'L. ' + formatMoney(total),style:'totalMoneyDanger',fillColor:'#EAF1F7'}
     ]);
 
     var logoCell = logo
@@ -1916,21 +1922,21 @@ function egresosGenerarPdf() {
               {
                 stack:[
                   {text:'SUBTOTAL',fontSize:6.2,bold:true,color:'#6B778C'},
-                  {text:'L ' + formatMoney(subtotal),fontSize:11,bold:true,color:'#17324D',margin:[0,2,0,0]}
+                  {text:'L. ' + formatMoney(subtotal),fontSize:11,bold:true,color:'#17324D',margin:[0,2,0,0]}
                 ],
                 fillColor:'#F7F9FC',margin:[8,7,8,7]
               },
               {
                 stack:[
                   {text:'IMPUESTO',fontSize:6.2,bold:true,color:'#6B778C'},
-                  {text:'L ' + formatMoney(impuesto),fontSize:11,bold:true,color:'#5949BA',margin:[0,2,0,0]}
+                  {text:'L. ' + formatMoney(impuesto),fontSize:11,bold:true,color:'#5949BA',margin:[0,2,0,0]}
                 ],
                 fillColor:'#F7F9FC',margin:[8,7,8,7]
               },
               {
                 stack:[
                   {text:'TOTAL EGRESOS',fontSize:6.2,bold:true,color:'#6B778C'},
-                  {text:'L ' + formatMoney(total),fontSize:11,bold:true,color:'#C9372C',margin:[0,2,0,0]}
+                  {text:'L. ' + formatMoney(total),fontSize:11,bold:true,color:'#C9372C',margin:[0,2,0,0]}
                 ],
                 fillColor:'#F7F9FC',margin:[8,7,8,7]
               }
@@ -2171,15 +2177,15 @@ function resetPdfUI() {
 }
 
 // ===============================
-//  Helper selectpicker
+//  Helper Select2
 // ===============================
-function setSelectpickerByValueOrText($sel, value, text) {
-  $sel.selectpicker('refresh');
+function setSelect2ByValueOrText($sel, value, text) {
+  $sel.izzySelect2Bridge('refresh');
 
   var val = (value !== undefined && value !== null) ? String(value).trim() : '';
 
   if (val && $sel.find('option[value="' + val + '"]').length) {
-    $sel.selectpicker('val', val);
+    $sel.izzySelect2Bridge('val', val);
     return true;
   }
 
@@ -2191,14 +2197,14 @@ function setSelectpickerByValueOrText($sel, value, text) {
     }).first();
 
     if ($opt.length) {
-      $sel.selectpicker('val', $opt.val());
+      $sel.izzySelect2Bridge('val', $opt.val());
       return true;
     }
   }
 
   if (val) {
     $sel.append('<option value="' + val + '">' + (text || ('Opción #' + val)) + '</option>');
-    $sel.selectpicker('refresh').selectpicker('val', val);
+    $sel.izzySelect2Bridge('refresh').izzySelect2Bridge('val', val);
     return true;
   }
 
@@ -2233,12 +2239,12 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
     const $emp    = $form.find('#empresa_egresos');
     const $cat    = $form.find('#categoria_gastos');
 
-    $prov.html('<option value="">Cargando proveedores...</option>').selectpicker('refresh');
-    $cuenta.html('<option value="">Cargando cuentas...</option>').selectpicker('refresh');
-    $emp.html('<option value="">Cargando empresas...</option>').selectpicker('refresh');
+    $prov.html('<option value="">Cargando proveedores...</option>').izzySelect2Bridge('refresh');
+    $cuenta.html('<option value="">Cargando cuentas...</option>').izzySelect2Bridge('refresh');
+    $emp.html('<option value="">Cargando empresas...</option>').izzySelect2Bridge('refresh');
 
     if ($cat.length) {
-      $cat.html('<option value="">Cargando categorías...</option>').selectpicker('refresh');
+      $cat.html('<option value="">Cargando categorías...</option>').izzySelect2Bridge('refresh');
     }
 
     limpiarResumenFooterCuentaEgreso();
@@ -2283,13 +2289,13 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
         $prov.append('<option value="">No hay proveedores disponibles</option>');
       }
 
-      $prov.selectpicker('refresh');
+      $prov.izzySelect2Bridge('refresh');
 
-      $cuenta.html(ctaRes[0] || '').selectpicker('refresh');
-      $emp.html(empRes[0] || '').selectpicker('refresh');
+      $cuenta.html(ctaRes[0] || '').izzySelect2Bridge('refresh');
+      $emp.html(empRes[0] || '').izzySelect2Bridge('refresh');
 
       if ($cat.length) {
-        $cat.html(catRes[0] || '').selectpicker('refresh');
+        $cat.html(catRes[0] || '').izzySelect2Bridge('refresh');
       }
 
       $.ajax({
@@ -2366,12 +2372,12 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
           $form.find('#total_egresos').val(v.total || "0.00");
           $form.find('#observacion_egresos').val(v.observacion || "");
 
-          setSelectpickerByValueOrText($prov,   (v.proveedores_id || data.proveedores_id || data.proveedor_egresos), v.proveedor || data.proveedor);
-          setSelectpickerByValueOrText($cuenta, (v.cuentas_id     || data.cuentas_id     || data.cuenta_egresos),    v.nombre_cuenta || data.nombre_cuenta || data.nombre);
-          setSelectpickerByValueOrText($emp,    (v.empresa_id     || data.empresa_id     || data.empresa_egresos),   v.nombre_empresa || data.nombre_empresa);
+          setSelect2ByValueOrText($prov,   (v.proveedores_id || data.proveedores_id || data.proveedor_egresos), v.proveedor || data.proveedor);
+          setSelect2ByValueOrText($cuenta, (v.cuentas_id     || data.cuentas_id     || data.cuenta_egresos),    v.nombre_cuenta || data.nombre_cuenta || data.nombre);
+          setSelect2ByValueOrText($emp,    (v.empresa_id     || data.empresa_id     || data.empresa_egresos),   v.nombre_empresa || data.nombre_empresa);
 
           if ($cat.length) {
-            setSelectpickerByValueOrText($cat, (v.categoria_gastos_id || data.categoria_gastos_id || data.categoria_id), v.categoria || data.categoria);
+            setSelect2ByValueOrText($cat, (v.categoria_gastos_id || data.categoria_gastos_id || data.categoria_id), v.categoria || data.categoria);
           }
 
           actualizarResumenFooterCuentaEgreso();
@@ -2416,12 +2422,12 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
 
           setupFileUpload();
 
-          $prov.prop('disabled', true).selectpicker('refresh');
-          $cuenta.prop('disabled', true).selectpicker('refresh');
-          $emp.prop('disabled', true).selectpicker('refresh');
+          $prov.prop('disabled', true).izzySelect2Bridge('refresh');
+          $cuenta.prop('disabled', true).izzySelect2Bridge('refresh');
+          $emp.prop('disabled', true).izzySelect2Bridge('refresh');
 
           if ($cat.length) {
-            $cat.prop('disabled', true).selectpicker('refresh');
+            $cat.prop('disabled', true).izzySelect2Bridge('refresh');
           }
 
           actualizarResumenFooterCuentaEgreso();
@@ -2450,12 +2456,12 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
 
       showNotify("error", "Error", "No se pudieron cargar proveedores/cuentas/empresas/categorías");
 
-      $prov.html('<option value="">Error al cargar proveedores</option>').selectpicker('refresh');
-      $cuenta.html('<option value="">Error al cargar cuentas</option>').selectpicker('refresh');
-      $emp.html('<option value="">Error al cargar empresas</option>').selectpicker('refresh');
+      $prov.html('<option value="">Error al cargar proveedores</option>').izzySelect2Bridge('refresh');
+      $cuenta.html('<option value="">Error al cargar cuentas</option>').izzySelect2Bridge('refresh');
+      $emp.html('<option value="">Error al cargar empresas</option>').izzySelect2Bridge('refresh');
 
       if ($cat.length) {
-        $cat.html('<option value="">Error al cargar categorías</option>').selectpicker('refresh');
+        $cat.html('<option value="">Error al cargar categorías</option>').izzySelect2Bridge('refresh');
       }
     });
   });
@@ -2640,7 +2646,7 @@ function modal_egresos_contabilidad() {
     $form[0].reset();
   }
 
-  $form.find('select.selectpicker').val('').selectpicker('refresh');
+  $form.find('select.izzy-select2').val('').izzySelect2Bridge('refresh');
   $form.find('input[type="text"], input[type="number"], textarea').val('');
 
   limpiarResumenFooterCuentaEgreso();
@@ -2681,12 +2687,12 @@ function modal_egresos_contabilidad() {
   $form.find('#buscar_cuenta_egresos').show();
   $form.find('#buscar_empresa_egresos').show();
 
-  $form.find('#cuenta_egresos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
-  $form.find('#empresa_egresos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
-  $form.find('#proveedor_egresos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
+  $form.find('#cuenta_egresos').prop('disabled', false).izzySelect2Bridge('refresh').izzySelect2Bridge('val', '');
+  $form.find('#empresa_egresos').prop('disabled', false).izzySelect2Bridge('refresh').izzySelect2Bridge('val', '');
+  $form.find('#proveedor_egresos').prop('disabled', false).izzySelect2Bridge('refresh').izzySelect2Bridge('val', '');
 
   if ($form.find('#categoria_gastos').length) {
-    $form.find('#categoria_gastos').prop('disabled', false).selectpicker('refresh').selectpicker('val', '');
+    $form.find('#categoria_gastos').prop('disabled', false).izzySelect2Bridge('refresh').izzySelect2Bridge('val', '');
   }
 
   $form.find('#subtotal_egresos').prop('disabled', false).val('');
@@ -2747,14 +2753,14 @@ function getProveedorEgresos() {
         select.append('<option value="">No hay colaboradores disponibles</option>');
       }
 
-      select.selectpicker('refresh');
+      select.izzySelect2Bridge('refresh');
     },
     error: function(xhr) {
       showNotify("error", "Error", "Error de conexión al cargar colaboradores");
 
       $('#formEgresosContables #proveedor_egresos')
         .html('<option value="">Error al cargar</option>')
-        .selectpicker('refresh');
+        .izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2767,8 +2773,8 @@ function getCategoriaGastos() {
     url: url,
     async: true,
     success: function(data) {
-      $('#formEgresosContables #categoria_gastos').html(data).selectpicker('refresh');
-      $('#formEgresosContables #categoria_gastos').val(0).selectpicker('refresh');
+      $('#formEgresosContables #categoria_gastos').html(data).izzySelect2Bridge('refresh');
+      $('#formEgresosContables #categoria_gastos').val(0).izzySelect2Bridge('refresh');
     }
   });
 }
@@ -2781,7 +2787,7 @@ function getCuentaEgresos() {
     url: url,
     async: true,
     success: function(data) {
-      $('#formEgresosContables #cuenta_egresos').html(data).selectpicker('refresh');
+      $('#formEgresosContables #cuenta_egresos').html(data).izzySelect2Bridge('refresh');
 
       actualizarResumenFooterCuentaEgreso();
 
@@ -2800,7 +2806,7 @@ function getEmpresaEgresos() {
     url: url,
     async: true,
     success: function(data) {
-      $('#formEgresosContables #empresa_egresos').html(data).selectpicker('refresh');
+      $('#formEgresosContables #empresa_egresos').html(data).izzySelect2Bridge('refresh');
     }
   });
 }

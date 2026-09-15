@@ -1,5 +1,424 @@
 <script>
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects dinámicos sin depender de otro componente.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            /*
+             * Si quedó un wrapper visual anterior alrededor del
+             * select, recuperar el <select> original antes de usar
+             * Select2. Se detecta por estructura, no por librería.
+             */
+            var $parent = $el.parent();
+
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) {
+                        return false;
+                    }
+
+                    var normalizada = clase.toLowerCase();
+
+                    return (
+                        normalizada.indexOf('picker') === -1 &&
+                        normalizada !== 'bs-select-hidden'
+                    );
+                });
+
+            $el.attr('class', clases.join(' '));
+
+            if ($el.attr('tabindex') === '-98') {
+                $el.removeAttr('tabindex');
+            }
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySelect2LimpiarControl($select);
+
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+
+            var config = $.extend(
+                {
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    allowClear: false
+                },
+                options || {}
+            );
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+
+                if ($modal.length) {
+                    config.dropdownParent = $modal;
+                }
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySoloSelect2($select, options);
+        $select.trigger('change.select2');
+    };
+}
+
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Mantiene intacto el contenido del reporte y completa las
+   celdas internas de mergeCells con el estilo ya existente.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (matchDeclaracion) {
+                declaracion = matchDeclaracion[1];
+            }
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documento.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documento.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documento.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documento.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnaNumero(letras) {
+                var total = 0;
+                var texto = String(letras || '').toUpperCase();
+
+                for (var i = 0; i < texto.length; i++) {
+                    total = (total * 26) +
+                        (texto.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnaLetras(numero) {
+                var resultado = '';
+                var n = numero;
+
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado =
+                        String.fromCharCode(65 + resto) +
+                        resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return resultado;
+            }
+
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnaNumero(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < filas.length; i++) {
+                    if (
+                        parseInt(
+                            filas[i].getAttribute('r'),
+                            10
+                        ) === numeroFila
+                    ) {
+                        return filas[i];
+                    }
+                }
+
+                var nuevaFila = documento.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                nuevaFila.setAttribute(
+                    'r',
+                    String(numeroFila)
+                );
+
+                var insertada = false;
+
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(
+                        filas[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(
+                            nuevaFila,
+                            filas[j]
+                        );
+                        insertada = true;
+                        break;
+                    }
+                }
+
+                if (!insertada) {
+                    sheetData.appendChild(nuevaFila);
+                }
+
+                return nuevaFila;
+            }
+
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    if (
+                        celdas[i].getAttribute('r') ===
+                        referencia
+                    ) {
+                        return celdas[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(
+                        celdas[i].getAttribute('r')
+                    );
+
+                    if (
+                        refActual &&
+                        refActual.col > colNumero
+                    ) {
+                        fila.insertBefore(
+                            celda,
+                            celdas[i]
+                        );
+                        return;
+                    }
+                }
+
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var ref = merge.getAttribute('ref') || '';
+                var partes = ref.split(':');
+
+                if (partes.length !== 2) {
+                    return;
+                }
+
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+
+                if (!inicio || !fin) {
+                    return;
+                }
+
+                /* Elimina combinaciones inválidas como I3:I3. */
+                if (
+                    inicio.col === fin.col &&
+                    inicio.row === fin.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(
+                    filaInicio,
+                    columnaLetras(inicio.col) +
+                    inicio.row
+                );
+
+                if (!celdaInicio) {
+                    return;
+                }
+
+                var estilo = celdaInicio.getAttribute('s');
+
+                /*
+                 * Completa todo el rango con el mismo estilo
+                 * ya definido por el reporte. No crea estilos nuevos.
+                 */
+                for (
+                    var filaNumero = inicio.row;
+                    filaNumero <= fin.row;
+                    filaNumero++
+                ) {
+                    var fila = obtenerFila(filaNumero);
+
+                    for (
+                        var colNumero = inicio.col;
+                        colNumero <= fin.col;
+                        colNumero++
+                    ) {
+                        var referencia =
+                            columnaLetras(colNumero) +
+                            filaNumero;
+
+                        var celda = buscarCelda(
+                            fila,
+                            referencia
+                        );
+
+                        if (!celda) {
+                            celda = documento.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            celda.setAttribute(
+                                'r',
+                                referencia
+                            );
+
+                            if (
+                                estilo !== null &&
+                                estilo !== ''
+                            ) {
+                                celda.setAttribute(
+                                    's',
+                                    estilo
+                                );
+                            }
+
+                            insertarCeldaOrdenada(
+                                fila,
+                                celda,
+                                colNumero
+                            );
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales =
+                mergeCells.getElementsByTagName('mergeCell');
+
+            mergeCells.setAttribute(
+                'count',
+                String(mergeFinales.length)
+            );
+
+            var serializado =
+                new XMLSerializer().serializeToString(
+                    documento.documentElement
+                );
+
+            return declaracion
+                ? declaracion + serializado
+                : serializado;
+
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
 $(() => {
+    window.izzySoloSelect2($('#form_main_contrato select, #formContrato select'));
     getTipoContrato();
     getPagoPlanificado();
     getTipoEmpleado();
@@ -7,7 +426,7 @@ $(() => {
     inicializarContratoUI();
     listar_contratos();
     $('#form_main_contrato #estado').val(1);
-    $('#form_main_contrato #estado').selectpicker('refresh');
+    window.izzySoloRefreshSelect2($('#form_main_contrato #estado'));
 
 	$('#form_main_contrato #search').on("click", function(e) {
         e.preventDefault();
@@ -18,8 +437,12 @@ $(() => {
     $('#form_main_contrato').on('reset', function() {
         var form = this;
         setTimeout(function() {
-            $(form).find('.selectpicker').val('').selectpicker('refresh');
-            $('#form_main_contrato #estado').val(1).selectpicker('refresh');
+            var $selects = $(form).find('select');
+
+            $selects.val('');
+            $('#form_main_contrato #estado').val(1);
+            window.izzySoloRefreshSelect2($selects);
+
             listar_contratos();
         }, 0);
     });	    
@@ -388,14 +811,18 @@ var url = '<?php echo SERVERURL;?>core/editarContratos.php';
                 $('#edi_contrato').show();
                 $('#delete_contrato').hide();
                 $('#formContrato #contrato_colaborador_id').val(valores[0]);
-                $('#formContrato #contrato_colaborador_id').selectpicker('refresh');
                 $('#formContrato #colaborador_id').val(valores[0]);
                 $('#formContrato #contrato_tipo_contrato_id').val(valores[1]);
-                $('#formContrato #contrato_tipo_contrato_id').selectpicker('refresh');
                 $('#formContrato #contrato_pago_planificado_id').val(valores[2]);
-                $('#formContrato #contrato_pago_planificado_id').selectpicker('refresh');
                 $('#formContrato #contrato_tipo_empleado_id').val(valores[3]);
-                $('#formContrato #contrato_tipo_empleado_id').selectpicker('refresh');
+
+                window.izzySoloRefreshSelect2(
+                    $('#formContrato #contrato_colaborador_id, ' +
+                      '#formContrato #contrato_tipo_contrato_id, ' +
+                      '#formContrato #contrato_pago_planificado_id, ' +
+                      '#formContrato #contrato_tipo_empleado_id')
+                );
+
                 $('#formContrato #contrato_salario').val(valores[4]);
                 $('#formContrato #contrato_fecha_inicio').val(valores[5]);
                 $('#formContrato #contrato_fecha_fin').val(valores[6]);
@@ -584,7 +1011,7 @@ function contratoGenerarExcel() {
     zip.folder('xl').file('workbook.xml',workbookXml);
     zip.folder('xl').file('styles.xml',stylesXml);
     zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels);
-    zip.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+    zip.folder('xl').folder('worksheets').file('sheet1.xml',window.izzyExcelCompletarBordesCombinados(sheetXml));
 
     var opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
     var promise=typeof zip.generateAsync==='function'
@@ -864,8 +1291,8 @@ function modal_contratos() {
 $('#formContrato').on('submit', function(e) {
     e.preventDefault();
 
-    // 1. Refrescar todos los selectpickers para asegurar sincronización
-    $('.selectpicker').selectpicker('refresh');
+    // 1. Asegurar que los selects del formulario estén normalizados con Select2.
+    window.izzySoloRefreshSelect2($('#formContrato select'));
 
     // 2. Construir objeto de datos manualmente (versión mejorada)
     const getValue = (selector) => $(selector).val();
@@ -948,7 +1375,7 @@ $('#formContrato').on('submit', function(e) {
                         // Limpiar formulario si es creación exitosa
                         if (!isEdit && response.clearForm) {
                             $('#formContrato')[0].reset();
-                            $('.selectpicker').selectpicker('refresh');
+                            window.izzySoloRefreshSelect2($('#formContrato select'));
                         }
                         
                         // Cerrar modal si es necesario
@@ -1030,11 +1457,11 @@ function getTipoContrato() {
 
             $('#form_main_contrato #tipo_contrato').html("");
             $('#form_main_contrato #tipo_contrato').html(data);
-            $('#form_main_contrato #tipo_contrato').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#form_main_contrato #tipo_contrato'));
 
             $('#formContrato #contrato_tipo_contrato_id').html("");
             $('#formContrato #contrato_tipo_contrato_id').html(data);
-            $('#formContrato #contrato_tipo_contrato_id').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#formContrato #contrato_tipo_contrato_id'));
         }
     });
 }
@@ -1050,11 +1477,11 @@ function getPagoPlanificado() {
 
             $('#form_main_contrato #pago_planificado').html("");
             $('#form_main_contrato #pago_planificado').html(data);
-            $('#form_main_contrato #pago_planificado').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#form_main_contrato #pago_planificado'));
 
             $('#formContrato #contrato_pago_planificado_id').html("");
             $('#formContrato #contrato_pago_planificado_id').html(data);
-            $('#formContrato #contrato_pago_planificado_id').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#formContrato #contrato_pago_planificado_id'));
         }
     });
 }
@@ -1069,11 +1496,11 @@ function getTipoEmpleado() {
         success: function(data) {
             $('#form_main_contrato #tipo_empleado').html("");
             $('#form_main_contrato #tipo_empleado').html(data);
-            $('#form_main_contrato #tipo_empleado').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#form_main_contrato #tipo_empleado'));
 
             $('#formContrato #contrato_tipo_empleado_id').html("");
             $('#formContrato #contrato_tipo_empleado_id').html(data);
-            $('#formContrato #contrato_tipo_empleado_id').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#formContrato #contrato_tipo_empleado_id'));
         }
     });
 }
@@ -1090,7 +1517,7 @@ function getEmpleado() {
 
             $('#formContrato #contrato_colaborador_id').html("");
             $('#formContrato #contrato_colaborador_id').html(data);
-            $('#formContrato #contrato_colaborador_id').selectpicker('refresh');
+            window.izzySoloRefreshSelect2($('#formContrato #contrato_colaborador_id'));
         }
     });
 }

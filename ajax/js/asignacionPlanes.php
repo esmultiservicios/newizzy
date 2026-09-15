@@ -1065,9 +1065,431 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
 }
 ?>
 <script>
+
+/* =========================================================
+   IZZY | SELECT2 ÚNICO
+   Normaliza selects dinámicos sin depender de otro componente.
+   ========================================================= */
+if (typeof window.izzySelect2LimpiarControl !== 'function') {
+    window.izzySelect2LimpiarControl = function ($select) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            /*
+             * Si quedó un wrapper visual anterior alrededor del
+             * select, recuperar el <select> original antes de usar
+             * Select2. Se detecta por estructura, no por librería.
+             */
+            var $parent = $el.parent();
+
+            if (
+                $parent.is('div') &&
+                $parent.children('button.dropdown-toggle').length &&
+                $parent.children('.dropdown-menu').length
+            ) {
+                $el.insertBefore($parent);
+                $parent.remove();
+            }
+
+            var clases = String($el.attr('class') || '')
+                .split(/\s+/)
+                .filter(function (clase) {
+                    if (!clase) {
+                        return false;
+                    }
+
+                    var normalizada = clase.toLowerCase();
+
+                    return (
+                        normalizada.indexOf('picker') === -1 &&
+                        normalizada !== 'bs-select-hidden'
+                    );
+                });
+
+            $el.attr('class', clases.join(' '));
+
+            if ($el.attr('tabindex') === '-98') {
+                $el.removeAttr('tabindex');
+            }
+        });
+    };
+}
+
+if (typeof window.izzySoloSelect2 !== 'function') {
+    window.izzySoloSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySelect2LimpiarControl($select);
+
+        if (typeof $.fn.select2 !== 'function') {
+            return;
+        }
+
+        $select.each(function () {
+            var $el = $(this);
+
+            if (!$el.is('select')) {
+                return;
+            }
+
+            if ($el.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+
+            var config = $.extend(
+                {
+                    width: '100%',
+                    minimumResultsForSearch: 0,
+                    allowClear: false
+                },
+                options || {}
+            );
+
+            if (!config.dropdownParent) {
+                var $modal = $el.closest('.modal');
+
+                if ($modal.length) {
+                    config.dropdownParent = $modal;
+                }
+            }
+
+            $el.select2(config);
+        });
+    };
+}
+
+if (typeof window.izzySoloRefreshSelect2 !== 'function') {
+    window.izzySoloRefreshSelect2 = function ($select, options) {
+        if (!$select || !$select.length) {
+            return;
+        }
+
+        window.izzySoloSelect2($select, options);
+        $select.trigger('change.select2');
+    };
+}
+
+
+/* =========================================================
+   IZZY | XLSX - BORDES COMPLETOS EN RANGOS COMBINADOS
+   Mantiene intacto el contenido del reporte y completa las
+   celdas internas de mergeCells con el estilo ya existente.
+   ========================================================= */
+if (typeof window.izzyExcelCompletarBordesCombinados !== 'function') {
+    window.izzyExcelCompletarBordesCombinados = function (xmlTexto) {
+        if (
+            !xmlTexto ||
+            typeof DOMParser === 'undefined' ||
+            typeof XMLSerializer === 'undefined'
+        ) {
+            return xmlTexto;
+        }
+
+        try {
+            var declaracion = '';
+            var matchDeclaracion = String(xmlTexto).match(
+                /^\s*(<\?xml[^>]*\?>)/
+            );
+
+            if (matchDeclaracion) {
+                declaracion = matchDeclaracion[1];
+            }
+
+            var parser = new DOMParser();
+            var documento = parser.parseFromString(
+                String(xmlTexto),
+                'application/xml'
+            );
+
+            if (documento.getElementsByTagName('parsererror').length) {
+                return xmlTexto;
+            }
+
+            var namespaceUri =
+                documento.documentElement.namespaceURI ||
+                'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+            var sheetData =
+                documento.getElementsByTagName('sheetData')[0];
+
+            var mergeCells =
+                documento.getElementsByTagName('mergeCells')[0];
+
+            if (!sheetData || !mergeCells) {
+                return xmlTexto;
+            }
+
+            function columnaNumero(letras) {
+                var total = 0;
+                var texto = String(letras || '').toUpperCase();
+
+                for (var i = 0; i < texto.length; i++) {
+                    total = (total * 26) +
+                        (texto.charCodeAt(i) - 64);
+                }
+
+                return total;
+            }
+
+            function columnaLetras(numero) {
+                var resultado = '';
+                var n = numero;
+
+                while (n > 0) {
+                    var resto = (n - 1) % 26;
+                    resultado =
+                        String.fromCharCode(65 + resto) +
+                        resultado;
+                    n = Math.floor((n - 1) / 26);
+                }
+
+                return resultado;
+            }
+
+            function parseReferencia(ref) {
+                var match = String(ref || '').match(
+                    /^([A-Z]+)(\d+)$/
+                );
+
+                if (!match) {
+                    return null;
+                }
+
+                return {
+                    col: columnaNumero(match[1]),
+                    row: parseInt(match[2], 10)
+                };
+            }
+
+            function obtenerFila(numeroFila) {
+                var filas = sheetData.getElementsByTagName('row');
+
+                for (var i = 0; i < filas.length; i++) {
+                    if (
+                        parseInt(
+                            filas[i].getAttribute('r'),
+                            10
+                        ) === numeroFila
+                    ) {
+                        return filas[i];
+                    }
+                }
+
+                var nuevaFila = documento.createElementNS(
+                    namespaceUri,
+                    'row'
+                );
+
+                nuevaFila.setAttribute(
+                    'r',
+                    String(numeroFila)
+                );
+
+                var insertada = false;
+
+                for (var j = 0; j < filas.length; j++) {
+                    var actual = parseInt(
+                        filas[j].getAttribute('r'),
+                        10
+                    );
+
+                    if (actual > numeroFila) {
+                        sheetData.insertBefore(
+                            nuevaFila,
+                            filas[j]
+                        );
+                        insertada = true;
+                        break;
+                    }
+                }
+
+                if (!insertada) {
+                    sheetData.appendChild(nuevaFila);
+                }
+
+                return nuevaFila;
+            }
+
+            function buscarCelda(fila, referencia) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    if (
+                        celdas[i].getAttribute('r') ===
+                        referencia
+                    ) {
+                        return celdas[i];
+                    }
+                }
+
+                return null;
+            }
+
+            function insertarCeldaOrdenada(fila, celda, colNumero) {
+                var celdas = fila.getElementsByTagName('c');
+
+                for (var i = 0; i < celdas.length; i++) {
+                    var refActual = parseReferencia(
+                        celdas[i].getAttribute('r')
+                    );
+
+                    if (
+                        refActual &&
+                        refActual.col > colNumero
+                    ) {
+                        fila.insertBefore(
+                            celda,
+                            celdas[i]
+                        );
+                        return;
+                    }
+                }
+
+                fila.appendChild(celda);
+            }
+
+            var merges = Array.prototype.slice.call(
+                mergeCells.getElementsByTagName('mergeCell')
+            );
+
+            merges.forEach(function (merge) {
+                var ref = merge.getAttribute('ref') || '';
+                var partes = ref.split(':');
+
+                if (partes.length !== 2) {
+                    return;
+                }
+
+                var inicio = parseReferencia(partes[0]);
+                var fin = parseReferencia(partes[1]);
+
+                if (!inicio || !fin) {
+                    return;
+                }
+
+                /* Elimina combinaciones inválidas como I3:I3. */
+                if (
+                    inicio.col === fin.col &&
+                    inicio.row === fin.row
+                ) {
+                    mergeCells.removeChild(merge);
+                    return;
+                }
+
+                var filaInicio = obtenerFila(inicio.row);
+                var celdaInicio = buscarCelda(
+                    filaInicio,
+                    columnaLetras(inicio.col) +
+                    inicio.row
+                );
+
+                if (!celdaInicio) {
+                    return;
+                }
+
+                var estilo = celdaInicio.getAttribute('s');
+
+                /*
+                 * Completa todo el rango con el mismo estilo
+                 * ya definido por el reporte. No crea estilos nuevos.
+                 */
+                for (
+                    var filaNumero = inicio.row;
+                    filaNumero <= fin.row;
+                    filaNumero++
+                ) {
+                    var fila = obtenerFila(filaNumero);
+
+                    for (
+                        var colNumero = inicio.col;
+                        colNumero <= fin.col;
+                        colNumero++
+                    ) {
+                        var referencia =
+                            columnaLetras(colNumero) +
+                            filaNumero;
+
+                        var celda = buscarCelda(
+                            fila,
+                            referencia
+                        );
+
+                        if (!celda) {
+                            celda = documento.createElementNS(
+                                namespaceUri,
+                                'c'
+                            );
+
+                            celda.setAttribute(
+                                'r',
+                                referencia
+                            );
+
+                            if (
+                                estilo !== null &&
+                                estilo !== ''
+                            ) {
+                                celda.setAttribute(
+                                    's',
+                                    estilo
+                                );
+                            }
+
+                            insertarCeldaOrdenada(
+                                fila,
+                                celda,
+                                colNumero
+                            );
+                        }
+                    }
+                }
+            });
+
+            var mergeFinales =
+                mergeCells.getElementsByTagName('mergeCell');
+
+            mergeCells.setAttribute(
+                'count',
+                String(mergeFinales.length)
+            );
+
+            var serializado =
+                new XMLSerializer().serializeToString(
+                    documento.documentElement
+                );
+
+            return declaracion
+                ? declaracion + serializado
+                : serializado;
+
+        } catch (error) {
+            console.error(
+                'No se pudieron completar los bordes del XLSX:',
+                error
+            );
+
+            return xmlTexto;
+        }
+    };
+}
+
 // asignacionPlanes.php
 $(window).on("load", function() {
     "use strict";
+
+    window.izzySoloSelect2(
+        $("#formAsignacionPlan select, #formFiltrosAsignacion select")
+    );
 
     /* =========================================================
        RUTAS - ASIGNACIÓN DE PLANES
@@ -1325,9 +1747,9 @@ $(window).on("load", function() {
             .removeData("plan-actual-id")
             .removeData("plan-actual-nombre");
 
-        if (typeof $.fn.selectpicker === "function") {
-            $("#formAsignacionPlan .selectpicker").selectpicker("refresh");
-        }
+        window.izzySoloRefreshSelect2(
+            $("#formAsignacionPlan select")
+        );
     }
 
     /* =========================================================
@@ -1447,10 +1869,9 @@ $(window).on("load", function() {
             $sistema.val(sistemaSeleccionado);
         }
 
-        if (typeof $.fn.selectpicker === "function") {
-            $plan.selectpicker("refresh");
-            $sistema.selectpicker("refresh");
-        }
+        window.izzySoloRefreshSelect2(
+            $plan.add($sistema)
+        );
     }
 
     function aplicarFiltrosYRender() {
@@ -1999,9 +2420,7 @@ $(window).on("load", function() {
                         );
                     });
 
-                    if (typeof $.fn.selectpicker === "function") {
-                        select.selectpicker("refresh");
-                    }
+                    window.izzySoloRefreshSelect2(select);
                 } else {
                     showNotify(
                         "error",
@@ -2043,9 +2462,7 @@ $(window).on("load", function() {
                         );
                     });
 
-                    if (typeof $.fn.selectpicker === "function") {
-                        select.selectpicker("refresh");
-                    }
+                    window.izzySoloRefreshSelect2(select);
                 } else {
                     showNotify(
                         "error",
@@ -2086,9 +2503,7 @@ $(window).on("load", function() {
                         );
                     });
 
-                    if (typeof $.fn.selectpicker === "function") {
-                        select.selectpicker("refresh");
-                    }
+                    window.izzySoloRefreshSelect2(select);
 
                     select.prop("disabled", true);
                 }
@@ -2127,11 +2542,15 @@ $(window).on("load", function() {
 
     function aplicarDatosPlanAlFormulario(data) {
         $("#server_customers_id").val(data.server_customers_id || "");
-        $("#planes_id").val(data.planes_id || "").selectpicker("refresh");
-        $("#sistema_id").val(data.sistema_id || "").selectpicker("refresh");
+        $("#planes_id").val(data.planes_id || "");
+        $("#sistema_id").val(data.sistema_id || "");
         $("#user_extra").val(parseInt(data.user_extra, 10) || 0);
-        $("#validar").val(data.validar).selectpicker("refresh");
-        $("#estado").val(data.estado).selectpicker("refresh");
+        $("#validar").val(data.validar);
+        $("#estado").val(data.estado);
+
+        window.izzySoloRefreshSelect2(
+            $("#planes_id, #sistema_id, #validar, #estado")
+        );
 
         const nombrePlan = $("#planes_id option:selected").text().trim();
 
@@ -2661,7 +3080,7 @@ $(window).on("load", function() {
         zip.folder("xl").file("workbook.xml", workbookXml);
         zip.folder("xl").file("styles.xml", stylesXml);
         zip.folder("xl").folder("_rels").file("workbook.xml.rels", workbookRels);
-        zip.folder("xl").folder("worksheets").file("sheet1.xml", sheetXml);
+        zip.folder("xl").folder("worksheets").file("sheet1.xml", window.izzyExcelCompletarBordesCombinados(sheetXml));
 
         const opciones = {
             type: "blob",
@@ -3435,15 +3854,19 @@ $(window).on("load", function() {
             const form = this;
 
             setTimeout(function() {
-                $(form).find(".selectpicker").val("").selectpicker("refresh");
+                const $selects = $(form).find("select");
+
+                $selects.val("");
+                window.izzySoloRefreshSelect2($selects);
+
                 asignacionState.page = 1;
                 aplicarFiltrosYRender();
             }, 50);
         });
 
     $("#filtro_plan, #filtro_sistema, #filtro_validar, #filtro_db")
-        .off("changed.bs.select.asignacion change.asignacion")
-        .on("changed.bs.select.asignacion change.asignacion", function() {
+        .off("change.asignacion")
+        .on("change.asignacion", function() {
             asignacionState.page = 1;
             aplicarFiltrosYRender();
         });
@@ -3534,22 +3957,24 @@ $(window).on("load", function() {
             const $campo = $(this);
 
             /*
-             * Si el campo usa Bootstrap Select, el <select> original puede estar
-             * oculto. Se enfoca el botón visible del componente sin abrirlo.
-             * Para cualquier control normal se usa focus() directamente.
+             * En Select2 el <select> original está oculto.
+             * Enfocamos la selección visible sin abrir el desplegable.
              */
-            if ($campo.is("select") && $campo.hasClass("selectpicker")) {
-                const $bootstrapSelect = $campo.parent(".bootstrap-select").length
-                    ? $campo.parent(".bootstrap-select")
-                    : $campo.next(".bootstrap-select");
-
-                const $toggle = $bootstrapSelect
-                    .find("> .dropdown-toggle, .dropdown-toggle")
+            if (
+                $campo.is("select") &&
+                $campo.hasClass("select2-hidden-accessible")
+            ) {
+                const $selection = $campo
+                    .next(".select2")
+                    .find(".select2-selection")
                     .filter(":visible")
                     .first();
 
-                if ($toggle.length) {
-                    $toggle.trigger("focus");
+                if ($selection.length) {
+                    $selection
+                        .attr("tabindex", "0")
+                        .trigger("focus");
+
                     enfocado = true;
                     return false;
                 }
@@ -3584,12 +4009,16 @@ $(window).on("load", function() {
         .off("click.asignacionEditar", ".btn-editar-asignacion")
         .on("click.asignacionEditar", ".btn-editar-asignacion", function() {
             $("#server_customers_id").val($(this).data("id"));
-            $("#cliente_id").val($(this).data("cliente-id")).selectpicker("refresh");
-            $("#planes_id").val($(this).data("plan-id")).selectpicker("refresh");
-            $("#sistema_id").val($(this).data("sistema-id")).selectpicker("refresh");
+            $("#cliente_id").val($(this).data("cliente-id"));
+            $("#planes_id").val($(this).data("plan-id"));
+            $("#sistema_id").val($(this).data("sistema-id"));
             $("#user_extra").val($(this).data("user-extra"));
-            $("#validar").val($(this).data("validar")).selectpicker("refresh");
-            $("#estado").val($(this).data("estado")).selectpicker("refresh");
+            $("#validar").val($(this).data("validar"));
+            $("#estado").val($(this).data("estado"));
+
+            window.izzySoloRefreshSelect2(
+                $("#cliente_id, #planes_id, #sistema_id, #validar, #estado")
+            );
 
             $("#formAsignacionPlan")
                 .data("plan-actual-id", String($(this).data("plan-id")))
@@ -3617,8 +4046,8 @@ $(window).on("load", function() {
        CAMBIO DE CLIENTE
        ========================================================= */
     $("#cliente_id")
-        .off("changed.bs.select.asignacion change.asignacion")
-        .on("changed.bs.select.asignacion change.asignacion", function() {
+        .off("change.asignacion")
+        .on("change.asignacion", function() {
             const clienteId = $(this).val();
 
             if (!clienteId) {
@@ -4117,6 +4546,9 @@ $(window).on("load", function() {
 
     function apInitSelect2($select, modalSelector, placeholder) {
         if (typeof $.fn.select2 !== "function" || !$select.length) return;
+
+        window.izzySelect2LimpiarControl($select);
+
         if ($select.hasClass("select2-hidden-accessible")) $select.select2("destroy");
         $select.select2({
             width: "100%",
@@ -4377,11 +4809,12 @@ $(window).on("load", function() {
        FORMULARIOS PÚBLICOS: USUARIO + SECUENCIA + DOCUMENTOS
        Se reutilizan los modales globales de vistasModals.
        ========================================================= */
-    function apRefreshSelectpicker($el) {
-        if (!$el || !$el.length) return;
-        if (typeof $.fn.selectpicker === "function") {
-            try { $el.selectpicker("refresh"); } catch (e) {}
+    function apRefreshSelect2($el) {
+        if (!$el || !$el.length) {
+            return;
         }
+
+        window.izzySoloRefreshSelect2($el);
     }
 
     function apFillPublicSelect($select, rows, valueKey, textKey, placeholder, disabledFn) {
@@ -4394,7 +4827,7 @@ $(window).on("load", function() {
             html += '<option value="' + limpiarHtml(value) + '"' + disabled + '>' + limpiarHtml(text) + '</option>';
         });
         $select.html(html);
-        apRefreshSelectpicker($select);
+        apRefreshSelect2($select);
     }
 
     function apPrepareExternalModal(selector) {
@@ -4412,6 +4845,9 @@ $(window).on("load", function() {
             instance._config.keyboard = true;
             instance._config.focus = true;
         }
+
+        window.izzySoloSelect2($modal.find("select"));
+
         return $modal;
     }
 
@@ -4459,9 +4895,9 @@ $(window).on("load", function() {
         $modal.find("#fecha_ingreso_colaborador").val(new Date().toISOString().slice(0, 10));
         if (preselectedCollaborator) {
             $modal.find("#colaboradores_id").val(String(preselectedCollaborator.colaboradores_id));
-            apRefreshSelectpicker($modal.find("#colaboradores_id"));
+            apRefreshSelect2($modal.find("#colaboradores_id"));
             $modal.find("#empresa_usuario").val(String(preselectedCollaborator.empresa_id || ""));
-            apRefreshSelectpicker($modal.find("#empresa_usuario"));
+            apRefreshSelect2($modal.find("#empresa_usuario"));
             apPublicUserSetMode("existing");
             apShowPublicCollaboratorInfo(preselectedCollaborator);
         } else {
@@ -4500,15 +4936,15 @@ $(window).on("load", function() {
             $modal.find("#nuevo-tab").addClass("disabled").attr("aria-disabled", "true").css("pointer-events", "none");
             $modal.find('#colaboradores_id option[value="' + String(preselectedCollaborator.colaboradores_id) + '"]').prop("disabled", false);
             $modal.find("#colaboradores_id").val(String(preselectedCollaborator.colaboradores_id)).prop("disabled", true);
-            apRefreshSelectpicker($modal.find("#colaboradores_id"));
+            apRefreshSelect2($modal.find("#colaboradores_id"));
             apShowPublicCollaboratorInfo(preselectedCollaborator);
             $modal.find("#correo_usuario").val(editUser.email || "");
             $modal.find("#empresa_usuario").val(String(editUser.empresa_id || preselectedCollaborator.empresa_id || ""));
             $modal.find("#privilegio_id").val(String(editUser.privilegio_id || ""));
             $modal.find("#tipo_user").val(String(editUser.tipo_user_id || ""));
-            apRefreshSelectpicker($modal.find("#empresa_usuario"));
-            apRefreshSelectpicker($modal.find("#privilegio_id"));
-            apRefreshSelectpicker($modal.find("#tipo_user"));
+            apRefreshSelect2($modal.find("#empresa_usuario"));
+            apRefreshSelect2($modal.find("#privilegio_id"));
+            apRefreshSelect2($modal.find("#tipo_user"));
             $modal.find("#estado_usuario").prop("checked", parseInt(editUser.estado, 10) === 1);
             $modal.find("#label_usuarios_activo").text(parseInt(editUser.estado, 10) === 1 ? "Activo" : "Inactivo");
             $modal.find("#reg_usuario").hide();
@@ -4517,7 +4953,7 @@ $(window).on("load", function() {
         } else {
             $modal.find("#nuevo-tab").removeClass("disabled").removeAttr("aria-disabled").css("pointer-events", "");
             $modal.find("#colaboradores_id").prop("disabled", false);
-            apRefreshSelectpicker($modal.find("#colaboradores_id"));
+            apRefreshSelect2($modal.find("#colaboradores_id"));
         }
 
         $modal.modal("show");
@@ -4753,7 +5189,7 @@ $(window).on("load", function() {
         } else if (empresas.length === 1) {
             $select.val(String(empresas[0].empresa_id));
         }
-        apRefreshSelectpicker($select);
+        apRefreshSelect2($select);
     }
 
     function apPopulateSequenceDocumentsSelect() {
@@ -4767,7 +5203,7 @@ $(window).on("load", function() {
         });
         $select.html(html);
         if (current && $select.find('option[value="' + current + '"]').length) $select.val(current);
-        apRefreshSelectpicker($select);
+        apRefreshSelect2($select);
     }
 
     function apFormatSequenceNumber(row) {
@@ -5054,8 +5490,8 @@ $(window).on("load", function() {
         $modal.find("#secuencia_facturacion_id").val(row.secuencia_facturacion_id);
         $modal.find("#empresa_secuencia").val(String(row.empresa_id || "")).prop("disabled", true);
         $modal.find("#documento_secuencia").val(String(row.documento_id || "")).prop("disabled", true);
-        apRefreshSelectpicker($modal.find("#empresa_secuencia"));
-        apRefreshSelectpicker($modal.find("#documento_secuencia"));
+        apRefreshSelect2($modal.find("#empresa_secuencia"));
+        apRefreshSelect2($modal.find("#documento_secuencia"));
         $modal.find("#cai_secuencia").val(row.cai || "");
         $modal.find("#prefijo_secuencia").val(row.prefijo || "");
         $modal.find("#relleno_secuencia").val(row.relleno || "");
@@ -5652,7 +6088,7 @@ $(window).on("load", function() {
             apShowPublicCollaboratorInfo(c || null);
             if (c && c.empresa_id) {
                 $("#modal_registrar_usuarios #empresa_usuario").val(String(c.empresa_id));
-                apRefreshSelectpicker($("#modal_registrar_usuarios #empresa_usuario"));
+                apRefreshSelect2($("#modal_registrar_usuarios #empresa_usuario"));
             }
         })
         .off("shown.bs.tab.apPublicUser", "#modal_registrar_usuarios #existente-tab,#modal_registrar_usuarios #nuevo-tab")
@@ -5672,7 +6108,7 @@ $(window).on("load", function() {
             if ($modal.attr("id") === "modal_registrar_usuarios") {
                 $modal.find("#nuevo-tab").removeClass("disabled").removeAttr("aria-disabled").css("pointer-events", "");
                 $modal.find("#colaboradores_id").prop("disabled", false);
-                apRefreshSelectpicker($modal.find("#colaboradores_id"));
+                apRefreshSelect2($modal.find("#colaboradores_id"));
             }
             if ($("#modalAdministrarCliente").hasClass("show")) $(document.body).addClass("modal-open");
         });
@@ -5823,7 +6259,7 @@ $(window).on("load", function() {
         const workbookRels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
         const rootRels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
         const contentTypes='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
-        const zip=new JSZip(); zip.file('[Content_Types].xml',contentTypes); zip.folder('_rels').file('.rels',rootRels); zip.folder('xl').file('workbook.xml',workbookXml); zip.folder('xl').file('styles.xml',stylesXml); zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels); zip.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+        const zip=new JSZip(); zip.file('[Content_Types].xml',contentTypes); zip.folder('_rels').file('.rels',rootRels); zip.folder('xl').file('workbook.xml',workbookXml); zip.folder('xl').file('styles.xml',stylesXml); zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels); zip.folder('xl').folder('worksheets').file('sheet1.xml',window.izzyExcelCompletarBordesCombinados(sheetXml));
         const opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
         if(typeof zip.generateAsync==='function') return zip.generateAsync(opts);
         if(typeof zip.generate==='function') { try{return Promise.resolve(zip.generate(opts));}catch(e){return Promise.reject(e);} }
@@ -6418,7 +6854,7 @@ $(window).on("load", function() {
         const workbookRels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
         const rootRels='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
         const contentTypes='<' + '?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
-        const zip=new JSZip(); zip.file('[Content_Types].xml',contentTypes); zip.folder('_rels').file('.rels',rootRels); zip.folder('xl').file('workbook.xml',workbookXml); zip.folder('xl').file('styles.xml',stylesXml); zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels); zip.folder('xl').folder('worksheets').file('sheet1.xml',sheetXml);
+        const zip=new JSZip(); zip.file('[Content_Types].xml',contentTypes); zip.folder('_rels').file('.rels',rootRels); zip.folder('xl').file('workbook.xml',workbookXml); zip.folder('xl').file('styles.xml',stylesXml); zip.folder('xl').folder('_rels').file('workbook.xml.rels',workbookRels); zip.folder('xl').folder('worksheets').file('sheet1.xml',window.izzyExcelCompletarBordesCombinados(sheetXml));
         const opts={type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',compression:'DEFLATE'};
         if(typeof zip.generateAsync==='function') return zip.generateAsync(opts);
         if(typeof zip.generate==='function'){try{return Promise.resolve(zip.generate(opts));}catch(e){return Promise.reject(e);}}

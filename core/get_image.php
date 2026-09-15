@@ -5,12 +5,11 @@ require_once "mainModel.php";
 require_once "Database.php";
 
 $database = new Database();
-// Instanciar mainModel
 $insMainModel = new mainModel();
 
-// Validar sesión primero
+// Validar sesión primero.
 $validacion = $insMainModel->validarSesion();
-if($validacion['error']) {
+if ($validacion['error']) {
     return $insMainModel->showNotification([
         "title" => "Error de sesión",
         "text" => $validacion['mensaje'],
@@ -19,35 +18,70 @@ if($validacion['error']) {
     ]);
 }
 
-$empresa_id = $_SESSION['empresa_id_sd'];
+$empresa_id = isset($_SESSION['empresa_id_sd']) ? (int) $_SESSION['empresa_id_sd'] : 0;
+
+// Sin empresa válida no hay logo que consultar.
+if ($empresa_id <= 0) {
+    echo "ERROR";
+    return;
+}
 
 $tablaEmpresa = "empresa";
-$camposEpresa = ["logotipo"];
+$camposEmpresa = ["logotipo"];
 $condiciones = ["empresa_id" => $empresa_id];
 $orderBy = "";
-$resultadoClientes = $database->consultarTabla($tablaEmpresa, $camposEpresa, $condiciones, $orderBy);
+$resultadoClientes = $database->consultarTabla($tablaEmpresa, $camposEmpresa, $condiciones, $orderBy);
 
-if (!empty($resultadoClientes)) {
-    // Obtiene el nombre de la imagen de la base de datos
-    $image = $resultadoClientes[0]['logotipo'];
-} else {
-    $image = "logo.png";  // Imagen predeterminada si no se encuentra en la base de datos
+// Si la empresa no tiene logo, no se intenta consultar /files/ como si fuera una imagen.
+$image = '';
+if (!empty($resultadoClientes) && isset($resultadoClientes[0]['logotipo'])) {
+    $image = trim((string) $resultadoClientes[0]['logotipo']);
 }
 
-// Construye la URL completa para la imagen (puedes usar la URL externa aquí)
+if ($image === '') {
+    echo "ERROR";
+    return;
+}
+
+// Conserva el comportamiento actual: el campo logotipo contiene el nombre/ruta del archivo.
+$image = ltrim($image, "/\\");
 $imageUrl = "https://wi.fastsolutionhn.com/files/" . $image;
 
-if (filter_var($imageUrl, FILTER_VALIDATE_URL)) {
-    // Si la URL es válida, obtenemos el contenido de la imagen desde la URL externa
-    $imagenData = file_get_contents($imageUrl);  // Usamos file_get_contents para obtener los datos de la imagen
-    
-    if ($imagenData !== false) {
-        // Codificamos la imagen en Base64
-        $base64 = base64_encode($imagenData);
-        echo "data:image/png;base64," . $base64;  // Devolvemos el Base64 para usarlo en JavaScript
-    } else {
-        echo "ERROR";  // Si no se puede obtener la imagen, devolvemos un error
-    }
-} else {
-    echo "ERROR";  // Si la URL no es válida, devolvemos un error
+if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+    echo "ERROR";
+    return;
 }
+
+// Evita warnings en el log si el archivo remoto no existe, responde 403 o no está disponible.
+$context = stream_context_create([
+    'http' => [
+        'method' => 'GET',
+        'timeout' => 8,
+        'ignore_errors' => false,
+        'header' => "User-Agent: IZZY/1.0\r\nAccept: image/*\r\n"
+    ],
+    'https' => [
+        'method' => 'GET',
+        'timeout' => 8,
+        'ignore_errors' => false,
+        'header' => "User-Agent: IZZY/1.0\r\nAccept: image/*\r\n"
+    ]
+]);
+
+$imagenData = @file_get_contents($imageUrl, false, $context);
+
+if ($imagenData === false || $imagenData === '') {
+    echo "ERROR";
+    return;
+}
+
+// Detectar el MIME real cuando sea posible; mantiene PNG como respaldo.
+$mime = 'image/png';
+if (function_exists('getimagesizefromstring')) {
+    $info = @getimagesizefromstring($imagenData);
+    if (is_array($info) && !empty($info['mime']) && strpos($info['mime'], 'image/') === 0) {
+        $mime = $info['mime'];
+    }
+}
+
+echo 'data:' . $mime . ';base64,' . base64_encode($imagenData);

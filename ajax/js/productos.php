@@ -315,7 +315,7 @@ function productosIsvBadge(row) {
 function productosFiltrarRows(rows) {
   rows = rows || [];
 
-  var texto = $('#form_main_productos #buscar_productos_general').val();
+  var texto = $('#buscar_productos_general').val();
   var categoriaFiltro = $('#form_main_productos #categoria_producto_filtro').val();
   var isvFiltro = $('#form_main_productos #isv_producto_filtro').val();
 

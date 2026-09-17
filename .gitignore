@@ -1,1 +1,4 @@
-core/configAPP.php
+.env
+.env.*
+credentials/
+secrets/

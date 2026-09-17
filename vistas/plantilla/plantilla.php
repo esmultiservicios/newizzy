@@ -239,10 +239,6 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
         <i class="fab fa-whatsapp my-float-ws"></i>
     </a>  
     
-    <script>
-        // Ejecuta cuando todo el HTML ya está en el DOM y jQuery está disponible
-        actualizarPermisos();
-    </script>    
 </body>
 
 </html>

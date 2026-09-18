@@ -738,59 +738,44 @@
 .pantalla-cocina .cocina-test-ok,
 .cocina-test-ok{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px 10px;border-radius:8px;background:#edf9f2;color:#238254;font-weight:700;font-size:12px;border:1px solid #bfe5cf}
 
+
 /* =========================================================
-   IZZY - TARJETA DE PRUEBA DE PANTALLA
-   Contraste explícito para evitar heredar texto blanco del header normal.
+   PANTALLA DE COCINA — TARJETA DE PRUEBA LEGIBLE
+   Corrección aislada: no altera encabezados de comandas reales.
    ========================================================= */
-.comanda-card.comanda-prueba {
-    border: 1px solid #9fd3eb;
-    border-left: 5px solid var(--kitchen-blue);
-    background: var(--kitchen-surface);
-    box-shadow: 0 8px 24px rgba(28, 46, 61, 0.12);
+.pantalla-cocina .comanda-card.comanda-prueba .comanda-header,
+.comanda-card.comanda-prueba .comanda-header{
+  background:#eef8fd;
+  color:var(--kitchen-text);
 }
-
-.comanda-card.comanda-prueba .comanda-header {
-    background: #eaf6fc;
-    color: var(--kitchen-text);
-    border-bottom: 1px solid #c9e5f3;
+.pantalla-cocina .comanda-card.comanda-prueba .comanda-mesa,
+.comanda-card.comanda-prueba .comanda-mesa{
+  color:var(--kitchen-navy);
+  white-space:nowrap;
+  overflow-wrap:normal;
+  word-break:normal;
 }
-
-.comanda-card.comanda-prueba .comanda-mesa,
-.comanda-card.comanda-prueba .comanda-mesa i {
-    color: var(--kitchen-text);
+.pantalla-cocina .comanda-card.comanda-prueba .comanda-mesa i,
+.comanda-card.comanda-prueba .comanda-mesa i{color:var(--kitchen-blue-dark);}
+.pantalla-cocina .comanda-card.comanda-prueba .comanda-hora,
+.comanda-card.comanda-prueba .comanda-hora{
+  background:#dceaf3;
+  color:var(--kitchen-navy);
 }
-
-.comanda-card.comanda-prueba .comanda-hora {
-    background: #d6e8f1;
-    color: #3b5568;
+.pantalla-cocina .comanda-card.comanda-prueba .comanda-actions,
+.comanda-card.comanda-prueba .comanda-actions{grid-template-columns:minmax(0,1fr);}
+.pantalla-cocina .comanda-card.comanda-prueba .cocina-test-ok,
+.comanda-card.comanda-prueba .cocina-test-ok{
+  grid-column:1/-1;
+  min-width:0;
+  white-space:nowrap;
+  overflow-wrap:normal;
+  word-break:normal;
 }
-
-.comanda-card.comanda-prueba .badge-estado.pendiente {
-    color: #8d5900;
-    background: #fff7e8;
-    border-color: #f3c96e;
+@media(max-width:340px){
+  .pantalla-cocina .comanda-card.comanda-prueba .comanda-mesa,
+  .comanda-card.comanda-prueba .comanda-mesa,
+  .pantalla-cocina .comanda-card.comanda-prueba .cocina-test-ok,
+  .comanda-card.comanda-prueba .cocina-test-ok{white-space:normal;}
 }
-
-.comanda-card.comanda-prueba .comanda-info {
-    background: #f7fafc;
-}
-
-.comanda-card.comanda-prueba .comanda-info,
-.comanda-card.comanda-prueba .comanda-info * {
-    color: var(--kitchen-text);
-}
-
-.comanda-card.comanda-prueba .comanda-items {
-    color: var(--kitchen-text);
-    background: var(--kitchen-surface);
-}
-
-.comanda-card.comanda-prueba .comanda-observaciones {
-    color: var(--kitchen-text);
-}
-
-.comanda-card.comanda-prueba .cocina-test-ok {
-    color: #176b45;
-    background: #edf9f3;
-    border-color: #b8e3cc;
-}
+\n\n/* =========================================================\n   PANTALLA DE COCINA — INTERACCIÓN VISUAL DE TARJETAS\n   Movimiento sutil solo en equipos con mouse/trackpad.\n   ========================================================= */\n@media (hover:hover) and (pointer:fine){\n  .pantalla-cocina .comanda-card:hover,\n  .vista-cocina-container .comanda-card:hover{\n    transform:translateY(-4px);\n    box-shadow:0 14px 30px rgba(31,49,64,.16);\n  }\n}\n@media (hover:none), (pointer:coarse){\n  .pantalla-cocina .comanda-card:hover,\n  .vista-cocina-container .comanda-card:hover{\n    transform:none;\n  }\n}\n

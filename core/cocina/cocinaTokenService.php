@@ -185,6 +185,7 @@ final class CocinaTokenService
 
         // Si la pantalla fue vinculada mediante código, exige que ese dispositivo siga autorizado.
         // El enlace privado alternativo puede seguir funcionando sin identificador de dispositivo.
+        $deviceId=0;
         $deviceSecret=strtolower(trim($deviceSecret));
         if($deviceSecret!==''){
             if(!preg_match('/^[a-f0-9]{64}$/',$deviceSecret)) throw new DomainException('Dispositivo de Cocina inválido.',401);
@@ -210,7 +211,7 @@ final class CocinaTokenService
         if(!$cfgSt) throw new RuntimeException('La configuración Restaurante no está actualizada. Ejecute SQL_CLIENTE_COCINA.sql.');
         $cfgSt->bind_param('i',$empresa); $cfgSt->execute(); $cfgRs=$cfgSt->get_result(); $cfg=$cfgRs?$cfgRs->fetch_assoc():null; $cfgSt->close();
         if(!$cfg || (int)$cfg['usar_comandas']!==1 || (int)$cfg['pantalla_cocina_activa']!==1) throw new DomainException('La Pantalla de Cocina está inactiva para esta empresa.',403);
-        return ['access'=>$row,'tenant'=>$tenant,'empresa_id'=>$empresa,'config'=>$cfg];
+        return ['access'=>$row,'tenant'=>$tenant,'empresa_id'=>$empresa,'config'=>$cfg,'device_id'=>$deviceId];
     }
     public static function getAdminAccess(int $serverCustomerId,int $empresaId): ?array {
         self::requireSchema(); $db=self::master();
@@ -520,6 +521,11 @@ final class CocinaTokenService
             KEY idx_rest_pantalla_prueba(acceso_id,fecha_expira)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
         if(!$db->query($sql2)) throw new RuntimeException('No se pudo preparar las pruebas de Pantalla Cocina.');
+        $col=$db->query("SHOW COLUMNS FROM restaurante_pantalla_pruebas LIKE 'dispositivo_id'");
+        if(!$col || $col->num_rows===0){
+            if(!$db->query("ALTER TABLE restaurante_pantalla_pruebas ADD COLUMN dispositivo_id BIGINT NULL AFTER acceso_id, ADD KEY idx_rest_pantalla_prueba_dispositivo(acceso_id,dispositivo_id,fecha_expira)"))
+                throw new RuntimeException('No se pudo actualizar el destino de las pruebas de Pantalla Cocina.');
+        }
     }
 
     public static function renameDevice(int $serverCustomerId,int $empresaId,int $deviceId,string $name): void {
@@ -537,7 +543,7 @@ final class CocinaTokenService
         if($affected<1) throw new DomainException('La pantalla no existe o no pertenece a esta empresa.',404);
     }
 
-    public static function sendKitchenTest(int $serverCustomerId,int $empresaId,string $message='Prueba de conexión IZZY'): void {
+    public static function sendKitchenTest(int $serverCustomerId,int $empresaId,string $message='Prueba de conexión IZZY',int $deviceId=0): void {
         self::ensureEnhancementsSchema();
         $access=self::getAdminAccess($serverCustomerId,$empresaId);
         if(!$access || (int)$access['activo']!==1) throw new DomainException('Active primero la Pantalla de Cocina.',409);
@@ -546,17 +552,34 @@ final class CocinaTokenService
         if(function_exists('mb_substr')) $message=mb_substr($message,0,160,'UTF-8'); else $message=substr($message,0,160);
         $db=self::master();
         $db->query("DELETE FROM restaurante_pantalla_pruebas WHERE fecha_expira<NOW()");
-        $st=$db->prepare("INSERT INTO restaurante_pantalla_pruebas(acceso_id,mensaje,fecha_registro,fecha_expira) VALUES(?,?,NOW(),DATE_ADD(NOW(),INTERVAL 45 SECOND))");
+
+        if($deviceId>0){
+            self::ensureDeviceSchema();
+            $chk=$db->prepare("SELECT dispositivo_id FROM restaurante_pantalla_dispositivos WHERE dispositivo_id=? AND acceso_id=? AND activo=1 LIMIT 1");
+            if(!$chk) throw new RuntimeException('No se pudo validar la pantalla seleccionada.');
+            $chk->bind_param('ii',$deviceId,$accessId); $chk->execute(); $rs=$chk->get_result(); $valid=$rs?$rs->fetch_assoc():null; $chk->close();
+            if(!$valid) throw new DomainException('La pantalla seleccionada no está vinculada o ya no está activa.',404);
+        }
+
+        $target=$deviceId>0?$deviceId:null;
+        $st=$db->prepare("INSERT INTO restaurante_pantalla_pruebas(acceso_id,dispositivo_id,mensaje,fecha_registro,fecha_expira) VALUES(?,?,?,NOW(),DATE_ADD(NOW(),INTERVAL 45 SECOND))");
         if(!$st) throw new RuntimeException('No se pudo enviar la prueba de Cocina.');
-        $st->bind_param('is',$accessId,$message); $st->execute(); $st->close();
+        $st->bind_param('iis',$accessId,$target,$message); $st->execute(); $st->close();
     }
 
-    public static function getKitchenTests(int $accessId): array {
+    public static function getKitchenTests(int $accessId,int $deviceId=0): array {
         if($accessId<=0) return [];
         self::ensureEnhancementsSchema(); $db=self::master();
-        $st=$db->prepare("SELECT prueba_id,mensaje,fecha_registro FROM restaurante_pantalla_pruebas WHERE acceso_id=? AND fecha_expira>=NOW() ORDER BY prueba_id DESC LIMIT 3");
-        if(!$st) return [];
-        $st->bind_param('i',$accessId); $st->execute(); $rs=$st->get_result(); $out=[];
+        if($deviceId>0){
+            $st=$db->prepare("SELECT prueba_id,mensaje,fecha_registro FROM restaurante_pantalla_pruebas WHERE acceso_id=? AND fecha_expira>=NOW() AND (dispositivo_id IS NULL OR dispositivo_id=?) ORDER BY prueba_id DESC LIMIT 3");
+            if(!$st) return [];
+            $st->bind_param('ii',$accessId,$deviceId);
+        }else{
+            $st=$db->prepare("SELECT prueba_id,mensaje,fecha_registro FROM restaurante_pantalla_pruebas WHERE acceso_id=? AND fecha_expira>=NOW() AND dispositivo_id IS NULL ORDER BY prueba_id DESC LIMIT 3");
+            if(!$st) return [];
+            $st->bind_param('i',$accessId);
+        }
+        $st->execute(); $rs=$st->get_result(); $out=[];
         while($rs && ($r=$rs->fetch_assoc())) $out[]=$r;
         $st->close(); return $out;
     }

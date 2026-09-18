@@ -151,7 +151,8 @@ try{
     if($action==='listar'){
         $comandas=listComandas($db,$empresa);
         $accessId=(int)($ctx['access']['acceso_id']??0);
-        foreach(CocinaTokenService::getKitchenTests($accessId) as $t){
+        $deviceId=(int)($ctx['device_id']??0);
+        foreach(CocinaTokenService::getKitchenTests($accessId,$deviceId) as $t){
             $ts=strtotime((string)($t['fecha_registro']??''));
             $comandas[]=[
                 'comanda_id'=>'test-'.(int)$t['prueba_id'],

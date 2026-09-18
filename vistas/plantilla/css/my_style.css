@@ -15503,3 +15503,232 @@ body > .modal-backdrop.pdf-public-backdrop {
     }
 }
 
+
+/* =========================================================
+   IZZY | VISOR PDF PUBLICO - RESPONSIVE UNIVERSAL V2
+   Ajuste final aislado: desktop, laptop, tablet, móvil y landscape.
+   No altera pdfMake, descargas ni lógica del visor.
+   ========================================================= */
+#modal_pdf_publico,
+#modal_pdf_publico * {
+    box-sizing: border-box;
+}
+
+#modal_pdf_publico .modal-dialog {
+    width: min(1500px, calc(100vw - 24px)) !important;
+    max-width: min(1500px, calc(100vw - 24px)) !important;
+    height: calc(100vh - 24px) !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - 24px) !important;
+    margin: 12px auto !important;
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+#modal_pdf_publico .pdf-public-modal-content {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+#modal_pdf_publico .pdf-public-modal-header,
+#modal_pdf_publico .pdf-public-modal-footer {
+    flex: 0 0 auto !important;
+}
+
+#modal_pdf_publico .pdf-public-modal-body {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+#modal_pdf_publico #visor_pdf_publico {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    border: 0 !important;
+}
+
+@supports (height: 100dvh) {
+    #modal_pdf_publico .modal-dialog {
+        height: calc(100dvh - 24px) !important;
+        max-height: calc(100dvh - 24px) !important;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991.98px) {
+    #modal_pdf_publico .modal-dialog {
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
+        height: calc(100vh - 16px) !important;
+        max-height: calc(100vh - 16px) !important;
+        margin: 8px auto !important;
+    }
+
+    @supports (height: 100dvh) {
+        #modal_pdf_publico .modal-dialog {
+            height: calc(100dvh - 16px) !important;
+            max-height: calc(100dvh - 16px) !important;
+        }
+    }
+}
+
+/* Móvil */
+@media (max-width: 767.98px) {
+    #modal_pdf_publico {
+        padding: 0 !important;
+    }
+
+    #modal_pdf_publico .modal-dialog {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-content {
+        border-radius: 0 !important;
+    }
+
+    @supports (height: 100dvh) {
+        #modal_pdf_publico .modal-dialog {
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+        }
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header {
+        min-height: 48px !important;
+        padding: 8px 10px !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header .modal-title {
+        min-width: 0 !important;
+        font-size: 14px !important;
+        line-height: 1.2 !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header .modal-title span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-footer {
+        min-height: 0 !important;
+        padding: 7px 8px !important;
+        gap: 6px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-info {
+        width: 100% !important;
+        font-size: 11px !important;
+        gap: 7px !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-info-icon {
+        width: 28px !important;
+        height: 28px !important;
+        flex: 0 0 28px !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-actions {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        margin: 0 !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-actions .btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 36px !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 6px 7px !important;
+        font-size: 11.5px !important;
+        line-height: 1.15 !important;
+    }
+}
+
+/* Teléfonos angostos */
+@media (max-width: 359.98px) {
+    #modal_pdf_publico .pdf-public-footer-info {
+        display: none !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header .modal-title {
+        font-size: 13px !important;
+    }
+}
+
+/* Móvil / tablet horizontal: prioriza área útil del documento */
+@media (max-height: 520px) and (orientation: landscape) {
+    #modal_pdf_publico .modal-dialog {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-content {
+        border-radius: 0 !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-header {
+        min-height: 42px !important;
+        padding: 5px 9px !important;
+    }
+
+    #modal_pdf_publico .pdf-public-modal-footer {
+        min-height: 44px !important;
+        padding: 5px 8px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-info {
+        display: none !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-actions {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 6px !important;
+    }
+
+    #modal_pdf_publico .pdf-public-footer-actions .btn {
+        width: auto !important;
+        min-width: 118px !important;
+        min-height: 32px !important;
+        padding: 5px 9px !important;
+    }
+
+    @supports (height: 100dvh) {
+        #modal_pdf_publico .modal-dialog {
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+        }
+    }
+}

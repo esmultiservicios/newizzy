@@ -155,8 +155,9 @@ try{
     }
 
     if(in_array($action,['sendtest','testkitchen','probarcocina','enviarprueba'],true)){
-        CocinaTokenService::sendKitchenTest($serverCustomerId,$empresaId,trim((string)($_POST['mensaje']??'Prueba de conexión IZZY')));
-        cocinaAdminOut(['status'=>true,'message'=>'Prueba enviada. Debe aparecer en las pantallas vinculadas en unos segundos.']);
+        $deviceId=(int)($_POST['dispositivo_id']??0);
+        CocinaTokenService::sendKitchenTest($serverCustomerId,$empresaId,trim((string)($_POST['mensaje']??'Prueba de conexión IZZY')),$deviceId);
+        cocinaAdminOut(['status'=>true,'message'=>$deviceId>0?'Prueba enviada únicamente a la pantalla seleccionada.':'Prueba enviada a todas las pantallas vinculadas.']);
     }
 
     if(in_array($action,['recordhistory','registrarhistorial'],true)){

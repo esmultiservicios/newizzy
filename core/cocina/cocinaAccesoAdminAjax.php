@@ -147,8 +147,6 @@ try{
         ]);
     }
 
-    error_log('[CocinaAdmin][Action] Acción no reconocida: '.($actionRaw!==''?$actionRaw:'(vacía)'));
-
     if(in_array($action,['renamedevice','renombrardispositivo','renombrarpantalla'],true)){
         $deviceId=(int)($_POST['dispositivo_id']??0);
         $name=trim((string)($_POST['nombre']??''));
@@ -177,6 +175,7 @@ try{
         cocinaAdminOut(['status'=>true,'historial'=>CocinaTokenService::listConfigHistory($serverCustomerId,$empresaId,20)]);
     }
 
+    error_log('[CocinaAdmin][Action] Acción no reconocida: '.($actionRaw!==''?$actionRaw:'(vacía)'));
     cocinaAdminOut(['status'=>false,'message'=>'Acción administrativa no permitida.'],403);
 }catch(Throwable $e){
     error_log('[CocinaAdmin] '.$e->getMessage());

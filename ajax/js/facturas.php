@@ -7308,6 +7308,12 @@ var listar_busqueda_bill = function() {
                         '</button>';
 
                     accionesBill +=
+                        '<button type="button" class="dropdown-item accion-item accion-comentario editar_comentario_factura">' +
+                            '<span class="accion-icon accion-icon-primary"><i class="fas fa-comment-dots"></i></span>' +
+                            '<span class="accion-label">Editar comentario</span>' +
+                        '</button>';
+
+                    accionesBill +=
                         '<button type="button" class="dropdown-item accion-item accion-anular table_cancelar cancelar_factura">' +
                             '<span class="accion-icon accion-icon-danger">' +
                                 '<i class="fas fa-ban"></i>' +
@@ -10700,6 +10706,8 @@ $('#modalConfigFactura')
                 fmActionItem('accion-comprobante table_reportes print_comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'),
                 fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar'),
                 fmActionItem('accion-nota-credito nota_credito_factura','fas fa-file-invoice-dollar','accion-icon-credito','Nota de Crédito'),
+                fmActionItem('accion-comentario editar_comentario_factura','fas fa-comment-dots','accion-icon-primary','Editar comentario'),
+                fmActionItem('accion-cliente cambiar_cliente_factura','fas fa-user-edit','accion-icon-primary','Cambiar cliente'),
                 fmActionItem('accion-anular table_cancelar cancelar_factura','fas fa-ban','accion-icon-danger','Anular')
             ];
             var type=String(r.tipo_documento||'');
@@ -10722,6 +10730,8 @@ $('#modalConfigFactura')
                 fmActionItem('accion-comprobante table_reportes print_comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'),
                 fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar'),
                 fmActionItem('accion-nota-credito nota_credito_factura','fas fa-file-invoice-dollar','accion-icon-credito','Nota de Crédito'),
+                fmActionItem('accion-comentario editar_comentario_factura','fas fa-comment-dots','accion-icon-primary','Editar comentario'),
+                fmActionItem('accion-cliente cambiar_cliente_factura','fas fa-user-edit','accion-icon-primary','Cambiar cliente'),
                 fmActionItem('accion-anular table_cancelar cancelar_factura','fas fa-ban','accion-icon-danger','Anular')
             ];
             return fmMiniCard(i,fmEscape(r.cliente||'Sin cliente'),'Factura: '+fmEscape(r.numero||'—'),[
@@ -11586,6 +11596,122 @@ $('#modalConfigFactura')
             }
         });
 
+
+    /* =====================================================
+       Facturas emitidas: cambios autorizados y auditados
+       ===================================================== */
+    function asegurarEstilosCambiosFactura(){
+        if($('#izzyCambiosFacturaStyles').length) return;
+        $('head').append('<style id="izzyCambiosFacturaStyles">'+
+            '.izzy-change-modal .modal-content{border:0;border-radius:16px;overflow:hidden;box-shadow:0 18px 55px rgba(0,0,0,.22)}'+
+            '.izzy-change-modal .modal-header{background:#16354f;color:#fff;border-bottom:3px solid #20c997;padding:16px 20px}'+
+            '.izzy-change-modal .modal-title{font-weight:700}.izzy-change-modal .close{color:#fff;opacity:.9;text-shadow:none}'+
+            '.izzy-invoice-summary{display:grid;grid-template-columns:1fr 1.35fr;gap:10px;margin-bottom:18px}'+
+            '.izzy-summary-item{border:1px solid #dce4ea;border-radius:10px;padding:10px 12px;background:#f8fafc}'+
+            '.izzy-summary-item span{display:block;color:#6c7a86;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:3px}'+
+            '.izzy-summary-item strong{display:block;color:#16354f;font-size:14px;word-break:break-word}'+
+            '.izzy-empty-comment{background:#fff8e1!important;color:#856404!important;font-style:italic}'+
+            '.izzy-client-result{border:1px solid #dde5eb;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:.15s;background:#fff}'+
+            '.izzy-client-result:hover{border-color:#209ebb;box-shadow:0 4px 12px rgba(32,158,187,.12);transform:translateY(-1px)}'+
+            '.izzy-client-result strong{display:block;color:#16354f}.izzy-client-result small{color:#6c757d}'+
+            '.izzy-client-selected{border:2px solid #20c997;background:#f1fffb}'+
+            '.izzy-warning-box{border-left:4px solid #f0ad4e;background:#fff8e8;padding:11px 13px;border-radius:8px;font-size:13px}'+
+            '@media(max-width:767px){.izzy-invoice-summary{grid-template-columns:1fr}.izzy-change-modal .modal-dialog{margin:.5rem}.izzy-change-modal .modal-body{padding:15px}}'+
+        '</style>');
+    }
+
+    function facturaNumeroCompleto(data, resp){
+        return (data && (data.numero||data.numero_factura||data.factura)) || (resp && resp.numero) || (data && data.facturas_id) || '—';
+    }
+
+    function asegurarModalComentarioFactura(){
+        if($('#modalEditarComentarioFactura').length) return;
+        asegurarEstilosCambiosFactura();
+        $('body').append(
+          '<div class="modal fade izzy-change-modal" id="modalEditarComentarioFactura" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static" data-keyboard="false">'+
+           '<div class="modal-dialog modal-dialog-centered modal-lg" role="document"><div class="modal-content">'+
+            '<div class="modal-header"><h5 class="modal-title"><i class="fas fa-comment-dots mr-2"></i>Editar comentario de factura</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div>'+
+            '<div class="modal-body"><input type="hidden" id="comentarioFacturaId">'+
+             '<div class="izzy-invoice-summary"><div class="izzy-summary-item"><span>Factura</span><strong id="comentarioFacturaNumero">—</strong></div><div class="izzy-summary-item"><span>Cliente</span><strong id="comentarioFacturaCliente">—</strong><small id="comentarioFacturaRtn"></small></div><div class="izzy-summary-item"><span>Fecha</span><strong id="comentarioFacturaFecha">—</strong></div><div class="izzy-summary-item"><span>Tipo</span><strong id="comentarioFacturaTipo">—</strong></div></div>'+
+             '<div class="form-group"><label class="font-weight-bold">Comentario actual</label><textarea class="form-control" id="comentarioFacturaActual" rows="3" readonly></textarea><small class="form-text text-muted">El comentario anterior se conservará en la auditoría.</small></div>'+
+             '<div class="form-group"><label class="font-weight-bold">Nuevo comentario <span class="text-danger">*</span></label><textarea class="form-control" id="comentarioFacturaNuevo" rows="4" maxlength="2000" placeholder="Escriba el nuevo comentario"></textarea></div>'+
+             '<div class="form-group mb-0"><label class="font-weight-bold">Motivo del cambio <span class="text-danger">*</span></label><textarea class="form-control" id="comentarioFacturaMotivo" rows="2" maxlength="500" placeholder="Indique por qué se realiza el cambio"></textarea></div>'+
+            '</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cancelar</button><button type="button" class="btn btn-primary" id="btnAutorizarComentarioFactura"><i class="fas fa-save mr-1"></i>Guardar cambio</button></div>'+
+           '</div></div></div>');
+    }
+
+    function cargarComentarioFacturaParaEditar(data){
+        asegurarModalComentarioFactura();
+        $.ajax({type:'POST',url:'<?php echo SERVERURL; ?>ajax/editarComentarioFacturaAjax.php',dataType:'json',data:{accion:'consultar',facturas_id:data.facturas_id}})
+        .done(function(resp){
+            if(!resp||resp.ok!==true){showNotify('error','Comentario',(resp&&resp.mensaje)?resp.mensaje:'No se pudo cargar la factura.');return;}
+            var actual=$.trim(resp.comentario_actual||'');
+            $('#comentarioFacturaId').val(resp.facturas_id);
+            $('#comentarioFacturaNumero').text(facturaNumeroCompleto(data,resp));
+            $('#comentarioFacturaCliente').text(resp.cliente||data.cliente||'—');
+            $('#comentarioFacturaRtn').text(resp.rtn ? ('RTN: '+resp.rtn) : 'RTN: No registrado');
+            $('#comentarioFacturaFecha').text(data.fecha||'—');
+            $('#comentarioFacturaTipo').text(data.tipo_documento||'—');
+            $('#comentarioFacturaActual').val(actual||'Sin comentario registrado').toggleClass('izzy-empty-comment',!actual);
+            $('#comentarioFacturaNuevo').val(''); $('#comentarioFacturaMotivo').val('');
+            $('#modalEditarComentarioFactura').modal({show:true,backdrop:'static',keyboard:false});
+            $('#modalEditarComentarioFactura').one('shown.bs.modal',function(){$('#comentarioFacturaNuevo').trigger('focus');});
+        }).fail(function(xhr){showNotify('error','Comentario','No se pudo cargar la información de la factura.');});
+    }
+
+    $(document).off('click.fmBillComment','#facturasEmitidasListado .editar_comentario_factura').on('click.fmBillComment','#facturasEmitidasListado .editar_comentario_factura',function(e){
+        e.preventDefault(); var data=fmGetRecord(this,'facturasEmitidas');
+        if(!data||!data.facturas_id){showNotify('error','Error','No se pudo obtener la factura seleccionada.');return;}
+        if(typeof validarAdminSistema!=='function'){showNotify('error','Validación no disponible','No está cargada la autorización administrativa.');return;}
+        var numero=facturaNumeroCompleto(data);
+        validarAdminSistema(function(ok){if(ok===true)cargarComentarioFacturaParaEditar(data);},{mensaje:'Para modificar el comentario debe validar un administrador.',modulo:'Facturación',accion:'Editar comentario de factura',referencia_id:data.facturas_id,referencia_texto:numero,motivo:'Autorización para modificar comentario de factura emitida'});
+    });
+
+    $(document).off('click.fmBillCommentSave','#btnAutorizarComentarioFactura').on('click.fmBillCommentSave','#btnAutorizarComentarioFactura',function(){
+        var id=parseInt($('#comentarioFacturaId').val()||0,10), actual=$.trim($('#comentarioFacturaActual').val()||''), nuevo=$.trim($('#comentarioFacturaNuevo').val()||''), motivo=$.trim($('#comentarioFacturaMotivo').val()||'');
+        if(actual==='Sin comentario registrado')actual='';
+        if(!nuevo){showNotify('warning','Comentario requerido','Debe escribir el nuevo comentario.');$('#comentarioFacturaNuevo').focus();return;}
+        if(actual===nuevo){showNotify('warning','Sin cambios','El nuevo comentario es igual al comentario actual.');return;}
+        if(!motivo){showNotify('warning','Motivo requerido','Debe indicar el motivo del cambio.');$('#comentarioFacturaMotivo').focus();return;}
+        var $b=$(this).prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Guardando...');
+        $.ajax({type:'POST',url:'<?php echo SERVERURL; ?>ajax/editarComentarioFacturaAjax.php',dataType:'json',data:{accion:'actualizar',facturas_id:id,comentario_nuevo:nuevo,motivo:motivo}}).done(function(r){if(r&&r.ok){$('#modalEditarComentarioFactura').modal('hide');showNotify('success','Comentario actualizado',r.mensaje||'Cambio guardado y auditado.');if(typeof listar_busqueda_bill==='function')listar_busqueda_bill();}else showNotify('error','No se pudo guardar',(r&&r.mensaje)||'No se pudo actualizar.');}).fail(function(){showNotify('error','Error','No se pudo procesar el cambio.');}).always(function(){$b.prop('disabled',false).html('<i class="fas fa-save mr-1"></i>Guardar cambio');});
+    });
+
+    /* Cambio autorizado de cliente */
+    var izzyClientesCambio=[];
+    function asegurarModalClienteFactura(){
+        if($('#modalCambiarClienteFactura').length)return; asegurarEstilosCambiosFactura();
+        $('body').append('<div class="modal fade izzy-change-modal" id="modalCambiarClienteFactura" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">'+
+        '<div class="modal-header"><h5 class="modal-title"><i class="fas fa-user-edit mr-2"></i>Cambiar cliente de factura</h5><button type="button" class="close" data-dismiss="modal"><span>&times;</span></button></div><div class="modal-body"><input type="hidden" id="cambioClienteFacturaId"><input type="hidden" id="cambioClienteNuevoId">'+
+        '<div class="izzy-invoice-summary"><div class="izzy-summary-item"><span>Factura</span><strong id="cambioClienteFacturaNumero">—</strong></div><div class="izzy-summary-item"><span>Cliente actual</span><strong id="cambioClienteActual">—</strong><small id="cambioClienteActualRtn"></small></div></div>'+
+        '<div class="izzy-warning-box mb-3"><strong>Importante:</strong> esta opción únicamente corrige el cliente asociado. No modifica productos, cantidades, precios, impuestos, descuentos ni totales. Para corregir esos datos debe anular la factura o realizar la Nota de Crédito correspondiente.</div>'+
+        '<div class="form-group"><label class="font-weight-bold">Buscar nuevo cliente <span class="text-danger">*</span></label><input type="text" class="form-control" id="buscarClienteCambioFactura" placeholder="Buscar por nombre o RTN" autocomplete="off"></div><div id="resultadosClienteCambioFactura" style="max-height:230px;overflow:auto"></div>'+
+        '<div class="form-group mt-3 mb-0"><label class="font-weight-bold">Motivo del cambio <span class="text-danger">*</span></label><textarea class="form-control" id="motivoClienteCambioFactura" rows="2" maxlength="500" placeholder="Indique por qué se corrige el cliente"></textarea></div></div>'+ 
+        '<div class="modal-footer"><button class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cancelar</button><button class="btn btn-primary" id="btnGuardarClienteFactura"><i class="fas fa-save mr-1"></i>Guardar cambio</button></div></div></div></div>');
+    }
+    function renderClientesCambio(q){
+        q=fmNormalize(q||''); var arr=izzyClientesCambio.filter(function(c){return !q||fmNormalize((c.cliente||'')+' '+(c.rtn||'')).indexOf(q)!==-1;}).slice(0,30);
+        $('#resultadosClienteCambioFactura').html(arr.length?arr.map(function(c){return '<div class="izzy-client-result" data-id="'+fmEscape(c.clientes_id)+'" data-name="'+fmEscape(c.cliente||'')+'" data-rtn="'+fmEscape(c.rtn||'')+'"><strong>'+fmEscape(c.cliente||'Sin nombre')+'</strong><small>RTN: '+fmEscape(c.rtn||'No registrado')+'</small></div>';}).join(''):'<div class="text-muted text-center py-3">No se encontraron clientes.</div>');
+    }
+    function abrirCambioCliente(data){
+        asegurarModalClienteFactura();
+        $('#cambioClienteFacturaId').val(data.facturas_id); $('#cambioClienteNuevoId').val(''); $('#cambioClienteFacturaNumero').text(facturaNumeroCompleto(data)); $('#buscarClienteCambioFactura,#motivoClienteCambioFactura').val('');
+        $.when(
+            $.ajax({type:'POST',url:'<?php echo SERVERURL; ?>ajax/editarComentarioFacturaAjax.php',dataType:'json',data:{accion:'consultar',facturas_id:data.facturas_id}}),
+            $.ajax({type:'POST',url:'<?php echo SERVERURL; ?>core/llenarDataTableClientes.php',dataType:'json'})
+        ).done(function(facturaResp,clientesResp){
+            var f=facturaResp[0]||{}, r=clientesResp[0]||{};
+            if(!f.ok){showNotify('error','Factura',f.mensaje||'No se pudo cargar la factura.');return;}
+            $('#cambioClienteActual').text(f.cliente||data.cliente||'—'); $('#cambioClienteActualRtn').text(f.rtn?('RTN: '+f.rtn):'RTN: No registrado');
+            izzyClientesCambio=Array.isArray(r.data)?r.data:[]; renderClientesCambio('');
+            $('#modalCambiarClienteFactura').modal({show:true,backdrop:'static',keyboard:false}); $('#modalCambiarClienteFactura').one('shown.bs.modal',function(){$('#buscarClienteCambioFactura').focus();});
+        }).fail(function(){showNotify('error','Clientes','No se pudo cargar la información necesaria para el cambio.');});
+    }
+    $(document).off('input.fmClientChange','#buscarClienteCambioFactura').on('input.fmClientChange','#buscarClienteCambioFactura',function(){renderClientesCambio($(this).val());});
+    $(document).off('click.fmClientPick','.izzy-client-result').on('click.fmClientPick','.izzy-client-result',function(){$('.izzy-client-result').removeClass('izzy-client-selected');$(this).addClass('izzy-client-selected');$('#cambioClienteNuevoId').val($(this).data('id'));});
+    $(document).off('click.fmBillClient','#facturasEmitidasListado .cambiar_cliente_factura').on('click.fmBillClient','#facturasEmitidasListado .cambiar_cliente_factura',function(e){e.preventDefault();var data=fmGetRecord(this,'facturasEmitidas');if(!data||!data.facturas_id)return;if(typeof validarAdminSistema!=='function'){showNotify('error','Validación no disponible','No está cargada la autorización administrativa.');return;}var n=facturaNumeroCompleto(data);validarAdminSistema(function(ok){if(ok===true)abrirCambioCliente(data);},{mensaje:'Para cambiar el cliente de una factura emitida debe validar un administrador.',modulo:'Facturación',accion:'Cambiar cliente de factura',referencia_id:data.facturas_id,referencia_texto:n,motivo:'Autorización para corregir cliente asociado a factura emitida'});});
+    $(document).off('click.fmBillClientSave','#btnGuardarClienteFactura').on('click.fmBillClientSave','#btnGuardarClienteFactura',function(){var id=parseInt($('#cambioClienteFacturaId').val()||0,10),cid=parseInt($('#cambioClienteNuevoId').val()||0,10),motivo=$.trim($('#motivoClienteCambioFactura').val()||'');if(!cid){showNotify('warning','Cliente requerido','Seleccione el nuevo cliente.');$('#buscarClienteCambioFactura').focus();return;}if(!motivo){showNotify('warning','Motivo requerido','Debe indicar el motivo del cambio.');$('#motivoClienteCambioFactura').focus();return;}var $b=$(this).prop('disabled',true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Guardando...');$.ajax({type:'POST',url:'<?php echo SERVERURL; ?>ajax/editarComentarioFacturaAjax.php',dataType:'json',data:{accion:'actualizar_cliente',facturas_id:id,clientes_id_nuevo:cid,motivo:motivo}}).done(function(r){if(r&&r.ok){$('#modalCambiarClienteFactura').modal('hide');showNotify('success','Cliente actualizado',r.mensaje||'Cliente corregido y auditado.');if(typeof listar_busqueda_bill==='function')listar_busqueda_bill();}else showNotify('error','No se pudo guardar',(r&&r.mensaje)||'No se pudo cambiar el cliente.');}).fail(function(){showNotify('error','Error','No se pudo procesar el cambio de cliente.');}).always(function(){$b.prop('disabled',false).html('<i class="fas fa-save mr-1"></i>Guardar cambio');});});
+
     $(document)
         .off('click.fmBillCancel', '#facturasEmitidasListado .cancelar_factura')
         .on('click.fmBillCancel', '#facturasEmitidasListado .cancelar_factura', function(e){
@@ -12183,6 +12309,4 @@ $('#modalConfigFactura')
     FM.exportExcel=fmExportExcel;
     FM.exportPdf=fmExportPdf;
 })();
-
-
 </script>

@@ -1209,4 +1209,103 @@ class facturasModelo extends mainModel{
             return false;
         }
     }
+
+    /* =========================================================
+     * EDICIÓN AUTORIZADA DE COMENTARIO DE FACTURA
+     * Aislado del proceso normal de emisión/facturación.
+     * ========================================================= */
+    protected function obtener_comentario_factura_modelo($facturas_id, $empresa_id) {
+        $cn = mainModel::connection();
+        $stmt = $cn->prepare("SELECT f.facturas_id, f.number, f.notas, f.clientes_id, c.nombre AS cliente, c.rtn FROM facturas f LEFT JOIN clientes c ON c.clientes_id = f.clientes_id WHERE f.facturas_id = ? AND f.empresa_id = ? LIMIT 1");
+        if (!$stmt) return false;
+        $stmt->bind_param("ii", $facturas_id, $empresa_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = ($res && $res->num_rows > 0) ? $res->fetch_assoc() : null;
+        $stmt->close();
+        return $row;
+    }
+
+    protected function actualizar_comentario_factura_modelo($datos) {
+        $cn = mainModel::connection();
+        $cn->begin_transaction();
+
+        try {
+            $facturas_id = (int)$datos['facturas_id'];
+            $empresa_id = (int)$datos['empresa_id'];
+            $usuario_id = (int)$datos['usuario_id'];
+            $comentario_nuevo = (string)$datos['comentario_nuevo'];
+            $motivo = (string)$datos['motivo'];
+            $fecha = (string)$datos['fecha_registro'];
+
+            // Bloqueamos la factura para conservar exactamente el valor anterior auditado.
+            $stmt = $cn->prepare("SELECT number, notas FROM facturas WHERE facturas_id = ? AND empresa_id = ? LIMIT 1 FOR UPDATE");
+            if (!$stmt) throw new Exception('No se pudo preparar la consulta de la factura.');
+            $stmt->bind_param("ii", $facturas_id, $empresa_id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if (!$res || $res->num_rows === 0) {
+                $stmt->close();
+                throw new Exception('La factura no existe o no pertenece a la empresa activa.');
+            }
+            $factura = $res->fetch_assoc();
+            $stmt->close();
+
+            $comentario_anterior = (string)($factura['notas'] ?? '');
+            if (trim($comentario_anterior) === trim($comentario_nuevo)) {
+                throw new Exception('El nuevo comentario es igual al comentario actual.');
+            }
+
+            $stmtUpd = $cn->prepare("UPDATE facturas SET notas = ? WHERE facturas_id = ? AND empresa_id = ?");
+            if (!$stmtUpd) throw new Exception('No se pudo preparar la actualización del comentario.');
+            $stmtUpd->bind_param("sii", $comentario_nuevo, $facturas_id, $empresa_id);
+            if (!$stmtUpd->execute()) {
+                $err = $stmtUpd->error;
+                $stmtUpd->close();
+                throw new Exception('No se pudo actualizar el comentario: '.$err);
+            }
+            $stmtUpd->close();
+
+            $stmtAudit = $cn->prepare("INSERT INTO facturas_modificaciones (facturas_id, empresa_id, campo, valor_anterior, valor_nuevo, motivo, usuario_id, autorizado, fecha_registro) VALUES (?, ?, 'notas', ?, ?, ?, ?, 1, ?)");
+            if (!$stmtAudit) throw new Exception('No se pudo preparar el registro de auditoría. Verifique que ejecutó el SQL incluido en el ZIP.');
+            $stmtAudit->bind_param("iisssis", $facturas_id, $empresa_id, $comentario_anterior, $comentario_nuevo, $motivo, $usuario_id, $fecha);
+            if (!$stmtAudit->execute()) {
+                $err = $stmtAudit->error;
+                $stmtAudit->close();
+                throw new Exception('No se pudo registrar la auditoría: '.$err);
+            }
+            $stmtAudit->close();
+
+            $cn->commit();
+            return [
+                'ok' => true,
+                'numero' => $factura['number'] ?? $facturas_id,
+                'comentario_anterior' => $comentario_anterior,
+                'comentario_nuevo' => $comentario_nuevo
+            ];
+        } catch (Throwable $e) {
+            $cn->rollback();
+            return ['ok' => false, 'mensaje' => $e->getMessage()];
+        }
+    }
+
+    protected function actualizar_cliente_factura_modelo($datos) {
+        $cn = mainModel::connection();
+        $cn->begin_transaction();
+        try {
+            $facturas_id=(int)$datos['facturas_id']; $empresa_id=(int)$datos['empresa_id']; $usuario_id=(int)$datos['usuario_id']; $nuevo=(int)$datos['clientes_id_nuevo']; $motivo=(string)$datos['motivo']; $fecha=(string)$datos['fecha_registro'];
+            $q=$cn->prepare("SELECT f.number,f.clientes_id,c.nombre,c.rtn FROM facturas f LEFT JOIN clientes c ON c.clientes_id=f.clientes_id WHERE f.facturas_id=? AND f.empresa_id=? LIMIT 1 FOR UPDATE");
+            if(!$q) throw new Exception('No se pudo preparar la consulta de la factura.'); $q->bind_param('ii',$facturas_id,$empresa_id); $q->execute(); $res=$q->get_result(); if(!$res||$res->num_rows===0) throw new Exception('La factura no existe o no pertenece a la empresa activa.'); $anterior=$res->fetch_assoc(); $q->close();
+            if((int)$anterior['clientes_id']===$nuevo) throw new Exception('El cliente seleccionado ya es el cliente actual de la factura.');
+            $q=$cn->prepare("SELECT clientes_id,nombre,rtn FROM clientes WHERE clientes_id=? LIMIT 1"); if(!$q) throw new Exception('No se pudo consultar el nuevo cliente.'); $q->bind_param('i',$nuevo); $q->execute(); $res=$q->get_result(); if(!$res||$res->num_rows===0) throw new Exception('El cliente seleccionado no existe.'); $clienteNuevo=$res->fetch_assoc(); $q->close();
+            $q=$cn->prepare("UPDATE facturas SET clientes_id=? WHERE facturas_id=? AND empresa_id=?"); if(!$q) throw new Exception('No se pudo preparar el cambio de cliente.'); $q->bind_param('iii',$nuevo,$facturas_id,$empresa_id); if(!$q->execute()) throw new Exception('No se pudo actualizar el cliente de la factura.'); $q->close();
+            // Mantener consistente la cuenta por cobrar cuando la factura es a crédito.
+            $q=$cn->prepare("UPDATE cobrar_clientes SET clientes_id=? WHERE facturas_id=? AND empresa_id=?"); if($q){$q->bind_param('iii',$nuevo,$facturas_id,$empresa_id);$q->execute();$q->close();}
+            $va=(int)$anterior['clientes_id'].' | '.(string)($anterior['nombre']??'').' | '.(string)($anterior['rtn']??'');
+            $vn=(int)$clienteNuevo['clientes_id'].' | '.(string)$clienteNuevo['nombre'].' | '.(string)($clienteNuevo['rtn']??'');
+            $q=$cn->prepare("INSERT INTO facturas_modificaciones (facturas_id,empresa_id,campo,valor_anterior,valor_nuevo,motivo,usuario_id,autorizado,fecha_registro) VALUES (?,?,'clientes_id',?,?,?,?,1,?)"); if(!$q) throw new Exception('No se pudo preparar la auditoría del cambio.'); $q->bind_param('iisssis',$facturas_id,$empresa_id,$va,$vn,$motivo,$usuario_id,$fecha); if(!$q->execute()) throw new Exception('No se pudo registrar la auditoría del cambio de cliente.'); $q->close();
+            $cn->commit(); return ['ok'=>true,'numero'=>$anterior['number'],'cliente_anterior'=>$va,'cliente_nuevo'=>$vn];
+        } catch(Throwable $e){$cn->rollback();return ['ok'=>false,'mensaje'=>$e->getMessage()];}
+    }
+
 }

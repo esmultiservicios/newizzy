@@ -2042,4 +2042,78 @@ class facturasControlador extends facturasModelo {
             "type"  => "error"
         ]);
     }
+
+    /* =========================================================
+     * COMENTARIO DE FACTURA - CONSULTA / EDICIÓN AUTORIZADA
+     * ========================================================= */
+    public function comentario_factura_controlador() {
+        $facturas_id = isset($_POST['facturas_id']) ? (int)$_POST['facturas_id'] : 0;
+        $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+
+        if ($facturas_id <= 0 || $empresa_id <= 0) {
+            return ['ok'=>false, 'mensaje'=>'No se pudo identificar la factura o la empresa activa.'];
+        }
+
+        $row = facturasModelo::obtener_comentario_factura_modelo($facturas_id, $empresa_id);
+        if (!$row) return ['ok'=>false, 'mensaje'=>'No se encontró la factura seleccionada.'];
+
+        return [
+            'ok'=>true,
+            'facturas_id'=>(int)$row['facturas_id'],
+            'numero'=>$row['number'],
+            'comentario_actual'=>(string)($row['notas'] ?? ''),
+            'clientes_id'=>(int)($row['clientes_id'] ?? 0),
+            'cliente'=>(string)($row['cliente'] ?? ''),
+            'rtn'=>(string)($row['rtn'] ?? '')
+        ];
+    }
+
+    public function actualizar_comentario_factura_controlador() {
+        $facturas_id = isset($_POST['facturas_id']) ? (int)$_POST['facturas_id'] : 0;
+        $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+        $usuario_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
+        $comentario_nuevo = isset($_POST['comentario_nuevo']) ? trim((string)$_POST['comentario_nuevo']) : '';
+        $motivo = isset($_POST['motivo']) ? trim((string)$_POST['motivo']) : '';
+
+        if ($facturas_id <= 0 || $empresa_id <= 0 || $usuario_id <= 0) {
+            return ['ok'=>false, 'mensaje'=>'Sesión o factura no válida.'];
+        }
+        if ($comentario_nuevo === '') return ['ok'=>false, 'mensaje'=>'Debe escribir el nuevo comentario.'];
+        if (mb_strlen($comentario_nuevo, 'UTF-8') > 2000) return ['ok'=>false, 'mensaje'=>'El comentario no puede superar 2000 caracteres.'];
+        if ($motivo === '') return ['ok'=>false, 'mensaje'=>'Debe indicar el motivo del cambio.'];
+        if (mb_strlen($motivo, 'UTF-8') > 500) return ['ok'=>false, 'mensaje'=>'El motivo no puede superar 500 caracteres.'];
+
+        $resultado = facturasModelo::actualizar_comentario_factura_modelo([
+            'facturas_id'=>$facturas_id,
+            'empresa_id'=>$empresa_id,
+            'usuario_id'=>$usuario_id,
+            'comentario_nuevo'=>$comentario_nuevo,
+            'motivo'=>$motivo,
+            'fecha_registro'=>date('Y-m-d H:i:s')
+        ]);
+
+        if (!empty($resultado['ok'])) {
+            $numero = $resultado['numero'] ?? $facturas_id;
+            $this->guardarHistorialFactura('Facturas', 'Editar comentario', "Se modificó con autorización administrativa el comentario de la factura {$numero}");
+            return ['ok'=>true, 'mensaje'=>'Comentario actualizado y registrado en auditoría.'];
+        }
+
+        return ['ok'=>false, 'mensaje'=>$resultado['mensaje'] ?? 'No se pudo actualizar el comentario.'];
+    }
+
+    public function actualizar_cliente_factura_controlador() {
+        $facturas_id=isset($_POST['facturas_id'])?(int)$_POST['facturas_id']:0;
+        $empresa_id=isset($_SESSION['empresa_id_sd'])?(int)$_SESSION['empresa_id_sd']:0;
+        $usuario_id=isset($_SESSION['colaborador_id_sd'])?(int)$_SESSION['colaborador_id_sd']:0;
+        $nuevo=isset($_POST['clientes_id_nuevo'])?(int)$_POST['clientes_id_nuevo']:0;
+        $motivo=isset($_POST['motivo'])?trim((string)$_POST['motivo']):'';
+        if($facturas_id<=0||$empresa_id<=0||$usuario_id<=0) return ['ok'=>false,'mensaje'=>'Sesión o factura no válida.'];
+        if($nuevo<=0) return ['ok'=>false,'mensaje'=>'Debe seleccionar el nuevo cliente.'];
+        if($motivo==='') return ['ok'=>false,'mensaje'=>'Debe indicar el motivo del cambio.'];
+        if(mb_strlen($motivo,'UTF-8')>500) return ['ok'=>false,'mensaje'=>'El motivo no puede superar 500 caracteres.'];
+        $r=facturasModelo::actualizar_cliente_factura_modelo(['facturas_id'=>$facturas_id,'empresa_id'=>$empresa_id,'usuario_id'=>$usuario_id,'clientes_id_nuevo'=>$nuevo,'motivo'=>$motivo,'fecha_registro'=>date('Y-m-d H:i:s')]);
+        if(!empty($r['ok'])){$this->guardarHistorialFactura('Facturas','Cambiar cliente','Se corrigió con autorización administrativa el cliente de la factura '.($r['numero']??$facturas_id));return ['ok'=>true,'mensaje'=>'Cliente actualizado y registrado en auditoría.'];}
+        return ['ok'=>false,'mensaje'=>$r['mensaje']??'No se pudo actualizar el cliente.'];
+    }
+
 }

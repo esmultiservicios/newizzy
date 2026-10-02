@@ -1,313 +1,528 @@
-<?php	
+<?php
     $peticionAjax = true;
     require_once "././core/configAPP.php";
+
+    $serverUrlSafe = htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8');
+    $loginHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? ''));
+    $loginHost = preg_replace('/:\d+$/', '', $loginHost);
+    $isDemoLogin = ($loginHost === 'demo.izzycloud.app' || str_starts_with($loginHost, 'demo.'));
+    $demoUser = $isDemoLogin ? 'admin@izzycloud.app' : '';
+    $demoPass = $isDemoLogin ? 'admin' : '';
 ?>
 
-<link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/sweetalert/sweetalert.css" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
-<link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/style_login.css" rel="stylesheet" crossorigin="anonymous" />    
+<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
+<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/style_login.css" rel="stylesheet" crossorigin="anonymous" />
 
-<div id="logreg-forms">
-    <!-- ===================== FORMULARIO DE INICIO DE SESIÓN ===================== -->
-    <form class="form-signin" id="loginform" action="" method="POST" autocomplete="off">
-        <h1 class="h3 mb-3 font-weight-normal" style="text-align: center">Iniciar Sesión</h1>
-        <p class="text-center text-muted small">Accede a tu cuenta con tu correo electrónico y contraseña</p>
+<div class="izzy-login-page">
+    <section class="izzy-login-shell">
 
-        <div style="text-align: center;">
-            <img src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/logo.svg" width="100%">
-        </div>
+        <aside class="izzy-login-brand" aria-label="Información de IZZY">
+            <div class="brand-header">
+                <a class="brand-logo" href="https://izzycloud.app/" target="_blank" rel="noopener" aria-label="Abrir sitio web de IZZY">
+                    <img src="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/logo.svg" alt="IZZY">
+                </a>
 
-        <br />
-
-        <!-- Campo Correo Electrónico -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text boton"><i class="fas fa-envelope-square"></i></span>
+                <a class="brand-website" href="https://izzycloud.app/" target="_blank" rel="noopener">
+                    <i class="fas fa-globe-americas" aria-hidden="true"></i>
+                    <span>Sitio web</span>
+                </a>
             </div>
-            <input type="email" id="inputEmail" name="inputEmail" class="form-control" 
-                   placeholder="Correo electrónico" 
-                   required autofocus tabindex="1"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Ingresa el correo electrónico con el que te registraste">
-        </div>
 
-        <!-- Campo Contraseña -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text boton"><i class="fa fa-lock"></i></span>
+            <div class="brand-main">
+                <span class="brand-kicker">SIMPLIFICA · CONTROLA · CRECE</span>
+
+                <h2>Tu negocio,<br><strong>más simple con IZZY.</strong></h2>
+
+                <p class="brand-summary">
+                    Una plataforma para facturar, controlar inventario, vender, atender clientes
+                    y administrar tu operación desde un solo lugar.
+                </p>
+
+                <div class="brand-feature-grid" aria-label="Beneficios principales">
+                    <article class="brand-feature">
+                        <span class="feature-icon"><i class="fas fa-file-invoice-dollar" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Factura con orden</strong>
+                            <small>Vende, cobra y consulta tu operación con claridad.</small>
+                        </div>
+                    </article>
+
+                    <article class="brand-feature">
+                        <span class="feature-icon"><i class="fas fa-boxes" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Controla inventario</strong>
+                            <small>Productos, existencias y movimientos disponibles cuando los necesitas.</small>
+                        </div>
+                    </article>
+
+                    <article class="brand-feature">
+                        <span class="feature-icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Decide mejor</strong>
+                            <small>Reportes y datos para entender lo que pasa en tu negocio.</small>
+                        </div>
+                    </article>
+
+                    <article class="brand-feature">
+                        <span class="feature-icon"><i class="fas fa-mobile-alt" aria-hidden="true"></i></span>
+                        <div>
+                            <strong>Trabaja donde estés</strong>
+                            <small>Computadora, tablet o móvil con una experiencia adaptable.</small>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="brand-businesses">
+                    <span>Ideal para</span>
+                    <div class="brand-business-list">
+                        <b><i class="fas fa-store" aria-hidden="true"></i><span>Tiendas</span></b>
+                        <b><i class="fas fa-utensils" aria-hidden="true"></i><span>Restaurantes</span></b>
+                        <b><i class="fas fa-tools" aria-hidden="true"></i><span>Servicios</span></b>
+                        <b><i class="fas fa-building" aria-hidden="true"></i><span>PYMES</span></b>
+                    </div>
+                </div>
             </div>
-            <input type="password" id="inputPassword" name="inputPassword" class="form-control" 
-                   placeholder="Contraseña" 
-                   required tabindex="2"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Ingresa tu contraseña. Debe tener al menos 8 caracteres">
-            <div class="input-group-append">
-                <button id="show_password" class="btn btn-primary boton" type="button" tabindex="3"
-                        data-toggle="tooltip" data-placement="top" title="Mostrar/Ocultar contraseña">
-                    <span id="icon" class="fa fa-eye-slash icon"></span>
-                </button>
+
+            <div class="brand-footer">
+                <span>Una solución de <strong>ES MULTISERVICIOS</strong></span>
+                <span>© <?php echo date("Y"); ?> IZZY</span>
             </div>
-        </div>
+        </aside>
 
-        <!-- Campos adicionales para clientes (ocultos inicialmente) -->
-        <div class="input-group mb-3" id="groupDB" style="display: none;">
-            <div class="input-group-prepend">
-                <span class="input-group-text boton"><i class="fas fa-user"></i></span>
+        <main class="izzy-login-access">
+            <div class="auth-mobile-logo">
+                <a href="https://izzycloud.app/" target="_blank" rel="noopener" aria-label="Abrir sitio web de IZZY">
+                    <img src="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/logo.svg" alt="IZZY">
+                </a>
             </div>
-            <input type="number" class="form-control" value="" placeholder="Cliente" 
-                   aria-label="Cliente" id="inputCliente" name="inputCliente" tabindex="4"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Número de cliente asignado por el sistema">
-            <div class="input-group-append">
-                <span class="input-group-text boton"><i class="fas fa-key"></i></span>
+
+            <div id="logreg-forms">
+
+                <!-- LOGIN -->
+                <form class="form-signin auth-view<?php echo $isDemoLogin ? ' is-demo-login' : ''; ?>" id="loginform" action="" method="POST" autocomplete="off" data-demo="<?php echo $isDemoLogin ? '1' : '0'; ?>">
+                    <div class="auth-heading">
+                        <span class="auth-kicker"><?php echo $isDemoLogin ? 'DEMO IZZY' : 'BIENVENIDO'; ?></span>
+                        <h1>Iniciar sesión</h1>
+                        <p>
+                            <?php if ($isDemoLogin): ?>
+                                <strong>Modo demo activo.</strong> Las credenciales están listas para que explores IZZY.
+                            <?php else: ?>
+                                Accede a tu cuenta <strong class="izzy-word">IZZY</strong> con tu <strong>correo electrónico</strong> y <strong>contraseña</strong>.
+                            <?php endif; ?>
+                        </p>
+                    </div>
+
+                    <div class="auth-form-stack">
+                        <label class="auth-control">
+                            <span class="auth-control-label">Correo electrónico</span>
+                            <span class="auth-input">
+                                <span class="auth-input-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                                <input type="email" id="inputEmail" name="inputEmail"
+                                       value="<?php echo htmlspecialchars($demoUser, ENT_QUOTES, 'UTF-8'); ?>"
+                                       placeholder="tu@correo.com"
+                                       required autofocus tabindex="1"
+                                       autocomplete="username">
+                            </span>
+                        </label>
+
+                        <div class="auth-password-row">
+                            <label class="auth-control auth-password-control">
+                                <span class="auth-control-label">Contraseña</span>
+                                <span class="auth-input has-action">
+                                    <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                    <input type="password" id="inputPassword" name="inputPassword"
+                                           value="<?php echo htmlspecialchars($demoPass, ENT_QUOTES, 'UTF-8'); ?>"
+                                           placeholder="Ingresa tu contraseña"
+                                           required tabindex="2"
+                                           autocomplete="current-password">
+                                    <button id="show_password" class="auth-password-button" type="button" tabindex="3" aria-label="Mostrar u ocultar contraseña">
+                                        <span id="icon" class="fa fa-eye-slash icon" aria-hidden="true"></span>
+                                    </button>
+                                </span>
+                            </label>
+
+                            <div class="auth-client-option" id="groupDB">
+                                <button type="button" class="auth-client-inline" id="clientAccessTrigger" tabindex="4" aria-label="Agregar cliente y PIN" disabled aria-disabled="true">
+                                    <span class="auth-client-inline-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+                                    <span class="auth-client-inline-copy">
+                                        <small id="clientAccessState">Validá tus credenciales</small>
+                                        <strong>Cliente / PIN</strong>
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="RespuestaAjax" aria-live="polite"></div>
+
+                        <button class="auth-button auth-button-primary" type="submit" id="enviar" tabindex="6">
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+                            <span>Iniciar sesión</span>
+                        </button>
+
+                        <div class="auth-link-row">
+                            <a href="#" id="forgot_pswd" tabindex="7" class="auth-forgot-link">
+                                <span class="auth-forgot-icon"><i class="fas fa-key" aria-hidden="true"></i></span>
+                                <span>
+                                    <small>¿Problemas para ingresar?</small>
+                                    <strong>Recuperar contraseña</strong>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="auth-account-block">
+                        <div class="auth-divider"><span>¿Aún no tienes cuenta?</span></div>
+
+                        <button class="auth-button auth-button-create" type="button" id="btn-signup">
+                            <i class="fas fa-user-plus" aria-hidden="true"></i>
+                            <span>Crear mi cuenta IZZY</span>
+                        </button>
+                    </div>
+
+                    <div class="auth-extra-actions">
+                        <a class="auth-extra-card demo" href="https://demo.izzycloud.app/" target="_blank" rel="noopener">
+                            <span class="auth-extra-icon"><i class="fas fa-play" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Prueba <span class="izzy-word">IZZY</span> antes de registrarte</small>
+                                <strong>Probar demo <span class="izzy-word">IZZY</span></strong>
+                            </span>
+                            <i class="fas fa-arrow-right auth-extra-arrow" aria-hidden="true"></i>
+                        </a>
+
+                        <a class="auth-extra-card website" href="https://izzycloud.app/" target="_blank" rel="noopener">
+                            <span class="auth-extra-icon"><i class="fas fa-globe-americas" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Descubre todo lo que ofrece <span class="izzy-word">IZZY</span></small>
+                                <strong>Visitar sitio web</strong>
+                            </span>
+                            <i class="fas fa-arrow-right auth-extra-arrow" aria-hidden="true"></i>
+                        </a>
+                    </div>
+
+                    <div class="auth-security-note">
+                        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                        <span>Acceso seguro para clientes IZZY.</span>
+                    </div>
+
+                    <div class="izzy-client-modal" id="clientPinModal" aria-hidden="true">
+                        <div class="izzy-client-modal-backdrop" data-client-modal-close></div>
+
+                        <section class="izzy-client-modal-dialog"
+                                 role="dialog"
+                                 aria-modal="true"
+                                 aria-labelledby="clientPinModalTitle">
+                            <button type="button"
+                                    class="izzy-modal-close"
+                                    id="clientPinModalClose"
+                                    data-client-modal-close
+                                    aria-label="Cerrar">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
+
+                            <div class="izzy-modal-head">
+                                <span class="izzy-modal-icon">
+                                    <i class="fas fa-user-shield" aria-hidden="true"></i>
+                                </span>
+                                <div>
+                                    <span class="izzy-modal-kicker">ACCESO DE CLIENTE</span>
+                                    <h2 id="clientPinModalTitle">Cliente y PIN</h2>
+                                    <p>Ingresa el <strong>Cliente</strong> y el <strong>PIN</strong> para validar este acceso e <strong>iniciar sesión directamente</strong>.</p>
+                                </div>
+                            </div>
+
+                            <div class="izzy-modal-fields">
+                                <label class="auth-control">
+                                    <span class="auth-control-label">Cliente</span>
+                                    <span class="auth-input">
+                                        <span class="auth-input-icon">
+                                            <i class="fas fa-building" aria-hidden="true"></i>
+                                        </span>
+                                        <input type="number"
+                                               id="inputCliente"
+                                               name="inputCliente"
+                                               placeholder="Ingresa el cliente"
+                                               inputmode="numeric"
+                                               autocomplete="off">
+                                    </span>
+                                </label>
+
+                                <label class="auth-control">
+                                    <span class="auth-control-label">PIN</span>
+                                    <span class="auth-input has-action">
+                                        <span class="auth-input-icon">
+                                            <i class="fas fa-key" aria-hidden="true"></i>
+                                        </span>
+                                        <input type="password"
+                                               id="inputPin"
+                                               name="inputPin"
+                                               placeholder="Ingresa el PIN"
+                                               inputmode="numeric"
+                                               autocomplete="one-time-code">
+                                        <button type="button"
+                                                class="auth-password-button"
+                                                id="show_client_pin"
+                                                aria-label="Mostrar PIN">
+                                            <span id="icon_client_pin" class="fa fa-eye-slash icon" aria-hidden="true"></span>
+                                        </button>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="izzy-modal-note">
+                                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                                <span>Si no necesitas <strong>Cliente/PIN</strong>, cierra esta ventana y usa <strong>“Iniciar sesión”</strong> normalmente.</span>
+                            </div>
+
+                            <div class="izzy-modal-actions">
+                                <button type="button"
+                                        class="auth-button auth-button-primary"
+                                        id="validateClientPin">
+                                    <i class="fas fa-check-circle" aria-hidden="true"></i>
+                                    <span>Validar e iniciar sesión</span>
+                                </button>
+
+                                <button type="button"
+                                        class="auth-return-button"
+                                        data-client-modal-close>
+                                    <i class="fas fa-times" aria-hidden="true"></i>
+                                    <span>Cancelar</span>
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+
+                </form>
+
+                <!-- RECUPERACIÓN -->
+                <form class="form-reset auth-view" id="forgot_form" autocomplete="off">
+                    <div class="auth-view-symbol" aria-hidden="true">
+                        <span><i class="fas fa-unlock-alt"></i></span>
+                        <div><strong>Recupera tu acceso</strong><small>Proceso seguro de recuperación IZZY</small></div>
+                    </div>
+                    <div class="auth-heading">
+                        <span class="auth-kicker">RECUPERA TU ACCESO</span>
+                        <h1>Restablecer contraseña</h1>
+                        <p>Ingresa tu <strong>correo electrónico</strong> y te enviaremos las instrucciones para <strong>recuperar tu acceso</strong>.</p>
+                    </div>
+
+                    <div class="auth-form-stack">
+                        <label class="auth-control">
+                            <span class="auth-control-label">Correo electrónico</span>
+                            <span class="auth-input">
+                                <span class="auth-input-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
+                                <input type="email" id="usu_forgot" name="usu_forgot"
+                                       placeholder="tu@correo.com"
+                                       required autofocus tabindex="1"
+                                       autocomplete="email">
+                            </span>
+                        </label>
+
+                        <div class="RespuestaAjax" aria-live="polite"></div>
+
+                        <button class="auth-button auth-button-primary" type="submit" tabindex="2">
+                            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                            <span>Enviar instrucciones</span>
+                        </button>
+
+                        <button class="auth-return-button" type="button" id="cancel_reset" tabindex="3">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            <span>Volver a iniciar sesión</span>
+                        </button>
+                    </div>
+                    <div class="auth-explore-intro"><i class="fas fa-compass" aria-hidden="true"></i><span><strong>Mientras recuperas tu acceso</strong><small>También puedes conocer <strong class="izzy-word">IZZY</strong> y explorar la experiencia demo.</small></span></div>
+                    <div class="auth-extra-actions auth-extra-actions-compact">
+                        <a class="auth-extra-card demo" href="https://demo.izzycloud.app/" target="_blank" rel="noopener">
+                            <span class="auth-extra-icon"><i class="fas fa-play" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Prueba <span class="izzy-word">IZZY</span> antes de registrarte</small>
+                                <strong>Probar demo <span class="izzy-word">IZZY</span></strong>
+                            </span>
+                            <i class="fas fa-arrow-right auth-extra-arrow" aria-hidden="true"></i>
+                        </a>
+
+                        <a class="auth-extra-card website" href="https://izzycloud.app/" target="_blank" rel="noopener">
+                            <span class="auth-extra-icon"><i class="fas fa-globe-americas" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Descubre todo lo que ofrece <span class="izzy-word">IZZY</span></small>
+                                <strong>Visitar sitio web</strong>
+                            </span>
+                            <i class="fas fa-arrow-right auth-extra-arrow" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </form>
+
+                <!-- REGISTRO -->
+                <form class="form-signup auth-view" id="form_registro" autocomplete="off">
+                    <div class="auth-heading auth-heading-register">
+                        <span class="auth-kicker">CREA TU CUENTA</span>
+                        <h1>Comienza con IZZY</h1>
+                        <p>Completa tus datos para crear tu cuenta. <strong class="izzy-word">IZZY</strong> mantiene el proceso simple, claro y seguro.</p>
+                    </div>
+
+                    <div class="registration-grid">
+                        <label class="auth-control span-2">
+                            <span class="auth-control-label">Empresa o nombre personal</span>
+                            <span class="auth-input">
+                                <span class="auth-input-icon"><i class="fas fa-building" aria-hidden="true"></i></span>
+                                <input type="text" id="user_empresa" name="user_empresa"
+                                       placeholder="Nombre de tu negocio o tu nombre"
+                                       required autofocus tabindex="1" autocomplete="organization">
+                            </span>
+                        </label>
+
+                        <label class="auth-control auth-register-name span-2">
+                            <span class="auth-control-label">Nombre completo</span>
+                            <span class="auth-input">
+                                <span class="auth-input-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
+                                <input type="text" id="user_name" name="user_name"
+                                       placeholder="Tu nombre"
+                                       required tabindex="2" autocomplete="name">
+                            </span>
+                        </label>
+
+                        <label class="auth-control auth-register-phone span-2">
+                            <span class="auth-control-label">Teléfono</span>
+                            <span class="auth-input">
+                                <span class="auth-input-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                                <input type="tel" id="user_telefono" name="user_telefono"
+                                       placeholder="8-12 dígitos"
+                                       required tabindex="3" autocomplete="tel" inputmode="numeric">
+                            </span>
+                        </label>
+
+                        <label class="auth-control span-2">
+                            <span class="auth-control-label">Correo electrónico</span>
+                            <span class="auth-input">
+                                <span class="auth-input-icon"><i class="fas fa-at" aria-hidden="true"></i></span>
+                                <input type="email" id="mail" name="email"
+                                       placeholder="tu@correo.com"
+                                       required tabindex="4" autocomplete="email">
+                            </span>
+                        </label>
+
+                        <label class="auth-control auth-register-password">
+                            <span class="auth-control-label">Contraseña</span>
+                            <span class="auth-input has-action">
+                                <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                <input type="password" id="user-pass" name="user-pass"
+                                       placeholder="Mínimo 8 caracteres"
+                                       required tabindex="5" autocomplete="new-password">
+                                <button id="show_password1" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
+                                    <span id="icon1" class="fa fa-eye-slash icon" aria-hidden="true"></span>
+                                </button>
+                            </span>
+                        </label>
+
+                        <label class="auth-control auth-register-password-confirm">
+                            <span class="auth-control-label">Confirmar contraseña</span>
+                            <span class="auth-input has-action">
+                                <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
+                                <input type="password" id="user-repeatpass"
+                                       placeholder="Repite tu contraseña"
+                                       required tabindex="6" autocomplete="new-password">
+                                <button id="show_password2" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
+                                    <span id="icon2" class="fa fa-eye-slash icon" aria-hidden="true"></span>
+                                </button>
+                            </span>
+                        </label>
+
+                        <div class="auth-password-info span-2">
+                            <span><i class="fas fa-shield-alt" aria-hidden="true"></i></span>
+                            <div>
+                                <strong>Protege tu cuenta</strong>
+                                <small>Usa al menos 8 caracteres y evita contraseñas fáciles de adivinar.</small>
+                            </div>
+                        </div>
+
+                        <button class="auth-button auth-button-primary span-2" type="button" id="registrarse" tabindex="7">
+                            <i class="fas fa-user-plus" aria-hidden="true"></i>
+                            <span>Crear cuenta IZZY</span>
+                        </button>
+
+                        <button class="auth-return-button span-2" type="button" id="cancel_signup" tabindex="8">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            <span>Volver a iniciar sesión</span>
+                        </button>
+                    </div>
+                    <div class="auth-extra-actions auth-extra-actions-compact">
+                        <a class="auth-extra-card demo" href="https://demo.izzycloud.app/" target="_blank" rel="noopener">
+                            <span class="auth-extra-icon"><i class="fas fa-play" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Prueba <span class="izzy-word">IZZY</span> antes de registrarte</small>
+                                <strong>Probar demo <span class="izzy-word">IZZY</span></strong>
+                            </span>
+                            <i class="fas fa-arrow-right auth-extra-arrow" aria-hidden="true"></i>
+                        </a>
+
+                        <a class="auth-extra-card website" href="https://izzycloud.app/" target="_blank" rel="noopener">
+                            <span class="auth-extra-icon"><i class="fas fa-globe-americas" aria-hidden="true"></i></span>
+                            <span>
+                                <small>Descubre todo lo que ofrece <span class="izzy-word">IZZY</span></small>
+                                <strong>Visitar sitio web</strong>
+                            </span>
+                            <i class="fas fa-arrow-right auth-extra-arrow" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </form>
+
+                <div class="auth-footer-mobile">
+                    <span>© 2020 - <?php echo date("Y"); ?> IZZY</span>
+                    <span>Una solución de ES MULTISERVICIOS</span>
+                </div>
             </div>
-            <input type="number" class="form-control" value="" placeholder="PIN" 
-                   aria-label="PIN" id="inputPin" name="inputPin" tabindex="5"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Código PIN de seguridad">
-        </div>
-
-        <div class="RespuestaAjax"></div>
-
-        <button class="btn btn-primary btn-block boton" type="submit" id="enviar" tabindex="6"
-            data-toggle="tooltip" data-placement="top" 
-            title="Haz clic aquí para acceder a tu cuenta con tus credenciales">
-            <i class="fas fa-sign-in-alt fa-lg"></i> Iniciar Sesión
-        </button>
-        
-        <a style="text-decoration:none;" class="ancla" href="#" id="forgot_pswd" tabindex="7"
-           data-toggle="tooltip" data-placement="top" 
-           title="¿No recuerdas tu contraseña? Haz clic aquí para restablecerla">
-            ¿Olvidó su contraseña?
-        </a>
-        
-        <hr>
-        
-        <button class="btn btn-primary btn-block" type="button" id="btn-signup"
-                data-toggle="tooltip" data-placement="top" 
-                title="¿Eres nuevo? Regístrate para acceder a todos nuestros servicios">
-            <i class="fas fa-user-plus"></i> Comienza tu experiencia. Regístrate ahora.
-        </button>
-    </form>
-
-    <!-- ===================== FORMULARIO DE RECUPERACIÓN DE CONTRASEÑA ===================== -->
-    <form class="form-reset" id="forgot_form" autocomplete="off">
-        <h1 class="h3 mb-3 font-weight-normal" style="text-align: center">Restablecer Contraseña</h1>
-        <p class="text-center text-muted small">Ingresa tu correo electrónico para recibir instrucciones</p>
-
-        <div style="text-align: center;">
-            <img src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/logo.svg" width="100%">
-        </div>
-
-        <br />
-
-        <!-- Campo Correo Electrónico -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text boton"><i class="fas fa-envelope-square"></i></span>
-            </div>
-            <input type="email" class="form-control" placeholder="Correo electrónico" 
-                   required autofocus name="usu_forgot" id="usu_forgot" tabindex="1"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Ingresa el correo electrónico asociado a tu cuenta">
-        </div>
-
-        <div class="RespuestaAjax"></div>
-
-        <button class="btn btn-primary btn-block boton" type="submit" tabindex="2">
-            <i class='fas fa-sync-alt fa-lg'></i> Restablecer
-        </button>
-        
-        <a style="text-decoration:none;" href="#" id="cancel_reset" tabindex="3"
-           data-toggle="tooltip" data-placement="top" title="Volver al formulario de inicio de sesión">
-            <i class="fas fa-angle-left"></i> Atrás
-        </a>
-    </form>
-
-    <!-- ===================== FORMULARIO DE REGISTRO ===================== -->
-    <form class="form-signup" id="form_registro">
-        <h1 class="h3 mb-3 font-weight-normal text-center">Registro de Nuevo Cliente</h1>
-        <p class="text-center text-muted small">Completa tus datos para crear una nueva cuenta</p>
-
-        <div class="text-center">
-            <img src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/logo.svg" width="100%">
-        </div>
-
-        <br />        
-
-        <!-- Campo Empresa -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text"><i class="fa-solid fa-building"></i></span>
-            </div>
-            <input type="text" id="user_empresa" name="user_empresa" class="form-control" 
-                   placeholder="Empresa o nombre personal" 
-                   required autofocus tabindex="1"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Nombre de tu empresa o tu nombre personal si eres individuo">
-        </div>
-
-        <!-- Nombre Completo -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text"><i class="fas fa-user"></i></span>
-            </div>
-            <input type="text" id="user_name" name="user_name" class="form-control" 
-                   placeholder="Nombre completo" 
-                   required tabindex="2"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Tu nombre completo como aparece en documentos oficiales">
-        </div>
-
-        <!-- Teléfono -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text"><i class="fas fa-phone"></i></span>
-            </div>
-            <input type="number" id="user_telefono" name="user_telefono" class="form-control"
-                   placeholder="Teléfono (8 dígitos)" 
-                   required tabindex="3"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Número de teléfono móvil o fijo (sin guiones ni espacios)">
-        </div>
-
-        <!-- Correo Electrónico -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text"><i class="fas fa-at"></i></span>
-            </div>
-            <input type="email" class="form-control" placeholder="Correo electrónico" 
-                   id="mail" name="email" required tabindex="4" 
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Ingresa un correo electrónico válido. Será tu usuario para acceder al sistema">
-            <div class="input-group-append">
-                <span class="input-group-text">@ejemplo.com</span>
-            </div>
-        </div>
-
-        <!-- Contraseña -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text"><i class="fa fa-lock"></i></span>
-            </div>
-            <input type="password" id="user-pass" name="user-pass" class="form-control" 
-                   placeholder="Contraseña (mín. 8 caracteres)" 
-                   required tabindex="5"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Crea una contraseña segura con al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números">
-            <div class="input-group-append">
-                <button id="show_password1" class="btn btn-primary" type="button"
-                        data-toggle="tooltip" data-placement="top" title="Mostrar/Ocultar contraseña">
-                    <span id="icon1" class="fa fa-eye-slash icon"></span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Confirmar Contraseña -->
-        <div class="input-group mb-3">
-            <div class="input-group-prepend">
-                <span class="input-group-text"><i class="fa fa-lock"></i></span>
-            </div>
-            <input type="password" id="user-repeatpass" class="form-control" 
-                   placeholder="Confirmar contraseña" 
-                   required tabindex="6"
-                   data-toggle="tooltip" data-placement="top" 
-                   title="Vuelve a escribir tu contraseña para confirmarla">
-            <div class="input-group-append">
-                <button id="show_password2" class="btn btn-primary" type="button"
-                        data-toggle="tooltip" data-placement="top" title="Mostrar/Ocultar contraseña">
-                    <span id="icon2" class="fa fa-eye-slash icon"></span>
-                </button>
-            </div>
-        </div>
-
-        <button class="btn btn-primary btn-block" type="button" id="registrarse" tabindex="7"
-                data-toggle="tooltip" data-placement="top" 
-                title="Haz clic aquí para completar tu registro">
-            <i class="fas fa-user-plus"></i> Completar Registro
-        </button>
-        
-        <a class="text-decoration-none" href="#" id="cancel_signup" tabindex="8"
-           data-toggle="tooltip" data-placement="top" title="Volver al formulario de inicio de sesión">
-            <i class="fas fa-angle-left"></i> Volver al inicio
-        </a>
-    </form>
-    
-    <!-- Copyright -->
-    <div class="footer-copyright text-center py-3">
-        © 2020 - <?php echo date("Y");?> Copyright:
-        <div style="text-align: center;">
-            <p class="navbar-text">Todos los derechos reservados</p>
-        </div>        
-    </div>
+        </main>
+    </section>
 </div>
 
-<!-- Scripts -->
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/query/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/popper/popper.min.js" crossorigin="anonymous"></script>
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/js/bootstrap.min.js" crossorigin="anonymous"></script>
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/js/bootstrap-select.min.js" crossorigin="anonymous"></script>
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/sweetalert/sweetalert.min.js" crossorigin="anonymous"></script>
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/librerias/notyf.min.js" crossorigin="anonymous"></script>
-<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/js/login-toggle.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>ajax/query/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>ajax/popper/popper.min.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>ajax/bootstrap/js/bootstrap.min.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>ajax/bootstrap/js/bootstrap-select.min.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.min.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>ajax/librerias/notyf.min.js" crossorigin="anonymous"></script>
+<script src="<?php echo $serverUrlSafe; ?>vistas/plantilla/js/login-toggle.js" crossorigin="anonymous"></script>
 
-<!-- Inicialización de Tooltips y Notificaciones -->
 <script>
-// Inicializar tooltips de Bootstrap
-$(function () {
-    $('[data-toggle="tooltip"]').tooltip({
-        delay: { "show": 300, "hide": 100 },
-        trigger: 'hover focus'
-    });
-});
-
-// Configuración de Notyf (notificaciones)
 const notyf = new Notyf({
     position: { x: 'right', y: 'top' },
     dismissible: true,
     closeOnClick: true,
+    duration: 5000,
     types: [
         {
             type: 'warning',
-            background: 'orange',
-            duration: 5000,
-            icon: { className: 'fas fa-exclamation-triangle fa-lg', tagName: 'i', color: 'white' },
-            closeIcon: { className: 'fas fa-times', color: 'white', tagName: 'span', position: 'right' }
+            background: '#c78300',
+            duration: 5500,
+            icon: { className: 'fas fa-exclamation-triangle', tagName: 'i', color: 'white' }
         },
         {
             type: 'error',
-            background: 'indianred',
-            duration: 10000,
-            dismissible: true,
-            icon: { className: 'fas fa-times-circle fa-lg', tagName: 'i', color: 'white' },
-            closeIcon: { className: 'fas fa-times', color: 'white', tagName: 'span', position: 'right' }
+            background: '#c93f4c',
+            duration: 8000,
+            icon: { className: 'fas fa-times-circle', tagName: 'i', color: 'white' }
         },
         {
             type: 'info',
-            background: '#1e88e5',
+            background: '#087fae',
             duration: 5000,
-            dismissible: true,
-            icon: { className: 'fas fa-info-circle fa-lg', tagName: 'i', color: 'white' },
-            closeIcon: { className: 'fas fa-times', color: 'white', tagName: 'span', position: 'right' }
+            icon: { className: 'fas fa-info-circle', tagName: 'i', color: 'white' }
         },
         {
             type: 'success',
-            background: '#4caf50',
+            background: '#169b62',
             duration: 5000,
-            dismissible: true,
-            icon: { className: 'fas fa-check-circle fa-lg', tagName: 'i', color: 'white' },
-            closeIcon: { className: 'fas fa-times', color: 'white', tagName: 'span', position: 'right' }
+            icon: { className: 'fas fa-check-circle', tagName: 'i', color: 'white' }
         },
         {
             type: 'loading',
-            background: '#3498db',
+            background: '#0b3b70',
             duration: 5000,
-            icon: { className: 'fas fa-circle-notch fa-spin', tagName: 'i', color: 'white' },
             dismissible: false,
-            closeIcon: false
-        }        
+            icon: { className: 'fas fa-circle-notch fa-spin', tagName: 'i', color: 'white' }
+        }
     ]
 });
 
@@ -322,17 +537,22 @@ function showLoading(message = "Procesando, por favor espere...") {
 
 function showNotify(type, title, message) {
     const validTypes = ['success', 'error', 'warning', 'info', 'loading'];
-    
-    if (validTypes.includes(type)) {
-        notyf.open({
-            type: type,
-            message: `<strong>${title}</strong><br>${message}`,
-            settings: { ripple: true, allowHtml: true }
-        });
-    } else {
-        console.error('Tipo de notificación no válido');
-    }
+    const normalizedType = validTypes.includes(type) ? type : 'info';
+    const safeTitle = $('<div>').text(title || '').html();
+    const safeMessage = $('<div>').text(message || '').html();
+
+    notyf.open({
+        type: normalizedType,
+        message: `<strong>${safeTitle}</strong>${safeMessage ? `<br>${safeMessage}` : ''}`,
+        settings: { ripple: false, allowHtml: true }
+    });
 }
+
+$(function () {
+    if ($('#inputEmail').is(':visible')) {
+        $('#inputEmail').trigger('focus');
+    }
+});
 </script>
 
 <?php

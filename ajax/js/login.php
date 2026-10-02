@@ -9,7 +9,30 @@ function redireccionar() {
 }
 
 $(document).ready(function() {
-    $("#groupDB").hide();
+    if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
+
+    // UX premium: foco limpio y accesos externos sin alterar la lógica existente.
+    if ($("#inputEmail").is(":visible")) {
+        $("#inputEmail").trigger("focus");
+    }
+
+    $("#btn-signup").on("click.izzyPremium", function() {
+        window.setTimeout(function() {
+            $("#user_empresa").trigger("focus");
+        }, 100);
+    });
+
+    $("#forgot_pswd").on("click.izzyPremium", function() {
+        window.setTimeout(function() {
+            $("#usu_forgot").trigger("focus");
+        }, 100);
+    });
+
+    $("#cancel_signup, #cancel_reset").on("click.izzyPremium", function() {
+        window.setTimeout(function() {
+            $("#inputEmail").trigger("focus");
+        }, 100);
+    });
 
     // Generar PIN aleatorio
     $("#generate_pin_link").click(function(e) {
@@ -17,10 +40,6 @@ $(document).ready(function() {
         $("#pin_value").text(Math.floor(Math.random() * 10000));
     });
 
-    // Validación de cliente/PIN
-    $('#inputCliente').on('input', function() {
-        if ($(this).val().length === 8) $('#inputPin').focus();
-    });
 
     // Validación inmediata de email/password
     $("#inputEmail, #inputPassword").on("input blur", function() {
@@ -40,23 +59,25 @@ $(document).ready(function() {
                     $(".RespuestaAjax").hide();
 
                     if (resp.is_test) {
-                        $("#groupDB").hide();
+                        if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
                     } else if (resp.success && resp.show_db) {
-                        $("#groupDB").show();
-                        $("#inputCliente").focus();
+                        if (window.izzySyncClientAccess) { window.izzySyncClientAccess(true); }
                     } else {
-                        $("#groupDB").hide();
+                        if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
                         $("#inputCliente, #inputPin").val("");
                     }
                 },
                 error: function(xhr, status, error) {
-                    $("#groupDB").hide();
+                    if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
                     $("#inputCliente, #inputPin").val("");
-                    $(".RespuestaAjax").html("Error en el servidor").show();
+                    $(".RespuestaAjax").hide().empty();
+                    if (typeof showNotify === "function") {
+                        showNotify('error', 'Conexión', 'No fue posible validar el acceso en este momento.');
+                    }
                 }
             });
         } else {
-            $("#groupDB").hide();
+            if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
             if (!email) $("#inputCliente").val("");
             if (!password) $("#inputPin").val("");
         }
@@ -227,34 +248,8 @@ $(document).ready(function() {
                                 break;
 
                             case "explore":
-                                // El usuario eligió explorar productos, muestra el mensaje de mantenimiento.
-                                swal({
-                                    content: {
-                                        element: "div",
-                                        attributes: {
-                                            innerHTML: `
-                                                <h2 style="color: #f0ad4e; font-size: 22px; margin-bottom: 15px;">
-                                                    🔧 Mantenimiento en Curso
-                                                </h2>
-                                                <p style="font-size: 16px; color: #555;">
-                                                    Estamos trabajando para mejorar nuestros servicios. <strong>Disculpa las molestias.</strong>
-                                                </p>
-                                                <p style="font-size: 16px; color: #555;">
-                                                    ⚙️ Agradecemos tu paciencia. ¡Pronto estaremos de vuelta!
-                                                </p>
-                                            `
-                                        }
-                                    },
-                                    icon: "error",
-                                    buttons: {
-                                        confirm: {
-                                            text: "Aceptar",
-                                            closeModal: true,
-                                        }
-                                    },
-                                    closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-                                    closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera
-                                });
+                                // El sitio público ya está disponible.
+                                window.open('https://izzycloud.app/', '_blank', 'noopener');
                                 break;
 
                             default:
@@ -312,7 +307,7 @@ $(document).ready(function() {
                 });
                 $("#loginform #acceso").hide();
                 $("#loginform #acceso").html("");
-                $("#loginform #usu").focus();
+                $("#inputEmail").focus();
             }
         });
 
@@ -550,4 +545,171 @@ $("#registrarse").click(function(e) {
         }
     });
 });
+
+// ==========================================================
+// IZZY AUTH PREMIUM · comportamiento visual y accesible
+// ==========================================================
+(function () {
+    function showLoginView() {
+        $('#forgot_form, #form_registro').hide();
+        $('#loginform').show();
+        window.setTimeout(function () {
+            $('#inputEmail').trigger('focus');
+        }, 80);
+    }
+
+    function syncClientAccess(show) {
+        const $form = $('#loginform');
+        const $group = $('#groupDB');
+        const $button = $('#clientAccessTrigger');
+        const $state = $('#clientAccessState');
+        const isDemo = $form.attr('data-demo') === '1';
+
+        if (isDemo) {
+            $group.hide();
+            $button.prop('disabled', true).attr('aria-disabled', 'true').removeClass('is-enabled');
+            $('#inputCliente, #inputPin').val('');
+            closeClientPinModal();
+            return;
+        }
+
+        $group.css('display', 'flex');
+        $button.prop('disabled', !show).attr('aria-disabled', show ? 'false' : 'true');
+        $button.toggleClass('is-enabled', !!show);
+        $state.text(show ? 'Acceso administrativo disponible' : 'Validá tus credenciales');
+
+        if (!show) {
+            $('#inputCliente, #inputPin').val('');
+            closeClientPinModal();
+        }
+    }
+
+    window.izzySyncClientAccess = syncClientAccess;
+
+    $('#cancel_signup, #cancel_reset')
+        .off('click.izzyAuthReturn')
+        .on('click.izzyAuthReturn', function (e) {
+            e.preventDefault();
+            showLoginView();
+        });
+
+    $('#btn-signup')
+        .off('click.izzyAuthFocus')
+        .on('click.izzyAuthFocus', function () {
+            window.setTimeout(function () {
+                $('#user_empresa').trigger('focus');
+            }, 100);
+        });
+
+    $('#forgot_pswd')
+        .off('click.izzyAuthFocus')
+        .on('click.izzyAuthFocus', function () {
+            window.setTimeout(function () {
+                $('#usu_forgot').trigger('focus');
+            }, 100);
+        });
+
+    function bindPasswordToggle(buttonSelector, inputSelector, iconSelector) {
+        $(document)
+            .off('click.izzyPassword', buttonSelector)
+            .on('click.izzyPassword', buttonSelector, function (e) {
+                e.preventDefault();
+
+                const $input = $(inputSelector);
+                const $icon = $(iconSelector);
+                const reveal = $input.attr('type') === 'password';
+
+                $input.attr('type', reveal ? 'text' : 'password');
+                $icon.toggleClass('fa-eye-slash', !reveal);
+                $icon.toggleClass('fa-eye', reveal);
+
+                $(this).attr(
+                    'aria-label',
+                    reveal ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                );
+
+                $input.trigger('focus');
+            });
+    }
+
+    bindPasswordToggle('#show_password', '#inputPassword', '#icon');
+    bindPasswordToggle('#show_password1', '#user-pass', '#icon1');
+    bindPasswordToggle('#show_password2', '#user-repeatpass', '#icon2');
+    bindPasswordToggle('#show_client_pin', '#inputPin', '#icon_client_pin');
+
+    function openClientPinModal() {
+        const $modal = $('#clientPinModal');
+        $modal.addClass('is-open').attr('aria-hidden', 'false');
+        $('body').addClass('izzy-modal-open');
+
+        window.setTimeout(function () {
+            $('#inputCliente').trigger('focus');
+        }, 80);
+    }
+
+    function closeClientPinModal() {
+        const $modal = $('#clientPinModal');
+        $modal.removeClass('is-open').attr('aria-hidden', 'true');
+        $('body').removeClass('izzy-modal-open');
+    }
+
+    window.closeClientPinModal = closeClientPinModal;
+
+    $('#clientAccessTrigger')
+        .off('click.izzyClientModal')
+        .on('click.izzyClientModal', function (e) {
+            e.preventDefault();
+            if ($(this).prop('disabled')) return;
+            openClientPinModal();
+        });
+
+    $('[data-client-modal-close]')
+        .off('click.izzyClientModal')
+        .on('click.izzyClientModal', function (e) {
+            e.preventDefault();
+            closeClientPinModal();
+        });
+
+    $(document)
+        .off('keydown.izzyClientModal')
+        .on('keydown.izzyClientModal', function (e) {
+            if (e.key === 'Escape' && $('#clientPinModal').hasClass('is-open')) {
+                closeClientPinModal();
+            }
+        });
+
+    $('#inputCliente').off('input.izzyClientPin').on('input.izzyClientPin', function () {
+        if ($(this).val().length >= 8) {
+            $('#inputPin').trigger('focus');
+        }
+    });
+
+    $('#validateClientPin')
+        .off('click.izzyClientPin')
+        .on('click.izzyClientPin', function (e) {
+            e.preventDefault();
+
+            const cliente = $.trim($('#inputCliente').val());
+            const pin = $.trim($('#inputPin').val());
+
+            if (!cliente || !pin) {
+                if (typeof showNotify === 'function') {
+                    showNotify('warning', 'Datos requeridos', 'Ingresa el cliente y el PIN para continuar.');
+                }
+                if (!cliente) {
+                    $('#inputCliente').trigger('focus');
+                } else {
+                    $('#inputPin').trigger('focus');
+                }
+                return;
+            }
+
+            closeClientPinModal();
+            $('#loginform').trigger('submit');
+        });
+})();
+
+
+
+
 </script>

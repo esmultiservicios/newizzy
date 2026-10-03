@@ -232,12 +232,22 @@ foreach ($ids as $recId) {
                 $cantidadInternos = is_array($resultadoCorreo)
                     ? (int)($resultadoCorreo['destinatarios_internos'] ?? 0)
                     : 0;
-                $textoCorreoOk = ' Correo enviado al cliente.';
-                if ($cantidadInternos > 0) {
-                    $textoCorreoOk .= ' Resumen interno enviado a '.$cantidadInternos.' destinatario(s).';
+                $clienteEnviado = is_array($resultadoCorreo)
+                    ? !empty($resultadoCorreo['cliente_enviado'])
+                    : false;
+                $clienteEstado = is_array($resultadoCorreo)
+                    ? (string)($resultadoCorreo['cliente_estado'] ?? '')
+                    : '';
+
+                if ($clienteEnviado) {
+                    $textoCorreoOk = ' Correo enviado al cliente.';
+                } elseif ($clienteEstado === 'sin_correo') {
+                    $textoCorreoOk = ' Cliente sin correo válido; envío al cliente omitido.';
                 } else {
-                    $textoCorreoOk .= ' No había destinatarios internos activos.';
+                    $textoCorreoOk = ' No se confirmó el envío al cliente.';
                 }
+
+                $textoCorreoOk .= ' Resumen interno enviado a '.$cantidadInternos.' destinatario(s).';
                 $stmtCorreoOk = $conexion->prepare(
                     'UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 1, mensaje = CONCAT(IFNULL(mensaje,\'\'), ?) WHERE ejecucion_id = ?'
                 );

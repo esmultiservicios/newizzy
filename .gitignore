@@ -1,4 +1,27 @@
+# Archivos de entorno y credenciales
 .env
 .env.*
 credentials/
 secrets/
+
+# Configuración específica del servidor
+.user.ini
+
+# Archivos de gastos subidos por usuarios
+vistas/plantilla/gastos/
+
+# Logos dinámicos generados/subidos
+vistas/plantilla/img/enterprise/logo_*.png
+vistas/plantilla/img/enterprise/logo_*.jpg
+vistas/plantilla/img/enterprise/logo_*.jpeg
+
+# Logos dinámicos
+vistas/plantilla/img/logos/logo_*.png
+vistas/plantilla/img/logos/logo_*.jpg
+vistas/plantilla/img/logos/logo_*.jpeg
+
+# Productos dinámicos
+vistas/plantilla/img/products/prod_*.png
+vistas/plantilla/img/products/prod_*.jpg
+vistas/plantilla/img/products/prod_*.jpeg
+vistas/plantilla/img/products/prod_*.webp

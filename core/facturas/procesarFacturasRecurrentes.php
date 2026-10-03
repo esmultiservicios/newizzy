@@ -191,6 +191,15 @@ foreach ($ids as $recId) {
         }
         $stmtDetalle->close();
 
+        // La fecha del dólar debe corresponder al día real en que se genera
+        // la factura recurrente, no a la fecha en que se creó la recurrencia.
+        $fechaDolarGeneracion = (new DateTimeImmutable(
+            'now',
+            new DateTimeZone('America/Tegucigalpa')
+        ))->format('Y-m-d');
+
+        $recurrente['fecha_dolar'] = $fechaDolarGeneracion;
+
         $factura = $servicio->generar($recurrente, $detalle, $conexion);
         $facturasId = (int)$factura['facturas_id'];
         $proxima = proximaFechaRecurrente($programada, $recurrente['periodicidad'], $recurrente['dia_mes'] ?? null);
@@ -204,10 +213,17 @@ foreach ($ids as $recId) {
         $stmtActualizar = $conexion->prepare(
             "UPDATE facturas_recurrentes
              SET next_run_at = ?, estado = ?, ultimo_facturas_id = ?,
-                 last_run_at = NOW(), ultimo_error = NULL
+                 fecha_dolar = ?, last_run_at = NOW(), ultimo_error = NULL
              WHERE rec_id = ?"
         );
-        $stmtActualizar->bind_param('siii', $proxima, $estadoNuevo, $facturasId, $recId);
+        $stmtActualizar->bind_param(
+            'siisi',
+            $proxima,
+            $estadoNuevo,
+            $facturasId,
+            $fechaDolarGeneracion,
+            $recId
+        );
         if (!$stmtActualizar->execute()) {
             throw new Exception('No se pudo avanzar la recurrencia: '.$stmtActualizar->error);
         }

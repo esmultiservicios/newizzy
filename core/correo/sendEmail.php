@@ -1064,15 +1064,40 @@ class sendEmail {
             ? trim((string)$datos_empresa['empresa'])
             : 'ES MULTISERVICIOS';
 
+        $logotipoEmpresa = isset($datos_empresa['logotipo']) && trim((string)$datos_empresa['logotipo']) !== ''
+            ? basename(trim((string)$datos_empresa['logotipo']))
+            : '';
+
         /*
-         * Los correos son enviados por IZZY. El encabezado no utiliza imágenes
-         * externas para evitar iconos rotos en Outlook/Gmail. La marca se pinta
-         * como texto, manteniendo los datos de la empresa en el resto de la plantilla.
+         * El logo se toma directamente de empresa.logotipo y de la misma ruta
+         * utilizada por el módulo de Empresas:
+         * /vistas/plantilla/img/enterprise/
+         *
+         * Solo se envía la etiqueta <img> cuando el archivo realmente existe y
+         * es legible. Si la BD está vacía, tiene image_preview.png o apunta a un
+         * archivo que ya no existe, el encabezado usa la marca IZZY. en texto.
          */
+        $urlLogoEmpresa = '';
+        $logoDisponible = false;
+
+        if ($logotipoEmpresa !== '' && $logotipoEmpresa !== 'image_preview.png') {
+            $raizProyecto = dirname(__DIR__, 2);
+            $rutaLogoEmpresa = $raizProyecto
+                . '/vistas/plantilla/img/enterprise/'
+                . $logotipoEmpresa;
+
+            if (is_file($rutaLogoEmpresa) && is_readable($rutaLogoEmpresa)) {
+                $logoDisponible = true;
+                $urlLogoEmpresa = rtrim(SERVERURL, '/')
+                    . '/vistas/plantilla/img/enterprise/'
+                    . rawurlencode($logotipoEmpresa);
+            }
+        }
+
         $datosPlantilla = [
             'nombre' => $nombreEmpresa,
             'empresa' => $nombreEmpresa,
-            'url_logo' => '',
+            'url_logo' => $urlLogoEmpresa,
             'ubicacion' => $datos_empresa['ubicacion'] ?? '',
             'telefono' => $datos_empresa['telefono'] ?? '',
             'celular' => $datos_empresa['celular'] ?? '',
@@ -1084,13 +1109,12 @@ class sendEmail {
         $template = new emailTemplates();
         $html = $template->plantillaContenido($asunto, $mensaje, $datosPlantilla, $tipo);
 
+        if ($logoDisponible) {
+            return $html;
+        }
+
         $marcaIzzy = '<div style="font-family:Arial Black,Arial,Helvetica,sans-serif;font-size:42px;line-height:1;font-weight:900;letter-spacing:-3px;color:#1477EF;text-align:center;mso-line-height-rule:exactly;">IZZY.</div>';
 
-        /*
-         * Reemplaza únicamente el contenido del encabezado visual. De esta forma
-         * nunca se envía una etiqueta <img> para la marca IZZY y no puede aparecer
-         * una fotografía/logo roto si el cliente de correo bloquea recursos externos.
-         */
         $htmlConIzzy = preg_replace(
             '/(<td\s+class="izzy-logo-wrap"[^>]*>).*?(<\/td>)/si',
             '$1'.$marcaIzzy.'$2',

@@ -150,10 +150,25 @@ $customEnvFile = getenv('IZZY_ENV_FILE');
  * NEWIZZY usa las rutas predeterminadas indicadas abajo.
  * IZZY_ENV_FILE permite sobrescribir la ruta de forma explícita sin editar este archivo.
  */
+$hostActual = strtolower(
+    preg_replace(
+        '/:\d+$/',
+        '',
+        (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '')
+    )
+);
+
+$esDemo = (
+    $hostActual === 'demo.izzycloud.app' ||
+    str_starts_with($hostActual, 'demo.')
+);
+
 if ($customEnvFile !== false && trim($customEnvFile) !== '') {
     $envFile = trim($customEnvFile);
 } elseif (DIRECTORY_SEPARATOR === '\\') {
     $envFile = 'C:\\credentials\\newizzy\\.env';
+} elseif ($esDemo) {
+    $envFile = '/home/esmultiservicios/credentials/devizzy/.env';
 } else {
     $envFile = '/home/esmultiservicios/credentials/newizzy/.env';
 }

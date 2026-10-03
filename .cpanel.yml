@@ -1,0 +1,15 @@
+---
+# IZZY / cPanel Git deployment
+#
+# El repositorio de cPanel ya está ubicado en el Document Root real:
+# /home/esmultiservicios/public_html/demo.izzycloud.app
+#
+# Por esa razón NO se copian archivos hacia otra carpeta. Hacerlo aquí
+# podría copiar .git, sobrescribir configuración propia de producción o
+# intentar copiar archivos sobre sí mismos. "Update from Remote" actualiza
+# el working tree y "Deploy HEAD Commit" valida esta ubicación de forma segura.
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/esmultiservicios/public_html/demo.izzycloud.app/
+    - /usr/bin/test -d "$DEPLOYPATH"
+    - /usr/bin/test -f "$DEPLOYPATH/index.php"

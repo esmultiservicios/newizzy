@@ -1,11 +1,39 @@
-# Archivos de entorno y credenciales
+# ============================================================
+# IZZY - Archivos que NO deben entrar al repositorio
+# ============================================================
+
+# Entorno y credenciales
 .env
 .env.*
 credentials/
 secrets/
 
-# Configuración específica del servidor
+# Configuración específica del servidor / cPanel
 .user.ini
+php.ini
+.well-known/
+
+# Logs y archivos runtime
+error_log
+**/error_log
+*.log
+logs/
+cache/
+tmp/
+temp/
+sessions/
+*.pid
+
+# Backups y archivos temporales de editores/sistema
+backup/
+backups/
+*.bak
+*.backup
+*.tmp
+*.swp
+*~
+.DS_Store
+Thumbs.db
 
 # Archivos de gastos subidos por usuarios
 vistas/plantilla/gastos/
@@ -25,3 +53,7 @@ vistas/plantilla/img/products/prod_*.png
 vistas/plantilla/img/products/prod_*.jpg
 vistas/plantilla/img/products/prod_*.jpeg
 vistas/plantilla/img/products/prod_*.webp
+
+# IMPORTANTE:
+# No se ignoran *.lock de forma global porque archivos como composer.lock
+# pueden ser necesarios y deben permanecer versionados cuando existan.

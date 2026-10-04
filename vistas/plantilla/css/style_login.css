@@ -3534,3 +3534,263 @@ input[type="password"]::-webkit-contacts-auto-fill-button{
         font-size:.76rem!important;
     }
 }
+
+
+/* ==========================================================
+   IZZY LOGIN v1.0.13 · Cache-safe mobile fit
+   - El formulario sube en pantallas pequeñas aprovechando el espacio superior.
+   - Demo / Sitio web permanecen visibles, compactos y legibles.
+   - No modifica la lógica de autenticación.
+   ========================================================== */
+
+@media(max-width:760px){
+    .izzy-login-page{
+        min-height:100dvh!important;
+        padding:0!important;
+        place-items:start stretch!important;
+        background:#fff!important;
+    }
+
+    .izzy-login-shell{
+        min-height:100dvh!important;
+        height:auto!important;
+    }
+
+    .izzy-login-access{
+        min-height:100dvh!important;
+        align-items:start!important;
+        padding:10px 15px 14px!important;
+    }
+
+    .auth-mobile-logo{
+        margin:0 0 10px!important;
+        padding-top:0!important;
+    }
+
+    .auth-mobile-logo img{
+        width:136px!important;
+        max-height:58px!important;
+        object-fit:contain!important;
+    }
+
+    #logreg-forms{
+        width:100%!important;
+        margin:0 auto!important;
+    }
+
+    #loginform .auth-heading{
+        margin-bottom:13px!important;
+    }
+
+    #loginform .auth-heading h1{
+        margin-top:8px!important;
+        font-size:clamp(1.72rem,8vw,2rem)!important;
+    }
+
+    #loginform .auth-heading p{
+        margin-top:7px!important;
+        line-height:1.38!important;
+    }
+
+    #loginform .auth-form-stack{
+        gap:9px!important;
+    }
+
+    #loginform .auth-control{
+        gap:4px!important;
+    }
+
+    #loginform .auth-input{
+        min-height:48px!important;
+    }
+
+    #loginform .auth-input input,
+    #loginform .auth-password-button{
+        height:46px!important;
+    }
+
+    #loginform .auth-button{
+        min-height:48px!important;
+        padding:8px 12px!important;
+    }
+
+    #loginform .auth-forgot-link{
+        min-height:56px!important;
+        padding:7px 9px!important;
+    }
+
+    #loginform .auth-account-block{
+        margin-top:11px!important;
+    }
+
+    #loginform .auth-divider{
+        margin-bottom:8px!important;
+        gap:8px!important;
+    }
+
+    #loginform .auth-button-create{
+        min-height:48px!important;
+    }
+
+    #loginform .auth-extra-actions,
+    #loginform .auth-extra-actions-compact{
+        grid-template-columns:repeat(2,minmax(0,1fr))!important;
+        gap:7px!important;
+        margin-top:8px!important;
+    }
+
+    #loginform .auth-extra-card{
+        min-height:60px!important;
+        height:60px!important;
+        grid-template-columns:30px minmax(0,1fr) 22px!important;
+        gap:5px!important;
+        padding:7px 6px!important;
+        border-radius:12px!important;
+    }
+
+    #loginform .auth-extra-icon{
+        width:30px!important;
+        height:30px!important;
+        min-width:30px!important;
+        min-height:30px!important;
+        border-radius:9px!important;
+        font-size:.76rem!important;
+    }
+
+    #loginform .auth-extra-card > span:nth-child(2){
+        gap:2px!important;
+        text-align:center!important;
+    }
+
+    #loginform .auth-extra-card small{
+        font-size:.55rem!important;
+        line-height:1.10!important;
+        font-weight:750!important;
+    }
+
+    #loginform .auth-extra-card strong{
+        font-size:.72rem!important;
+        line-height:1.10!important;
+        font-weight:900!important;
+    }
+
+    #loginform .auth-extra-arrow{
+        width:22px!important;
+        height:22px!important;
+        border-radius:7px!important;
+        font-size:.65rem!important;
+    }
+
+    #loginform .auth-security-note{
+        margin-top:7px!important;
+        font-size:.62rem!important;
+    }
+}
+
+/* Teléfonos angostos: se conservan las dos acciones lado a lado, pero con
+   jerarquía de texto suficiente para que ambas se alcancen a reconocer. */
+@media(max-width:480px){
+    .izzy-login-access{
+        padding:7px 12px 12px!important;
+    }
+
+    .auth-mobile-logo{
+        margin-bottom:7px!important;
+    }
+
+    .auth-mobile-logo img{
+        width:128px!important;
+        max-height:54px!important;
+    }
+
+    #loginform .auth-kicker{
+        padding:5px 9px!important;
+        font-size:.68rem!important;
+    }
+
+    #loginform .auth-heading{
+        margin-bottom:10px!important;
+    }
+
+    #loginform .auth-heading h1{
+        margin-top:6px!important;
+        font-size:1.64rem!important;
+    }
+
+    #loginform .auth-heading p{
+        margin-top:6px!important;
+        font-size:.76rem!important;
+        line-height:1.34!important;
+    }
+
+    #loginform .auth-extra-card{
+        min-height:58px!important;
+        height:58px!important;
+        grid-template-columns:28px minmax(0,1fr) 20px!important;
+        gap:4px!important;
+        padding:6px 5px!important;
+    }
+
+    #loginform .auth-extra-icon{
+        width:28px!important;
+        height:28px!important;
+        min-width:28px!important;
+        min-height:28px!important;
+        font-size:.70rem!important;
+    }
+
+    #loginform .auth-extra-card small{
+        font-size:.51rem!important;
+    }
+
+    #loginform .auth-extra-card strong{
+        font-size:.67rem!important;
+    }
+
+    #loginform .auth-extra-arrow{
+        width:20px!important;
+        height:20px!important;
+        font-size:.60rem!important;
+    }
+}
+
+/* Altura reducida (navegadores móviles con barras grandes): prioriza que las
+   acciones inferiores sigan visibles sin hacer diminutos los campos. */
+@media(max-width:760px) and (max-height:720px){
+    .izzy-login-access{
+        padding-top:5px!important;
+    }
+
+    .auth-mobile-logo{
+        margin-bottom:5px!important;
+    }
+
+    .auth-mobile-logo img{
+        width:118px!important;
+        max-height:48px!important;
+    }
+
+    #loginform .auth-heading{
+        margin-bottom:8px!important;
+    }
+
+    #loginform .auth-heading p{
+        margin-top:5px!important;
+    }
+
+    #loginform .auth-form-stack{
+        gap:7px!important;
+    }
+
+    #loginform .auth-account-block{
+        margin-top:8px!important;
+    }
+
+    #loginform .auth-extra-actions{
+        margin-top:6px!important;
+    }
+
+    #loginform .auth-security-note{
+        margin-top:5px!important;
+    }
+}

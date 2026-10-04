@@ -8,13 +8,28 @@
     $isDemoLogin = ($loginHost === 'demo.izzycloud.app' || str_starts_with($loginHost, 'demo.'));
     $demoUser = $isDemoLogin ? 'admin@izzycloud.app' : '';
     $demoPass = $isDemoLogin ? 'admin' : '';
+
+    // Evita que el navegador reutilice una vista antigua del login después de publicar cambios.
+    if (!headers_sent()) {
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
+    }
+
+    // Cache-busting estable: el navegador conserva el archivo mientras no cambie y lo
+    // vuelve a descargar automáticamente cuando el CSS o el logo son actualizados.
+    $styleLoginFile = __DIR__ . '/../plantilla/css/style_login.css';
+    $styleLoginVersion = is_file($styleLoginFile) ? (string) filemtime($styleLoginFile) : '1.0.13';
+
+    $loginLogoFile = __DIR__ . '/../plantilla/img/logo.svg';
+    $loginLogoVersion = is_file($loginLogoFile) ? (string) filemtime($loginLogoFile) : '1.0.13';
 ?>
 
 <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
 <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
 <link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css" rel="stylesheet" crossorigin="anonymous" />
 <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
-<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/style_login.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/style_login.css?v=<?php echo rawurlencode($styleLoginVersion); ?>" rel="stylesheet" crossorigin="anonymous" data-izzy-login-style-version="<?php echo htmlspecialchars($styleLoginVersion, ENT_QUOTES, 'UTF-8'); ?>" />
 
 <div class="izzy-login-page">
     <section class="izzy-login-shell">
@@ -22,7 +37,7 @@
         <aside class="izzy-login-brand" aria-label="Información de IZZY">
             <div class="brand-header">
                 <a class="brand-logo" href="https://izzycloud.app/" target="_blank" rel="noopener" aria-label="Abrir sitio web de IZZY">
-                    <img src="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/logo.svg" alt="IZZY">
+                    <img src="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/logo.svg?v=<?php echo rawurlencode($loginLogoVersion); ?>" alt="IZZY">
                 </a>
 
                 <a class="brand-website" href="https://izzycloud.app/" target="_blank" rel="noopener">
@@ -95,7 +110,7 @@
         <main class="izzy-login-access">
             <div class="auth-mobile-logo">
                 <a href="https://izzycloud.app/" target="_blank" rel="noopener" aria-label="Abrir sitio web de IZZY">
-                    <img src="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/logo.svg" alt="IZZY">
+                    <img src="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/logo.svg?v=<?php echo rawurlencode($loginLogoVersion); ?>" alt="IZZY">
                 </a>
             </div>
 

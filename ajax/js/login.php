@@ -8,6 +8,14 @@ function redireccionar() {
     window.location = "../vistas/index.php";
 }
 
+// Si el navegador restaura esta pantalla desde el Back/Forward Cache (bfcache),
+// se solicita una carga real al servidor para no mostrar CSS/HTML de una versión anterior.
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
 $(document).ready(function() {
     if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
 

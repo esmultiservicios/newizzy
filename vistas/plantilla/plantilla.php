@@ -3,6 +3,28 @@ if(!isset($_SESSION)){
     session_start(['name'=>'SD']); 
 }
 
+/*
+ * Versionado automático de assets estáticos.
+ * Cuando un archivo CSS cambia, filemtime() cambia el parámetro ?v=...
+ * y el navegador descarga la versión nueva sin pedir al usuario borrar caché.
+ */
+$izzyAssetVersion = static function (string $relativePath): string {
+    $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+    $projectRoot = dirname(__DIR__, 2);
+    $absolutePath = $projectRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+
+    if (is_file($absolutePath)) {
+        $modifiedAt = filemtime($absolutePath);
+        if ($modifiedAt !== false) {
+            return (string) $modifiedAt;
+        }
+    }
+
+    return '1';
+};
+
+$serverUrlSafe = htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8');
+
 /* ============================================================
    PROTECCIÓN GLOBAL DE RUTAS PRIVADAS
    ------------------------------------------------------------
@@ -58,19 +80,19 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
     <meta name="description" content="" />
     <meta name="author" content="" />
     <title><?php echo htmlspecialchars(COMPANY, ENT_QUOTES, 'UTF-8');?></title>
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/css/dataTables.bootstrap4.min.css" rel="stylesheet" crossorigin="anonymous" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/styles.css" rel="stylesheet" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/my_style.css" rel="stylesheet" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/pagos.css" rel="stylesheet" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/facturasMovil.css" rel="stylesheet" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/main_cards.css" rel="stylesheet" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/select2.min.css" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/select2-izzy.css" rel="stylesheet">
-    <link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>fontawesome/css/all.min.css">
-    <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
-    <link rel="shortcut icon" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/icono.png">
+    <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css?v=<?php echo rawurlencode($izzyAssetVersion('ajax/bootstrap/css/bootstrap.min.css')); ?>" rel="stylesheet" crossorigin="anonymous" />
+    <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/dataTables.bootstrap4.min.css?v=<?php echo rawurlencode($izzyAssetVersion('ajax/bootstrap/css/dataTables.bootstrap4.min.css')); ?>" rel="stylesheet" crossorigin="anonymous" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/styles.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/styles.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/my_style.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/my_style.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/pagos.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/pagos.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/facturasMovil.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/facturasMovil.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/main_cards.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/main_cards.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css?v=<?php echo rawurlencode($izzyAssetVersion('ajax/bootstrap/css/bootstrap-select.min.css')); ?>" rel="stylesheet" crossorigin="anonymous" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/select2.min.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/select2.min.css')); ?>" rel="stylesheet">
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/select2-izzy.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/select2-izzy.css')); ?>" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $serverUrlSafe; ?>fontawesome/css/all.min.css?v=<?php echo rawurlencode($izzyAssetVersion('fontawesome/css/all.min.css')); ?>">
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/notyf.min.css')); ?>" rel="stylesheet" />
+    <link rel="shortcut icon" href="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/icono.png?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/img/icono.png')); ?>">
 <!--     <link href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/sweetalert/sweetalert.css"
         rel="stylesheet" crossorigin="anonymous" /> -->   
 

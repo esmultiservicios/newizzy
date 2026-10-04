@@ -19,6 +19,7 @@ use PHPMailer\PHPMailer\Exception;
 class sendEmail {
 
     private $databaseName = null;
+    private $domainValidationCache = [];
 
     public function __construct($databaseName = null) {
         $databaseName = trim((string)$databaseName);
@@ -64,6 +65,328 @@ class sendEmail {
     private function validarCorreo($email) {
         $email = $this->limpiarEmail($email);
         return !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+
+    /**
+     * Valida un destinatario antes de intentar enviarlo por SMTP o Microsoft Graph.
+     *
+     * Esta validación es deliberadamente gratuita y local:
+     * - formato;
+     * - errores frecuentes de dominio;
+     * - dominios de ejemplo / correos evidentemente ficticios;
+     * - dominios temporales conocidos;
+     * - existencia DNS con MX o, como compatibilidad RFC, registro A/AAAA.
+     *
+     * Importante: ningún validador gratuito puede garantizar que un buzón concreto
+     * de Gmail/Outlook/Yahoo exista sin intentar entregar un mensaje. Por eso esta
+     * función reduce rebotes evitables, pero no promete eliminar el 100 % de NDR.
+     */
+    public function validarCorreoDestino($email) {
+        $emailOriginal = trim((string)$email);
+        $email = $this->limpiarEmail($emailOriginal);
+
+        $resultado = [
+            'valido' => false,
+            'correo' => $email,
+            'codigo' => '',
+            'mensaje' => '',
+            'sugerencia' => ''
+        ];
+
+        if ($email === '') {
+            $resultado['codigo'] = 'VACIO';
+            $resultado['mensaje'] = 'El correo está vacío.';
+            return $resultado;
+        }
+
+        if (preg_match('/\s/', $email)) {
+            $resultado['codigo'] = 'ESPACIOS';
+            $resultado['mensaje'] = 'El correo contiene espacios.';
+            return $resultado;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $resultado['codigo'] = 'FORMATO';
+            $resultado['mensaje'] = 'El formato del correo no es válido.';
+            return $resultado;
+        }
+
+        $partes = explode('@', $email, 2);
+        $local = isset($partes[0]) ? trim($partes[0]) : '';
+        $dominio = isset($partes[1]) ? strtolower(trim($partes[1])) : '';
+
+        if ($local === '' || $dominio === '') {
+            $resultado['codigo'] = 'FORMATO';
+            $resultado['mensaje'] = 'El correo no contiene un usuario o dominio válido.';
+            return $resultado;
+        }
+
+        if (function_exists('idn_to_ascii')) {
+            $flags = defined('IDNA_DEFAULT') ? IDNA_DEFAULT : 0;
+            $variant = defined('INTL_IDNA_VARIANT_UTS46') ? INTL_IDNA_VARIANT_UTS46 : 0;
+            $ascii = @idn_to_ascii($dominio, $flags, $variant);
+            if (is_string($ascii) && $ascii !== '') {
+                $dominio = strtolower($ascii);
+                $email = $local . '@' . $dominio;
+                $resultado['correo'] = $email;
+            }
+        }
+
+        $sugerencia = $this->sugerirDominioCorreo($dominio);
+        if ($sugerencia !== '') {
+            $resultado['codigo'] = 'DOMINIO_TYPO';
+            $resultado['sugerencia'] = $local . '@' . $sugerencia;
+            $resultado['mensaje'] = 'El dominio parece estar mal escrito. ¿Quiso decir ' . $resultado['sugerencia'] . '?';
+            return $resultado;
+        }
+
+        if ($this->esCorreoPlaceholder($local, $dominio)) {
+            $resultado['codigo'] = 'PLACEHOLDER';
+            $resultado['mensaje'] = 'El correo parece ser un dato de ejemplo o ficticio.';
+            return $resultado;
+        }
+
+        if ($this->esDominioDesechable($dominio)) {
+            $resultado['codigo'] = 'DESECHABLE';
+            $resultado['mensaje'] = 'No se permiten dominios de correo temporales o desechables.';
+            return $resultado;
+        }
+
+        if (!$this->dominioPuedeRecibirCorreo($dominio)) {
+            $resultado['codigo'] = 'DNS';
+            $resultado['mensaje'] = 'El dominio del correo no publica servidores de correo válidos (MX/DNS).';
+            return $resultado;
+        }
+
+        $resultado['valido'] = true;
+        $resultado['codigo'] = 'OK';
+        $resultado['mensaje'] = 'Correo válido para intentar el envío.';
+        return $resultado;
+    }
+
+    private function sugerirDominioCorreo($dominio) {
+        $dominio = strtolower(trim((string)$dominio));
+
+        $correcciones = [
+            'gmail.con' => 'gmail.com',
+            'gmail.cmo' => 'gmail.com',
+            'gmail.comn' => 'gmail.com',
+            'gmial.com' => 'gmail.com',
+            'gmal.com' => 'gmail.com',
+            'gamil.com' => 'gmail.com',
+            'hotmal.com' => 'hotmail.com',
+            'hotmai.com' => 'hotmail.com',
+            'hotmail.con' => 'hotmail.com',
+            'outlok.com' => 'outlook.com',
+            'outllok.com' => 'outlook.com',
+            'outlook.con' => 'outlook.com',
+            'live.con' => 'live.com',
+            'yaho.com' => 'yahoo.com',
+            'yahoo.con' => 'yahoo.com',
+            'iclod.com' => 'icloud.com',
+            'icloud.con' => 'icloud.com',
+            'protonmail.con' => 'protonmail.com'
+        ];
+
+        return $correcciones[$dominio] ?? '';
+    }
+
+    private function esCorreoPlaceholder($local, $dominio) {
+        $local = strtolower(trim((string)$local));
+        $dominio = strtolower(trim((string)$dominio));
+
+        $dominiosEjemplo = [
+            'algo.com',
+            'ejemplo.com',
+            'example.com',
+            'example.org',
+            'example.net',
+            'prueba.com',
+            'test.com',
+            'correo.com',
+            'email.com',
+            'dominio.com',
+            'dominio.hn'
+        ];
+
+        $usuariosEjemplo = [
+            'algo',
+            'alguien',
+            'correo',
+            'email',
+            'prueba',
+            'test',
+            'usuario',
+            'user',
+            'ejemplo',
+            'example',
+            'nombre',
+            'sincorreo',
+            'noemail',
+            'ninguno',
+            'none'
+        ];
+
+        if (in_array($dominio, $dominiosEjemplo, true)) {
+            return true;
+        }
+
+        return in_array($local, $usuariosEjemplo, true)
+            && (
+                strpos($dominio, 'example') !== false
+                || strpos($dominio, 'ejemplo') !== false
+                || strpos($dominio, 'prueba') !== false
+                || strpos($dominio, 'test') !== false
+                || strpos($dominio, 'algo') !== false
+            );
+    }
+
+    private function esDominioDesechable($dominio) {
+        $dominio = strtolower(trim((string)$dominio));
+
+        $dominiosDesechables = [
+            '10minutemail.com',
+            '10minutemail.net',
+            'fakeinbox.com',
+            'getnada.com',
+            'guerrillamail.com',
+            'guerrillamailblock.com',
+            'maildrop.cc',
+            'mailinator.com',
+            'mailnesia.com',
+            'sharklasers.com',
+            'temp-mail.org',
+            'tempmail.com',
+            'throwawaymail.com',
+            'trashmail.com',
+            'yopmail.com'
+        ];
+
+        return in_array($dominio, $dominiosDesechables, true);
+    }
+
+    private function dominioPuedeRecibirCorreo($dominio) {
+        $dominio = strtolower(trim((string)$dominio));
+
+        if ($dominio === '') {
+            return false;
+        }
+
+        if (array_key_exists($dominio, $this->domainValidationCache)) {
+            return (bool)$this->domainValidationCache[$dominio];
+        }
+
+        /*
+         * Proveedores ampliamente conocidos. Esto evita bloquear envíos por una
+         * falla DNS transitoria del hosting y no sustituye la comprobación de
+         * existencia del buzón individual.
+         */
+        $proveedoresConocidos = [
+            'gmail.com',
+            'googlemail.com',
+            'hotmail.com',
+            'outlook.com',
+            'live.com',
+            'msn.com',
+            'yahoo.com',
+            'icloud.com',
+            'me.com',
+            'proton.me',
+            'protonmail.com'
+        ];
+
+        if (in_array($dominio, $proveedoresConocidos, true)) {
+            $this->domainValidationCache[$dominio] = true;
+            return true;
+        }
+
+        $tieneDns = false;
+
+        if (function_exists('checkdnsrr')) {
+            $tieneDns = @checkdnsrr($dominio, 'MX');
+
+            /*
+             * RFC permite entrega al host A/AAAA cuando no existe MX explícito.
+             * Se acepta como fallback para no bloquear dominios legítimos.
+             */
+            if (!$tieneDns) {
+                $tieneDns = @checkdnsrr($dominio, 'A') || @checkdnsrr($dominio, 'AAAA');
+            }
+        } elseif (function_exists('dns_get_record')) {
+            $registrosMx = @dns_get_record($dominio, DNS_MX);
+            $registrosA = @dns_get_record($dominio, DNS_A);
+
+            $tieneDns = (is_array($registrosMx) && count($registrosMx) > 0)
+                || (is_array($registrosA) && count($registrosA) > 0);
+        } else {
+            /*
+             * Si PHP no permite consultas DNS, no bloqueamos por esta razón.
+             * Las demás validaciones siguen activas.
+             */
+            $tieneDns = true;
+        }
+
+        $this->domainValidationCache[$dominio] = (bool)$tieneDns;
+        return (bool)$tieneDns;
+    }
+
+    private function enmascararCorreoDestino($email) {
+        $email = $this->limpiarEmail($email);
+
+        if (strpos($email, '@') === false) {
+            return 'correo inválido';
+        }
+
+        list($local, $dominio) = explode('@', $email, 2);
+
+        if (strlen($local) <= 2) {
+            $localMascara = substr($local, 0, 1) . '*';
+        } else {
+            $localMascara = substr($local, 0, 2) . str_repeat('*', max(2, strlen($local) - 2));
+        }
+
+        return $localMascara . '@' . $dominio;
+    }
+
+    private function filtrarDestinatariosCorreo(array $destinatarios) {
+        $validos = [];
+        $rechazados = [];
+
+        foreach ($destinatarios as $email => $nombre) {
+            $validacion = $this->validarCorreoDestino($email);
+
+            if (!empty($validacion['valido'])) {
+                $validos[$validacion['correo']] = trim((string)$nombre);
+                continue;
+            }
+
+            $rechazados[] = [
+                'correo' => $this->enmascararCorreoDestino($email),
+                'codigo' => $validacion['codigo'] ?? 'INVALIDO',
+                'mensaje' => $validacion['mensaje'] ?? 'Correo inválido.'
+            ];
+        }
+
+        return [
+            'validos' => $validos,
+            'rechazados' => $rechazados
+        ];
+    }
+
+    private function resumenDestinatariosRechazados(array $rechazados) {
+        if (!$rechazados) {
+            return '';
+        }
+
+        $partes = [];
+
+        foreach ($rechazados as $rechazado) {
+            $partes[] = ($rechazado['correo'] ?? 'correo inválido')
+                . ': '
+                . ($rechazado['mensaje'] ?? 'No válido');
+        }
+
+        return implode(' | ', $partes);
     }
 
     private function normalizarMetodoEnvio($metodo_envio) {
@@ -295,6 +618,38 @@ class sendEmail {
 
     public function enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $empresa_id, $archivos_adjuntos = [], $templateType = 'info') {
         ini_set('max_execution_time', 300);
+
+        $destinatarios = is_array($destinatarios) ? $destinatarios : [];
+        $bccDestinatarios = is_array($bccDestinatarios) ? $bccDestinatarios : [];
+
+        $validacionDestinatarios = $this->filtrarDestinatariosCorreo($destinatarios);
+        $validacionBcc = $this->filtrarDestinatariosCorreo($bccDestinatarios);
+
+        $destinatarios = $validacionDestinatarios['validos'];
+        $bccDestinatarios = $validacionBcc['validos'];
+
+        $rechazados = array_merge(
+            $validacionDestinatarios['rechazados'],
+            $validacionBcc['rechazados']
+        );
+
+        if ($rechazados) {
+            error_log(
+                'sendEmail - destinatarios omitidos antes del envío: '
+                . $this->resumenDestinatariosRechazados($rechazados)
+            );
+        }
+
+        if (!$destinatarios) {
+            $detalle = $this->resumenDestinatariosRechazados(
+                $validacionDestinatarios['rechazados']
+            );
+
+            echo 'No se envió el correo porque no hay destinatarios válidos.'
+                . ($detalle !== '' ? ' ' . $detalle : '');
+
+            return 0;
+        }
 
         $configResult = $this->obtenerConfiguracionCorreo($correo_tipo_id);
 

@@ -23,9 +23,29 @@ $basePath = $serverName == 'localhost' ? '/devizzy/' : '/';
 $baseURL = $protocol . $serverName . $port . $basePath;
 define('SERVERURL', $baseURL);
 
-// Construir la URL de Windows
-//$urlWindows = 'https://wi.fastsolutionhn.com/Rpt/esmultiservicios.aspx';
-$urlWindows = 'http://localhost:58197/esmultiservicios.aspx';
+// Construir la URL de Windows según el entorno.
+// LOCAL (.test, .local, .localhost, localhost o 127.0.0.1) usa el servicio local.
+// DEMO y PRODUCCIÓN usan el servicio publicado.
+$hostActual = strtolower(
+    preg_replace(
+        '/:\d+$/',
+        '',
+        (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '')
+    )
+);
+
+$esEntornoLocal = (
+    $hostActual === 'localhost' ||
+    $hostActual === '127.0.0.1' ||
+    str_ends_with($hostActual, '.test') ||
+    str_ends_with($hostActual, '.local') ||
+    str_ends_with($hostActual, '.localhost')
+);
+
+$urlWindows = $esEntornoLocal
+    ? 'http://localhost:58197/esmultiservicios.aspx'
+    : 'https://wi.fastsolutionhn.com/Rpt/esmultiservicios.aspx';
+
 define('SERVERURLWINDOWS', $urlWindows);
 
 $urlLogo = "https://wi.fastsolutionhn.com/files/";

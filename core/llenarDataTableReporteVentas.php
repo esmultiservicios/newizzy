@@ -28,11 +28,46 @@ try {
     $vendedor = $_POST['vendedor'] ?? '';
     $factura = isset($_POST['factura']) ? (int)$_POST['factura'] : 1; // 1=Factura, 4=Proforma
     $empresa_id_sd = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'] : 0;
+    $privilegio_id_sd = isset($_SESSION['privilegio_sd']) ? (int)$_SESSION['privilegio_sd'] : 0;
+    $colaborador_id_sd = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
 
     $cn = $insMainModel->connection();
     if (!$cn) {
         echo json_encode(['echo'=>1,'totalrecords'=>0,'totaldisplayrecords'=>0,'data'=>[]]);
         exit;
+    }
+
+    /*
+     * Alcance por facturador:
+     * - Super Administrador, Administrador y Contador pueden consultar todas
+     *   las facturas de su empresa o filtrar voluntariamente por facturador.
+     * - Los demás privilegios quedan forzados al colaborador de la sesión.
+     *
+     * Super Administrador (1) y Administrador (2) conservan sus IDs históricos.
+     * Contador se identifica por el nombre del privilegio para no depender de
+     * un ID fijo que puede variar entre instalaciones.
+     */
+    $puedeVerTodosFacturadores = in_array($privilegio_id_sd, [1, 2], true);
+
+    if (!$puedeVerTodosFacturadores && $privilegio_id_sd > 0) {
+        $stmtPrivilegio = $cn->prepare("SELECT nombre FROM privilegio WHERE privilegio_id = ? LIMIT 1");
+
+        if ($stmtPrivilegio) {
+            $stmtPrivilegio->bind_param('i', $privilegio_id_sd);
+            $stmtPrivilegio->execute();
+            $resultadoPrivilegio = $stmtPrivilegio->get_result();
+
+            if ($filaPrivilegio = $resultadoPrivilegio->fetch_assoc()) {
+                $nombrePrivilegio = function_exists('mb_strtolower')
+                    ? mb_strtolower(trim((string)$filaPrivilegio['nombre']), 'UTF-8')
+                    : strtolower(trim((string)$filaPrivilegio['nombre']));
+
+                $puedeVerTodosFacturadores = ($nombrePrivilegio === 'contador');
+            }
+
+            $resultadoPrivilegio->free();
+            $stmtPrivilegio->close();
+        }
     }
 
     /*
@@ -71,10 +106,20 @@ try {
         $where[] = 'f.estado = 4';
     }
 
-    if ($facturador !== '' && (int)$facturador > 0) {
+    if ($puedeVerTodosFacturadores) {
+        // Super Administrador / Administrador / Contador: vacío = todos; ID = filtro opcional.
+        if ($facturador !== '' && (int)$facturador > 0) {
+            $where[] = 'f.usuario = ?';
+            $types .= 'i';
+            $params[] = (int)$facturador;
+        }
+    } else {
+        // Otros roles: siempre se limita al facturador asociado a la sesión.
+        // Si la sesión no tiene colaborador válido, se fuerza un ID imposible
+        // para no exponer facturas de otros usuarios.
         $where[] = 'f.usuario = ?';
         $types .= 'i';
-        $params[] = (int)$facturador;
+        $params[] = $colaborador_id_sd > 0 ? $colaborador_id_sd : 0;
     }
 
     if ($vendedor !== '' && (int)$vendedor > 0) {

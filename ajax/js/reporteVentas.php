@@ -970,6 +970,7 @@ var listar_reporte_ventas = function () {
     $.ajax({
       type: "POST",
       url: '<?php echo SERVERURL;?>core/getFacturador.php',
+      data: { contexto: 'reporte_ventas' },
       async: true,
       success: function (data) {
         $('#form_main_ventas #facturador').html(data).izzySelect2Bridge('refresh');

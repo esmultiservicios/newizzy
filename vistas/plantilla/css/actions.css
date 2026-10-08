@@ -1,0 +1,173 @@
+/*
+ * IZZY | ACCIONES GLOBAL
+ * Fuente única y final para todos los botones desplegables "Acciones".
+ * Este archivo se carga DESPUÉS de los CSS propios de cada vista.
+ */
+
+:root{
+    --izzy-action-bg:#2f9ddd;
+    --izzy-action-bg-hover:#258cc7;
+    --izzy-action-text:#fff;
+    --izzy-action-height:36px;
+    --izzy-action-width:112px;
+    --izzy-action-font:12px;
+    --izzy-action-icon:12px;
+    --izzy-action-caret:.34em;
+    --izzy-action-gap:8px;
+}
+
+html body .acciones-dropdown,
+html body [class*="-actions-dropdown"],
+html body [class*="-acciones-dropdown"]{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    padding-left:6px !important;
+    padding-right:6px !important;
+    box-sizing:border-box !important;
+}
+
+html body button.btn-acciones,
+html body .acciones-dropdown > button.btn-acciones,
+html body [class*="-actions-dropdown"] > button.btn-acciones,
+html body [class*="-acciones-dropdown"] > button.btn-acciones,
+html body button[class*="-acciones-toggle"],
+html body .ap-actions-trigger{
+    width:var(--izzy-action-width) !important;
+    min-width:var(--izzy-action-width) !important;
+    max-width:100% !important;
+    height:var(--izzy-action-height) !important;
+    min-height:var(--izzy-action-height) !important;
+    max-height:var(--izzy-action-height) !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    flex-wrap:nowrap !important;
+    padding:0 11px !important;
+    margin:0 !important;
+    gap:var(--izzy-action-gap) !important;
+    background:var(--izzy-action-bg) !important;
+    border:1px solid var(--izzy-action-bg) !important;
+    border-radius:8px !important;
+    color:var(--izzy-action-text) !important;
+    font-size:var(--izzy-action-font) !important;
+    font-weight:700 !important;
+    line-height:1 !important;
+    letter-spacing:0 !important;
+    text-transform:none !important;
+    white-space:nowrap !important;
+    box-shadow:0 3px 9px rgba(47,157,221,.20) !important;
+    overflow:visible !important;
+}
+
+html body .btn-acciones > span,
+html body button[class*="-acciones-toggle"] > span,
+html body .ap-actions-trigger > span{
+    display:inline-block !important;
+    width:auto !important;
+    min-width:0 !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    font-size:inherit !important;
+    line-height:1 !important;
+    white-space:nowrap !important;
+    word-break:keep-all !important;
+    overflow-wrap:normal !important;
+}
+
+html body .btn-acciones > i:not(.fa-chevron-down):not(.fa-chevron-up),
+html body button[class*="-acciones-toggle"] > i:not(.fa-chevron-down):not(.fa-chevron-up),
+html body .ap-actions-trigger > i:not(.fa-chevron-down):not(.fa-chevron-up){
+    width:1em !important;
+    min-width:1em !important;
+    flex:0 0 1em !important;
+    margin:0 !important;
+    padding:0 !important;
+    color:#fff !important;
+    font-size:var(--izzy-action-icon) !important;
+    line-height:1 !important;
+    text-align:center !important;
+    transform:none !important;
+}
+
+html body button.btn-acciones::after,
+html body button[class*="-acciones-toggle"]::after,
+html body .ap-actions-trigger::after{
+    content:"" !important;
+    position:static !important;
+    display:inline-block !important;
+    flex:0 0 auto !important;
+    width:0 !important;
+    height:0 !important;
+    padding:0 !important;
+    margin:0 0 0 2px !important;
+    border-top:var(--izzy-action-caret) solid currentColor !important;
+    border-right:var(--izzy-action-caret) solid transparent !important;
+    border-bottom:0 !important;
+    border-left:var(--izzy-action-caret) solid transparent !important;
+    color:#fff !important;
+    vertical-align:middle !important;
+    transform:rotate(0deg) !important;
+    transform-origin:50% 45% !important;
+    transition:transform .16s ease !important;
+}
+
+html body .btn-acciones > .fa-chevron-down,
+html body .btn-acciones > .fa-chevron-up,
+html body button[class*="-acciones-toggle"] > .fa-chevron-down,
+html body button[class*="-acciones-toggle"] > .fa-chevron-up,
+html body .ap-actions-trigger > .fa-chevron-down,
+html body .ap-actions-trigger > .fa-chevron-up{
+    display:none !important;
+}
+
+html body .btn-acciones[aria-expanded="true"]::after,
+html body button[class*="-acciones-toggle"][aria-expanded="true"]::after,
+html body .ap-actions-trigger[aria-expanded="true"]::after,
+html body .dropdown.show > .btn-acciones::after{
+    transform:rotate(180deg) !important;
+}
+
+html body .btn-acciones:hover,
+html body .btn-acciones:focus,
+html body .btn-acciones:active,
+html body .btn-acciones[aria-expanded="true"],
+html body button[class*="-acciones-toggle"]:hover,
+html body button[class*="-acciones-toggle"]:focus,
+html body button[class*="-acciones-toggle"]:active,
+html body button[class*="-acciones-toggle"][aria-expanded="true"],
+html body .ap-actions-trigger:hover,
+html body .ap-actions-trigger:focus,
+html body .ap-actions-trigger:active,
+html body .ap-actions-trigger[aria-expanded="true"]{
+    background:var(--izzy-action-bg-hover) !important;
+    border-color:var(--izzy-action-bg-hover) !important;
+    color:#fff !important;
+    outline:0 !important;
+    box-shadow:0 4px 11px rgba(47,157,221,.25) !important;
+}
+
+html body .btn-acciones:hover > i,
+html body .btn-acciones:focus > i,
+html body button[class*="-acciones-toggle"]:hover > i,
+html body button[class*="-acciones-toggle"]:focus > i{
+    color:#fff !important;
+    font-size:var(--izzy-action-icon) !important;
+    transform:none !important;
+}
+
+@media (max-width:575.98px){
+    html body button.btn-acciones,
+    html body button[class*="-acciones-toggle"],
+    html body .ap-actions-trigger{
+        width:var(--izzy-action-width) !important;
+        min-width:var(--izzy-action-width) !important;
+        max-width:100% !important;
+        padding-left:9px !important;
+        padding-right:9px !important;
+    }
+}

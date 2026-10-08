@@ -15,7 +15,6 @@ try {
         exit;
     }
 
-    echo json_encode([
     require_once __DIR__ . '/../controladores/contratoControlador.php';
     $insVarios = new contratoControlador();
     echo (string)$insVarios->agregar_contrato_controlador();

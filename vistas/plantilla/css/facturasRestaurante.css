@@ -651,6 +651,18 @@ select.select2.form-control{height:38px;padding:6px 12px;font-size:14px;line-hei
   display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.2
 }
 .gestion-compact .gest-menu button:hover{background:#f3f4f6}
+/* ===== Submenús de Gestionar ===== */
+.gestion-compact .gest-menu .gest-submenu{position:relative}
+.gestion-compact .gest-menu .gest-submenu-toggle{font-weight:700;color:#22384f}
+.gestion-compact .gest-menu .gest-submenu-toggle>i:last-child{margin-left:auto;font-size:11px;transition:transform .18s ease;color:#64748b}
+.gestion-compact .gest-menu .gest-submenu.is-open>.gest-submenu-toggle{background:#eef7fd;color:#147fb6}
+.gestion-compact .gest-menu .gest-submenu.is-open>.gest-submenu-toggle>i:last-child{transform:rotate(90deg);color:#147fb6}
+.gestion-compact .gest-menu .gest-submenu-panel{display:none;margin:1px 6px 5px 18px;padding:4px 0 4px 8px;border-left:2px solid #d8e8f4}
+.gestion-compact .gest-menu .gest-submenu.is-open>.gest-submenu-panel{display:block}
+.gestion-compact .gest-menu .gest-submenu-panel button{font-size:13px;padding:9px 10px;color:#334155}
+.gestion-compact .gest-menu .gest-submenu-panel button i{width:17px;flex:0 0 17px;text-align:center;color:#2997d6}
+.gestion-compact .gest-menu .gest-submenu-panel button:hover i{color:#147fb6}
+
 @media (max-width:1280px){
   .gestion-productos-actions{display:none!important}
   .gestion-compact{display:inline-block}
@@ -4973,3 +4985,29 @@ body[data-servicio="mesa"] #btn-guardar.btn-warning:focus {
   }
 }
 \n\n/* ================================================================\n   COCINA — ACCIONES DE DISPOSITIVOS\n   Enviar prueba también desde Dispositivos, con acciones uniformes.\n   ================================================================ */\n.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-devices-head-actions{\n  display:flex;\n  align-items:center;\n  justify-content:flex-end;\n  gap:8px;\n  flex-wrap:wrap;\n}\n.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-devices-head-actions .btn,\n.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-device-actions .btn{\n  display:inline-flex;\n  align-items:center;\n  justify-content:center;\n  gap:6px;\n}\n.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-devices-head-actions .btn i,\n.vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-device-actions .btn i{\n  flex:0 0 auto;\n  line-height:1;\n}\n@media(max-width:720px){\n  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-devices-head-actions{\n    width:100%;\n  }\n  .vista-facturacion-restaurante #modal-configuracion-restaurante .rs-kitchen-devices-head-actions .btn{\n    flex:1 1 150px;\n  }\n}\n
+
+/* ===== Inventario Restaurante conectado ===== */
+.inventory-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.inventory-tab{border:1px solid #d9e4ed;background:#f8fbfd;color:#334155;border-radius:9px;padding:9px 12px;font-weight:700;cursor:pointer}
+.inventory-tab.active{background:#2997d6;border-color:#2997d6;color:#fff}
+.inventory-pane{display:none}.inventory-pane.active{display:block}
+.inventory-filter-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(190px,280px);gap:10px;margin-bottom:12px}
+.inventory-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.inventory-summary-card{border:1px solid #dce7f0;border-radius:12px;background:#fff;padding:12px;box-shadow:0 4px 14px rgba(15,31,82,.05)}
+.inventory-summary-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px;color:#17395b}
+.inventory-combo-badge{font-size:11px;font-weight:800;background:#eef6ff;color:#2678ae;border-radius:999px;padding:3px 7px;white-space:nowrap}
+.inventory-stock-row{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid #e8eef4;background:#f8fafc;border-radius:8px;padding:7px 9px;margin-top:6px}
+.inventory-stock-row span{min-width:0;overflow-wrap:anywhere;color:#536579}.inventory-stock-row strong{white-space:nowrap;color:#17395b}
+.inventory-empty{min-height:110px;border:1px dashed #cbd8e5;border-radius:12px;background:#fbfdff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;color:#728197;padding:18px}
+.inventory-lots-list{display:grid;gap:8px}.inventory-lot-row{display:grid;grid-template-columns:minmax(140px,1fr) 120px 150px 100px;gap:10px;align-items:center;border:1px solid #dce7f0;border-radius:10px;padding:10px 12px;background:#fff}
+.inventory-lot-row.is-expired{border-color:#f0bcbc;background:#fff8f8}.inventory-lot-row small{display:block;color:#728197;margin-top:2px}
+.btn-delete-mesa{background:#fff0f0!important;color:#d73b3e!important;border-color:#ffd3d3!important}.btn-delete-mesa:hover,.btn-delete-mesa:focus{background:#ffe2e2!important;color:#b42318!important}
+
+/* ===== Facturas emitidas Restaurante / Nota de Crédito ===== */
+.rs-issued-invoices-modal{max-width:1120px!important}
+.rs-issued-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.rs-issued-search{display:flex;align-items:center;flex:1;min-width:0;border:1px solid #d8e3ec;border-radius:9px;background:#fff;overflow:hidden}
+.rs-issued-search>i{padding:0 11px;color:#315a7b}.rs-issued-search input{flex:1;min-width:0;border:0!important;outline:0!important;box-shadow:none!important;padding:10px 0;background:transparent}.rs-issued-search button{width:38px;height:38px;border:0;background:transparent;color:#718096;cursor:pointer}
+.rs-issued-list{display:grid;gap:8px}.rs-issued-row{display:grid;grid-template-columns:minmax(150px,.9fr) minmax(220px,1.5fr) 100px 115px minmax(155px,.8fr);gap:12px;align-items:center;border:1px solid #dce7f0;border-top:3px solid #22c7a5;border-radius:10px;background:#fff;padding:11px 12px}
+.rs-issued-row strong,.rs-issued-row span{min-width:0;overflow-wrap:anywhere}.rs-issued-row small{display:block;color:#728197;margin-top:2px}.rs-issued-total{font-weight:800;color:#17395b;white-space:nowrap}.rs-issued-actions{display:flex;justify-content:flex-end}.rs-issued-state{display:inline-flex;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;white-space:nowrap}.rs-issued-state.is-paid{background:#e9f8ef;color:#138443}.rs-issued-state.is-credit{background:#fff3dc;color:#a56500}.rs-issued-empty{min-height:150px;border:1px dashed #cbd8e5;border-radius:12px;background:#fbfdff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;color:#728197;text-align:center;padding:20px}
+@media(max-width:900px){.inventory-lot-row{grid-template-columns:1fr 1fr}.rs-issued-row{grid-template-columns:1fr 1fr}.rs-issued-actions{justify-content:flex-start}}
+@media(max-width:576px){.inventory-filter-row{grid-template-columns:1fr}.inventory-lot-row,.rs-issued-row{grid-template-columns:1fr}.rs-issued-toolbar{align-items:stretch;flex-direction:column}.rs-issued-actions{justify-content:stretch}.rs-issued-actions .btn{width:100%}}

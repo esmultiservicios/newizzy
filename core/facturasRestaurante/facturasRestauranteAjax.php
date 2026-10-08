@@ -164,6 +164,11 @@ try {
             break;
         }
 
+        case 'deleteMesa': {
+            AjaxHelper::json($m->eliminarMesa((int)AjaxHelper::in('mesa_id', 0)));
+            break;
+        }
+
         case 'reservarMesa': {
             $data = [
                 'mesa_id'       => (int) AjaxHelper::in('mesa_id',0),
@@ -235,6 +240,13 @@ try {
 
         case 'loadLotesInventario':
             AjaxHelper::json($m->obtenerLotesInventarioRestaurante((int)AjaxHelper::in('productos_id',0),(int)AjaxHelper::in('almacen_id',0)));
+            break;
+
+        case 'loadFacturasEmitidasRestaurante':
+            AjaxHelper::json($m->obtenerFacturasEmitidasRestaurante(
+                (string)AjaxHelper::in('buscar',''),
+                (int)AjaxHelper::in('limite',100)
+            ));
             break;
 
         /* ============================================================

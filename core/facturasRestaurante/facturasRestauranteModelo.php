@@ -202,6 +202,165 @@ class facturasRestauranteModelo extends mainModel {
     }
     
 
+    /**
+     * Elimina una mesa únicamente cuando todavía no tiene historial operativo.
+     * Si ya fue utilizada, debe conservarse por trazabilidad y colocarse en
+     * mantenimiento desde Editar mesa.
+     */
+    public function eliminarMesa($mesa_id){
+        $mesaId = (int)$mesa_id;
+        $empresaId = $this->empresaId();
+
+        if ($mesaId <= 0) {
+            return ['status'=>false,'message'=>'La mesa indicada no es válida.'];
+        }
+
+        $cn = $this->connection();
+        if (!$cn) {
+            return ['status'=>false,'message'=>'No se pudo conectar con la base de datos.'];
+        }
+
+        try {
+            $cn->begin_transaction();
+
+            $stmt = $cn->prepare("SELECT numero, estado FROM mesas WHERE mesa_id=? AND empresa_id=? LIMIT 1 FOR UPDATE");
+            if (!$stmt) throw new RuntimeException('No se pudo validar la mesa.');
+            $stmt->bind_param('ii', $mesaId, $empresaId);
+            $stmt->execute();
+            $rs = $stmt->get_result();
+            $mesa = $rs ? $rs->fetch_assoc() : null;
+            $stmt->close();
+
+            if (!$mesa) {
+                $cn->rollback();
+                return ['status'=>false,'message'=>'La mesa no existe o no pertenece a la empresa actual.'];
+            }
+
+            $estado = strtolower(trim((string)($mesa['estado'] ?? 'disponible')));
+            if (in_array($estado, ['ocupada','reservada'], true)) {
+                $cn->rollback();
+                return ['status'=>false,'message'=>'No puede eliminar una mesa ocupada o reservada. Libérela o cancele la reserva primero.'];
+            }
+
+            $referenciada = false;
+            $checks = [];
+
+            if ($this->hasTable('factura_restaurante_cuentas')) {
+                $checks[] = "SELECT 1 FROM factura_restaurante_cuentas WHERE empresa_id=? AND mesa_id=? LIMIT 1";
+            }
+            if ($this->hasTable('mesas_reservas')) {
+                $checks[] = "SELECT 1 FROM mesas_reservas WHERE empresa_id=? AND mesa_id=? LIMIT 1";
+            }
+            if ($this->hasTable('factura_comanda')) {
+                $checks[] = "SELECT 1 FROM factura_comanda fc INNER JOIN facturas f ON f.facturas_id=fc.factura_id WHERE f.empresa_id=? AND fc.mesa_id=? LIMIT 1";
+            }
+
+            foreach ($checks as $sql) {
+                $check = $cn->prepare($sql);
+                if (!$check) continue;
+                $check->bind_param('ii', $empresaId, $mesaId);
+                $check->execute();
+                $checkRs = $check->get_result();
+                $tiene = $checkRs && $checkRs->num_rows > 0;
+                $check->close();
+                if ($tiene) { $referenciada = true; break; }
+            }
+
+            if ($referenciada) {
+                $cn->rollback();
+                return [
+                    'status'=>false,
+                    'message'=>'Esta mesa ya tiene historial. Para conservar la trazabilidad no puede eliminarse; edítela y colóquela en Mantenimiento.'
+                ];
+            }
+
+            $del = $cn->prepare("DELETE FROM mesas WHERE mesa_id=? AND empresa_id=? LIMIT 1");
+            if (!$del) throw new RuntimeException('No se pudo preparar la eliminación de la mesa.');
+            $del->bind_param('ii', $mesaId, $empresaId);
+            $ok = $del->execute();
+            $afectadas = $del->affected_rows;
+            $error = $del->error;
+            $del->close();
+
+            if (!$ok || $afectadas !== 1) {
+                throw new RuntimeException($error ?: 'No se pudo eliminar la mesa.');
+            }
+
+            $cn->commit();
+            return ['status'=>true,'message'=>'Mesa eliminada correctamente.'];
+        } catch (Throwable $e) {
+            try { $cn->rollback(); } catch (Throwable $ignored) {}
+            return ['status'=>false,'message'=>'No se pudo eliminar la mesa: '.$e->getMessage()];
+        }
+    }
+
+    /**
+     * Facturas emitidas desde Restaurante. Se usa como punto de entrada a la
+     * misma Nota de Crédito fiscal que utiliza Facturación normal.
+     */
+    public function obtenerFacturasEmitidasRestaurante($buscar='', $limite=100){
+        $empresaId = $this->empresaId();
+        $buscar = trim((string)$buscar);
+        $limite = max(10, min(200, (int)$limite));
+
+        if (!$this->hasTable('factura_restaurante_cuentas')) {
+            return ['status'=>true,'facturas'=>[]];
+        }
+
+        $base = "SELECT DISTINCT
+                    f.facturas_id, f.fecha, f.number, f.importe, f.estado,
+                    c.nombre AS cliente, c.rtn,
+                    sf.prefijo, sf.relleno
+                 FROM factura_restaurante_cuentas rc
+                 INNER JOIN facturas f ON f.facturas_id=rc.factura_id AND f.empresa_id=rc.empresa_id
+                 LEFT JOIN clientes c ON c.clientes_id=f.clientes_id
+                 LEFT JOIN secuencia_facturacion sf ON sf.secuencia_facturacion_id=f.secuencia_facturacion_id
+                 WHERE rc.empresa_id=?
+                   AND rc.estado='cerrada'
+                   AND f.estado IN (2,3)";
+
+        $cn = $this->connection();
+        if (!$cn) return ['status'=>false,'message'=>'No se pudo conectar con la base de datos.','facturas'=>[]];
+
+        if ($buscar !== '') {
+            $sql = $base . " AND (c.nombre LIKE ? OR c.rtn LIKE ? OR CAST(f.number AS CHAR) LIKE ? OR CONCAT(COALESCE(sf.prefijo,''),LPAD(f.number,GREATEST(COALESCE(sf.relleno,1),1),'0')) LIKE ?) ORDER BY f.fecha DESC,f.facturas_id DESC LIMIT ?";
+            $stmt = $cn->prepare($sql);
+            if (!$stmt) return ['status'=>false,'message'=>'No se pudo preparar la consulta de facturas.','facturas'=>[]];
+            $like = '%'.$buscar.'%';
+            $stmt->bind_param('issssi',$empresaId,$like,$like,$like,$like,$limite);
+        } else {
+            $sql = $base . " ORDER BY f.fecha DESC,f.facturas_id DESC LIMIT ?";
+            $stmt = $cn->prepare($sql);
+            if (!$stmt) return ['status'=>false,'message'=>'No se pudo preparar la consulta de facturas.','facturas'=>[]];
+            $stmt->bind_param('ii',$empresaId,$limite);
+        }
+
+        if (!$stmt->execute()) {
+            $error = $stmt->error;
+            $stmt->close();
+            return ['status'=>false,'message'=>$error ?: 'No se pudieron consultar las facturas.','facturas'=>[]];
+        }
+
+        $rs = $stmt->get_result();
+        $out = [];
+        while ($rs && ($r=$rs->fetch_assoc())) {
+            $relleno = max(1,(int)($r['relleno'] ?? 1));
+            $numero = trim((string)($r['prefijo'] ?? '')) . str_pad((string)((int)$r['number']),$relleno,'0',STR_PAD_LEFT);
+            $out[] = [
+                'facturas_id'=>(int)$r['facturas_id'],
+                'fecha'=>(string)$r['fecha'],
+                'numero'=>$numero,
+                'cliente'=>(string)($r['cliente'] ?? 'Consumidor Final'),
+                'rtn'=>(string)($r['rtn'] ?? ''),
+                'importe'=>(float)$r['importe'],
+                'estado'=>(int)$r['estado'],
+                'estado_texto'=>(int)$r['estado']===3 ? 'Crédito' : 'Pagada'
+            ];
+        }
+        $stmt->close();
+        return ['status'=>true,'facturas'=>$out];
+    }
+
     /* ===== Catálogo ===== */
 
     /** Solo categorías con productos restaurante=1; incluye estacion SI existe la columna */

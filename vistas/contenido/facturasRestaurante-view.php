@@ -23,6 +23,7 @@ try {
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css?v=<?php echo @filemtime(__DIR__ . '/../../fontawesome/css/all.min.css') ?: time(); ?>">
   <!-- Estilos principales -->
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/facturasRestaurante.css') ?: time(); ?>">
+  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/nota_credito.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/nota_credito.css') ?: time(); ?>">
   <!-- Select2 CSS -->
   <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/select2.min.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/select2.min.css') ?: time(); ?>">
   <!--
@@ -181,6 +182,7 @@ try {
                   <div class="gest-submenu">
                     <button type="button" class="gest-submenu-toggle"><i class="fas fa-gear"></i> Sistema <i class="fas fa-chevron-right"></i></button>
                     <div class="gest-submenu-panel">
+                      <button type="button" id="btn-facturas-emitidas-restaurante"><i class="fas fa-file-invoice-dollar"></i> Facturas emitidas / Nota de Crédito</button>
                       <button type="button" id="btn-configuracion-restaurante"><i class="fas fa-sliders-h"></i> Configuración del módulo</button>
                     </div>
                   </div>
@@ -2098,6 +2100,33 @@ try {
   </div>
 
 
+  <!-- FACTURAS EMITIDAS / NOTA DE CRÉDITO: reutiliza la lógica fiscal pública de IZZY -->
+  <div id="modal-facturas-emitidas-restaurante" class="modal rs-modal modal--xl" role="dialog" aria-modal="true" aria-labelledby="titulo-facturas-emitidas-restaurante" style="display:none;">
+    <div class="modal-content rs-issued-invoices-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="titulo-facturas-emitidas-restaurante"><i class="fas fa-file-invoice-dollar"></i> Facturas emitidas</h3>
+          <small>Consulte facturas de Restaurante y emita Nota de Crédito únicamente cuando exista autorización SAR válida.</small>
+        </div>
+        <span class="close" data-close="#modal-facturas-emitidas-restaurante" title="Cerrar">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="rs-issued-toolbar">
+          <div class="rs-issued-search">
+            <i class="fas fa-search"></i>
+            <input id="buscar-facturas-emitidas-restaurante" type="search" autocomplete="off" placeholder="Buscar factura, cliente o RTN...">
+            <button id="limpiar-facturas-emitidas-restaurante" type="button" aria-label="Limpiar búsqueda" title="Limpiar"><i class="fas fa-times"></i></button>
+          </div>
+          <button id="actualizar-facturas-emitidas-restaurante" type="button" class="btn btn-primary"><i class="fas fa-rotate"></i> Actualizar</button>
+        </div>
+        <div id="listado-facturas-emitidas-restaurante" class="rs-issued-list" aria-live="polite"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" data-close="#modal-facturas-emitidas-restaurante" type="button"><i class="fas fa-times"></i> Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- VISOR DE FACTURA: reutiliza el comportamiento de vista previa del sistema -->
   <div id="modal-factura-restaurante" class="rs-report-modal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="rs-report-dialog">
@@ -2129,5 +2158,10 @@ try {
   $__rest_js_ver = is_file($__rest_js_path) ? filemtime($__rest_js_path) : time();
 ?>
 <script src="<?php echo SERVERURL; ?>ajax/js/facturasRestaurante.js?v=<?php echo $__rest_js_ver; ?>"></script>
+<?php
+// Nota de Crédito compartida: MISMO modal y MISMA lógica que Facturación normal.
+require_once __DIR__ . '/modals/notaCredito-modals.php';
+require_once __DIR__ . '/../../ajax/js/notaCredito.php';
+?>
 </body>
 </html>

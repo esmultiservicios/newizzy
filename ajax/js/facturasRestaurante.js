@@ -2002,16 +2002,41 @@ function initHotkeys(){
       formCierreBill();
     });
   
-      // Dropdown Gestionar
+      // Dropdown Gestionar + submenús (Maestros / Inventario / Promociones / Sistema)
     $(document).on('click','#btn-gestionar-acciones',function(e){
+      e.preventDefault();
       e.stopPropagation();
       $('#gestionar-menu').toggleClass('show');
+      if(!$('#gestionar-menu').hasClass('show')){
+        $('#gestionar-menu .gest-submenu').removeClass('is-open');
+        $('#gestionar-menu .gest-submenu-toggle').attr('aria-expanded','false');
+      }
     });
-    $(document).on('click',function(){ $('#gestionar-menu').removeClass('show'); });
-    $(document).on('click','#gestionar-menu button',function(e){
+
+    $(document).on('click','#gestionar-menu .gest-submenu-toggle',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const $grupo=$(this).closest('.gest-submenu');
+      const abrir=!$grupo.hasClass('is-open');
+      $('#gestionar-menu .gest-submenu').not($grupo).removeClass('is-open');
+      $('#gestionar-menu .gest-submenu-toggle').not(this).attr('aria-expanded','false');
+      $grupo.toggleClass('is-open',abrir);
+      $(this).attr('aria-expanded',abrir?'true':'false');
+      $('#gestionar-menu').addClass('show');
+    });
+
+    $(document).on('click',function(){
+      $('#gestionar-menu').removeClass('show');
+      $('#gestionar-menu .gest-submenu').removeClass('is-open');
+      $('#gestionar-menu .gest-submenu-toggle').attr('aria-expanded','false');
+    });
+
+    $(document).on('click','#gestionar-menu button:not(.gest-submenu-toggle)',function(e){
       var t = $(this).data('target');
       $('#gestionar-menu').removeClass('show');
-      if(!t) return; // configuración tiene su propio listener protegido
+      $('#gestionar-menu .gest-submenu').removeClass('is-open');
+      $('#gestionar-menu .gest-submenu-toggle').attr('aria-expanded','false');
+      if(!t) return; // acciones con listener propio (configuración / facturas emitidas)
       e.preventDefault(); e.stopPropagation();
       var label = ($(this).text() || 'Administrar').trim();
       autorizarGestionRestaurante(label, function(){
@@ -3240,6 +3265,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
               ${estado === 'reservada' ? '<button class="btn-cancelar-reserva" title="Cancelar reserva" type="button" aria-label="Cancelar reserva"><i class="fas fa-calendar-times"></i></button>' : ''}
               ${estado === 'ocupada' ? '<button class="btn-liberar-mesa" title="Liberar mesa" type="button" aria-label="Liberar mesa"><i class="fas fa-door-open"></i></button>' : ''}
               <button class="btn-icon btn-icon--sm btn-edit-mesa" title="Editar mesa" type="button" aria-label="Editar mesa"><i class="fas fa-pen"></i></button>
+              ${!['ocupada','reservada'].includes(estado) ? '<button class="btn-icon btn-icon--sm btn-delete-mesa" title="Eliminar mesa" type="button" aria-label="Eliminar mesa"><i class="fas fa-trash-alt"></i></button>' : ''}
             </div>
           </div>
         </div>
@@ -3251,6 +3277,8 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
 
       const edit = mesaElement.querySelector('.btn-edit-mesa');
       if (edit) edit.addEventListener('click', (e)=>{ e.stopPropagation(); autorizarGestionRestaurante('Editar mesa', ()=>abrirEdicionMesa(mesa), mesa.id || mesa.mesa_id || ''); });
+      const del = mesaElement.querySelector('.btn-delete-mesa');
+      if (del) del.addEventListener('click', (e)=>{ e.stopPropagation(); eliminarMesaUI(mesa, del); });
       const reserve = mesaElement.querySelector('.btn-reservar-mesa');
       if (reserve) reserve.addEventListener('click', (e)=>{ e.stopPropagation(); abrirReservaMesa(mesa); });
       const cancel = mesaElement.querySelector('.btn-cancelar-reserva');
@@ -3457,6 +3485,43 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     reinitSelect2InModal('#modal-mesa');
     
     setTimeout(() => { if (n) { n.focus(); n.select && n.select(); } }, 10);
+  }
+
+  function eliminarMesaUI(mesa, boton) {
+    const mesaId = Number((mesa && (mesa.id || mesa.mesa_id)) || 0);
+    const numero = String((mesa && mesa.numero) || '').trim();
+    if (!mesaId) {
+      showAlert('error','Mesa','No se pudo identificar la mesa.');
+      return;
+    }
+
+    autorizarGestionRestaurante('Eliminar mesa', function(){
+      showConfirm(
+        'Eliminar Mesa',
+        `¿Desea eliminar la mesa ${numero || mesaId}? Solo podrá eliminarse si nunca ha tenido cuentas, comandas ni reservas.`,
+        function(){
+          setButtonBusy(boton,true,'Eliminando');
+          restPost('deleteMesa',{mesa_id:mesaId})
+            .then(function(data){
+              if(!data || data.status!==true){
+                showAlert('warning','Mesa no eliminada',(data && data.message) || 'No se pudo eliminar la mesa.');
+                return;
+              }
+              if(mesaSeleccionada && Number(mesaSeleccionada.id || mesaSeleccionada.mesa_id || 0)===mesaId){
+                mesaSeleccionada=null;
+                setServicioTipo('llevar');
+                setMesaSeleccionadaUI(null);
+              }
+              showAlert('success','Mesa eliminada',data.message || 'Mesa eliminada correctamente.');
+              cargarMesas();
+            })
+            .catch(function(error){
+              showAlert('error','Error',(error && error.message) || 'Error al eliminar la mesa.');
+            })
+            .finally(function(){ setButtonBusy(boton,false); });
+        }
+      );
+    }, mesaId);
   }
 
   function guardarMesa() {
@@ -7744,6 +7809,136 @@ function initSelect2ForComboRow(row){
     }
   }
 
+  // ===========================================================
+  // INVENTARIO RESTAURANTE — conecta el modal existente con el backend
+  // ===========================================================
+  let REST_INV_DATA = {productos:[], almacenes:[], saldos:[], almacen_principal_id:0};
+
+  function rsInvEscape(v){ return escapeHtml(v===null||v===undefined?'':String(v)); }
+  function rsInvQty(v){ const n=Number(v||0); return Number.isFinite(n)?n.toLocaleString('es-HN',{maximumFractionDigits:4}):'0'; }
+
+  function rsInvSetOptions(select, rows, valueKey, labelFn, allLabel){
+    if(!select) return;
+    const actual=String(select.value||'');
+    let html=allLabel!==undefined?`<option value="0">${rsInvEscape(allLabel)}</option>`:'<option value=""></option>';
+    html+=(rows||[]).map(r=>`<option value="${rsInvEscape(r[valueKey])}">${rsInvEscape(labelFn(r))}</option>`).join('');
+    select.innerHTML=html;
+    if(actual && Array.from(select.options).some(o=>o.value===actual)) select.value=actual;
+  }
+
+  function poblarSelectsInventarioRestaurante(){
+    const productos=(REST_INV_DATA.productos||[]).filter(p=>Number(p.combo_id||0)<=0);
+    const almacenes=REST_INV_DATA.almacenes||[];
+    const pLabel=p=>`${p.nombre}${p.medida?' · '+p.medida:''}`;
+    const aLabel=a=>a.nombre||`Almacén #${a.almacen_id}`;
+    ['inv-entrada-producto','inv-transfer-producto','inv-lotes-producto'].forEach(id=>rsInvSetOptions(document.getElementById(id),productos,'productos_id',pLabel));
+    ['inv-entrada-almacen','inv-transfer-origen','inv-transfer-destino'].forEach(id=>rsInvSetOptions(document.getElementById(id),almacenes,'almacen_id',aLabel));
+    rsInvSetOptions(document.getElementById('inv-filtro-almacen'),almacenes,'almacen_id',aLabel,'Todos los almacenes');
+    rsInvSetOptions(document.getElementById('inv-lotes-almacen'),almacenes,'almacen_id',aLabel,'Todos los almacenes');
+
+    const principal=String(Number(REST_INV_DATA.almacen_principal_id||0)||'');
+    const firstProduct=productos[0] ? String(productos[0].productos_id) : '';
+    ['inv-entrada-producto','inv-transfer-producto','inv-lotes-producto'].forEach(id=>{ const el=document.getElementById(id); if(el&&!el.value&&firstProduct) el.value=firstProduct; });
+    ['inv-entrada-almacen','inv-transfer-origen'].forEach(id=>{ const el=document.getElementById(id); if(el&&!el.value&&principal) el.value=principal; });
+    const destino=document.getElementById('inv-transfer-destino');
+    const origen=document.getElementById('inv-transfer-origen');
+    if(destino&&!destino.value&&almacenes.length>1){ const other=almacenes.find(a=>String(a.almacen_id)!==String(origen&&origen.value||principal)); if(other) destino.value=String(other.almacen_id); }
+  }
+
+  function renderInventarioRestaurante(){
+    const box=document.getElementById('inv-resumen'); if(!box) return;
+    const term=String((document.getElementById('inv-buscar')||{}).value||'').trim().toLowerCase();
+    const almacen=Number((document.getElementById('inv-filtro-almacen')||{}).value||0);
+    const saldos=REST_INV_DATA.saldos||[];
+    const rows=(REST_INV_DATA.productos||[]).filter(p=>{
+      if(term && String(p.nombre||'').toLowerCase().indexOf(term)===-1) return false;
+      return almacen<=0 || saldos.some(s=>Number(s.productos_id)===Number(p.productos_id)&&Number(s.almacen_id)===almacen);
+    });
+    if(!rows.length){ box.innerHTML='<div class="inventory-empty"><i class="fas fa-box-open"></i><strong>Sin existencias</strong><span>No hay productos que coincidan con los filtros.</span></div>'; return; }
+    box.innerHTML=rows.map(p=>{
+      const stock=saldos.filter(x=>Number(x.productos_id)===Number(p.productos_id)&&(almacen<=0||Number(x.almacen_id)===almacen));
+      const stockHtml=stock.length?stock.map(x=>`<div class="inventory-stock-row"><span><i class="fas fa-warehouse"></i> ${rsInvEscape(x.almacen_nombre||'Almacén')}</span><strong>${rsInvQty(x.saldo)} ${rsInvEscape(p.medida||'Und')}</strong></div>`).join(''):'<div class="inventory-stock-row"><span>Sin movimientos</span><strong>0</strong></div>';
+      return `<article class="inventory-summary-card"><div class="inventory-summary-head"><strong>${rsInvEscape(p.nombre)}</strong>${Number(p.combo_id||0)>0?'<span class="inventory-combo-badge"><i class="fas fa-layer-group"></i> Combo</span>':''}</div>${stockHtml}</article>`;
+    }).join('');
+  }
+
+  async function cargarInventarioRestauranteUI(){
+    const box=document.getElementById('inv-resumen'); if(box) box.innerHTML='<div class="inventory-empty"><i class="fas fa-spinner fa-spin"></i><span>Cargando inventario…</span></div>';
+    try{
+      const d=await restPost('loadInventarioRestaurante');
+      if(!d||d.status!==true) throw new Error((d&&d.message)||'No se pudo cargar el inventario.');
+      REST_INV_DATA=d;
+      poblarSelectsInventarioRestaurante();
+      renderInventarioRestaurante();
+      cargarLotesInventarioRestaurante();
+    }catch(error){
+      if(box) box.innerHTML='<div class="inventory-empty"><i class="fas fa-triangle-exclamation"></i><span>No se pudo cargar el inventario.</span></div>';
+      showAlert('error','Inventario',error.message||'No se pudo cargar el inventario.');
+    }
+  }
+
+  function seleccionarTabInventarioRestaurante(tab){
+    document.querySelectorAll('#modal-inventario-restaurante .inventory-tab').forEach(b=>b.classList.toggle('active',b.dataset.invTab===tab));
+    document.querySelectorAll('#modal-inventario-restaurante .inventory-pane').forEach(p=>p.classList.toggle('active',p.dataset.invPane===tab));
+    if(tab==='lotes') cargarLotesInventarioRestaurante();
+  }
+
+  async function cargarLotesInventarioRestaurante(){
+    const box=document.getElementById('inv-lotes-list'); if(!box) return;
+    const producto=Number((document.getElementById('inv-lotes-producto')||{}).value||0);
+    const almacen=Number((document.getElementById('inv-lotes-almacen')||{}).value||0);
+    if(producto<=0){ box.innerHTML='<div class="inventory-empty"><span>Seleccione un producto para consultar lotes.</span></div>'; return; }
+    box.innerHTML='<div class="inventory-empty"><i class="fas fa-spinner fa-spin"></i><span>Cargando lotes…</span></div>';
+    try{
+      const d=await restPost('loadLotesInventario',{productos_id:producto,almacen_id:almacen});
+      if(!d||d.status!==true) throw new Error((d&&d.message)||'No se pudieron cargar los lotes.');
+      const lotes=d.lotes||[];
+      if(!lotes.length){ box.innerHTML='<div class="inventory-empty"><span>Este producto no tiene lotes para el filtro actual.</span></div>'; return; }
+      box.innerHTML=lotes.map(l=>`<article class="inventory-lot-row ${Number(l.vencido||0)===1?'is-expired':''}"><div><strong>${rsInvEscape(l.numero_lote||('Lote #'+l.lote_id))}</strong><small>${rsInvEscape(l.almacen_nombre||'Almacén')}</small></div><div><strong>${rsInvQty(l.cantidad)}</strong><small>Existencia</small></div><div><strong>${rsInvEscape(l.fecha_vencimiento||'Sin vencimiento')}</strong><small>Vencimiento</small></div><div><strong>${Number(l.vencido||0)===1?'Vencido':rsInvEscape(l.estado||'Activo')}</strong></div></article>`).join('');
+    }catch(error){ box.innerHTML='<div class="inventory-empty"><span>No se pudieron cargar los lotes.</span></div>'; showAlert('error','Lotes',error.message||'No se pudieron cargar los lotes.'); }
+  }
+
+  $(document).off('click.restInv','#btn-gestionar-inventario').on('click.restInv','#btn-gestionar-inventario',function(){
+    $('#modal-inventario-restaurante').show();
+    seleccionarTabInventarioRestaurante('existencias');
+    cargarInventarioRestauranteUI();
+  });
+  $(document).off('click.restInvTab','#modal-inventario-restaurante .inventory-tab').on('click.restInvTab','#modal-inventario-restaurante .inventory-tab',function(){ seleccionarTabInventarioRestaurante(String($(this).data('inv-tab')||'existencias')); });
+  $(document).off('input.restInv','#inv-buscar').on('input.restInv','#inv-buscar',renderInventarioRestaurante);
+  $(document).off('change.restInv','#inv-filtro-almacen').on('change.restInv','#inv-filtro-almacen',renderInventarioRestaurante);
+  $(document).off('change.restInv','#inv-lotes-producto,#inv-lotes-almacen').on('change.restInv','#inv-lotes-producto,#inv-lotes-almacen',cargarLotesInventarioRestaurante);
+  $(document).off('click.restInv','#btn-inv-refrescar').on('click.restInv','#btn-inv-refrescar',cargarInventarioRestauranteUI);
+
+  $(document).off('click.restInv','#btn-inv-registrar-entrada').on('click.restInv','#btn-inv-registrar-entrada',async function(){
+    const payload={
+      productos_id:Number($('#inv-entrada-producto').val()||0), almacen_id:Number($('#inv-entrada-almacen').val()||0),
+      cantidad:Number($('#inv-entrada-cantidad').val()||0), fecha_vencimiento:String($('#inv-entrada-vencimiento').val()||''),
+      comentario:String($('#inv-entrada-comentario').val()||'').trim()
+    };
+    if(payload.productos_id<=0||payload.almacen_id<=0||payload.cantidad<=0){ showAlert('warning','Inventario','Seleccione producto, almacén y una cantidad mayor que cero.'); return; }
+    const btn=this; setButtonBusy(btn,true,'Guardando');
+    try{ const d=await restPost('registrarEntradaInventario',payload); if(!d||d.status!==true) throw new Error((d&&d.message)||'No se pudo registrar la entrada.'); $('#inv-entrada-cantidad').val(''); showAlert('success','Entrada registrada',d.message||'Entrada registrada correctamente.'); await cargarInventarioRestauranteUI(); }
+    catch(error){ showAlert('error','Inventario',error.message||'No se pudo registrar la entrada.'); }
+    finally{ setButtonBusy(btn,false); }
+  });
+
+  $(document).off('click.restInv','#btn-inv-transferir').on('click.restInv','#btn-inv-transferir',function(){
+    const payload={
+      productos_id:Number($('#inv-transfer-producto').val()||0), almacen_origen_id:Number($('#inv-transfer-origen').val()||0),
+      almacen_destino_id:Number($('#inv-transfer-destino').val()||0), cantidad:Number($('#inv-transfer-cantidad').val()||0),
+      usar_destino_predeterminado:$('#inv-transfer-default').prop('checked')?1:0, comentario:String($('#inv-transfer-comentario').val()||'').trim()
+    };
+    if(payload.productos_id<=0||payload.almacen_origen_id<=0||payload.almacen_destino_id<=0||payload.cantidad<=0){ showAlert('warning','Inventario','Complete producto, origen, destino y cantidad.'); return; }
+    if(payload.almacen_origen_id===payload.almacen_destino_id){ showAlert('warning','Inventario','El almacén de origen y destino deben ser diferentes.'); return; }
+    const btn=this;
+    showConfirm('Transferir inventario',`¿Desea transferir ${rsInvQty(payload.cantidad)} unidad(es) entre almacenes?`,async function(){
+      setButtonBusy(btn,true,'Transfiriendo');
+      try{ const d=await restPost('transferirInventario',payload); if(!d||d.status!==true) throw new Error((d&&d.message)||'No se pudo realizar la transferencia.'); $('#inv-transfer-cantidad').val(''); showAlert('success','Transferencia registrada',d.message||'Transferencia realizada correctamente.'); await cargarInventarioRestauranteUI(); }
+      catch(error){ showAlert('error','Inventario',error.message||'No se pudo realizar la transferencia.'); }
+      finally{ setButtonBusy(btn,false); }
+    });
+  });
+
   /* ================================================================
      CIERRE FUNCIONAL RESTAURANTE - CONFIG / CUENTAS / TICKET / AUTH
      ================================================================ */
@@ -7767,6 +7962,48 @@ function initSelect2ForComboRow(row){
       return d;
     });
   }
+
+  // ===========================================================
+  // FACTURAS EMITIDAS / NOTA DE CRÉDITO COMPARTIDA
+  // ===========================================================
+  function rsFacturaMoney(v){ const n=Number(v||0); return 'L '+(Number.isFinite(n)?n:0).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function renderFacturasEmitidasRestaurante(rows){
+    const box=document.getElementById('listado-facturas-emitidas-restaurante'); if(!box) return;
+    rows=Array.isArray(rows)?rows:[];
+    if(!rows.length){ box.innerHTML='<div class="rs-issued-empty"><i class="fas fa-file-circle-xmark"></i><strong>Sin facturas</strong><span>No hay facturas emitidas que coincidan con la búsqueda.</span></div>'; return; }
+    box.innerHTML=rows.map(r=>`<article class="rs-issued-row"><div><strong>${escapeHtml(r.numero||('#'+r.facturas_id))}</strong><small>${escapeHtml(r.fecha||'')}</small></div><div><strong>${escapeHtml(r.cliente||'Consumidor Final')}</strong><small>${r.rtn?'RTN: '+escapeHtml(r.rtn):'Sin RTN'}</small></div><div><span class="rs-issued-state ${Number(r.estado)===3?'is-credit':'is-paid'}">${escapeHtml(r.estado_texto||'')}</span></div><div class="rs-issued-total">${rsFacturaMoney(r.importe)}</div><div class="rs-issued-actions"><button type="button" class="btn btn-info btn-sm btn-rest-nota-credito" data-factura-id="${Number(r.facturas_id||0)}"><i class="fas fa-file-invoice-dollar"></i> Nota de Crédito</button></div></article>`).join('');
+  }
+
+  async function cargarFacturasEmitidasRestaurante(){
+    const box=document.getElementById('listado-facturas-emitidas-restaurante');
+    if(box) box.innerHTML='<div class="rs-issued-empty"><i class="fas fa-spinner fa-spin"></i><span>Cargando facturas…</span></div>';
+    try{
+      const buscar=String($('#buscar-facturas-emitidas-restaurante').val()||'').trim();
+      const d=await restPost('loadFacturasEmitidasRestaurante',{buscar,limite:100});
+      if(!d||d.status!==true) throw new Error((d&&d.message)||'No se pudieron consultar las facturas.');
+      renderFacturasEmitidasRestaurante(d.facturas||[]);
+    }catch(error){ if(box) box.innerHTML='<div class="rs-issued-empty"><span>No se pudieron cargar las facturas.</span></div>'; showAlert('error','Facturas emitidas',error.message||'No se pudieron consultar las facturas.'); }
+  }
+
+  $(document).off('click.restIssued','#btn-facturas-emitidas-restaurante').on('click.restIssued','#btn-facturas-emitidas-restaurante',function(e){
+    e.preventDefault(); e.stopPropagation();
+    $('#gestionar-menu').removeClass('show');
+    $('#buscar-facturas-emitidas-restaurante').val('');
+    $('#modal-facturas-emitidas-restaurante').show();
+    cargarFacturasEmitidasRestaurante();
+    setTimeout(()=>$('#buscar-facturas-emitidas-restaurante').trigger('focus'),80);
+  });
+  $(document).off('click.restIssued','#actualizar-facturas-emitidas-restaurante').on('click.restIssued','#actualizar-facturas-emitidas-restaurante',cargarFacturasEmitidasRestaurante);
+  $(document).off('click.restIssued','#limpiar-facturas-emitidas-restaurante').on('click.restIssued','#limpiar-facturas-emitidas-restaurante',function(){ $('#buscar-facturas-emitidas-restaurante').val(''); cargarFacturasEmitidasRestaurante(); });
+  let REST_ISSUED_SEARCH_TIMER=null;
+  $(document).off('input.restIssued','#buscar-facturas-emitidas-restaurante').on('input.restIssued','#buscar-facturas-emitidas-restaurante',function(){ clearTimeout(REST_ISSUED_SEARCH_TIMER); REST_ISSUED_SEARCH_TIMER=setTimeout(cargarFacturasEmitidasRestaurante,250); });
+  $(document).off('click.restIssued','.btn-rest-nota-credito').on('click.restIssued','.btn-rest-nota-credito',function(){
+    const id=Number($(this).data('factura-id')||0); if(!id) return;
+    if(!window.IZZYNotaCredito||typeof window.IZZYNotaCredito.abrir!=='function'){ showAlert('error','Nota de Crédito','No se pudo inicializar el módulo compartido de Nota de Crédito.'); return; }
+    $('#modal-facturas-emitidas-restaurante').hide();
+    window.IZZYNotaCredito.abrir(id);
+  });
 
   async function cargarPermisosRestaurante(){
     try{
@@ -8720,6 +8957,14 @@ function initSelect2ForComboRow(row){
   const restPermObserver = new MutationObserver(function(){ aplicarPermisosRestauranteUI(); });
   ['mesas-container','productos-container','categorias-tabs'].forEach(function(id){ const el=document.getElementById(id); if(el) restPermObserver.observe(el,{childList:true,subtree:true}); });
 
+  function enfocarEntradaPrincipalRestaurante(){
+    if(window.matchMedia && !window.matchMedia('(min-width:768px)').matches) return;
+    if(document.querySelector('.modal[style*="display: block"], .modal.show')) return;
+    const target=(scanCodigoInput && !scanCodigoInput.disabled) ? scanCodigoInput : buscarProductoInput;
+    if(!target || target.disabled) return;
+    try{ target.focus({preventScroll:true}); }catch(_){ target.focus(); }
+  }
+
   setTimeout(async function(){
     await Promise.allSettled([
       cargarConfiguracionOperacion(),
@@ -8734,6 +8979,7 @@ function initSelect2ForComboRow(row){
 
     rsMobileInitReady = true;
     intentarFinalizarCargaInicial();
+    setTimeout(enfocarEntradaPrincipalRestaurante,180);
   },120);
 
 });

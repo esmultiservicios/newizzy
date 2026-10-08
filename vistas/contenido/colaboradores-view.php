@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/colaboradores.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/colaboradores.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/colaboradores.css') ?: time(); ?>">
 
 <div class="container-fluid">
 	<!-- Colaboradores -->

@@ -19,6 +19,42 @@ window.addEventListener('pageshow', function(event) {
 $(document).ready(function() {
     if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
 
+    // Recordar únicamente el correo. Nunca se almacena la contraseña.
+    var rememberEmailKey = 'izzy_login_email';
+    var isDemoLogin = $('#loginform').attr('data-demo') === '1';
+
+    if (!isDemoLogin) {
+        try {
+            var rememberedEmail = window.localStorage.getItem(rememberEmailKey) || '';
+            if (rememberedEmail) {
+                $('#inputEmail').val(rememberedEmail);
+                $('#rememberEmail').prop('checked', true);
+            }
+        } catch (storageError) {
+            // El inicio de sesión debe seguir funcionando aunque el navegador bloquee localStorage.
+        }
+    }
+
+    function syncRememberedEmail() {
+        if (isDemoLogin) return;
+
+        try {
+            if ($('#rememberEmail').is(':checked')) {
+                window.localStorage.setItem(rememberEmailKey, $.trim($('#inputEmail').val()));
+            } else {
+                window.localStorage.removeItem(rememberEmailKey);
+            }
+        } catch (storageError) {
+            // Preferencia opcional: no interrumpir el login si el almacenamiento no está disponible.
+        }
+    }
+
+    $('#rememberEmail').on('change.izzyRemember', function() {
+        if (!$(this).is(':checked')) {
+            try { window.localStorage.removeItem(rememberEmailKey); } catch (storageError) {}
+        }
+    });
+
     // UX premium: foco limpio y accesos externos sin alterar la lógica existente.
     if ($("#inputEmail").is(":visible")) {
         $("#inputEmail").trigger("focus");
@@ -107,6 +143,7 @@ $(document).ready(function() {
             success: function(resp) {
                 var datos = eval(resp);
                 if (datos[0] !== "") {
+                    syncRememberedEmail();
                     setTimeout(window.location = datos[0], 1200);
                 } else if (datos[1] === "ErrorS") {
                     swal({

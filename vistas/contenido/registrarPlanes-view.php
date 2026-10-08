@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/registrarPlanes.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/registrarPlanes.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/registrarPlanes.css') ?: time(); ?>">
 
 <div class="container-fluid planes-page">
     <div class="breadcrumb-container">

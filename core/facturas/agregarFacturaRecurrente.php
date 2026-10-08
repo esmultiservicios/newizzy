@@ -12,6 +12,30 @@ function responderRecurrencia($ok, $msg, array $extra = [])
     exit;
 }
 
+
+function calcularSiguienteEjecucionRecurrencia(DateTime $inicio, string $periodicidad): DateTime
+{
+    $siguiente = clone $inicio;
+
+    if ($periodicidad === 'daily') {
+        $siguiente->modify('+1 day');
+    } elseif ($periodicidad === 'weekly') {
+        $siguiente->modify('+7 days');
+    } elseif ($periodicidad === 'monthly') {
+        $diaOriginal = (int)$inicio->format('d');
+        $anio = (int)$inicio->format('Y');
+        $mes = (int)$inicio->format('m') + 1;
+        if ($mes > 12) {
+            $mes = 1;
+            $anio++;
+        }
+        $ultimoDia = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
+        $siguiente->setDate($anio, $mes, min($diaOriginal, $ultimoDia));
+    }
+
+    return $siguiente;
+}
+
 $cn = null;
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -31,6 +55,21 @@ try {
         responderRecurrencia(false, 'Sesión o datos inválidos.');
     }
 
+    $planId = (int)($_SESSION['planes_id_sistema'] ?? 0);
+    if (!in_array($planId, [3, 4, 5, 7], true)) {
+        responderRecurrencia(false, 'La facturación recurrente está disponible a partir del plan Regular.');
+    }
+
+    $cajaActual = $mainModel->getAperturaCajaUsuario($usuarioId, date('Y-m-d'));
+    $cajaAbierta = false;
+    if ($cajaActual && $cajaActual->num_rows > 0) {
+        $filaCaja = $cajaActual->fetch_assoc();
+        $cajaAbierta = ((int)($filaCaja['estado'] ?? 2) === 1 && (int)($filaCaja['apertura_id'] ?? 0) > 0);
+    }
+    if (!$cajaAbierta) {
+        responderRecurrencia(false, 'Debe aperturar la caja antes de programar una factura recurrente.');
+    }
+
     $clienteId = (int)($data['clientes_id'] ?? 0);
     $colaboradorId = (int)($data['colaboradores_id'] ?? 0);
     $tipoDocumento = ((int)($data['tipo_documento'] ?? 0) === 1) ? 1 : 0;
@@ -38,6 +77,7 @@ try {
     $notas = mb_substr(trim((string)($data['notas'] ?? '')), 0, 255);
     $fechaDolar = (string)($data['fecha_dolar'] ?? date('Y-m-d'));
     $periodicidad = (string)($data['periodicidad'] ?? 'monthly');
+    $saltarPrimera = ((int)($data['saltar_primera'] ?? 0) === 1) ? 1 : 0;
     $inicioEntrada = str_replace('T', ' ', (string)($data['start_at'] ?? ''));
     $hasta = trim((string)($data['until'] ?? ''));
     $hasta = $hasta === '' ? null : $hasta;
@@ -57,8 +97,18 @@ try {
     }
     $inicioSql = $inicio->format('Y-m-d H:i:s');
     $diaMes = (int)$inicio->format('d');
-    if ($hasta !== null && $hasta < $inicio->format('Y-m-d')) {
-        responderRecurrencia(false, 'La fecha final no puede ser anterior a la primera ejecución.');
+
+    if ($periodicidad === 'once') {
+        $saltarPrimera = 0;
+    }
+
+    $primeraEjecucion = $saltarPrimera === 1
+        ? calcularSiguienteEjecucionRecurrencia($inicio, $periodicidad)
+        : clone $inicio;
+    $nextRun = $primeraEjecucion->format('Y-m-d H:i:s');
+
+    if ($hasta !== null && $hasta < $primeraEjecucion->format('Y-m-d')) {
+        responderRecurrencia(false, 'La fecha final no permite realizar la primera ejecución programada.');
     }
 
     $cn = $mainModel->connection();
@@ -78,8 +128,6 @@ try {
     $exConstancia = mb_substr(trim((string)($data['exoneracion_constancia'] ?? '')), 0, 100);
     $exSag = mb_substr(trim((string)($data['exoneracion_sag'] ?? '')), 0, 100);
     $exInterno = mb_substr(trim((string)($data['exoneracion_orden_interno'] ?? '')), 0, 100);
-    $nextRun = $inicioSql;
-
     $stmt = $cn->prepare(
         "INSERT INTO facturas_recurrentes
          (empresa_id, clientes_id, colaboradores_id, tipo_documento, tipo_factura,
@@ -142,7 +190,11 @@ try {
     $stmtDetalle->close();
     $cn->commit();
 
-    responderRecurrencia(true, 'Factura recurrente creada correctamente.', ['rec_id' => $recId]);
+    responderRecurrencia(true, 'Factura recurrente creada correctamente.', [
+        'rec_id' => $recId,
+        'next_run_at' => $nextRun,
+        'saltar_primera' => $saltarPrimera
+    ]);
 } catch (Throwable $e) {
     if ($cn) {
         $cn->rollback();

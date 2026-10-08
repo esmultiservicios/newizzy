@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/transferencia.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/transferencia.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/transferencia.css') ?: time(); ?>">
 
 <div class="container-fluid inventario-transferencia-page">
     <!-- Inventario -->

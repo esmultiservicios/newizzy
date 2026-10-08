@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confImpuestos.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confImpuestos.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/confImpuestos.css') ?: time(); ?>">
 
 <div class="container-fluid impuestos-page">
     <!-- Impuestos -->

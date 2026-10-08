@@ -40,6 +40,28 @@ $raiz = dirname(__DIR__, 2);
 chdir($raiz);
 $peticionAjax = false;
 
+// Centralizar los logs del proceso dentro del proyecto y crear la ruta si no existe.
+$logDir = $raiz.'/storage/logs';
+if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
+    fwrite(STDERR, 'No se pudo crear el directorio de logs: '.$logDir.PHP_EOL);
+    exit(1);
+}
+
+$esDemoCron = (
+    $appHost === 'demo.izzycloud.app' ||
+    str_starts_with(strtolower($appHost), 'demo.')
+);
+$logFile = $logDir.'/'.($esDemoCron ? 'facturas_recurrentes_demo.log' : 'facturas_recurrentes.log');
+
+ini_set('log_errors', '1');
+ini_set('error_log', $logFile);
+
+function izzyFacturaRecurrenteLog(string $mensaje): void
+{
+    error_log('[Factura recurrente] '.$mensaje);
+}
+
+
 require_once $raiz.'/core/configGenerales.php';
 require_once $raiz.'/controladores/facturasControlador.php';
 require_once __DIR__.'/FacturaRecurrenteServicio.php';
@@ -314,7 +336,7 @@ foreach ($ids as $recId) {
         }
 
         $resumen['detalle'][] = ['rec_id' => $recId, 'ok' => false, 'error' => $error];
-        error_log('Factura recurrente '.$recId.': '.$error);
+        izzyFacturaRecurrenteLog($recId.': '.$error);
     }
 }
 

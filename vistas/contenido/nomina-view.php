@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/nomina.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/nomina.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/nomina.css') ?: time(); ?>">
 
 <div id="nomina_principal">
     <div class="container-fluid">

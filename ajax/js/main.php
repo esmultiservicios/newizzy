@@ -16395,4 +16395,52 @@ function esc(v) {
     });
 
 })(jQuery);
+
+
+/* =========================================================
+   MODALES DE BÚSQUEDA - RESTABLECER AL CERRAR
+   ---------------------------------------------------------
+   Todos los modales que usan .fm-search-wrap deben abrirse
+   nuevamente sin conservar búsquedas anteriores.
+   ========================================================= */
+(function () {
+    function izzyResetModalSearch($modal) {
+        if (!$modal || !$modal.length) return;
+
+        $modal.find('.fm-search-wrap').each(function () {
+            var $wrap = $(this);
+            var $input = $wrap.find('input[type="search"]').first();
+            if (!$input.length) return;
+
+            var hadValue = String($input.val() || '') !== '';
+            var $clear = $wrap.find('.fm-search-clear').first();
+
+            /*
+             * Si el módulo tiene su propio botón limpiar, lo ejecutamos
+             * para que también reinicie su estado interno/paginación.
+             */
+            if (hadValue && $clear.length) {
+                $clear.trigger('click');
+            }
+
+            /*
+             * Fallback global: garantiza que el valor quede vacío y
+             * notifica tanto implementaciones modernas como antiguas.
+             */
+            $input.val('');
+            $input.trigger('input');
+            $input.trigger('change');
+            if (hadValue) {
+                $input.trigger('keyup');
+            }
+            $input.blur();
+        });
+    }
+
+    $(document)
+        .off('hidden.bs.modal.izzyModalSearchReset', '.modal')
+        .on('hidden.bs.modal.izzyModalSearchReset', '.modal', function () {
+            izzyResetModalSearch($(this));
+        });
+})();
 </script>

@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/chequesContabilidad.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/chequesContabilidad.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/chequesContabilidad.css') ?: time(); ?>">
 
 <div class="container-fluid cheques-page">
     <div class="breadcrumb-container">

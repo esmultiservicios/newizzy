@@ -883,3 +883,230 @@
         grid-template-columns:1fr;
     }
 }
+
+
+/* =========================================================
+   AJUSTES DE ALINEACIÓN | FILTROS Y TAMAÑO DE PÁGINA
+   ========================================================= */
+.egresos-filtro-card .egresos-input-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+}
+
+.egresos-filtro-card .egresos-input-group .input-group-prepend {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+}
+
+.egresos-filtro-card .egresos-input-group .input-group-text {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 40px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 8px 0 0 8px !important;
+}
+
+.egresos-filtro-card .egresos-input-group input.form-control {
+    flex: 1 1 auto !important;
+    width: 1% !important;
+    min-width: 0 !important;
+    height: 40px !important;
+    margin: 0 !important;
+    border-radius: 0 8px 8px 0 !important;
+}
+
+.egresos-page-size {
+    gap: 12px !important;
+    padding: 0 4px !important;
+    line-height: 38px !important;
+}
+
+.egresos-page-size > span {
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+}
+
+#egresosPageSize {
+    margin: 0 2px !important;
+}
+
+@media (max-width: 767.98px) {
+    .egresos-page-size {
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        line-height: normal !important;
+    }
+}
+
+/* =========================================================
+   EGRESOS | TOOLBAR ALINEADA CON USUARIOS
+   ========================================================= */
+.egresos-toolbar-right {
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.egresos-page-size {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: #46556b;
+    font-size: 13px;
+}
+
+.egresos-page-size > span {
+    flex: 0 0 auto;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+#egresosPageSize {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    min-height: 38px !important;
+    height: 38px !important;
+    padding-left: 12px !important;
+    padding-right: 28px !important;
+    border-radius: 8px !important;
+}
+
+.egresos-view-switch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #d7e1eb;
+    border-radius: 9px;
+    background: #f5f8fb;
+    box-shadow: 0 2px 7px rgba(31, 47, 67, .04);
+}
+
+.egresos-view-btn {
+    flex: 0 0 auto;
+    min-width: auto;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #52627a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.egresos-view-btn span {
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.egresos-search-wrap {
+    flex: 0 1 300px;
+    width: 300px;
+    min-width: 220px;
+    max-width: 300px;
+}
+
+@media (max-width: 991.98px) {
+    .egresos-toolbar-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .egresos-search-wrap {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .egresos-toolbar-right {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .egresos-page-size,
+    .egresos-view-switch {
+        width: 100%;
+    }
+
+    .egresos-view-btn {
+        flex: 1 1 50%;
+    }
+}
+
+/* =========================================================
+   EGRESOS | PAGE SIZE DESPUES DE INICIALIZAR SELECT2
+   main.php transforma #egresosPageSize a Select2 al terminar
+   de cargar. Esta regla mantiene el mismo ancho compacto que
+   el toolbar de Usuarios y evita que invada Registros/Vistas.
+   ========================================================= */
+.egresos-page-size > select#egresosPageSize.izzy-select2 + .select2-container {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    margin: 0 !important;
+}
+
+.egresos-page-size > select#egresosPageSize.izzy-select2 + .select2-container .select2-selection--single {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+}
+
+.egresos-page-size > select#egresosPageSize.izzy-select2 + .select2-container .select2-selection__rendered {
+    line-height: 36px !important;
+    padding-left: 12px !important;
+    padding-right: 24px !important;
+}
+
+.egresos-page-size > select#egresosPageSize.izzy-select2 + .select2-container .select2-selection__arrow {
+    height: 36px !important;
+    width: 22px !important;
+}
+
+.egresos-toolbar-right > .egresos-page-size,
+.egresos-toolbar-right > .egresos-view-switch,
+.egresos-toolbar-right > .egresos-search-wrap {
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 767.98px) {
+    .egresos-page-size > select#egresosPageSize.izzy-select2 + .select2-container {
+        flex: 0 0 72px !important;
+        width: 72px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+    }
+}

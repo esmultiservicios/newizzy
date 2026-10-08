@@ -933,3 +933,52 @@
     }
 }
 
+
+/* =========================================================
+   CLIENTES | PAGE SIZE DESPUES DE INICIALIZAR SELECT2
+   Mantiene compacto el selector "Mostrar X registros" cuando
+   main.php convierte #clientes_page_size en Select2.
+   ========================================================= */
+.clientes-page-size > select#clientes_page_size.izzy-select2 + .select2-container {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    margin: 0 !important;
+}
+
+.clientes-page-size > select#clientes_page_size.izzy-select2 + .select2-container .select2-selection--single {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+}
+
+.clientes-page-size > select#clientes_page_size.izzy-select2 + .select2-container .select2-selection__rendered {
+    line-height: 36px !important;
+    padding-left: 12px !important;
+    padding-right: 24px !important;
+}
+
+.clientes-page-size > select#clientes_page_size.izzy-select2 + .select2-container .select2-selection__arrow {
+    height: 36px !important;
+    width: 22px !important;
+}
+
+.clientes-toolbar-tools > .clientes-page-size,
+.clientes-toolbar-tools > .clientes-view-switch,
+.clientes-toolbar-tools > .clientes-search {
+    position: relative;
+    z-index: 1;
+}
+
+@media (max-width: 767.98px) {
+    .clientes-page-size > select#clientes_page_size.izzy-select2 + .select2-container {
+        flex: 0 0 72px !important;
+        width: 72px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+    }
+}

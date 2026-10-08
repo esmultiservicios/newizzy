@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/DetallesFacturacion.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/DetallesFacturacion.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/DetallesFacturacion.css') ?: time(); ?>">
 
 <div class="container-fluid facturacion-cliente-page df-page">
     <div class="breadcrumb-harmony-container">

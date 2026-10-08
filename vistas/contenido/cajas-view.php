@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cajas.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cajas.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/cajas.css') ?: time(); ?>">
 
 <div class="container-fluid">
     <div class="breadcrumb-container">

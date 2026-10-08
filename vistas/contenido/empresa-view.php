@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/empresa.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/empresa.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/empresa.css') ?: time(); ?>">
 
 <div class="container-fluid">
     <!-- Empresa -->

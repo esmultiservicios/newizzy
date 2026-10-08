@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confCategoria.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confCategoria.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/confCategoria.css') ?: time(); ?>">
 
 <div class="container-fluid categoria-productos-page">
     <div class="breadcrumb-container">

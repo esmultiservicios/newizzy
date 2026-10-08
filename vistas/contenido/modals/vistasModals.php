@@ -6201,6 +6201,9 @@
   #recurringBillModal .rec-frecuencia i{display:block;font-size:1rem;margin-bottom:4px;}
   #recurringBillModal .rec-frecuencia.active{background:#3199df;border-color:#3199df;color:#fff;box-shadow:0 3px 8px rgba(49,153,223,.25);}
   #recurringBillModal .rec-resumen{background:#f0f8ff;border:1px solid #b8ddf8;border-radius:9px;padding:11px 13px;color:#24445e;}
+  #recurringBillModal .rec-inicio-opcion{margin:-2px 0 14px;padding:10px 12px;border:1px solid #dce7f0;border-radius:9px;background:#f8fbfd;}
+  #recurringBillModal .rec-inicio-opcion .custom-control-label{font-weight:700;color:#263b4d;}
+  #recurringBillModal .rec-inicio-opcion small{display:block;margin-top:4px;padding-left:2px;color:#6d7f8f;line-height:1.35;}
   #recurringBillModal .rec-proximas{margin:7px 0 0;padding-left:20px;font-size:.83rem;}
   @media (max-width:991.98px){
     #recurringBillModal .modal-dialog{max-width:760px!important;}
@@ -6250,6 +6253,14 @@
           </div>
           <input type="hidden" id="rec_start_at">
           <small class="text-muted">Selecciona la fecha y hora en que comenzará.</small>
+        </div>
+
+        <div class="rec-inicio-opcion">
+          <div class="custom-control custom-switch">
+            <input type="checkbox" class="custom-control-input" id="rec_omitir_primera" checked>
+            <label class="custom-control-label" for="rec_omitir_primera">Ejecutar desde la próxima fecha</label>
+          </div>
+          <small id="rec_omitir_primera_ayuda">Activado: la factura actual no se genera por la recurrencia; la primera ejecución automática será en el siguiente período. Puedes emitir la factura actual normalmente si lo deseas.</small>
         </div>
 
         <div class="custom-control custom-switch mb-3">

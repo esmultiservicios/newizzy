@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>IZZY | Cuentas por Pagar Proveedores</title>
-    <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cuentas_pagar_proveedores.css">
+    <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cuentas_pagar_proveedores.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/cuentas_pagar_proveedores.css') ?: time(); ?>">
 </head>
 <body>
 

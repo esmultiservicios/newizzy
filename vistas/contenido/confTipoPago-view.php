@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confTipoPago.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confTipoPago.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/confTipoPago.css') ?: time(); ?>">
 
 <div class="container-fluid tipopago-page">
     <!-- Tipo de Pago -->

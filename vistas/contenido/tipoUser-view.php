@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/tipoUser.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/tipoUser.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/tipoUser.css') ?: time(); ?>">
 
 <div class="container-fluid tipo-user-page">
     <div class="breadcrumb-container">

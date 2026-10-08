@@ -15732,3 +15732,23 @@ body > .modal-backdrop.pdf-public-backdrop {
         }
     }
 }
+
+/* =========================================================
+   MODALES DE BÚSQUEDA - LIMPIEZA VISUAL DEL INPUT SEARCH
+   Mantiene únicamente la X personalizada del sistema y
+   oculta el botón nativo que agregan Chrome/Edge/Safari.
+   ========================================================= */
+.fm-search-wrap input[type="search"]::-webkit-search-cancel-button,
+.fm-search-wrap input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    display: none !important;
+}
+
+.fm-search-wrap input[type="search"]::-ms-clear,
+.fm-search-wrap input[type="search"]::-ms-reveal {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+

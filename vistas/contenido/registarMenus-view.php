@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/registarMenus.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/registarMenus.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/registarMenus.css') ?: time(); ?>">
 
 <div class="container-fluid menus-page" id="div_top">
     <!-- Administrar Menús -->

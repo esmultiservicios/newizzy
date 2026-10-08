@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confEmail.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confEmail.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/confEmail.css') ?: time(); ?>">
 
 <div class="container-fluid correo-config-page">
     <div class="breadcrumb-container">

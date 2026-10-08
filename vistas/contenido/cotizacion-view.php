@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cotizacion_modales.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cotizacion_modales.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/cotizacion_modales.css') ?: time(); ?>">
 <body id="view_quote">
     <div class="container-fluid">
         <div class="card mb-4">

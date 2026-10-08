@@ -1,5 +1,5 @@
 <link rel="stylesheet"
-      href="<?php echo SERVERURL; ?>vistas/plantilla/css/secuencia_facturacion.css">
+      href="<?php echo SERVERURL; ?>vistas/plantilla/css/secuencia_facturacion.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/secuencia_facturacion.css') ?: time(); ?>">
       
 <div class="container-fluid secuencia-page">
     <!-- Secuencia Facturación -->

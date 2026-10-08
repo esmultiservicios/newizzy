@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/privilegio.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/privilegio.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/privilegio.css') ?: time(); ?>">
 
 <div class="container-fluid privilegios-page">
     <div class="breadcrumb-container">

@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confImpresora.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confImpresora.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/confImpresora.css') ?: time(); ?>">
 
 <div class="container-fluid impresora-config-page">
     <div class="breadcrumb-container">

@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/factura_compras_modales.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/factura_compras_modales.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/factura_compras_modales.css') ?: time(); ?>">
 <div class="container-fluid">
     <!--<ol class="breadcrumb mt-2 mb-4">
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo SERVERURL; ?>dashboard/">Dashboard</a></li>

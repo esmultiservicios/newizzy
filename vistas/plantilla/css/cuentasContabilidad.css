@@ -801,3 +801,65 @@
     text-align:right !important;
     white-space:nowrap !important;
 }
+
+/* =========================================================
+   IZZY | FIX SELECT2 COMPACTO EN MOSTRAR X REGISTROS
+   Evita que Select2 aplique width:100% al selector de paginado
+   y empuje/tape "registros", Detalle, Miniatura o búsqueda.
+   ========================================================= */
+.cuentas-page-size {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+}
+
+.cuentas-page-size > span,
+.cuentas-page-size > label {
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}
+
+.cuentas-page-size > select#cuentasPageSize,
+.cuentas-page-size > select#cuentasPageSize + .select2-container {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    margin: 0 !important;
+}
+
+.cuentas-page-size > select#cuentasPageSize + .select2-container .select2-selection--single {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+}
+
+.cuentas-page-size > select#cuentasPageSize + .select2-container .select2-selection__rendered {
+    line-height: 36px !important;
+    padding-left: 12px !important;
+    padding-right: 24px !important;
+    white-space: nowrap !important;
+}
+
+.cuentas-page-size > select#cuentasPageSize + .select2-container .select2-selection__arrow {
+    width: 22px !important;
+    height: 36px !important;
+}
+
+@media (max-width: 767.98px) {
+    .cuentas-page-size > select#cuentasPageSize + .select2-container {
+        flex: 0 0 72px !important;
+        width: 72px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+    }
+
+}

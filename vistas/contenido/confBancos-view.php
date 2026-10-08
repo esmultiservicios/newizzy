@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confBancos.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/css/confBancos.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/confBancos.css') ?: time(); ?>">
 
 <div class="container-fluid bancos-page">
     <!-- Bancos -->

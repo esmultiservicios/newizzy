@@ -1,5 +1,5 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/nota_credito.css">
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturas.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/nota_credito.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/nota_credito.css') ?: time(); ?>">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturas.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/facturas.css') ?: time(); ?>">
 <body id="view_bill">
     <div class="container-fluid">
         <div class="card mb-4">
@@ -423,19 +423,23 @@
                                         <i class="fas fa-file-invoice-dollar fa-lg"></i> Cotizaciones
                                     </button>
 
-                                    <!-- Factura recurrente -->
-                                    <button
-                                        class="btn btn-secondary bill-bottom-remove"
-                                        id="addRecurringBill"
-                                        type="button"
-                                        data-toggle="tooltip"
-                                        data-placement="top"
-                                        data-html="true"
-                                        title="<strong>Factura recurrente</strong><br>Programa esta venta para generarse automáticamente.<br>Define <u>frecuencia</u>, <u>fecha inicial</u> y <u>fin</u>.<br>Opcional: envío por correo al generarse."
-                                        >
-                                        <div class="sb-nav-link-icon"></div>
-                                        <i class="fas fa-redo-alt fa-lg"></i> Recurrente
-                                    </button>
+                                    <!-- Factura recurrente: disponible desde plan Regular en adelante. -->
+                                    <?php if (in_array((int)($_SESSION['planes_id_sistema'] ?? 0), [3, 4, 5, 7], true)): ?>
+                                        <button
+                                            class="btn btn-secondary bill-bottom-remove"
+                                            id="addRecurringBill"
+                                            type="button"
+                                            disabled
+                                            aria-disabled="true"
+                                            data-toggle="tooltip"
+                                            data-placement="top"
+                                            data-html="true"
+                                            title="<strong>Factura recurrente</strong><br>Disponible únicamente con la <u>caja abierta</u>.<br>Programa esta venta para generarse automáticamente según la fecha y frecuencia seleccionadas."
+                                            >
+                                            <div class="sb-nav-link-icon"></div>
+                                            <i class="fas fa-redo-alt fa-lg"></i> Recurrente
+                                        </button>
+                                    <?php endif; ?>
 
                                     <!-- Cuentas por cobrar (CxC) -->
                                     <button

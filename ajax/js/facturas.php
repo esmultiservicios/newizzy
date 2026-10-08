@@ -85,6 +85,25 @@ $(() => {
 
 var izzyCajaUsuarioCache = { cargado: false, estado: 2, apertura_id: 0, solicitud: null };
 
+function actualizarDisponibilidadRecurrenteFactura() {
+    var $btn = $('#addRecurringBill');
+    if (!$btn.length) return;
+
+    var disponible = izzyCajaUsuarioCache.cargado === true &&
+        parseInt(izzyCajaUsuarioCache.estado || 2, 10) === 1 &&
+        parseInt(izzyCajaUsuarioCache.apertura_id || 0, 10) > 0;
+
+    $btn.prop('disabled', !disponible)
+        .toggleClass('disabled', !disponible)
+        .attr('aria-disabled', disponible ? 'false' : 'true');
+
+    if (disponible) {
+        $btn.attr('title', '<strong>Factura recurrente</strong><br>Programa esta venta para generarse automáticamente según la fecha y frecuencia seleccionadas.');
+    } else {
+        $btn.attr('title', '<strong>Factura recurrente</strong><br>Debes <u>aperturar la caja</u> antes de crear una programación recurrente.');
+    }
+}
+
 function cargarEstadoCajaUsuario(forzar) {
     var url = '<?php echo SERVERURL;?>core/getAperturaCajaUsuario.php';
 
@@ -101,9 +120,12 @@ function cargarEstadoCajaUsuario(forzar) {
             izzyCajaUsuarioCache.estado = parseInt(valores[0] || 2, 10);
             izzyCajaUsuarioCache.apertura_id = parseInt(valores[1] || 0, 10);
             izzyCajaUsuarioCache.cargado = true;
+            actualizarDisponibilidadRecurrenteFactura();
         } catch (e) {
             izzyCajaUsuarioCache.estado = 2;
             izzyCajaUsuarioCache.apertura_id = 0;
+            izzyCajaUsuarioCache.cargado = true;
+            actualizarDisponibilidadRecurrenteFactura();
         }
     }).always(function() {
         izzyCajaUsuarioCache.solicitud = null;
@@ -8111,29 +8133,63 @@ function siguienteFechaVistaRecurrente(actual, frecuencia, diaOriginal) {
   return siguiente;
 }
 
+function fechaPrimeraEjecucionRecurrente(inicio, frecuencia) {
+  if (!inicio) return null;
+  var omitirPrimera = $('#rec_omitir_primera').is(':checked') && frecuencia !== 'once';
+  return omitirPrimera
+    ? siguienteFechaVistaRecurrente(inicio, frecuencia, inicio.getDate())
+    : new Date(inicio.getTime());
+}
+
+function actualizarOpcionPrimeraRecurrente() {
+  var frecuencia = $('#rec_periodicidad').val() || 'monthly';
+  var $toggle = $('#rec_omitir_primera');
+  var $ayuda = $('#rec_omitir_primera_ayuda');
+
+  if (frecuencia === 'once') {
+    if (!$toggle.prop('disabled')) $toggle.data('estado-anterior', $toggle.is(':checked'));
+    $toggle.prop('checked', false).prop('disabled', true);
+    $ayuda.text('Para “Una vez” se ejecutará exactamente en la fecha y hora seleccionadas.');
+    return;
+  }
+
+  if ($toggle.prop('disabled')) {
+    var previo = $toggle.data('estado-anterior');
+    $toggle.prop('checked', previo === undefined ? true : !!previo).removeData('estado-anterior');
+  }
+  $toggle.prop('disabled', false);
+  $ayuda.text($toggle.is(':checked')
+    ? 'Activado: la factura actual no se genera por la recurrencia; la primera ejecución automática será en el siguiente período. Puedes emitir la factura actual normalmente si lo deseas.'
+    : 'Desactivado: la recurrencia incluye la primera fecha configurada. No emitas la misma factura manualmente para evitar duplicarla.');
+}
+
 function actualizarResumenRecurrente() {
   sincronizarInicioRecurrente();
   var inicio = fechaLocalRecurrente();
   var frecuencia = $('#rec_periodicidad').val() || 'monthly';
   var $lista = $('#rec_proximas_fechas').empty();
+  actualizarOpcionPrimeraRecurrente();
   if (!inicio || isNaN(inicio.getTime())) {
     $('#rec_resumen_texto').text('Selecciona una fecha y una hora válidas.');
     return;
   }
 
+  var primeraEjecucion = fechaPrimeraEjecucionRecurrente(inicio, frecuencia);
+  var omitirPrimera = $('#rec_omitir_primera').is(':checked') && frecuencia !== 'once';
   var dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
   var horaTexto = new Intl.DateTimeFormat('es-HN', {hour:'numeric', minute:'2-digit'}).format(inicio);
   var texto = '';
   if (frecuencia === 'once') texto = 'Se generará una sola vez: ' + formatearFechaRecurrente(inicio) + '.';
-  if (frecuencia === 'daily') texto = 'Se generará todos los días a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(inicio) + '.';
-  if (frecuencia === 'weekly') texto = 'Se generará cada ' + dias[inicio.getDay()] + ' a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(inicio) + '.';
-  if (frecuencia === 'monthly') texto = 'Se generará el día ' + inicio.getDate() + ' de cada mes a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(inicio) + '.';
+  if (frecuencia === 'daily') texto = 'Se generará todos los días a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(primeraEjecucion) + '.';
+  if (frecuencia === 'weekly') texto = 'Se generará cada ' + dias[inicio.getDay()] + ' a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(primeraEjecucion) + '.';
+  if (frecuencia === 'monthly') texto = 'Se generará el día ' + inicio.getDate() + ' de cada mes a las ' + horaTexto + ', comenzando el ' + formatearFechaRecurrente(primeraEjecucion) + '.';
+  if (omitirPrimera) texto += ' La fecha actual se omite y la primera generación será en el siguiente período.';
   if ($('#rec_sin_fin').is(':checked') && frecuencia !== 'once') texto += ' Continuará hasta que la canceles.';
   if (!$('#rec_sin_fin').is(':checked') && $('#rec_until').val() && frecuencia !== 'once') texto += ' Finalizará el ' + $('#rec_until').val() + '.';
   $('#rec_resumen_texto').text(texto);
 
   var cantidad = frecuencia === 'once' ? 1 : 4;
-  var cursor = new Date(inicio.getTime());
+  var cursor = new Date(primeraEjecucion.getTime());
   var hasta = (!$('#rec_sin_fin').is(':checked') && $('#rec_until').val()) ? $('#rec_until').val() : null;
   for (var i = 0; i < cantidad; i++) {
     var fechaIso = cursor.getFullYear() + '-' + String(cursor.getMonth()+1).padStart(2,'0') + '-' + String(cursor.getDate()).padStart(2,'0');
@@ -8174,6 +8230,11 @@ function hayEncabezado(){
 
 /* Abrir modal de recurrencia */
 $(document).on('click', '#addRecurringBill', function(){
+  if (!izzyCajaUsuarioCache.cargado || parseInt(izzyCajaUsuarioCache.estado || 2, 10) !== 1 || parseInt(izzyCajaUsuarioCache.apertura_id || 0, 10) <= 0) {
+    showNotify('warning','Caja cerrada','Debes aperturar la caja antes de programar una factura recurrente.');
+    return;
+  }
+
   // Cada vez que se abre el modal se muestran únicamente las programaciones
   // pendientes/activas. Finalizadas y canceladas quedan disponibles mediante
   // los filtros, pero no saturan el listado principal.
@@ -8205,6 +8266,7 @@ $(document).on('click', '#addRecurringBill', function(){
   $('.rec-frecuencia').removeClass('active').filter('[data-frecuencia="monthly"]').addClass('active');
   $('#rec_until').val('');
   $('#rec_sin_fin').prop('checked', true);
+  $('#rec_omitir_primera').prop('disabled', false).prop('checked', true).removeData('estado-anterior');
   $('#rec_fin_contenedor').hide();
   $('#rec_enviar_correo').prop('checked', true);
 
@@ -8225,10 +8287,12 @@ $(document).on('click', '.rec-frecuencia', function() {
   var esUnaVez = frecuencia === 'once';
   $('#rec_sin_fin').closest('.custom-control').toggle(!esUnaVez);
   $('#rec_fin_contenedor').toggle(!esUnaVez && !$('#rec_sin_fin').is(':checked'));
+  actualizarOpcionPrimeraRecurrente();
   actualizarResumenRecurrente();
 });
 
 $(document).on('change input', '#rec_fecha_inicio, #rec_hora_inicio, #rec_until', actualizarResumenRecurrente);
+$(document).on('change', '#rec_omitir_primera', function(){ actualizarOpcionPrimeraRecurrente(); actualizarResumenRecurrente(); });
 $(document).on('change', '#rec_sin_fin', function() {
   $('#rec_fin_contenedor').toggle(!this.checked && $('#rec_periodicidad').val() !== 'once');
   if (this.checked) $('#rec_until').val('');
@@ -8284,7 +8348,8 @@ $(document).on('click', '#confirmRecurring', function(){
     fecha_dolar: $('#fecha_dolar').val(),
     tipo_documento: $('#rec_tipo_documento').val(), // "0" normal, "1" proforma
     tipo_factura: 2,                                // Recurrente: siempre al crédito
-    start_at: startAt,                              // datetime-local
+    start_at: startAt,                              // fecha base de la programación
+    saltar_primera: ($('#rec_omitir_primera').is(':checked') && $('#rec_periodicidad').val() !== 'once') ? 1 : 0,
     periodicidad: $('#rec_periodicidad').val(),     // once/daily/weekly/monthly (según tu modal)
     until: ($('#rec_periodicidad').val() === 'once' || $('#rec_sin_fin').is(':checked')) ? null : ($('#rec_until').val() || null),
     enviar_correo: $('#rec_enviar_correo').is(':checked') ? 1 : 2,
@@ -8344,7 +8409,7 @@ $(document).on('click', '#confirmRecurring', function(){
       $('#confirmRecurring')
         .prop('disabled', true)
         .html('<i class="fas fa-check-circle mr-1"></i> Recurrencia guardada');
-      showNotify('success','Recurrencia creada','La factura recurrente ha sido guardada');
+      showNotify('success','Recurrencia creada', payload.saltar_primera === 1 ? 'La recurrencia quedó guardada para iniciar en el siguiente período. Puedes emitir la factura actual normalmente.' : 'La recurrencia quedó guardada incluyendo la primera fecha configurada. No emitas esta misma factura manualmente para evitar duplicarla.');
       listarFacturasRecurrentes();
     }else{
       $('#rec_info').show();

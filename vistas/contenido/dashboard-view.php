@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/dashboard.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/dashboard.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/dashboard.css') ?: time(); ?>">
 
 <div class="container-fluid">
     <!-- Breadcrumb para Dashboard -->

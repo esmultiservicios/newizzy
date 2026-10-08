@@ -20,11 +20,11 @@ try {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Sistema de Restaurante</title>
   <!-- FontAwesome (iconos) -->
-  <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="<?php echo SERVERURL; ?>fontawesome/css/all.min.css?v=<?php echo @filemtime(__DIR__ . '/../../fontawesome/css/all.min.css') ?: time(); ?>">
   <!-- Estilos principales -->
-  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css">
+  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/facturasRestaurante.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/facturasRestaurante.css') ?: time(); ?>">
   <!-- Select2 CSS -->
-  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/select2.min.css">
+  <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/select2.min.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/select2.min.css') ?: time(); ?>">
   <!--
     Bloqueo de primer render:
     el contenedor nace oculto desde el propio HTML, sin depender de clases
@@ -133,9 +133,11 @@ try {
               <button id="btn-cuentas-abiertas" class="btn btn-light" type="button">
                 <i class="fas fa-folder-open"></i> Cuentas abiertas
               </button>
-              <button id="btn-factura-recurrente" class="btn btn-primary" type="button" title="Programar una factura recurrente">
-                <i class="fas fa-calendar-alt"></i> Recurrente
-              </button>
+              <?php if (in_array((int)($_SESSION['planes_id_sistema'] ?? 0), [3, 4, 5, 7], true)): ?>
+                <button id="btn-factura-recurrente" class="btn btn-primary" type="button" disabled aria-disabled="true" title="Disponible únicamente con la caja abierta">
+                  <i class="fas fa-calendar-alt"></i> Recurrente
+                </button>
+              <?php endif; ?>
               <button id="btn-cobrar-mesa" class="btn btn-success" type="button" style="display:none;" title="Finalizar la cuenta y abrir el método de pago">
                 <i class="fas fa-cash-register"></i> Cobrar mesa
               </button>

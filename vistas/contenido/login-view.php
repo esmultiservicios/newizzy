@@ -25,10 +25,10 @@
     $loginLogoVersion = is_file($loginLogoFile) ? (string) filemtime($loginLogoFile) : '1.0.13';
 ?>
 
-<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css?v=<?php echo @filemtime(__DIR__ . '/../../ajax/bootstrap/css/bootstrap.min.css') ?: time(); ?>" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css?v=<?php echo @filemtime(__DIR__ . '/../../ajax/bootstrap/css/bootstrap-select.min.css') ?: time(); ?>" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css?v=<?php echo @filemtime(__DIR__ . '/../../ajax/sweetalert/sweetalert.css') ?: time(); ?>" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/notyf.min.css') ?: time(); ?>" rel="stylesheet" />
 <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/style_login.css?v=<?php echo rawurlencode($styleLoginVersion); ?>" rel="stylesheet" crossorigin="anonymous" data-izzy-login-style-version="<?php echo htmlspecialchars($styleLoginVersion, ENT_QUOTES, 'UTF-8'); ?>" />
 
 <div class="izzy-login-page">

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>IZZY | Reporte de Cotizaciones</title>
-<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/reporte_cotizacion.css">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/reporte_cotizacion.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/reporte_cotizacion.css') ?: time(); ?>">
 </head>
 <body>
 <div class="container-fluid rv-page">

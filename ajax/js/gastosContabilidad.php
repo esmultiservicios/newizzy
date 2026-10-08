@@ -769,10 +769,12 @@ function egresosFacturaHtml(row) {
   var pdf = '';
 
   if (row.factura_pdf) {
-    pdf = '<a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' +
-      encodeURIComponent(row.factura_pdf) +
-      '" target="_blank" class="egresos-pdf-link" title="Ver/Descargar PDF">' +
-      '<i class="fas fa-file-pdf"></i></a>';
+    var pdfUrl = '<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(row.factura_pdf);
+    pdf = '<button type="button" class="egresos-pdf-link js-egreso-pdf-publico"' +
+      ' data-pdf-url="' + escapeHtmlEgresos(pdfUrl) + '"' +
+      ' data-pdf-name="' + escapeHtmlEgresos(row.factura_pdf) + '"' +
+      ' title="Vista previa del PDF" aria-label="Vista previa del PDF">' +
+      '<i class="fas fa-file-pdf"></i></button>';
   }
 
   return '<div class="egresos-factura-inline"><span>' + numero + '</span>' + pdf + '</div>';
@@ -1237,9 +1239,11 @@ function editar_egreso_ui(data) {
                     '<div class="font-weight-bold">' + escapeHtmlEgresos(v.factura_pdf) + '</div>' +
                   '</div>' +
                   '<div class="btn-group ml-2">' +
-                    '<a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(v.factura_pdf) + '" target="_blank" class="btn btn-danger btn-sm">' +
-                      '<i class="fas fa-file-pdf mr-1"></i> Ver/Descargar PDF' +
-                    '</a>' +
+                    '<button type="button" class="btn btn-danger btn-sm js-egreso-pdf-publico"' +
+                      ' data-pdf-url="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(v.factura_pdf) + '"' +
+                      ' data-pdf-name="' + escapeHtmlEgresos(v.factura_pdf) + '">' +
+                      '<i class="fas fa-file-pdf mr-1"></i> Ver PDF' +
+                    '</button>' +
                     '<button type="button" class="btn btn-secondary btn-sm" id="removeFile">' +
                       '<i class="fas fa-exchange-alt mr-1"></i> Cambiar archivo' +
                     '</button>' +
@@ -2395,9 +2399,11 @@ var edit_reporte_gastos_dataTable = function(tbody, table) {
                   '<div class="font-weight-bold">' + escapeHtmlEgresos(v.factura_pdf) + '</div>' +
                 '</div>' +
                 '<div class="btn-group ml-2">' +
-                  '<a href="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(v.factura_pdf) + '" target="_blank" class="btn btn-danger btn-sm">' +
-                    '<i class="fas fa-file-pdf mr-1"></i> Ver/Descargar PDF' +
-                  '</a>' +
+                  '<button type="button" class="btn btn-danger btn-sm js-egreso-pdf-publico"' +
+                    ' data-pdf-url="<?php echo SERVERURL; ?>vistas/plantilla/gastos/' + encodeURIComponent(v.factura_pdf) + '"' +
+                    ' data-pdf-name="' + escapeHtmlEgresos(v.factura_pdf) + '">' +
+                    '<i class="fas fa-file-pdf mr-1"></i> Ver PDF' +
+                  '</button>' +
                   '<button type="button" class="btn btn-secondary btn-sm" id="removeFile">' +
                     '<i class="fas fa-exchange-alt mr-1"></i> Cambiar archivo' +
                   '</button>' +
@@ -2924,4 +2930,25 @@ $(document).on(
     }
   }
 );
+
+
+$(document).off('click.egresosPdfPublico', '.js-egreso-pdf-publico')
+  .on('click.egresosPdfPublico', '.js-egreso-pdf-publico', function(e) {
+    e.preventDefault();
+
+    var url = String($(this).attr('data-pdf-url') || '').trim();
+    var nombre = String($(this).attr('data-pdf-name') || 'factura.pdf').trim();
+
+    if (!url) {
+      showNotify('warning', 'PDF no disponible', 'No se encontró el archivo PDF de este egreso.');
+      return;
+    }
+
+    if (typeof abrirModalPdfPublico !== 'function') {
+      showNotify('error', 'PDF no disponible', 'No está disponible el visor público de PDF.');
+      return;
+    }
+
+    abrirModalPdfPublico(url, 'Factura / Comprobante de egreso', nombre);
+  });
 </script>

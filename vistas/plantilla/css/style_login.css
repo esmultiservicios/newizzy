@@ -3797,25 +3797,208 @@ input[type="password"]::-webkit-contacts-auto-fill-button{
 
 
 /* ==========================================================
-   IZZY LOGIN · Recordar correo (LOCAL y PRODUCCIÓN)
+   IZZY LOGIN · Recordar correo
    ========================================================== */
 #loginform .auth-remember-option{
-    display:inline-flex;align-items:center;gap:10px;width:max-content;max-width:100%;
-    margin:-2px 0 0;cursor:pointer;color:#234865;user-select:none;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    width:max-content;
+    max-width:100%;
+    margin:-2px 0 0;
+    cursor:pointer;
+    color:#234865;
+    user-select:none;
 }
-#loginform .auth-remember-option input{position:absolute;opacity:0;pointer-events:none;}
+#loginform .auth-remember-option input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+}
 #loginform .auth-remember-check{
-    width:22px;height:22px;flex:0 0 22px;display:grid;place-items:center;
-    border:1px solid #bfd8e4;border-radius:7px;background:#f4fafc;color:transparent;
-    font-size:.68rem;transition:border-color .18s ease,background .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease;
+    width:22px;
+    height:22px;
+    flex:0 0 22px;
+    display:grid;
+    place-items:center;
+    border:1px solid #bfd8e4;
+    border-radius:7px;
+    background:#f4fafc;
+    color:transparent;
+    font-size:.68rem;
+    transition:border-color .18s ease,background .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease;
 }
-#loginform .auth-remember-copy{display:flex;flex-direction:column;min-width:0;line-height:1.18;}
-#loginform .auth-remember-copy strong{color:#0a345e;font-size:.76rem;font-weight:900;}
-#loginform .auth-remember-copy small{margin-top:2px;color:#71899a;font-size:.64rem;font-weight:600;}
-#loginform .auth-remember-option:hover .auth-remember-check{border-color:#63b9d7;background:#eaf8fc;}
-#loginform .auth-remember-option input:focus-visible + .auth-remember-check{border-color:#1098ea;box-shadow:0 0 0 3px rgba(16,152,234,.14);}
-#loginform .auth-remember-option input:checked + .auth-remember-check{border-color:#1098ea;background:#1098ea;color:#fff;}
+#loginform .auth-remember-copy{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    line-height:1.18;
+}
+#loginform .auth-remember-copy strong{
+    color:#0a345e;
+    font-size:.76rem;
+    font-weight:900;
+}
+#loginform .auth-remember-copy small{
+    margin-top:2px;
+    color:#71899a;
+    font-size:.64rem;
+    font-weight:600;
+}
+#loginform .auth-remember-option:hover .auth-remember-check{
+    border-color:#63b9d7;
+    background:#eaf8fc;
+}
+#loginform .auth-remember-option input:focus-visible + .auth-remember-check{
+    border-color:#1098ea;
+    box-shadow:0 0 0 3px rgba(16,152,234,.14);
+}
+#loginform .auth-remember-option input:checked + .auth-remember-check{
+    border-color:#1098ea;
+    background:#1098ea;
+    color:#fff;
+}
+#loginform .auth-remember-option input:disabled + .auth-remember-check{
+    background:#eef4f7;
+    border-color:#d8e4ea;
+}
+#loginform .auth-remember-option input:disabled ~ .auth-remember-copy{
+    opacity:.62;
+}
+#loginform.is-demo-login .auth-remember-option{
+    display:none;
+}
 @media(max-width:760px){
-    #loginform .auth-remember-option{gap:8px;margin-top:-1px;}
-    #loginform .auth-remember-copy small{font-size:.61rem;}
+    #loginform .auth-remember-option{
+        gap:8px;
+        margin-top:-1px;
+    }
+    #loginform .auth-remember-copy small{
+        font-size:.61rem;
+    }
+}
+
+/* ==========================================================
+   IZZY LOGIN v1.0.8 · más contraste visual + recordar centrado
+   ========================================================== */
+
+/* Más presencia general sin perder el estilo limpio aprobado. */
+body,
+.izzy-login-page{
+    background:#eaf4f8!important;
+}
+
+.izzy-login-shell{
+    border-color:#c3dbe7!important;
+    box-shadow:0 28px 64px rgba(8,43,88,.14)!important;
+}
+
+.izzy-login-brand{
+    background:#eef9fd!important;
+    border-right-color:#c7dfe9!important;
+}
+
+.izzy-login-access{
+    background:#ffffff!important;
+}
+
+.brand-feature{
+    border-color:#c7dce7!important;
+    box-shadow:0 8px 20px rgba(8,43,88,.055)!important;
+}
+
+.brand-feature:hover{
+    border-color:#9fc9db!important;
+    box-shadow:0 14px 28px rgba(8,43,88,.085)!important;
+}
+
+.brand-businesses{
+    background:#e4f4fa!important;
+    border-color:#b9d9e6!important;
+}
+
+.auth-kicker,
+.brand-kicker{
+    background:#e1f4fb!important;
+    border-color:#abd3e4!important;
+    color:#045f87!important;
+}
+
+.auth-heading h1{
+    color:#082b58!important;
+}
+
+.auth-heading p{
+    color:#4d687e!important;
+}
+
+.auth-input{
+    background:#fff!important;
+    border-color:#bfd8e4!important;
+    box-shadow:0 4px 12px rgba(8,43,88,.035)!important;
+}
+
+.auth-input:focus-within{
+    border-color:#1098ea!important;
+    box-shadow:0 0 0 3px rgba(16,152,234,.12),0 8px 18px rgba(8,43,88,.055)!important;
+}
+
+.auth-client-inline,
+.auth-forgot-link{
+    border-color:#b7d8e6!important;
+    box-shadow:0 5px 14px rgba(8,43,88,.035)!important;
+}
+
+.auth-button-primary{
+    background:#0f4f8d!important;
+    box-shadow:0 10px 24px rgba(15,79,141,.18)!important;
+}
+
+.auth-button-primary:hover,
+.auth-button-primary:focus-visible{
+    background:#0c467e!important;
+    box-shadow:0 12px 28px rgba(15,79,141,.22)!important;
+}
+
+.auth-button-create{
+    background:#119acb!important;
+    box-shadow:0 9px 22px rgba(17,154,203,.16)!important;
+}
+
+.auth-extra-card{
+    border-color:#c2dbe7!important;
+    box-shadow:0 8px 20px rgba(8,43,88,.05)!important;
+}
+
+.auth-extra-card:hover,
+.auth-extra-card:focus-visible{
+    border-color:#9fc9db!important;
+    box-shadow:0 12px 26px rgba(8,43,88,.08)!important;
+}
+
+/* Recordar correo: conserva su posición original y centra únicamente el check. */
+#loginform .auth-remember-option{
+    justify-content:flex-start!important;
+    width:max-content!important;
+    max-width:100%!important;
+    margin:-2px 0 0!important;
+    text-align:left!important;
+}
+
+#loginform .auth-remember-check{
+    display:grid!important;
+    place-items:center!important;
+    text-align:center!important;
+    line-height:1!important;
+}
+
+#loginform .auth-remember-check > *,
+#loginform .auth-remember-check::before,
+#loginform .auth-remember-check::after{
+    margin:0!important;
+    line-height:1!important;
+}
+
+#loginform .auth-remember-copy{
+    align-items:flex-start!important;
 }

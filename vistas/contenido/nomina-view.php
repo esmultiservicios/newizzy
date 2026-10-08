@@ -308,6 +308,7 @@
             <div class="card-body">
                 <div class="nomina-list-toolbar">
                     <div class="nomina-toolbar-left">
+                        <button type="button" id="btnVolverNominaDetalle" class="btn btn-primary"><i class="fas fa-arrow-left mr-1"></i> Volver</button>
                         <button type="button" id="btnNominaDetalleActualizar" class="btn btn-secondary table_actualizar ocultar"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
                         <button type="button" id="btnNominaDetalleAgregar" class="btn btn-primary table_crear ocultar"><i class="fas fa-plus mr-1"></i> Agregar</button>
                         <button type="button" id="btnNominaDetalleExcel" class="btn btn-success table_reportes ocultar"><i class="fas fa-file-excel mr-1"></i> Excel</button>

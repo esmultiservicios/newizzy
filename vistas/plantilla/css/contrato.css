@@ -1067,3 +1067,54 @@
 .contrato-detail-row > :last-child .btn-acciones { min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
 .contrato-detail-row > :last-child .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
 /* IZZY ACTION CELL CONTAINMENT END */
+
+/* =========================================================
+   IZZY 6.09 | Contratos - validación y acciones premium
+   ========================================================= */
+#modal_registrar_contrato .is-invalid,
+#modal_registrar_contrato .select2-container.is-invalid .select2-selection{
+    border-color:#dc3545!important;
+    box-shadow:0 0 0 3px rgba(220,53,69,.08)!important;
+}
+#modal_registrar_contrato .btn-secondary{
+    background:#6c7a89!important;
+    border-color:#6c7a89!important;
+    color:#fff!important;
+}
+#modal_registrar_contrato .btn-secondary:hover,
+#modal_registrar_contrato .btn-secondary:focus{
+    background:#5c6976!important;
+    border-color:#5c6976!important;
+    color:#fff!important;
+}
+#modal_registrar_contrato .btn-primary{
+    background:#2f9ddd!important;
+    border-color:#2f9ddd!important;
+    color:#fff!important;
+}
+#modal_registrar_contrato .btn-primary:hover,
+#modal_registrar_contrato .btn-primary:focus{
+    background:#278ac4!important;
+    border-color:#278ac4!important;
+    color:#fff!important;
+}
+
+.acciones-menu .accion-editar .accion-icon{
+    background:#fff3cd!important;
+    color:#b7791f!important;
+}
+.acciones-menu .accion-eliminar .accion-icon{
+    background:#fde8e7!important;
+    color:#c9372c!important;
+}
+.acciones-menu .accion-editar:hover .accion-icon,
+.acciones-menu .accion-editar:focus .accion-icon{
+    background:#fff3cd!important;
+    color:#b7791f!important;
+}
+.acciones-menu .accion-eliminar:hover .accion-icon,
+.acciones-menu .accion-eliminar:focus .accion-icon{
+    background:#fde8e7!important;
+    color:#c9372c!important;
+}
+

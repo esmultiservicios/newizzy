@@ -670,6 +670,20 @@ function izzyInitSelect2(target) {
         }
 
         var esPageSize = izzySelect2EsPageSize($select);
+
+        /* Opción vacía global para Select2 normales.
+           Se conserva el valor actual y se excluyen paginadores, múltiples
+           y controles que declaren data-no-empty-option="1". */
+        if (!esPageSize && !$select.prop('multiple') && String($select.attr('data-no-empty-option') || '') !== '1') {
+            var valorActual = $select.val();
+            if (!$select.find('option[value=""]').length) {
+                $select.prepend($('<option></option>').attr('value', '').text(''));
+                if (valorActual !== null && valorActual !== undefined) {
+                    $select.val(valorActual);
+                }
+            }
+        }
+
         var $modal = $select.closest('.modal');
 
         var config = {

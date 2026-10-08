@@ -1314,12 +1314,41 @@ $('#formContrato').on('submit', function(e) {
         calculo_semanal: isChecked('#calculo_semanal')
     };
 
-    // 3. Validación básica en cliente (opcional)
-    const requiredFields = ['contrato_colaborador_id', 'contrato_tipo_contrato_id', 'contrato_salario_mensual'];
-    const missingFields = requiredFields.filter(field => !formData[field]);
-    
+    // 3. Validación funcional en cliente
+    const requiredFields = {
+        contrato_colaborador_id: 'Empleado',
+        contrato_tipo_contrato_id: 'Tipo de contrato',
+        contrato_pago_planificado_id: 'Pago planificado',
+        contrato_tipo_empleado_id: 'Tipo de empleado',
+        contrato_salario_mensual: 'Salario mensual',
+        contrato_fecha_inicio: 'Fecha de inicio'
+    };
+
+    const missingFields = Object.keys(requiredFields).filter(field => !formData[field]);
+    $('#formContrato .is-invalid').removeClass('is-invalid');
+
     if (missingFields.length > 0) {
-        showNotify('error', 'Error', `Faltan campos requeridos: ${missingFields.join(', ')}`);
+        missingFields.forEach(field => {
+            $(`[name="${field}"], #${field}`).addClass('is-invalid');
+        });
+        showNotify(
+            'warning',
+            'Campos incompletos',
+            'Completa: ' + missingFields.map(field => requiredFields[field]).join(', ') + '.'
+        );
+        return;
+    }
+
+    const salarioMensual = Number(String(formData.contrato_salario_mensual || '0').replace(/,/g, ''));
+    if (!Number.isFinite(salarioMensual) || salarioMensual <= 0) {
+        $('#contrato_salario_mensual').addClass('is-invalid').focus();
+        showNotify('warning', 'Salario inválido', 'El salario mensual debe ser mayor que cero.');
+        return;
+    }
+
+    if (formData.contrato_fecha_fin && formData.contrato_fecha_fin < formData.contrato_fecha_inicio) {
+        $('#contrato_fecha_fin').addClass('is-invalid').focus();
+        showNotify('warning', 'Rango de fechas inválido', 'La fecha final no puede ser anterior a la fecha de inicio.');
         return;
     }
 
@@ -1334,9 +1363,10 @@ $('#formContrato').on('submit', function(e) {
         text: isEdit ? "Confirma los cambios del contrato" : "Confirma que deseas registrar este nuevo contrato",
         icon: "info",
         buttons: {
-            cancel: { text: "Cancelar", visible: true, className: "btn-light" },
+            cancel: { text: "Cancelar", visible: true, className: "btn btn-secondary" },
             confirm: { 
                 text: isEdit ? "Sí, actualizar" : "Sí, registrar",
+                className: "btn btn-primary"
             }
         },
         dangerMode: false,
@@ -1417,9 +1447,25 @@ $('#formContrato').on('submit', function(e) {
 /*FIN FORMULARIO CONTRATOS*/
 
 $(document).ready(function() {
-    $("#modal_registrar_contrato").on('shown.bs.modal', function() {
-        $(this).find('#formContrato #puesto').focus();
-    });
+    $("#modal_registrar_contrato")
+        .off('shown.bs.modal.contratoPremium')
+        .on('shown.bs.modal.contratoPremium', function() {
+            setTimeout(function(){
+                var $select = $('#formContrato #contrato_colaborador_id');
+                var $container = $select.next('.select2-container');
+                if ($container.length && !$select.prop('disabled')) {
+                    $container.find('.select2-selection').attr('tabindex', '0').focus();
+                } else {
+                    $('#formContrato').find('input:visible:not([readonly]):enabled, select:visible:enabled').first().focus();
+                }
+            }, 120);
+        })
+        .off('hidden.bs.modal.contratoPremium')
+        .on('hidden.bs.modal.contratoPremium', function() {
+            $('#formContrato .is-invalid').removeClass('is-invalid');
+            $('#formContrato #contrato_id').val('');
+            $('#formContrato #proceso_contrato').val('Registro');
+        });
 });
 
 $('#formContrato #label_contrato_activo').html("Activo");

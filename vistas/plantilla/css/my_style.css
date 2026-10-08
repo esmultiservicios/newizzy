@@ -15884,3 +15884,31 @@ button[class*="-acciones-toggle"][aria-expanded="true"] {
     }
 }
 /* IZZY ACTION BUTTON RESPONSIVE END */
+
+
+/* =========================================================
+   IZZY | SWEETALERT - COLORES SEMÁNTICOS SIN HOVER BLANCO
+   Confirmación normal = azul, cancelar = gris, éxito = verde,
+   peligro = rojo. El hover conserva la familia de color.
+   ========================================================= */
+.swal-button,
+.swal-button:hover,
+.swal-button:focus,
+.swal-button:active{
+    box-shadow:none!important;
+    outline:none!important;
+    color:#fff!important;
+    border-color:transparent!important;
+}
+.swal-button--confirm,.swal-button--confirm:focus{background:#2f9ddd!important}
+.swal-button--confirm:hover,.swal-button--confirm:active{background:#258cc7!important}
+.swal-button--cancel,.swal-button--cancel:focus{background:#6c757d!important;color:#fff!important}
+.swal-button--cancel:hover,.swal-button--cancel:active{background:#5a6268!important;color:#fff!important}
+.swal-button--danger,.swal-button--danger:focus{background:#dc3545!important}
+.swal-button--danger:hover,.swal-button--danger:active{background:#c82333!important}
+.swal-button--voucher,.swal-button--voucher:focus{background:#2f9ddd!important}
+.swal-button--voucher:hover,.swal-button--voucher:active{background:#258cc7!important}
+.swal-button--libro,.swal-button--libro:focus{background:#28a745!important}
+.swal-button--libro:hover,.swal-button--libro:active{background:#218838!important}
+.swal-button.btn-primary,.swal-button.btn-primary:hover,.swal-button.btn-primary:focus{color:#fff!important}
+.swal-button.btn-secondary,.swal-button.btn-secondary:hover,.swal-button.btn-secondary:focus{color:#fff!important}

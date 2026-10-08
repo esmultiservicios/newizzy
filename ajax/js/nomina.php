@@ -2,30 +2,46 @@
 var sueldo_diario = 0;
 
 $(() => {
-    getTipoContrato();
-    getPagoPlanificado();
+    // Los filtros deben quedar definidos ANTES de consultar el listado.
+    $('#form_main_nominas #estado_nomina').val('0');
+    $('#form_main_nominas #tipo_contrato_nomina').val('');
+    $('#form_main_nominas #pago_planificado_nomina').val('');
+    $('#form_main_nominas #estado_nomina').izzySelect2Bridge('refresh');
+
+    var reqTipoContrato = getTipoContrato();
+    var reqPagoPlanificado = getPagoPlanificado();
+
     getTipoEmpleado();
-    getEmpresa();    
-    getEmpleado();    
+    getEmpresa();
+    getEmpleado();
     getTipoNomina();
     getCuentaNominas();
     getEmpleadoVales();
     listar_vales();
-    listar_nominas();
 
-    $('#form_main_nominas #estado_nomina').val(0);
-    $('#form_main_nominas #estado_nomina').izzySelect2Bridge('refresh');
+    // Esperamos los catálogos de los filtros para evitar que el primer registro
+    // se consulte con valores seleccionados automáticamente por el navegador.
+    $.when(reqTipoContrato, reqPagoPlanificado).always(function(){
+        $('#form_main_nominas #estado_nomina').val('0').izzySelect2Bridge('refresh');
+        $('#form_main_nominas #tipo_contrato_nomina').val('').izzySelect2Bridge('refresh');
+        $('#form_main_nominas #pago_planificado_nomina').val('').izzySelect2Bridge('refresh');
+        listar_nominas();
+    });
 
-    $('#form_main_nominas #search').on("click", function(e) {
+    $('#form_main_nominas').off('submit.nominaFiltro').on('submit.nominaFiltro', function(e) {
         e.preventDefault();
         listar_nominas();
     });
 
-    // Evento para el botón de Limpiar (reset)
-    $('#form_main_nominas').on('reset', function() {
-        $(this).find('.izzy-select2').val('').izzySelect2Bridge('refresh');
-        listar_nominas();
-    });	   
+    // Limpiar vuelve a un estado conocido y luego consulta.
+    $('#form_main_nominas').off('reset.nominaFiltro').on('reset.nominaFiltro', function() {
+        setTimeout(function(){
+            $('#form_main_nominas #estado_nomina').val('0').izzySelect2Bridge('refresh');
+            $('#form_main_nominas #tipo_contrato_nomina').val('').izzySelect2Bridge('refresh');
+            $('#form_main_nominas #pago_planificado_nomina').val('').izzySelect2Bridge('refresh');
+            listar_nominas();
+        }, 0);
+    });
 });
 
 /* =========================================================
@@ -76,6 +92,35 @@ var NOMINA_MOBILE_QUERY = '(max-width: 767.98px)';
 var nominaUI = {rows:[],filtered:[],page:1,pageSize:10,pageSizeDetalle:10,pageSizeMiniatura:6,view:'detalle',preferredView:'detalle',search:'',loading:false};
 var nominaDetalleUI = {rows:[],filtered:[],page:1,pageSize:10,pageSizeDetalle:10,pageSizeMiniatura:6,view:'detalle',preferredView:'detalle',search:'',loading:false};
 var nominaValesUI = {rows:[],filtered:[],page:1,pageSize:6,search:'',loading:false};
+
+/* Refresco consistente después de cualquier acción CRUD.
+   Evita que el listado quede visualmente vacío hasta recargar la página. */
+function nominaRefrescarPrincipalCrud(opciones){
+    opciones = opciones || {};
+    nominaUI.page = 1;
+    nominaUI.search = '';
+    $('#buscarNomina').val('');
+
+    if (opciones.mostrarGuardada) {
+        // Una nómina recién creada todavía no tiene empleados/contrato.
+        // Dejamos esos filtros neutrales y ajustamos el período al registro
+        // guardado para que aparezca inmediatamente sin recargar la página.
+        $('#form_main_nominas #estado_nomina').val('0').izzySelect2Bridge('refresh');
+        $('#form_main_nominas #tipo_contrato_nomina').val('').izzySelect2Bridge('refresh');
+        $('#form_main_nominas #pago_planificado_nomina').val('').izzySelect2Bridge('refresh');
+        if (opciones.fechaInicio) $('#form_main_nominas #fechai').val(opciones.fechaInicio);
+        if (opciones.fechaFin) $('#form_main_nominas #fechaf').val(opciones.fechaFin);
+    }
+
+    setTimeout(function(){ listar_nominas(); }, 80);
+}
+
+function nominaRefrescarDetalleCrud(){
+    nominaDetalleUI.page = 1;
+    nominaDetalleUI.search = '';
+    $('#buscarNominaDetalle').val('');
+    setTimeout(function(){ listar_nominas_detalles(); }, 80);
+}
 
 function nominaNum(v){ return parseFloat(String(v == null ? 0 : v).replace(/[^\d.-]/g,'')) || 0; }
 function nominaMoney(v){ return 'L ' + nominaNum(v).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -289,8 +334,12 @@ function nominaRenderDetalle(){
 
 
 var listar_nominas = function() {
-    var estado = $("#form_main_nominas #estado_nomina").val() || 0;
+    var estado = $("#form_main_nominas #estado_nomina").val();
+    if (estado === null || estado === undefined || estado === '') estado = 0;
     var tipo_contrato_id = $("#form_main_nominas #tipo_contrato_nomina").val() || 0;
+    var pago_planificado_id = $("#form_main_nominas #pago_planificado_nomina").val() || 0;
+    var fecha_inicio = $("#form_main_nominas #fechai").val() || '';
+    var fecha_fin = $("#form_main_nominas #fechaf").val() || '';
 
     nominaUI.loading=true;
     nominaRenderMain();
@@ -299,7 +348,7 @@ var listar_nominas = function() {
         method:"POST",
         url:"<?php echo SERVERURL;?>core/llenarDataTableNomina.php",
         dataType:"json",
-        data:{estado:estado,tipo_contrato_id:tipo_contrato_id}
+        data:{estado:estado,tipo_contrato_id:tipo_contrato_id,pago_planificado_id:pago_planificado_id,fecha_inicio:fecha_inicio,fecha_fin:fecha_fin}
     }).done(function(json){
         nominaUI.rows=(json&&Array.isArray(json.data))?json.data:[];
         nominaUI.search=$('#buscarNomina').val()||'';
@@ -320,14 +369,14 @@ function nominaUIAccionGenerar(data) {
 if ($('#form_main_nominas #estado_nomina').val() == 0) {
             // CONFIRMACIÓN (sí/no) → swal
             swal({
-                title: "¿Estas seguro?",
-                text: "¿Desea generar esta nomina?",
+                title: "¿Estás seguro?",
+                text: "¿Deseas generar esta nómina?",
                 icon: "warning",
                 buttons: {
-                    cancel: { text: "Cancelar", visible: true },
-                    confirm: { text: "¡Sí, generar la nómina!" }
+                    cancel: { text: "Cancelar", visible: true, className: "btn btn-secondary" },
+                    confirm: { text: "¡Sí, generar la nómina!", className: "btn btn-primary" }
                 },
-                dangerMode: true,
+                dangerMode: false,
                 closeOnEsc: false,
                 closeOnClickOutside: false
             }).then((ok) => {
@@ -406,7 +455,38 @@ var url = '<?php echo SERVERURL;?>core/editarNominas.php';
                 if (data.estado == 1) {
                     $('#edi_nomina').attr('disabled', true);
                     $('#formNomina #nomina_activo').prop('checked', true);
-                    $('#formNomina #label_nomina_activo').html("Generada");
+                    $(document)
+    .off('shown.bs.modal.nominaVale', '#modalRegistrarVales')
+    .on('shown.bs.modal.nominaVale', '#modalRegistrarVales', function(){
+        nominaAplicarMejorasPremium();
+        if (typeof listar_vales === 'function') {
+            listar_vales();
+        }
+        setTimeout(function(){
+            nominaFocusSelect2($('#formVales #vale_empleado'));
+        }, 120);
+    })
+    .off('hidden.bs.modal.nominaVale', '#modalRegistrarVales')
+    .on('hidden.bs.modal.nominaVale', '#modalRegistrarVales', function(){
+        $('#buscarVales').val('');
+        nominaValesUI.search = '';
+        nominaValesUI.page = 1;
+        nominaResetValeForm();
+    })
+    .off('shown.bs.modal.nominaDetalle', '#modal_registrar_nomina_detalles')
+    .on('shown.bs.modal.nominaDetalle', '#modal_registrar_nomina_detalles', function(){
+        nominaAplicarMejorasPremium();
+        setTimeout(function(){
+            var $empleado = $('#formNominaDetalles #nominad_empleados');
+            if (!$empleado.prop('disabled')) {
+                nominaFocusSelect2($empleado);
+            }
+        }, 120);
+    });
+
+nominaAplicarMejorasPremium();
+
+$('#formNomina #label_nomina_activo').html("Generada");
                 } else {
                     $('#edi_nomina').attr('disabled', false);
                     $('#formNomina #nomina_activo').prop('checked', false);
@@ -472,8 +552,7 @@ var nomina_id = data.nomina_id;
                         swal.close();
                         if(response.status === "success") {
                             showNotify("success", response.title || "Éxito", response.message || "Eliminado correctamente");
-                            table.ajax.reload(null, false);
-                            table.search('').draw();                    
+                            nominaRefrescarPrincipalCrud();
                         } else {
                             showNotify("error", response.title || "Error", response.message || "No se pudo eliminar");
                         }
@@ -693,14 +772,14 @@ var generar_nominas_dataTable = function(tbody, table) {
         if ($('#form_main_nominas #estado_nomina').val() == 0) {
             // CONFIRMACIÓN (sí/no) → swal
             swal({
-                title: "¿Estas seguro?",
-                text: "¿Desea generar esta nomina?",
+                title: "¿Estás seguro?",
+                text: "¿Deseas generar esta nómina?",
                 icon: "warning",
                 buttons: {
-                    cancel: { text: "Cancelar", visible: true },
-                    confirm: { text: "¡Sí, generar la nómina!" }
+                    cancel: { text: "Cancelar", visible: true, className: "btn btn-secondary" },
+                    confirm: { text: "¡Sí, generar la nómina!", className: "btn btn-primary" }
                 },
-                dangerMode: true,
+                dangerMode: false,
                 closeOnEsc: false,
                 closeOnClickOutside: false
             }).then((ok) => {
@@ -714,8 +793,8 @@ var generar_nominas_dataTable = function(tbody, table) {
     });
 };
 
-// Llamada AJAX que espera JSON y, en éxito, muestra swal con 3 botones
-// Voucher/Libro no cierran; solo "Cerrar" cierra. Se permite pulsarlos varias veces.
+// Llamada AJAX que espera JSON y, en éxito, muestra opciones de impresión.
+// Cada opción cierra primero el SweetAlert y luego abre el reporte seleccionado.
 function genearNomina(nomina_id, empresa_id) {
     var url = '<?php echo SERVERURL; ?>core/generarNomina.php';
 
@@ -728,66 +807,36 @@ function genearNomina(nomina_id, empresa_id) {
     })
     .done(function(res){
         if (Number(res.status) === 1) {
-            if (typeof listar_nominas === 'function') listar_nominas();
-
-            // Abre el diálogo y engancha handlers sobre los botones del swal.
-            function abrirDialogoImpresion(id, title, message){
-                swal({
-                    title: title || 'Nómina generada',
-                    text:  message || 'La nómina se generó correctamente.',
-                    icon:  'success',
-                    buttons: {
-                        voucher: { 
-                            text: 'Imprimir Vouchers', 
-                            value: 'voucher', 
-                            className: 'btn btn-primary',
-                            closeModal: false // mantener abierto
-                        },
-                        libro:   { 
-                            text: 'Libro de Salarios', 
-                            value: 'libro', 
-                            className: 'btn btn-success',
-                            closeModal: false // mantener abierto
-                        },
-                        cancel:  { 
-                            text: 'Cerrar', 
-                            value: null, 
-                            visible: true, 
-                            className: 'btn btn-light'
-                            // (por defecto cierra)
-                        }
-                    },
-                    closeOnClickOutside: false,
-                    closeOnEsc: false
-                });
-
-                // Espera a que el DOM del swal exista y engancha eventos.
-                setTimeout(function(){
-                    // Evita duplicados con namespace
-                    $(document)
-                        .off('click.swalVoucher', '.swal-button--voucher')
-                        .on('click.swalVoucher',  '.swal-button--voucher', function(e){
-                            e.preventDefault();
-                            if (typeof PrintVoucherPago === 'function') {
-                                PrintVoucherPago(id);
-                            }
-                            // Quita el spinner y re-activa los botones
-                            if (typeof swal.stopLoading === 'function') swal.stopLoading();
-                        });
-
-                    $(document)
-                        .off('click.swalLibro', '.swal-button--libro')
-                        .on('click.swalLibro',  '.swal-button--libro', function(e){
-                            e.preventDefault();
-                            if (typeof PrintLibroSalarios === 'function') {
-                                PrintLibroSalarios(id);
-                            }
-                            if (typeof swal.stopLoading === 'function') swal.stopLoading();
-                        });
-                }, 0);
+            if (typeof listar_nominas === 'function') {
+                listar_nominas();
             }
 
-            abrirDialogoImpresion(res.nomina_id, res.title, res.message);
+            swal({
+                title: res.title || 'Nómina generada',
+                text: res.message || 'La nómina se generó correctamente.',
+                icon: 'success',
+                buttons: {
+                    voucher: { text: 'Ver Voucher', value: 'voucher', className: 'btn btn-primary' },
+                    libro: { text: 'Libro de Salarios', value: 'libro', className: 'btn btn-success' },
+                    cancel: { text: 'Cerrar', value: null, visible: true, className: 'btn btn-secondary' }
+                },
+                closeOnClickOutside: false,
+                closeOnEsc: true
+            }).then(function(accion){
+                if (accion === 'voucher') {
+                    setTimeout(function(){
+                        if (typeof PrintVoucherPago === 'function') {
+                            PrintVoucherPago(res.nomina_id || nomina_id);
+                        }
+                    }, 80);
+                } else if (accion === 'libro') {
+                    setTimeout(function(){
+                        if (typeof PrintLibroSalarios === 'function') {
+                            PrintLibroSalarios(res.nomina_id || nomina_id);
+                        }
+                    }, 80);
+                }
+            });
 
         } else if (Number(res.status) === 6) {
             showNotify('warning', res.title || 'Advertencia', res.message || 'Configura la cuenta de la nómina.');
@@ -980,8 +1029,7 @@ var eliminar_nominas_dataTable = function(tbody, table) {
                         swal.close();
                         if(response.status === "success") {
                             showNotify("success", response.title || "Éxito", response.message || "Eliminado correctamente");
-                            table.ajax.reload(null, false);
-                            table.search('').draw();                    
+                            nominaRefrescarPrincipalCrud();
                         } else {
                             showNotify("error", response.title || "Error", response.message || "No se pudo eliminar");
                         }
@@ -1045,6 +1093,10 @@ $(document).off('submit', '#formNomina').on('submit', '#formNomina', function (e
     var url = $form.attr('action') || '<?php echo SERVERURL;?>ajax/addNominaAjax.php';
     var modo = ($form.attr('data-form') || 'save').toLowerCase();
     var $btn = (modo === 'update') ? $('#edi_nomina') : (modo === 'delete') ? $('#delete_nomina') : $('#reg_nomina');
+    var registroSolicitado = {
+        fechaInicio: $form.find('#nomina_fecha_inicio').val() || '',
+        fechaFin: $form.find('#nomina_fecha_fin').val() || ''
+    };
 
     if (!$form[0].checkValidity()) {
         $form[0].reportValidity();
@@ -1066,7 +1118,16 @@ $(document).off('submit', '#formNomina').on('submit', '#formNomina', function (e
             $form[0].reset();
             $form.find('.izzy-select2').izzySelect2Bridge('refresh');
 
-            if (res.run) { try { eval(res.run); } catch(e){} }
+            // Refrescamos catálogos sin depender de eval() ni de callbacks embebidos.
+            getPagoPlanificado();
+            getEmpresa();
+            getTipoNomina();
+
+            nominaRefrescarPrincipalCrud({
+                mostrarGuardada: modo === 'save',
+                fechaInicio: registroSolicitado.fechaInicio,
+                fechaFin: registroSolicitado.fechaFin
+            });
 
             // NOTIFICACIÓN → showNotify
             showNotify('success', res.title || '¡Listo!', res.message || 'Operación realizada correctamente.');
@@ -1205,7 +1266,8 @@ $(document).off('submit', '#formNominaDetalles').on('submit', '#formNominaDetall
     .done(function (res) {
         if (res.status === 'success') {
             $('#modal_registrar_nomina_detalles').modal('hide');
-            if (res.run) { try { eval(res.run); } catch(e){} }
+            if (res.run) { try { eval(res.run); } catch(e){ console.error('Callback detalle nómina:', e); } }
+            nominaRefrescarDetalleCrud();
             // NOTIFICACIÓN → showNotify
             showNotify('success', res.title || '¡Listo!', res.message || 'Operación realizada correctamente.');
         } else if (res.status === 'unauthorized') {
@@ -1225,6 +1287,125 @@ $(document).off('submit', '#formNominaDetalles').on('submit', '#formNominaDetall
 });
 
 /* ============================
+   UX PREMIUM - NÓMINA / VALES
+   ============================ */
+function nominaAplicarMejorasPremium() {
+    var $detalle = $('#modal_registrar_nomina_detalles');
+    var $vales = $('#modalRegistrarVales');
+
+    if ($detalle.length) {
+        var $formDetalle = $detalle.find('#formNominaDetalles');
+        $formDetalle.find('#nominad_empleados').attr('required', true);
+        $formDetalle.find(
+            '#nominad_diast,#nominad_horas25,#nominad_horas50,#nominad_horas75,#nominad_horas100,' +
+            '#nominad_retroactivo,#nominad_bono,#nominad_otros_ingresos,#nominad_deducciones,' +
+            '#nominad_prestamo,#nominad_ihss,#nominad_rap,#nominad_isr,#nominad_vale,#nominad_incapacidad_ihss'
+        ).attr('min', '0');
+        $formDetalle.find('#nominad_diast').attr('max', '31');
+
+        if (!$detalle.find('.nomina-premium-note-empleado').length) {
+            $formDetalle.prepend(
+                '<div class="nomina-premium-note nomina-premium-note-info nomina-premium-note-empleado mb-4">' +
+                    '<span class="nomina-premium-note-icon"><i class="fas fa-shield-alt"></i></span>' +
+                    '<div><strong>Detalle de nómina controlado</strong>' +
+                    '<span>Selecciona el empleado, revisa sus datos contractuales y confirma ingresos, deducciones y neto antes de guardar.</span></div>' +
+                '</div>'
+            );
+        }
+    }
+
+    if ($vales.length) {
+        var $formVale = $vales.find('#formVales');
+        $formVale.find('#vale_monto')
+            .attr({ min: '0.01', step: '0.01', inputmode: 'decimal' });
+
+        if (!$vales.find('.nomina-premium-note-vale').length) {
+            $formVale.prepend(
+                '<div class="nomina-premium-note nomina-premium-note-warning nomina-premium-note-vale mb-4">' +
+                    '<span class="nomina-premium-note-icon"><i class="fas fa-info-circle"></i></span>' +
+                    '<div><strong>Vale pendiente de nómina</strong>' +
+                    '<span>El vale quedará asociado al empleado y se considerará en el siguiente procesamiento de nómina mientras permanezca pendiente.</span></div>' +
+                '</div>'
+            );
+        }
+    }
+}
+
+function nominaResetValeForm() {
+    var $form = $('#formVales');
+    if (!$form.length) return;
+
+    $form[0].reset();
+    $form.attr('data-form', 'save');
+    $form.attr('action', '<?php echo SERVERURL;?>ajax/addValesAjax.php');
+    $form.find('#vale_id').val('');
+    $form.find('.is-invalid').removeClass('is-invalid');
+
+    var hoy = new Date();
+    var fechaLocal = new Date(hoy.getTime() - (hoy.getTimezoneOffset() * 60000))
+        .toISOString().slice(0, 10);
+    $form.find('#vale_fecha').val(fechaLocal);
+    $form.find('#vale_monto').val('');
+    $form.find('#vale_notas').val('');
+
+    var $empleado = $form.find('#vale_empleado');
+    if ($empleado.length) {
+        $empleado.val('');
+        if (typeof $empleado.izzySelect2Bridge === 'function') {
+            $empleado.izzySelect2Bridge('refresh');
+        } else {
+            $empleado.trigger('change');
+        }
+    }
+
+    $('#reg_vale').show();
+    $('#edi_vale').hide();
+    $('#delete_vale').hide();
+}
+
+function nominaValidarValeAntesDeGuardar() {
+    var $form = $('#formVales');
+    var empleado = $.trim(String($form.find('#vale_empleado').val() || ''));
+    var fecha = $.trim(String($form.find('#vale_fecha').val() || ''));
+    var monto = Number(String($form.find('#vale_monto').val() || '0').replace(/,/g, ''));
+    var notas = String($form.find('#vale_notas').val() || '');
+
+    $form.find('.is-invalid').removeClass('is-invalid');
+
+    if (!fecha) {
+        $form.find('#vale_fecha').addClass('is-invalid').focus();
+        showNotify('warning', 'Fecha requerida', 'Selecciona la fecha del vale.');
+        return false;
+    }
+    if (!empleado) {
+        $form.find('#vale_empleado').addClass('is-invalid');
+        showNotify('warning', 'Empleado requerido', 'Selecciona el empleado que recibirá el vale.');
+        return false;
+    }
+    if (!Number.isFinite(monto) || monto <= 0) {
+        $form.find('#vale_monto').addClass('is-invalid').focus();
+        showNotify('warning', 'Monto inválido', 'El monto del vale debe ser mayor que cero.');
+        return false;
+    }
+    if (notas.length > 1000) {
+        $form.find('#vale_notas').addClass('is-invalid').focus();
+        showNotify('warning', 'Notas demasiado largas', 'Las notas admiten un máximo de 1000 caracteres.');
+        return false;
+    }
+    return true;
+}
+
+function nominaFocusSelect2($select) {
+    if (!$select || !$select.length) return;
+    var $container = $select.next('.select2-container');
+    if ($container.length) {
+        $container.find('.select2-selection').attr('tabindex', '0').focus();
+    } else {
+        $select.focus();
+    }
+}
+
+/* ============================
    SUBMIT AJAX #formVales (JSON)
    ============================ */
 $(document).off('submit', '#formVales').on('submit', '#formVales', function (e) {
@@ -1240,34 +1421,76 @@ $(document).off('submit', '#formVales').on('submit', '#formVales', function (e) 
         return;
     }
 
-    $btn.prop('disabled', true).append(' <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+    if (!nominaValidarValeAntesDeGuardar()) {
+        return;
+    }
 
-    $.ajax({
-        url: url,
-        type: 'POST',
-        data: $form.serialize(),
-        dataType: 'json',
-        cache: false
-    })
-    .done(function (res) {
-        if (res.status === 'success') {
-            $('#modalRegistrarVales').modal('hide');
-            listar_vales();
-            // NOTIFICACIÓN → showNotify
-            showNotify('success', res.title || '¡Listo!', res.message || 'Operación realizada correctamente.');
-        } else if (res.status === 'unauthorized') {
-            showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
-            if (res.redirect) { setTimeout(function(){ window.location.href = res.redirect; }, 1200); }
-        } else {
-            var extra = (res.missing && res.missing.length) ? " Faltan: " + res.missing.join(', ') : '';
-            showNotify('error', res.title || 'Error', (res.message || 'Operación no realizada.') + extra);
-        }
-    })
-    .fail(function () {
-        showNotify('error', 'Error', 'Error de conexión. Intenta de nuevo.');
-    })
-    .always(function () {
-        $btn.prop('disabled', false).find('.spinner-border').remove();
+    var monto = Number(String($form.find('#vale_monto').val() || '0').replace(/,/g, ''));
+    var empleadoTexto = $.trim($form.find('#vale_empleado option:selected').text() || 'el empleado seleccionado');
+
+    swal({
+        title: modo === 'update' ? '¿Actualizar vale?' : '¿Registrar vale?',
+        text: (modo === 'update' ? 'Se actualizará' : 'Se registrará') +
+              ' un vale de L ' + monto.toLocaleString('es-HN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) +
+              ' para ' + empleadoTexto + '.',
+        icon: 'info',
+        buttons: {
+            cancel: { text: 'Cancelar', visible: true, className: 'btn btn-secondary' },
+            confirm: { text: modo === 'update' ? 'Sí, actualizar' : 'Sí, registrar', className: 'btn btn-primary' }
+        },
+        dangerMode: false,
+        closeOnClickOutside: false,
+        closeOnEsc: true
+    }).then(function(confirmado){
+        if (!confirmado) return;
+
+        var htmlOriginal = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>Procesando...');
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: $form.serialize(),
+            dataType: 'json',
+            cache: false
+        })
+        .done(function (res) {
+            if (res.status === 'success') {
+                $('#modalRegistrarVales').modal('hide');
+
+                if (res.run) {
+                    try { new Function(res.run)(); } catch(e) { console.error('Callback vale:', e); }
+                } else if (typeof listar_vales === 'function') {
+                    listar_vales();
+                }
+
+                nominaResetValeForm();
+                if (typeof getEmpleadoVales === 'function') {
+                    getEmpleadoVales();
+                }
+
+                showNotify('success', res.title || 'Vale registrado', res.message || 'El vale se registró correctamente.');
+            } else if (res.status === 'unauthorized') {
+                showNotify('error', res.title || 'Sesión expirada', res.message || 'Debes iniciar sesión nuevamente.');
+                if (res.redirect) {
+                    setTimeout(function(){ window.location.href = res.redirect; }, 1200);
+                }
+            } else {
+                var extra = (res.missing && res.missing.length) ? " Faltan: " + res.missing.join(', ') : '';
+                showNotify('error', res.title || 'Error', (res.message || 'Operación no realizada.') + extra);
+            }
+        })
+        .fail(function (xhr) {
+            var mensaje = 'No se pudo comunicar con el servidor.';
+            try {
+                var data = JSON.parse(xhr.responseText || '{}');
+                if (data.message) mensaje = data.message;
+            } catch(e) {}
+            showNotify('error', 'Error de conexión', mensaje);
+        })
+        .always(function () {
+            $btn.prop('disabled', false).html(htmlOriginal);
+        });
     });
 });
 
@@ -1322,25 +1545,33 @@ function getTipoNomina() {
 
 function getTipoContrato() {
     var url = '<?php echo SERVERURL;?>core/getTipoContrato.php';
-    $.ajax({
+    return $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_nominas #tipo_contrato_nomina').html("").html(data).izzySelect2Bridge('refresh');
+            var $filtro = $('#form_main_nominas #tipo_contrato_nomina');
+            var actual = $filtro.val() || '';
+            $filtro.html('<option value="">Todos</option>' + data);
+            $filtro.val(actual).izzySelect2Bridge('refresh');
         }
     });
 }
 
 function getPagoPlanificado() {
     var url = '<?php echo SERVERURL;?>core/getPagoPlanificado.php';
-    $.ajax({
+    return $.ajax({
         type: "POST",
         url: url,
         async: true,
         success: function(data) {
-            $('#form_main_nominas #pago_planificado_nomina').html("").html(data).izzySelect2Bridge('refresh');
-            $('#formNomina #nomina_pago_planificado_id').html("").html(data).izzySelect2Bridge('refresh');
+            var $filtro = $('#form_main_nominas #pago_planificado_nomina');
+            var actual = $filtro.val() || '';
+            $filtro.html('<option value="">Todos</option>' + data);
+            $filtro.val(actual).izzySelect2Bridge('refresh');
+
+            // En el formulario de registro sí se mantienen únicamente las opciones reales.
+            $('#formNomina #nomina_pago_planificado_id').html(data).izzySelect2Bridge('refresh');
         }
     });
 }
@@ -2201,6 +2432,12 @@ $(() => {
     });
 });
 
+
+$(document).off('click.nominaVolver', '#btnVolverNominaDetalle').on('click.nominaVolver', '#btnVolverNominaDetalle', function(){
+    $('#nomina_detalles').hide();
+    $('#nomina_principal').show();
+    nominaRefrescarPrincipalCrud();
+});
 </script>
 
 <script>

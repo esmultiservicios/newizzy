@@ -7,6 +7,105 @@ if($peticionAjax){
 
 class nominaControlador extends nominaModelo{
 
+    private function respuestaNomina($status, $title, $message, array $extra = [])
+    {
+        return json_encode(array_merge([
+            "status" => $status,
+            "title" => $title,
+            "message" => $message
+        ], $extra), JSON_UNESCAPED_UNICODE);
+    }
+
+    private function numeroNomina($valor)
+    {
+        if ($valor === null || $valor === '') {
+            return 0.0;
+        }
+
+        $valor = str_replace(',', '', trim((string)$valor));
+        return is_numeric($valor) ? (float)$valor : null;
+    }
+
+    private function fechaNominaValida($fecha)
+    {
+        $fecha = trim((string)$fecha);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            return false;
+        }
+
+        $d = DateTime::createFromFormat('Y-m-d', $fecha);
+        return $d && $d->format('Y-m-d') === $fecha;
+    }
+
+    private function estadoNominaPadre($nomina_id)
+    {
+        $conn = $this->connection();
+        $stmt = $conn->prepare("SELECT estado FROM nomina WHERE nomina_id = ? LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        $nomina_id = (int)$nomina_id;
+        $stmt->bind_param("i", $nomina_id);
+        $stmt->execute();
+        $stmt->bind_result($estado);
+
+        $resultado = $stmt->fetch() ? (int)$estado : null;
+        $stmt->close();
+
+        return $resultado;
+    }
+
+    private function estadoNominaPorDetalle($nomina_detalles_id)
+    {
+        $conn = $this->connection();
+        $stmt = $conn->prepare(
+            "SELECT n.estado
+             FROM nomina_detalles nd
+             INNER JOIN nomina n ON n.nomina_id = nd.nomina_id
+             WHERE nd.nomina_detalles_id = ?
+             LIMIT 1"
+        );
+        if (!$stmt) {
+            return null;
+        }
+
+        $nomina_detalles_id = (int)$nomina_detalles_id;
+        $stmt->bind_param("i", $nomina_detalles_id);
+        $stmt->execute();
+        $stmt->bind_result($estado);
+
+        $resultado = $stmt->fetch() ? (int)$estado : null;
+        $stmt->close();
+
+        return $resultado;
+    }
+
+    private function empleadoTieneContratoActivo($colaborador_id)
+    {
+        $conn = $this->connection();
+        $stmt = $conn->prepare(
+            "SELECT contrato_id
+             FROM contrato
+             WHERE colaborador_id = ? AND estado = 1
+             LIMIT 1"
+        );
+        if (!$stmt) {
+            return false;
+        }
+
+        $colaborador_id = (int)$colaborador_id;
+        $stmt->bind_param("i", $colaborador_id);
+        $stmt->execute();
+        $stmt->store_result();
+
+        $ok = $stmt->num_rows > 0;
+        $stmt->close();
+
+        return $ok;
+    }
+
+
     /*========== Agregar nómina (JSON) ==========*/
     public function agregar_nomina_controlador(){
         $validacion = mainModel::validarSesion();
@@ -35,12 +134,20 @@ class nominaControlador extends nominaModelo{
         $fecha_registro      = date("Y-m-d H:i:s");
 
         // Requeridos
-        if($detalle === '' || $pago_planificado_id === '' || $empresa_id === '' || $tipo_nomina === '' || $fecha_inicio === '' || $fecha_fin === ''){
-            return json_encode([
-                "status"  => "error",
-                "title"   => "Campos incompletos",
-                "message" => "Completa los campos obligatorios."
-            ]);
+        if($detalle === '' || $pago_planificado_id === '' || $empresa_id === '' || $tipo_nomina === '' || $fecha_inicio === '' || $fecha_fin === '' || $cuentas_id === ''){
+            return $this->respuestaNomina(
+                "error",
+                "Campos incompletos",
+                "Completa detalle, pago planificado, empresa, tipo de nómina, cuenta de pago y período."
+            );
+        }
+
+        if (!$this->fechaNominaValida($fecha_inicio) || !$this->fechaNominaValida($fecha_fin)) {
+            return $this->respuestaNomina("error", "Fechas inválidas", "Revisa la fecha de inicio y la fecha final.");
+        }
+
+        if ($fecha_fin < $fecha_inicio) {
+            return $this->respuestaNomina("error", "Período inválido", "La fecha final no puede ser anterior a la fecha de inicio.");
         }
 
         $datos = [
@@ -139,11 +246,43 @@ class nominaControlador extends nominaModelo{
         $fecha_registro    = date("Y-m-d H:i:s");
 
         if($nomina_id === '' || $colaboradores_id === ''){
-            return json_encode([
-                "status"  => "error",
-                "title"   => "Campos incompletos",
-                "message" => "Selecciona nómina y empleado."
-            ]);
+            return $this->respuestaNomina(
+                "error",
+                "Campos incompletos",
+                "Selecciona la nómina y el empleado."
+            );
+        }
+
+        $estadoNomina = $this->estadoNominaPadre((int)$nomina_id);
+        if ($estadoNomina === null) {
+            return $this->respuestaNomina("error", "Nómina no encontrada", "La nómina seleccionada ya no existe.");
+        }
+
+        if ($estadoNomina === 1) {
+            return $this->respuestaNomina(
+                "error",
+                "Nómina generada",
+                "No se pueden agregar empleados porque esta nómina ya fue generada."
+            );
+        }
+
+        $salarioMensualNumero = $this->numeroNomina($salario_mensual);
+        $diasTrabajadosNumero = $this->numeroNomina($dias_trabajados);
+
+        if ($salarioMensualNumero === null || $salarioMensualNumero <= 0) {
+            return $this->respuestaNomina(
+                "error",
+                "Salario inválido",
+                "El empleado debe tener un salario mensual mayor que cero."
+            );
+        }
+
+        if ($diasTrabajadosNumero === null || $diasTrabajadosNumero < 0 || $diasTrabajadosNumero > 31) {
+            return $this->respuestaNomina(
+                "error",
+                "Días trabajados inválidos",
+                "Los días trabajados deben estar entre 0 y 31."
+            );
         }
 
         $datos = [
@@ -300,11 +439,33 @@ class nominaControlador extends nominaModelo{
         $fecha_registro = date("Y-m-d H:i:s");
 
         if($nomina_detalles_id === ''){
-            return json_encode([
-                "status"  => "error",
-                "title"   => "Falta ID",
-                "message" => "No se pudo identificar el detalle a editar."
-            ]);
+            return $this->respuestaNomina(
+                "error",
+                "Falta ID",
+                "No se pudo identificar el detalle a editar."
+            );
+        }
+
+        $estadoNomina = $this->estadoNominaPorDetalle((int)$nomina_detalles_id);
+        if ($estadoNomina === null) {
+            return $this->respuestaNomina("error", "Detalle no encontrado", "El detalle seleccionado ya no existe.");
+        }
+
+        if ($estadoNomina === 1) {
+            return $this->respuestaNomina(
+                "error",
+                "Nómina generada",
+                "No se puede modificar un empleado después de generar la nómina."
+            );
+        }
+
+        $diasNumero = $this->numeroNomina($dias_trabajados);
+        if ($diasNumero === null || $diasNumero < 0 || $diasNumero > 31) {
+            return $this->respuestaNomina(
+                "error",
+                "Días trabajados inválidos",
+                "Los días trabajados deben estar entre 0 y 31."
+            );
         }
 
         $datos = [
@@ -576,68 +737,95 @@ class nominaControlador extends nominaModelo{
     public function agregar_vale_controlador(){
         $validacion = mainModel::validarSesion();
         if($validacion['error']){
-            return json_encode([
-                "status"   => "unauthorized",
-                "title"    => "Error de sesión",
-                "message"  => $validacion['mensaje'],
-                "redirect" => $validacion['redireccion'] ?? null
-            ]);
+            return $this->respuestaNomina(
+                "unauthorized",
+                "Error de sesión",
+                $validacion['mensaje'],
+                ["redirect" => $validacion['redireccion'] ?? null]
+            );
         }
 
-        $fecha          = mainModel::cleanString($_POST['vale_fecha'] ?? '');
-        $empleado_id    = mainModel::cleanString($_POST['vale_empleado'] ?? '');
-        $monto          = mainModel::cleanString($_POST['vale_monto'] ?? '');
-        $nota           = mainModel::cleanString($_POST['vale_notas'] ?? '');
-        $usuario        = $_SESSION['colaborador_id_sd'] ?? 0;
-        $estado         = 0;
-        $empresa_id     = mainModel::cleanString($_POST['nomina_empresa_id'] ?? ($_SESSION['empresa_id'] ?? 0));
+        $fecha = mainModel::cleanString($_POST['vale_fecha'] ?? '');
+        $empleado_id = (int)mainModel::cleanString($_POST['vale_empleado'] ?? '0');
+        $monto = $this->numeroNomina($_POST['vale_monto'] ?? '');
+        $nota = mainModel::cleanString($_POST['vale_notas'] ?? '');
+        $usuario = (int)($_SESSION['colaborador_id_sd'] ?? 0);
+        $estado = 0;
+        $empresa_id = (int)mainModel::cleanString($_POST['nomina_empresa_id'] ?? ($_SESSION['empresa_id_sd'] ?? $_SESSION['empresa_id'] ?? 0));
         $fecha_registro = date("Y-m-d H:i:s");
 
-        if($fecha==='' || $empleado_id==='' || $monto===''){
-            return json_encode([
-                "status"  => "error",
-                "title"   => "Campos incompletos",
-                "message" => "Fecha, empleado y monto son obligatorios."
-            ]);
+        if (!$this->fechaNominaValida($fecha)) {
+            return $this->respuestaNomina("error", "Fecha inválida", "Selecciona una fecha válida para el vale.");
+        }
+
+        if ($empleado_id <= 0) {
+            return $this->respuestaNomina("error", "Empleado requerido", "Selecciona el empleado que recibirá el vale.");
+        }
+
+        if ($monto === null || $monto <= 0) {
+            return $this->respuestaNomina("error", "Monto inválido", "El monto del vale debe ser mayor que cero.");
+        }
+
+        if ($empresa_id <= 0) {
+            return $this->respuestaNomina(
+                "error",
+                "Empresa no disponible",
+                "No se pudo identificar la empresa activa para registrar el vale."
+            );
+        }
+
+        if (mb_strlen($nota) > 1000) {
+            return $this->respuestaNomina("error", "Notas demasiado largas", "Las notas admiten un máximo de 1000 caracteres.");
+        }
+
+        if (!$this->empleadoTieneContratoActivo($empleado_id)) {
+            return $this->respuestaNomina(
+                "error",
+                "Contrato activo requerido",
+                "El empleado debe tener un contrato activo para registrar un vale."
+            );
+        }
+
+        $dup = $this->valid_vale_modelo($empleado_id);
+        if ($dup && $dup->num_rows > 0){
+            return $this->respuestaNomina(
+                "error",
+                "Vale pendiente",
+                "El empleado ya tiene un vale pendiente. Debes procesarlo o anularlo antes de registrar otro."
+            );
         }
 
         $datos = [
-            "nomina_id"       => 0, // si no aplica, va 0
-            "colaboradores_id"=> $empleado_id,
-            "monto"           => $monto,
-            "fecha"           => $fecha,
-            "nota"            => $nota,
-            "usuario"         => $usuario,
-            "estado"          => $estado,
-            "empresa_id"      => $empresa_id,
-            "fecha_registro"  => $fecha_registro
+            "nomina_id" => 0,
+            "colaboradores_id" => $empleado_id,
+            "monto" => $monto,
+            "fecha" => $fecha,
+            "nota" => $nota,
+            "usuario" => $usuario,
+            "estado" => $estado,
+            "empresa_id" => $empresa_id,
+            "fecha_registro" => $fecha_registro
         ];
-
-        // opcional: validar vale abierto
-        $dup = $this->valid_vale_modelo($empleado_id);
-        if ($dup && $dup->num_rows > 0){
-            return json_encode([
-                "status"  => "error",
-                "title"   => "Vale pendiente",
-                "message" => "El empleado ya tiene un vale sin cancelar."
-            ]);
-        }
 
         $vale_id = $this->agregar_vale_modelo($datos);
         if(!$vale_id){
-            return json_encode([
-                "status"  => "error",
-                "title"   => "Error",
-                "message" => "No se pudo registrar el vale."
-            ]);
+            error_log("IZZY vale: " . $this->ultimo_error_nomina_modelo());
+            return $this->respuestaNomina(
+                "error",
+                "No se pudo registrar",
+                "No fue posible registrar el vale. Revisa la información e intenta nuevamente."
+            );
         }
 
-        return json_encode([
-            "status"  => "success",
-            "title"   => "Vale registrado",
-            "message" => "El vale se registró correctamente.",
-            "vale_id" => $vale_id,
-            "run"     => "listar_vales();"
-        ]);
+        return $this->respuestaNomina(
+            "success",
+            "Vale registrado",
+            "El vale se registró correctamente y quedó pendiente para el siguiente procesamiento de nómina.",
+            [
+                "vale_id" => $vale_id,
+                "run" => "listar_vales();"
+            ]
+        );
     }
+
 }

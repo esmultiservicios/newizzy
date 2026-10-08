@@ -166,3 +166,239 @@
     .nomina-mini-field strong { font-size:13px !important; }
     .nomina-mini-field span { font-size:10px !important; }
 }
+
+
+/* =========================================================
+   IZZY | ACCIONES DE NÓMINA - ICONOS POR FUNCIÓN
+   Mantiene el color del icono también en hover/focus.
+   ========================================================= */
+.acciones-menu .accion-icon{
+    width:30px;height:30px;flex:0 0 30px;display:inline-flex;align-items:center;justify-content:center;
+    border-radius:8px;transition:none!important;
+}
+.acciones-menu .nomina-ui-generar .accion-icon{background:#e8f3ff!important;color:#176fae!important}
+.acciones-menu .nomina-ui-voucher .accion-icon{background:#e9f8ef!important;color:#14804a!important}
+.acciones-menu .nomina-ui-libro .accion-icon{background:#f0edff!important;color:#6554c0!important}
+.acciones-menu .nomina-ui-crear .accion-icon{background:#e8f8fb!important;color:#0f8fa8!important}
+.acciones-menu .accion-editar .accion-icon{background:#fff3cd!important;color:#b7791f!important}
+.acciones-menu .accion-eliminar .accion-icon{background:#fde8e7!important;color:#c9372c!important}
+.acciones-menu .accion-item:hover .accion-icon,
+.acciones-menu .accion-item:focus .accion-icon{filter:none!important;transform:none!important}
+.acciones-menu .nomina-ui-generar:hover .accion-icon,.acciones-menu .nomina-ui-generar:focus .accion-icon{background:#e8f3ff!important;color:#176fae!important}
+.acciones-menu .nomina-ui-voucher:hover .accion-icon,.acciones-menu .nomina-ui-voucher:focus .accion-icon{background:#e9f8ef!important;color:#14804a!important}
+.acciones-menu .nomina-ui-libro:hover .accion-icon,.acciones-menu .nomina-ui-libro:focus .accion-icon{background:#f0edff!important;color:#6554c0!important}
+.acciones-menu .nomina-ui-crear:hover .accion-icon,.acciones-menu .nomina-ui-crear:focus .accion-icon{background:#e8f8fb!important;color:#0f8fa8!important}
+.acciones-menu .accion-editar:hover .accion-icon,.acciones-menu .accion-editar:focus .accion-icon{background:#fff3cd!important;color:#b7791f!important}
+.acciones-menu .accion-eliminar:hover .accion-icon,.acciones-menu .accion-eliminar:focus .accion-icon{background:#fde8e7!important;color:#c9372c!important}
+
+/* =========================================================
+   IZZY 6.09 | Nómina, empleados y vales - acabado premium
+   ========================================================= */
+.nomina-premium-note{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    padding:12px 14px;
+    border:1px solid #d9e7f3;
+    border-radius:10px;
+    background:#f8fbfe;
+    color:#24445f;
+}
+.nomina-premium-note-icon{
+    flex:0 0 38px;
+    width:38px;
+    height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:9px;
+    background:#e8f4fc;
+    color:#176fae;
+    font-size:15px;
+}
+.nomina-premium-note strong{
+    display:block;
+    margin-bottom:2px;
+    color:#17324d;
+    font-size:12px;
+    font-weight:800;
+}
+.nomina-premium-note span{
+    display:block;
+    color:#65778a;
+    font-size:10.5px;
+    line-height:1.45;
+}
+.nomina-premium-note-warning{
+    border-color:#f0dfb6;
+    background:#fffaf0;
+}
+.nomina-premium-note-warning .nomina-premium-note-icon{
+    background:#fff1c9;
+    color:#a76b00;
+}
+
+#modal_registrar_nomina_detalles .modal-content,
+#modalRegistrarVales .modal-content{
+    border:0;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 18px 48px rgba(17,38,63,.20);
+}
+#modal_registrar_nomina_detalles .modal-header,
+#modalRegistrarVales .modal-header{
+    background:#17324d!important;
+    border-bottom:3px solid #26c69a;
+}
+#modal_registrar_nomina_detalles .card,
+#modalRegistrarVales .card{
+    border:1px solid #dfe8f0!important;
+    border-radius:11px;
+    overflow:hidden;
+    box-shadow:none;
+}
+#modal_registrar_nomina_detalles .card-header,
+#modalRegistrarVales .card-header{
+    background:#f6f9fc!important;
+    color:#17324d!important;
+    border-bottom:1px solid #dfe8f0;
+}
+#modal_registrar_nomina_detalles .card-header h5,
+#modalRegistrarVales .card-header h5{
+    font-size:13px;
+    font-weight:800;
+}
+#modal_registrar_nomina_detalles .form-control:focus,
+#modalRegistrarVales .form-control:focus,
+#modal_registrar_nomina_detalles .select2-container--focus .select2-selection,
+#modalRegistrarVales .select2-container--focus .select2-selection{
+    border-color:#2f9ddd!important;
+    box-shadow:0 0 0 3px rgba(47,157,221,.12)!important;
+}
+#modal_registrar_nomina_detalles .is-invalid,
+#modalRegistrarVales .is-invalid{
+    border-color:#dc3545!important;
+    box-shadow:0 0 0 3px rgba(220,53,69,.08)!important;
+}
+#modal_registrar_nomina_detalles .modal-footer,
+#modalRegistrarVales .modal-footer{
+    background:#fbfcfe;
+    border-top:1px solid #e2e8ef;
+}
+#modal_registrar_nomina_detalles .btn-secondary,
+#modalRegistrarVales .btn-secondary{
+    background:#6c7a89!important;
+    border-color:#6c7a89!important;
+    color:#fff!important;
+}
+#modal_registrar_nomina_detalles .btn-secondary:hover,
+#modal_registrar_nomina_detalles .btn-secondary:focus,
+#modalRegistrarVales .btn-secondary:hover,
+#modalRegistrarVales .btn-secondary:focus{
+    background:#5c6976!important;
+    border-color:#5c6976!important;
+    color:#fff!important;
+}
+#modal_registrar_nomina_detalles .btn-success,
+#modalRegistrarVales .btn-success{
+    color:#fff!important;
+}
+#modal_registrar_nomina_detalles .btn-success:hover,
+#modal_registrar_nomina_detalles .btn-success:focus,
+#modalRegistrarVales .btn-success:hover,
+#modalRegistrarVales .btn-success:focus{
+    color:#fff!important;
+}
+
+/* Vales: tarjetas compactas y lectura clara */
+.nomina-vales-grid{gap:10px}
+.nomina-vale-card{
+    border-color:#dce6ef;
+    transition:box-shadow .18s ease,transform .18s ease,border-color .18s ease;
+}
+.nomina-vale-card:hover{
+    border-color:#bdd7e8;
+    box-shadow:0 8px 18px rgba(23,50,77,.08);
+    transform:translateY(-1px);
+}
+.nomina-vale-card .btn-danger{
+    background:#fff2f1!important;
+    border-color:#ffd0cd!important;
+    color:#c9372c!important;
+}
+.nomina-vale-card .btn-danger:hover,
+.nomina-vale-card .btn-danger:focus{
+    background:#ffe7e4!important;
+    border-color:#ffc1bc!important;
+    color:#a92d25!important;
+}
+
+/* SweetAlert de nómina: preservar color al hover/focus */
+.swal-modal .swal-button--voucher,
+.swal-modal .swal-button--confirm{
+    background:#2f9ddd!important;
+    border-color:#2f9ddd!important;
+    color:#fff!important;
+}
+.swal-modal .swal-button--voucher:hover,
+.swal-modal .swal-button--voucher:focus,
+.swal-modal .swal-button--confirm:hover,
+.swal-modal .swal-button--confirm:focus{
+    background:#278ac4!important;
+    border-color:#278ac4!important;
+    color:#fff!important;
+}
+.swal-modal .swal-button--libro{
+    background:#22a860!important;
+    border-color:#22a860!important;
+    color:#fff!important;
+}
+.swal-modal .swal-button--libro:hover,
+.swal-modal .swal-button--libro:focus{
+    background:#1c9152!important;
+    border-color:#1c9152!important;
+    color:#fff!important;
+}
+.swal-modal .swal-button--cancel{
+    background:#6c7a89!important;
+    border-color:#6c7a89!important;
+    color:#fff!important;
+}
+.swal-modal .swal-button--cancel:hover,
+.swal-modal .swal-button--cancel:focus{
+    background:#5c6976!important;
+    border-color:#5c6976!important;
+    color:#fff!important;
+}
+
+@media (max-width:767.98px){
+    .nomina-premium-note{padding:10px 11px}
+    .nomina-premium-note-icon{flex-basis:34px;width:34px;height:34px}
+    #modal_registrar_nomina_detalles .modal-footer,
+    #modalRegistrarVales .modal-footer{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+    }
+    #modal_registrar_nomina_detalles .modal-footer .btn,
+    #modalRegistrarVales .modal-footer .btn{
+        flex:1 1 140px;
+        margin:0!important;
+    }
+}
+
+#modal_registrar_nomina_detalles button[data-dismiss="modal"].btn-danger,
+#modalRegistrarVales button[data-dismiss="modal"].btn-danger{
+    background:#6c7a89!important;
+    border-color:#6c7a89!important;
+    color:#fff!important;
+}
+#modal_registrar_nomina_detalles button[data-dismiss="modal"].btn-danger:hover,
+#modal_registrar_nomina_detalles button[data-dismiss="modal"].btn-danger:focus,
+#modalRegistrarVales button[data-dismiss="modal"].btn-danger:hover,
+#modalRegistrarVales button[data-dismiss="modal"].btn-danger:focus{
+    background:#5c6976!important;
+    border-color:#5c6976!important;
+    color:#fff!important;
+}
+

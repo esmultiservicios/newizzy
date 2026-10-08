@@ -1,313 +1,371 @@
 <?php
-// core/generarNomina.php
 $peticionAjax = true;
 header('Content-Type: application/json; charset=UTF-8');
-
-// Captura cualquier salida inesperada y asegúrate de devolver SOLO JSON
 ob_start();
 
-require_once "configGenerales.php";
-require_once "mainModel.php";
+require_once __DIR__ . "/configGenerales.php";
+require_once __DIR__ . "/mainModel.php";
 
 $insMainModel = new mainModel();
 
-/* ============ Helper JSON ============ */
-function json_out($arr){
-    $garbage = trim(ob_get_clean()); // descarta cualquier eco previo
-    echo json_encode($arr, JSON_UNESCAPED_UNICODE);
+function nomina_json_out(array $data)
+{
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-/* ============ Entrada ============ */
-$nomina_id  = isset($_POST['nomina_id'])  ? (int)$_POST['nomina_id']  : 0;
+function nomina_error_log_seguro(Throwable $e)
+{
+    error_log('IZZY generarNomina: ' . $e->getMessage());
+}
+
+$validacion = mainModel::validarSesion();
+if (!empty($validacion['error'])) {
+    nomina_json_out([
+        'status' => 10,
+        'title' => 'Sesión expirada',
+        'message' => $validacion['mensaje'] ?? 'Debes iniciar sesión nuevamente.',
+        'redirect' => $validacion['redireccion'] ?? null
+    ]);
+}
+
+$nomina_id = isset($_POST['nomina_id']) ? (int)$_POST['nomina_id'] : 0;
 $empresa_id = isset($_POST['empresa_id']) ? (int)$_POST['empresa_id'] : 0;
 
 if ($nomina_id <= 0 || $empresa_id <= 0) {
-    json_out([
-        'status'  => 5,
-        'title'   => 'Datos incompletos',
-        'message' => 'Falta nomina_id o empresa_id para generar la nómina.'
+    nomina_json_out([
+        'status' => 5,
+        'title' => 'Datos incompletos',
+        'message' => 'No se pudo identificar la nómina o la empresa.'
     ]);
 }
 
-/* ============ Conexión (usa tu helper) ============ */
 try {
-    if (method_exists('mainModel', 'staticConnection')) {
-        $cn = mainModel::staticConnection();
-    } elseif (method_exists($insMainModel, 'connection')) {
-        $cn = $insMainModel->connection();
-    } else {
-        throw new Exception('No se encontró método de conexión (staticConnection/connection) en mainModel.');
-    }
+    $cn = method_exists('mainModel', 'staticConnection')
+        ? mainModel::staticConnection()
+        : $insMainModel->connection();
+
     if (!($cn instanceof mysqli)) {
-        throw new Exception('No se obtuvo un objeto mysqli válido.');
+        throw new RuntimeException('Conexión no disponible.');
     }
-} catch (Throwable $e) {
-    json_out([
-        'status'  => 7,
-        'title'   => 'Conexión',
-        'message' => 'No fue posible conectar con la base de datos: '.$e->getMessage()
-    ]);
-}
 
-/* ============ VALIDAR: Debe existir al menos 1 empleado en nomina_detalles ============ */
-$detallesCount = 0;
-if ($stmtT = $cn->prepare("SELECT COUNT(*) AS c FROM nomina_detalles WHERE nomina_id = ?")) {
-    $stmtT->bind_param("i", $nomina_id);
-    $stmtT->execute();
-    $stmtT->bind_result($detallesCount);
-    $stmtT->fetch();
-    $stmtT->close();
-} else {
-    json_out([
-        'status'  => 11,
-        'title'   => 'Tabla no encontrada',
-        'message' => 'No se encontró la tabla de detalles (nomina_detalles).'
-    ]);
-}
-if ((int)$detallesCount === 0) {
-    json_out([
-        'status'  => 8,
-        'title'   => 'Sin empleados',
-        'message' => 'No hay empleados registrados en el detalle de esta nómina. Agrega al menos uno antes de generar.'
-    ]);
-}
+    // Validar cabecera antes de modificar cualquier estado.
+    $stmt = $cn->prepare(
+        "SELECT empresa_id, cuentas_id, estado, detalle
+         FROM nomina
+         WHERE nomina_id = ?
+         LIMIT 1"
+    );
+    if (!$stmt) {
+        throw new RuntimeException($cn->error);
+    }
 
-/* ============ Totales del detalle ============ */
-$result_saldos = $insMainModel->getTotalesNominaDetalle($nomina_id);
-if (!$result_saldos || $result_saldos->num_rows === 0) {
-    json_out([
-        'status'  => 4,
-        'title'   => 'Sin detalles',
-        'message' => 'No existe un detalle generado para esta nómina.'
-    ]);
-}
-$row_saldos = $result_saldos->fetch_assoc();
-$neto_total = (float)($row_saldos['neto'] ?? 0.00);
+    $stmt->bind_param("i", $nomina_id);
+    $stmt->execute();
+    $stmt->bind_result($dbEmpresaId, $cuentas_id, $estadoNomina, $detalleNomina);
 
-/* ============ Actualiza cabecera + detalles ============ */
-if (!$insMainModel->actualizarNomina($nomina_id, $neto_total)) {
-    json_out([
-        'status'  => 3,
-        'title'   => 'Actualización fallida',
-        'message' => 'No se pudo actualizar el total de la nómina.'
-    ]);
-}
-$insMainModel->actualizarNominaDetalles($nomina_id);
+    if (!$stmt->fetch()) {
+        $stmt->close();
+        nomina_json_out([
+            'status' => 12,
+            'title' => 'Nómina no encontrada',
+            'message' => 'La nómina seleccionada ya no existe.'
+        ]);
+    }
+    $stmt->close();
 
-/* ============ Asistencia y vales ============ */
-$result_colaboradores = $insMainModel->GetColaboradoresNomina($nomina_id);
-if ($result_colaboradores) {
-    while ($c = $result_colaboradores->fetch_assoc()) {
-        $colabId = (int)$c['colaboradores_id'];
-        if ($colabId > 0) {
-            $insMainModel->ActualizarEstadoAsistencia($colabId);
-            $insMainModel->actualizarVales([
-                "colaboradores_id" => $colabId,
-                "nomina_id"        => $nomina_id,
-                "estado"           => "1"
+    $dbEmpresaId = (int)$dbEmpresaId;
+    $cuentas_id = (int)$cuentas_id;
+    $estadoNomina = (int)$estadoNomina;
+
+    if ($dbEmpresaId !== $empresa_id) {
+        nomina_json_out([
+            'status' => 13,
+            'title' => 'Empresa no válida',
+            'message' => 'La nómina no pertenece a la empresa seleccionada.'
+        ]);
+    }
+
+    if ($estadoNomina === 1) {
+        nomina_json_out([
+            'status' => 2,
+            'title' => 'Nómina ya generada',
+            'message' => 'Esta nómina ya fue generada anteriormente.'
+        ]);
+    }
+
+    if ($cuentas_id <= 0) {
+        nomina_json_out([
+            'status' => 6,
+            'title' => 'Cuenta de pago requerida',
+            'message' => 'Selecciona una cuenta de pago antes de generar la nómina.'
+        ]);
+    }
+
+    $detallesCount = 0;
+    $stmt = $cn->prepare("SELECT COUNT(*) FROM nomina_detalles WHERE nomina_id = ? AND estado = 0");
+    if (!$stmt) {
+        throw new RuntimeException($cn->error);
+    }
+    $stmt->bind_param("i", $nomina_id);
+    $stmt->execute();
+    $stmt->bind_result($detallesCount);
+    $stmt->fetch();
+    $stmt->close();
+
+    if ((int)$detallesCount === 0) {
+        nomina_json_out([
+            'status' => 8,
+            'title' => 'Sin empleados',
+            'message' => 'Agrega al menos un empleado al detalle antes de generar la nómina.'
+        ]);
+    }
+
+    $neto_total = 0.0;
+    $stmt = $cn->prepare(
+        "SELECT COALESCE(SUM(neto), 0)
+         FROM nomina_detalles
+         WHERE nomina_id = ? AND estado = 0"
+    );
+    if (!$stmt) {
+        throw new RuntimeException($cn->error);
+    }
+    $stmt->bind_param("i", $nomina_id);
+    $stmt->execute();
+    $stmt->bind_result($neto_total);
+    $stmt->fetch();
+    $stmt->close();
+
+    $neto_total = (float)$neto_total;
+    if ($neto_total <= 0) {
+        nomina_json_out([
+            'status' => 4,
+            'title' => 'Total inválido',
+            'message' => 'El total neto de la nómina debe ser mayor que cero antes de generarla.'
+        ]);
+    }
+
+    $colaboradores_id = (int)($_SESSION['colaborador_id_sd'] ?? 0);
+    if ($colaboradores_id <= 0) {
+        nomina_json_out([
+            'status' => 10,
+            'title' => 'Sesión inválida',
+            'message' => 'No se pudo identificar al usuario que genera la nómina.'
+        ]);
+    }
+
+    $tipo_egreso = 2;
+    $fecha = date("Y-m-d");
+    $fecha_registro = date("Y-m-d H:i:s");
+    $factura = "Nomina " . $nomina_id;
+    $factura_pdf = '';
+    $subtotal = $neto_total;
+    $descuento = 0.00;
+    $nc = 0.00;
+    $impuesto = 0.00;
+    $total = $neto_total;
+    $observacion = "Pago de Nómina " . $nomina_id;
+    $estado = 1;
+    $categoria_gastos_id = 0;
+    $proveedores_id = 1;
+
+    $locked = false;
+
+    try {
+        $lockSql = "LOCK TABLES
+            egresos WRITE,
+            movimientos_cuentas WRITE,
+            nomina WRITE,
+            nomina_detalles WRITE";
+
+        if (!$cn->query($lockSql)) {
+            throw new RuntimeException('No fue posible preparar la generación de la nómina.');
+        }
+        $locked = true;
+
+        // Validación final dentro del bloqueo para evitar doble generación.
+        $res = $cn->query("SELECT estado FROM nomina WHERE nomina_id = {$nomina_id} LIMIT 1");
+        if (!$res || !$row = $res->fetch_assoc()) {
+            throw new RuntimeException('La nómina ya no está disponible.');
+        }
+        if ((int)$row['estado'] === 1) {
+            throw new RuntimeException('NOMINA_DUPLICADA');
+        }
+
+        $stmtChk = $cn->prepare(
+            "SELECT egresos_id
+             FROM egresos
+             WHERE factura = ? AND tipo_egreso = ? AND empresa_id = ?
+             LIMIT 1"
+        );
+        if (!$stmtChk) {
+            throw new RuntimeException($cn->error);
+        }
+        $stmtChk->bind_param("sii", $factura, $tipo_egreso, $empresa_id);
+        $stmtChk->execute();
+        $stmtChk->store_result();
+
+        if ($stmtChk->num_rows > 0) {
+            $stmtChk->close();
+            throw new RuntimeException('NOMINA_DUPLICADA');
+        }
+        $stmtChk->close();
+
+        $resMaxE = $cn->query("SELECT IFNULL(MAX(egresos_id),0)+1 AS next_id FROM egresos");
+        if (!$resMaxE) {
+            throw new RuntimeException($cn->error);
+        }
+        $next_egreso_id = (int)$resMaxE->fetch_assoc()['next_id'];
+
+        $sqlEgreso = $cn->prepare(
+            "INSERT INTO egresos
+            (egresos_id, cuentas_id, proveedores_id, empresa_id, tipo_egreso, fecha, factura, factura_pdf,
+             subtotal, descuento, nc, impuesto, total, observacion, estado, colaboradores_id, fecha_registro, categoria_gastos_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        );
+        if (!$sqlEgreso) {
+            throw new RuntimeException($cn->error);
+        }
+
+        $sqlEgreso->bind_param(
+            "iiiiisssdddddsiisi",
+            $next_egreso_id, $cuentas_id, $proveedores_id, $empresa_id, $tipo_egreso,
+            $fecha, $factura, $factura_pdf, $subtotal, $descuento, $nc, $impuesto,
+            $total, $observacion, $estado, $colaboradores_id, $fecha_registro, $categoria_gastos_id
+        );
+
+        if (!$sqlEgreso->execute()) {
+            throw new RuntimeException($sqlEgreso->error);
+        }
+        $sqlEgreso->close();
+
+        $saldo_anterior = 0.0;
+        $stmtSaldo = $cn->prepare(
+            "SELECT saldo
+             FROM movimientos_cuentas
+             WHERE cuentas_id = ?
+             ORDER BY movimientos_cuentas_id DESC
+             LIMIT 1"
+        );
+        if (!$stmtSaldo) {
+            throw new RuntimeException($cn->error);
+        }
+        $stmtSaldo->bind_param("i", $cuentas_id);
+        $stmtSaldo->execute();
+        $stmtSaldo->bind_result($saldoDb);
+        if ($stmtSaldo->fetch()) {
+            $saldo_anterior = (float)$saldoDb;
+        }
+        $stmtSaldo->close();
+
+        $ingreso = 0.00;
+        $egreso = $total;
+        $saldo = $saldo_anterior - $egreso;
+
+        $resMaxM = $cn->query("SELECT IFNULL(MAX(movimientos_cuentas_id),0)+1 AS next_id FROM movimientos_cuentas");
+        if (!$resMaxM) {
+            throw new RuntimeException($cn->error);
+        }
+        $next_mov_id = (int)$resMaxM->fetch_assoc()['next_id'];
+
+        $sqlMov = $cn->prepare(
+            "INSERT INTO movimientos_cuentas
+            (movimientos_cuentas_id, cuentas_id, empresa_id, fecha, ingreso, egreso, saldo, colaboradores_id, fecha_registro)
+            VALUES (?,?,?,?,?,?,?,?,?)"
+        );
+        if (!$sqlMov) {
+            throw new RuntimeException($cn->error);
+        }
+
+        $sqlMov->bind_param(
+            "iiisdddis",
+            $next_mov_id, $cuentas_id, $empresa_id, $fecha,
+            $ingreso, $egreso, $saldo, $colaboradores_id, $fecha_registro
+        );
+
+        if (!$sqlMov->execute()) {
+            throw new RuntimeException($sqlMov->error);
+        }
+        $sqlMov->close();
+
+        $stmtNomina = $cn->prepare(
+            "UPDATE nomina SET importe = ?, estado = 1 WHERE nomina_id = ? AND estado = 0"
+        );
+        if (!$stmtNomina) {
+            throw new RuntimeException($cn->error);
+        }
+        $stmtNomina->bind_param("di", $neto_total, $nomina_id);
+        if (!$stmtNomina->execute() || $stmtNomina->affected_rows !== 1) {
+            throw new RuntimeException('No se pudo confirmar la cabecera de la nómina.');
+        }
+        $stmtNomina->close();
+
+        $stmtDetalles = $cn->prepare(
+            "UPDATE nomina_detalles SET estado = 1 WHERE nomina_id = ? AND estado = 0"
+        );
+        if (!$stmtDetalles) {
+            throw new RuntimeException($cn->error);
+        }
+        $stmtDetalles->bind_param("i", $nomina_id);
+        if (!$stmtDetalles->execute() || $stmtDetalles->affected_rows < 1) {
+            throw new RuntimeException('No se pudieron confirmar los detalles de la nómina.');
+        }
+        $stmtDetalles->close();
+
+        $cn->query("UNLOCK TABLES");
+        $locked = false;
+    } catch (Throwable $e) {
+        if ($locked) {
+            $cn->query("UNLOCK TABLES");
+            $locked = false;
+        }
+
+        if ($e->getMessage() === 'NOMINA_DUPLICADA') {
+            nomina_json_out([
+                'status' => 2,
+                'title' => 'Nómina ya generada',
+                'message' => 'Esta nómina ya tiene un egreso asociado y no se volverá a generar.'
             ]);
         }
-    }
-}
 
-/* ============ Cuenta asociada a la nómina ============ */
-$consulta_cuenta = $insMainModel->getCuentaIdNomina($nomina_id);
-$cuentas_id = 0;
-if ($consulta_cuenta && $consulta_cuenta->num_rows > 0) {
-    $rowCuenta  = $consulta_cuenta->fetch_assoc();
-    $cuentas_id = (int)($rowCuenta['cuentas_id'] ?? 0);
-}
-if ($cuentas_id <= 0) {
-    json_out([
-        'status'  => 6,
-        'title'   => 'Configuración faltante',
-        'message' => 'La nómina no tiene una cuenta asociada. Configúrala antes de generar.'
-    ]);
-}
-
-/* ============ Sesión para colaborador que genera ============ */
-if (session_status() === PHP_SESSION_NONE) {
-    if (!empty($GLOBALS['session_name']) && is_string($GLOBALS['session_name'])) {
-        @session_name($GLOBALS['session_name']);
-    } else {
-        @session_name('SD');
-    }
-    @session_start();
-}
-$colaboradores_id = isset($_SESSION['colaborador_id_sd']) ? (int)$_SESSION['colaborador_id_sd'] : 0;
-
-/* ============ Datos para egresos (según TU esquema) ============ */
-$tipo_egreso         = 2; // 1=Compras, 2=Gastos (pago de nómina)
-$fecha               = date("Y-m-d");
-$fecha_registro      = date("Y-m-d H:i:s");
-$factura             = "Nomina ".$nomina_id;
-$factura_pdf         = null;     // puede quedar NULL o vacío
-$subtotal            = $neto_total;
-$descuento           = 0.00;
-$nc                  = 0.00;     // nota de crédito
-$impuesto            = 0.00;
-$total               = $neto_total;
-$observacion         = "Pago de Nomina ".$nomina_id;
-$estado              = 1;
-$categoria_gastos_id = 0;
-$proveedores_id      = 1;        // proveedor genérico o el que uses
-
-/* ============================
-   BLOQUE CRÍTICO (MyISAM): LOCK TABLES
-   - Genera IDs manuales (MAX+1)
-   - Verifica duplicados
-   - Inserta EGRESOS y MOVIMIENTOS
-   ============================ */
-$locked = false;
-try {
-    // Bloquea ambas tablas para evitar carreras al calcular MAX+1
-    if (!$cn->query("LOCK TABLES egresos WRITE, movimientos_cuentas WRITE")) {
-        throw new Exception("No se pudo bloquear tablas: ".$cn->error);
-    }
-    $locked = true;
-
-    /* -- 0) Evitar duplicados por factura+tipo+empresa -- */
-    $stmtChk = $cn->prepare(
-        "SELECT egresos_id
-           FROM egresos
-          WHERE factura = ? AND tipo_egreso = ? AND empresa_id = ?
-          LIMIT 1"
-    );
-    $stmtChk->bind_param("sii", $factura, $tipo_egreso, $empresa_id);
-    $stmtChk->execute();
-    $stmtChk->store_result();
-    if ($stmtChk->num_rows > 0) {
-        $stmtChk->close();
-        throw new Exception('Egreso duplicado para esta nómina.', 2002);
-    }
-    $stmtChk->close();
-
-    /* -- 1) Generar egresos_id (MAX+1) -- */
-    $next_egreso_id = 1;
-    $resMaxE = $cn->query("SELECT IFNULL(MAX(egresos_id),0)+1 AS next_id FROM egresos");
-    if (!$resMaxE) { throw new Exception("No se pudo obtener next egresos_id: ".$cn->error); }
-    $rowE = $resMaxE->fetch_assoc();
-    $next_egreso_id = (int)$rowE['next_id'];
-    $resMaxE->free();
-
-    /* -- 2) Insert en EGRESOS con ID explícito -- */
-    $sqlEgreso = "INSERT INTO egresos
-        (egresos_id, cuentas_id, proveedores_id, empresa_id, tipo_egreso, fecha, factura, factura_pdf,
-         subtotal, descuento, nc, impuesto, total, observacion, estado, colaboradores_id, fecha_registro, categoria_gastos_id)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-    $stmtE = $cn->prepare($sqlEgreso);
-    if (!$stmtE) {
-        throw new Exception("No se pudo preparar INSERT egresos: ".$cn->error);
+        throw $e;
     }
 
-    // 18 params (i i i i i s s s d d d d d s i i s i)
-    $stmtE->bind_param(
-        "iiiiisssdddddsiisi",
-        $next_egreso_id,     // i
-        $cuentas_id,         // i
-        $proveedores_id,     // i
-        $empresa_id,         // i
-        $tipo_egreso,        // i
-        $fecha,              // s
-        $factura,            // s
-        $factura_pdf,        // s (NULL/'' permitido)
-        $subtotal,           // d
-        $descuento,          // d
-        $nc,                 // d
-        $impuesto,           // d
-        $total,              // d
-        $observacion,        // s
-        $estado,             // i
-        $colaboradores_id,   // i
-        $fecha_registro,     // s
-        $categoria_gastos_id // i
-    );
-
-    if (!$stmtE->execute()) {
-        throw new Exception("Error al insertar egreso: ".$stmtE->error);
-    }
-    $stmtE->close();
-
-    /* -- 3) Saldo anterior de la cuenta -- */
-    $saldo_anterior = 0.00;
-    $stmtSaldo = $cn->prepare(
-        "SELECT saldo
-           FROM movimientos_cuentas
-          WHERE cuentas_id = ?
-          ORDER BY movimientos_cuentas_id DESC
-          LIMIT 1"
-    );
-    $stmtSaldo->bind_param("i", $cuentas_id);
-    $stmtSaldo->execute();
-    $stmtSaldo->bind_result($saldo_anterior_db);
-    if ($stmtSaldo->fetch()) {
-        $saldo_anterior = (float)$saldo_anterior_db;
-    }
-    $stmtSaldo->close();
-
-    $ingreso = 0.00;
-    $egreso  = $total;
-    $saldo   = $saldo_anterior - $egreso;
-
-    /* -- 4) Generar movimientos_cuentas_id (MAX+1) -- */
-    $next_mov_id = 1;
-    $resMaxM = $cn->query("SELECT IFNULL(MAX(movimientos_cuentas_id),0)+1 AS next_id FROM movimientos_cuentas");
-    if (!$resMaxM) { throw new Exception("No se pudo obtener next movimientos_cuentas_id: ".$cn->error); }
-    $rowM = $resMaxM->fetch_assoc();
-    $next_mov_id = (int)$rowM['next_id'];
-    $resMaxM->free();
-
-    /* -- 5) Insert en MOVIMIENTOS_CUENTAS con ID explícito -- */
-    $sqlMov = "INSERT INTO movimientos_cuentas
-        (movimientos_cuentas_id, cuentas_id, empresa_id, fecha, ingreso, egreso, saldo, colaboradores_id, fecha_registro)
-        VALUES (?,?,?,?,?,?,?,?,?)";
-
-    $stmtM = $cn->prepare($sqlMov);
-    if (!$stmtM) {
-        throw new Exception("No se pudo preparar INSERT movimientos_cuentas: ".$cn->error);
+    // Operaciones auxiliares posteriores a la generación principal.
+    // Si una falla, la nómina ya queda correctamente generada y se registra el incidente.
+    try {
+        $result_colaboradores = $insMainModel->GetColaboradoresNomina($nomina_id);
+        if ($result_colaboradores) {
+            while ($c = $result_colaboradores->fetch_assoc()) {
+                $colabId = (int)($c['colaboradores_id'] ?? 0);
+                if ($colabId > 0) {
+                    $insMainModel->ActualizarEstadoAsistencia($colabId);
+                    $insMainModel->actualizarVales([
+                        'colaboradores_id' => $colabId,
+                        'nomina_id' => $nomina_id,
+                        'estado' => '1'
+                    ]);
+                }
+            }
+        }
+    } catch (Throwable $auxError) {
+        nomina_error_log_seguro($auxError);
     }
 
-    // 9 params (i i i s d d d i s)
-    $stmtM->bind_param(
-        "iiisdddis",
-        $next_mov_id,       // i
-        $cuentas_id,        // i
-        $empresa_id,        // i
-        $fecha,             // s
-        $ingreso,           // d
-        $egreso,            // d
-        $saldo,             // d
-        $colaboradores_id,  // i
-        $fecha_registro     // s
-    );
-
-    if (!$stmtM->execute()) {
-        throw new Exception("Error al insertar movimiento de cuenta: ".$stmtM->error);
-    }
-    $stmtM->close();
-
-    /* -- 6) Desbloqueo y respuesta OK -- */
-    if ($locked) { $cn->query("UNLOCK TABLES"); $locked = false; }
-
-    json_out([
-        'status'    => 1,
-        'title'     => 'Nómina generada',
-        'message'   => 'La nómina se ha generado correctamente.',
+    nomina_json_out([
+        'status' => 1,
+        'title' => 'Nómina generada',
+        'message' => 'La nómina se generó correctamente y el egreso fue registrado.',
         'nomina_id' => $nomina_id
     ]);
-
 } catch (Throwable $e) {
-    if ($locked) { $cn->query("UNLOCK TABLES"); }
-    // Mapea duplicado a status 2
-    $status = ($e->getCode() === 2002) ? 2 : 9;
-    $title  = ($e->getCode() === 2002) ? 'Egreso duplicado' : 'Error';
-    $msg    = ($e->getCode() === 2002) ? 'Ya existe un egreso registrado para esta nómina.' : ('No fue posible generar la nómina: '.$e->getMessage());
-
-    json_out([
-        'status'  => $status,
-        'title'   => $title,
-        'message' => $msg
+    nomina_error_log_seguro($e);
+    nomina_json_out([
+        'status' => 9,
+        'title' => 'No se pudo generar',
+        'message' => 'No fue posible generar la nómina. Verifica la configuración e intenta nuevamente.'
     ]);
 }

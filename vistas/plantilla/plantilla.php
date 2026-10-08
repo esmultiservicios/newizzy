@@ -76,6 +76,7 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/select2-izzy.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/select2-izzy.css')); ?>" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo $serverUrlSafe; ?>fontawesome/css/all.min.css?v=<?php echo rawurlencode($izzyAssetVersion('fontawesome/css/all.min.css')); ?>">
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/notyf.min.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf-premium.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/notyf-premium.css')); ?>" rel="stylesheet" />
     <link rel="shortcut icon" href="<?php echo $serverUrlSafe; ?>vistas/plantilla/img/icono.png?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/img/icono.png')); ?>">
 
     <style>

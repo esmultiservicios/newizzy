@@ -45,6 +45,15 @@
                     </div>
                 </section>
 
+                <section id="nc_fiscal_status" class="izzy-nc-fiscal-status is-checking" role="status" aria-live="polite">
+                    <span class="izzy-nc-fiscal-icon"><i class="fas fa-spinner fa-spin"></i></span>
+                    <div>
+                        <strong id="nc_fiscal_title">Validando autorización SAR...</strong>
+                        <span id="nc_fiscal_message">Comprobando documento y secuencia de Nota de Crédito.</span>
+                        <small id="nc_fiscal_meta"></small>
+                    </div>
+                </section>
+
                 <section class="izzy-nc-toolbar">
                     <div>
                         <h6><i class="fas fa-box-open"></i> Conceptos a acreditar</h6>
@@ -99,7 +108,7 @@
                     <i class="fas fa-shield-alt"></i>
                     <div>
                         <strong>La factura original no se modifica.</strong>
-                        <span>Una Nota de Crédito emitida queda registrada como documento independiente y consume su propia secuencia fiscal.</span>
+                        <span>Una Nota de Crédito emitida queda registrada como documento independiente y consume su propia secuencia fiscal. El crédito total devuelve las existencias vinculadas a la venta; los ajustes parciales de valor no alteran inventario automáticamente.</span>
                     </div>
                 </div>
             </div>
@@ -108,7 +117,7 @@
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">
                     <i class="fas fa-times"></i> Cancelar
                 </button>
-                <button type="button" class="btn btn-success" id="btnEmitirNotaCredito">
+                <button type="button" class="btn btn-success" id="btnEmitirNotaCredito" disabled aria-disabled="true">
                     <i class="fas fa-file-signature"></i> Emitir Nota de Crédito
                 </button>
             </div>

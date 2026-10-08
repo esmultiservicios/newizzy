@@ -62,3 +62,31 @@
     position: relative;
     z-index: 1;
 }
+
+
+/* ============================================================
+   IZZY NC | Autorización fiscal + control monetario integrado
+   ============================================================ */
+.izzy-nc-fiscal-status{display:flex;align-items:flex-start;gap:12px;margin:0 0 14px;padding:12px 14px;border:1px solid #dfe4ea;border-radius:10px;background:#fff;color:#42526e}
+.izzy-nc-fiscal-icon{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 36px;border-radius:9px;background:#eef2f6;color:#526581}
+.izzy-nc-fiscal-status strong,.izzy-nc-fiscal-status span,.izzy-nc-fiscal-status small{display:block}
+.izzy-nc-fiscal-status strong{color:#172b4d;margin-bottom:2px}.izzy-nc-fiscal-status small{margin-top:4px;color:#6b778c;overflow-wrap:anywhere}
+.izzy-nc-fiscal-status.is-ok{border-color:#bdebd0;background:#f2fbf6}.izzy-nc-fiscal-status.is-ok .izzy-nc-fiscal-icon{background:#ddf6e8;color:#14804a}
+.izzy-nc-fiscal-status.is-error{border-color:#ffd2d2;background:#fff7f7}.izzy-nc-fiscal-status.is-error .izzy-nc-fiscal-icon{background:#ffe4e4;color:#c0392b}
+
+.izzy-nc-input-wrap .input-group{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;width:100%!important;border-radius:8px!important;box-shadow:none!important}
+.izzy-nc-input-wrap .input-group-prepend{display:flex!important;margin:0!important;flex:0 0 auto!important}
+.izzy-nc-input-wrap .input-group-text{height:38px!important;min-width:42px!important;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 12px!important;background:#eef3f8!important;border:1px solid #cdd7e4!important;border-right:0!important;border-radius:8px 0 0 8px!important;color:#172b4d!important;font-weight:800!important;line-height:1!important}
+.izzy-nc-input-wrap .izzy-nc-base-input{height:38px!important;min-width:0!important;margin:0!important;border:1px solid #cdd7e4!important;border-left:0!important;border-radius:0 8px 8px 0!important;padding:0 12px!important;text-align:right!important;font-weight:700!important;box-shadow:none!important}
+.izzy-nc-input-wrap .input-group:focus-within .input-group-text,.izzy-nc-input-wrap .input-group:focus-within .izzy-nc-base-input{border-color:#3498db!important}
+.izzy-nc-input-wrap .input-group:focus-within{box-shadow:0 0 0 3px rgba(52,152,219,.10)!important}
+#btnEmitirNotaCredito:disabled{opacity:.55!important;cursor:not-allowed!important;box-shadow:none!important}
+
+
+/* IZZY v6.14 | Estado consistente del botón de emisión */
+#btnEmitirNotaCredito[disabled],
+#btnEmitirNotaCredito[aria-disabled="true"]{
+    opacity:.56!important;
+    cursor:not-allowed!important;
+    pointer-events:none!important;
+}

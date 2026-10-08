@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 $peticionAjax = true;
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/../notaCredito/creditoFavorService.php';
 
 $out = [
   'estado'  => false,
@@ -379,6 +380,16 @@ try {
   }
   $stc->close();
   $db->query("UNLOCK TABLES");
+
+  // Aplicar saldo a favor de Notas de Crédito anteriores únicamente cuando
+  // la nueva factura es AL CRÉDITO. En contado no se simula un pago automático.
+  if ($tipoFactura === 2) {
+    try {
+      CreditoFavorService::aplicarDisponible($db, $empresaId, $clienteId, $facturaId, $usuarioId);
+    } catch (Throwable $eCredito) {
+      error_log('Factura '.$facturaId.' registrada; saldo a favor pendiente: '.$eCredito->getMessage());
+    }
+  }
 
   echo json_encode([
     'estado'     => true,

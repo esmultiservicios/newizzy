@@ -88,6 +88,21 @@ class notaCreditoControlador extends notaCreditoModelo
             throw new Exception('Para Nota de Crédito el Incremento de la secuencia debe ser 1 para mantener un correlativo continuo sin saltos.');
         }
 
+        if (trim((string)($sec['cai'] ?? '')) === '') {
+            throw new Exception('La secuencia de Nota de Crédito no tiene CAI autorizado por el SAR.');
+        }
+
+        if (trim((string)($sec['prefijo'] ?? '')) === '') {
+            throw new Exception('La secuencia de Nota de Crédito no tiene prefijo fiscal configurado.');
+        }
+
+        $rangoInicial = (int)($sec['rango_inicial'] ?? 0);
+        $rangoFinal = (int)($sec['rango_final'] ?? 0);
+        $siguiente = (int)($sec['siguiente'] ?? 0);
+        if ($rangoInicial <= 0 || $rangoFinal < $rangoInicial || $siguiente <= 0) {
+            throw new Exception('La secuencia de Nota de Crédito tiene un rango autorizado inválido.');
+        }
+
         $hoy = date('Y-m-d');
         $activacion = (string)($sec['fecha_activacion'] ?? '');
         $limite = (string)($sec['fecha_limite'] ?? '');
@@ -135,6 +150,64 @@ class notaCreditoControlador extends notaCreditoModelo
         return [
             'numero' => $numero,
             'nuevo_siguiente' => $numero + $incremento
+        ];
+    }
+
+    private function estadoFiscalNotaCredito(mysqli $cn, int $empresaId): array
+    {
+        $documento = notaCreditoModelo::obtenerDocumentoNotaCredito($cn);
+        if (!$documento) {
+            return [
+                'disponible' => false,
+                'titulo' => 'Nota de Crédito no configurada',
+                'mensaje' => 'No existe el documento fiscal Nota de Crédito. Configure Documentos Fiscales antes de emitir.',
+                'secuencia' => null
+            ];
+        }
+
+        if ((int)($documento['estado'] ?? 0) !== 1) {
+            return [
+                'disponible' => false,
+                'titulo' => 'Nota de Crédito inactiva',
+                'mensaje' => 'El documento Nota de Crédito está inactivo. Actívelo y registre la secuencia autorizada por el SAR. Mientras no exista autorización, utilice Anular factura cuando corresponda.',
+                'secuencia' => null
+            ];
+        }
+
+        $sec = notaCreditoModelo::obtenerSecuenciaNotaCredito($cn, $empresaId);
+        if (!$sec) {
+            return [
+                'disponible' => false,
+                'titulo' => 'Sin secuencia SAR',
+                'mensaje' => 'No puede usar Nota de Crédito porque no existe una secuencia activa y autorizada por el SAR. Solicite o registre la autorización correspondiente y actívela en Secuencia de Facturación. Mientras tanto, únicamente puede usar Anular factura cuando corresponda.',
+                'secuencia' => null
+            ];
+        }
+
+        try {
+            $this->validarSecuencia($sec);
+            $numero = $this->siguienteDisponible($cn, $sec);
+        } catch (Throwable $e) {
+            return [
+                'disponible' => false,
+                'titulo' => 'Secuencia no disponible',
+                'mensaje' => $e->getMessage() . ' Mientras la secuencia SAR no esté disponible, únicamente puede usar Anular factura cuando corresponda.',
+                'secuencia' => null
+            ];
+        }
+
+        return [
+            'disponible' => true,
+            'titulo' => 'Autorización SAR disponible',
+            'mensaje' => 'La Nota de Crédito utilizará su propia secuencia fiscal autorizada.',
+            'secuencia' => [
+                'secuencia_facturacion_id' => (int)$sec['secuencia_facturacion_id'],
+                'cai' => (string)$sec['cai'],
+                'prefijo' => (string)$sec['prefijo'],
+                'siguiente' => (int)$numero['numero'],
+                'rango_final' => (int)$sec['rango_final'],
+                'fecha_limite' => (string)$sec['fecha_limite']
+            ]
         ];
     }
 
@@ -201,7 +274,8 @@ class notaCreditoControlador extends notaCreditoModelo
                 'disponible' => round(max(0, (float)$factura['importe'] - $totalAcreditado), 4)
             ],
             'detalle' => $detalleRespuesta,
-            'notas' => notaCreditoModelo::listarNotasFactura($cn, $empresaId, $facturaId)
+            'notas' => notaCreditoModelo::listarNotasFactura($cn, $empresaId, $facturaId),
+            'fiscal' => $this->estadoFiscalNotaCredito($cn, $empresaId)
         ];
     }
 
@@ -236,7 +310,7 @@ class notaCreditoControlador extends notaCreditoModelo
         $lockNombre = null;
         $notaId = 0;
         $numeroCompleto = '';
-        $warningCxC = '';
+        $creditoFavorGenerado = 0.0;
 
         try {
             /*
@@ -329,6 +403,9 @@ class notaCreditoControlador extends notaCreditoModelo
                     'isv15_original' => $isv15Original,
                     'isv18_original' => $isv18Original,
                     'base_acreditada' => $baseSolicitada,
+                    'base_acreditada_previa' => $basePrevia,
+                    'linea_cierre_total' => (($basePrevia + $baseSolicitada) >= ($baseOriginal - self::TOLERANCIA)),
+                    'linea_credito_total_primera_vez' => ($basePrevia <= self::TOLERANCIA && abs($baseSolicitada - $baseOriginal) <= self::TOLERANCIA),
                     'isv15_acreditado' => $isv15,
                     'isv18_acreditado' => $isv18,
                     'total_acreditado' => $totalLinea
@@ -397,10 +474,10 @@ class notaCreditoControlador extends notaCreditoModelo
                 'fecha_registro' => $fechaRegistro
             ]);
 
-            foreach ($detalleGuardar as $detalle) {
+            foreach ($detalleGuardar as $idx => $detalle) {
                 $detalle['nota_credito_id'] = $notaId;
                 $detalle['fecha_registro'] = $fechaRegistro;
-                notaCreditoModelo::insertarDetalle($cn, $detalle);
+                $detalleGuardar[$idx]['nota_credito_detalle_id'] = notaCreditoModelo::insertarDetalle($cn, $detalle);
             }
 
             $cn->commit();
@@ -414,16 +491,35 @@ class notaCreditoControlador extends notaCreditoModelo
             notaCreditoModelo::marcarSecuenciaActualizada($cn, $notaId);
 
             /*
-             * CxC es MyISAM en IZZY. No se mezcla con el commit fiscal:
-             * una falla auxiliar NO debe borrar una NC ya emitida.
-             * Se registra cxc_aplicada para permitir detectar/reparar.
+             * El saldo de la Nota de Crédito NO se aplica silenciosamente.
+             * Queda disponible para que el usuario decida aplicarlo desde
+             * el modal de pagos. Esto evita registrar movimientos de pago
+             * que el usuario nunca confirmó.
              */
+            $creditoFavorGenerado = $totalNc;
+            notaCreditoModelo::actualizarResultadoCxC($cn, $notaId, [
+                'aplicada' => 0,
+                'saldo_antes' => 0.0,
+                'saldo_despues' => 0.0,
+                'credito_favor' => $creditoFavorGenerado
+            ]);
+
+            $warningInventario = '';
             try {
-                $cxc = notaCreditoModelo::aplicarCxC($cn, $empresaId, $facturaId, $totalNc);
-                notaCreditoModelo::actualizarResultadoCxC($cn, $notaId, $cxc);
-            } catch (Throwable $eCxC) {
-                $warningCxC = ' La Nota de Crédito fue emitida, pero la cuenta por cobrar requiere revisión.';
-                error_log('NC emitida con CxC pendiente. NC=' . $notaId . ' Error=' . $eCxC->getMessage());
+                $esCreditoTotalFactura = abs(($totalAcreditadoAnterior + $totalNc) - $importeFactura) <= self::TOLERANCIA;
+                $resultadoInventario = $this->procesarDevolucionInventario(
+                    $cn,
+                    $notaId,
+                    $empresaId,
+                    (int)$factura['clientes_id'],
+                    $facturaId,
+                    $detalleGuardar,
+                    $esCreditoTotalFactura
+                );
+                $warningInventario = trim((string)($resultadoInventario['warning'] ?? ''));
+            } catch (Throwable $eInv) {
+                $warningInventario = 'La Nota de Crédito fue emitida, pero la devolución de inventario requiere revisión.';
+                error_log('NC emitida con inventario pendiente. NC=' . $notaId . ' Error=' . $eInv->getMessage());
             }
 
             try {
@@ -444,7 +540,8 @@ class notaCreditoControlador extends notaCreditoModelo
                 'nota_credito_id' => $notaId,
                 'numero' => $numeroCompleto,
                 'total' => $totalNc,
-                'warning' => trim($warningCxC)
+                'credito_favor' => $creditoFavorGenerado,
+                'warning' => trim(implode(' ', array_filter([$warningCxC, $warningInventario])))
             ];
         } catch (Throwable $e) {
             try {
@@ -455,6 +552,162 @@ class notaCreditoControlador extends notaCreditoModelo
             throw $e;
         } finally {
             $this->liberarLock($cn, $lockNombre);
+        }
+    }
+
+    private function obtenerLockInventario(mysqli $cn, int $empresaId, int $facturaId): string
+    {
+        $nombre = 'izzy_nc_inv_' . $empresaId . '_' . $facturaId;
+        $row = notaCreditoModelo::fetchOne($cn, "SELECT GET_LOCK(?, 15) AS obtenido", 's', [$nombre]);
+        if (!$row || (int)$row['obtenido'] !== 1) {
+            throw new Exception('El inventario de esta factura está siendo actualizado por otro proceso.');
+        }
+        return $nombre;
+    }
+
+    private function procesarMovimientoDevolucion(
+        mysqli $cn,
+        int $notaId,
+        int $notaDetalleId,
+        array $movimiento,
+        float $cantidad
+    ): float {
+        if ($cantidad <= 0) {
+            return 0.0;
+        }
+
+        $movimientoOrigenId = (int)$movimiento['movimientos_id'];
+        $yaDevuelto = notaCreditoModelo::cantidadInventarioDevueltaMovimiento($cn, $movimientoOrigenId);
+        $disponible = max(0, (float)$movimiento['cantidad_salida'] - $yaDevuelto);
+        $cantidad = round(min($cantidad, $disponible), 4);
+        if ($cantidad <= self::TOLERANCIA) {
+            return 0.0;
+        }
+
+        $documento = 'NC ' . $notaId . ' DEV ' . $movimientoOrigenId;
+        $traza = notaCreditoModelo::obtenerTrazaInventario($cn, $notaId, $movimientoOrigenId);
+
+        if ($traza && (int)$traza['estado'] === 1) {
+            return 0.0;
+        }
+
+        if (!$traza) {
+            $trazaId = notaCreditoModelo::crearTrazaInventario($cn, [
+                'nota_credito_id' => $notaId,
+                'nota_credito_detalle_id' => $notaDetalleId,
+                'movimiento_origen_id' => $movimientoOrigenId,
+                'empresa_id' => (int)$movimiento['empresa_id'],
+                'clientes_id' => (int)$movimiento['clientes_id'],
+                'productos_id' => (int)$movimiento['productos_id'],
+                'almacen_id' => (int)$movimiento['almacen_id'],
+                'lote_id' => (int)$movimiento['lote_id'],
+                'cantidad_devuelta' => $cantidad
+            ]);
+        } else {
+            $trazaId = (int)$traza['nota_credito_inventario_id'];
+            $cantidad = (float)$traza['cantidad_devuelta'];
+        }
+
+        // Recuperación idempotente: si el movimiento ya fue creado y el proceso
+        // cayó antes de marcar la traza, se enlaza en vez de duplicarlo.
+        $movExistente = notaCreditoModelo::buscarMovimientoDevolucion(
+            $cn,
+            $documento,
+            (int)$movimiento['productos_id'],
+            (int)$movimiento['almacen_id'],
+            (int)$movimiento['lote_id']
+        );
+        if ($movExistente) {
+            notaCreditoModelo::completarTrazaInventario($cn, $trazaId, (int)$movExistente['movimientos_id']);
+            return 0.0;
+        }
+
+        $movNuevo = notaCreditoModelo::registrarEntradaInventarioNota($cn, $movimiento, $cantidad, $documento);
+        notaCreditoModelo::completarTrazaInventario($cn, $trazaId, $movNuevo);
+        return $cantidad;
+    }
+
+    private function procesarDevolucionInventario(
+        mysqli $cn,
+        int $notaId,
+        int $empresaId,
+        int $clienteId,
+        int $facturaId,
+        array $detalleGuardar,
+        bool $creditoTotalFactura
+    ): array {
+        $lock = null;
+        $devuelto = 0.0;
+        $huboMovimiento = false;
+
+        try {
+            $lock = $this->obtenerLockInventario($cn, $empresaId, $facturaId);
+
+            if ($creditoTotalFactura) {
+                // Si toda la factura queda acreditada, se reversan todos los
+                // movimientos originales aún pendientes, incluidos componentes
+                // de combos identificados como Factura <id>_<n>.
+                $movimientos = notaCreditoModelo::obtenerMovimientosSalidaFactura(
+                    $cn, $empresaId, $facturaId, null, true
+                );
+                foreach ($movimientos as $mov) {
+                    $huboMovimiento = true;
+                    $disponible = max(
+                        0,
+                        (float)$mov['cantidad_salida'] - notaCreditoModelo::cantidadInventarioDevueltaMovimiento($cn, (int)$mov['movimientos_id'])
+                    );
+                    $devuelto += $this->procesarMovimientoDevolucion($cn, $notaId, 0, $mov, $disponible);
+                }
+
+                return [
+                    'cantidad' => round($devuelto, 4),
+                    'warning' => ''
+                ];
+            }
+
+            // Para una NC parcial solo se devuelve inventario cuando una línea
+            // completa se acredita de una sola vez. Un ajuste monetario parcial
+            // no implica necesariamente devolución física del producto.
+            $lineasParciales = false;
+            foreach ($detalleGuardar as $detalle) {
+                if (empty($detalle['linea_credito_total_primera_vez'])) {
+                    $lineasParciales = true;
+                    continue;
+                }
+
+                $cantidadPendiente = (float)$detalle['cantidad_original'];
+                $movimientos = notaCreditoModelo::obtenerMovimientosSalidaFactura(
+                    $cn,
+                    $empresaId,
+                    $facturaId,
+                    (int)$detalle['productos_id'],
+                    false
+                );
+
+                foreach ($movimientos as $mov) {
+                    if ($cantidadPendiente <= self::TOLERANCIA) break;
+                    $huboMovimiento = true;
+                    $disponible = max(
+                        0,
+                        (float)$mov['cantidad_salida'] - notaCreditoModelo::cantidadInventarioDevueltaMovimiento($cn, (int)$mov['movimientos_id'])
+                    );
+                    $usar = min($cantidadPendiente, $disponible);
+                    $hecho = $this->procesarMovimientoDevolucion($cn, $notaId, (int)($detalle['nota_credito_detalle_id'] ?? 0), $mov, $usar);
+                    $devuelto += $hecho;
+                    $cantidadPendiente -= $hecho;
+                }
+            }
+
+            return [
+                'cantidad' => round($devuelto, 4),
+                'warning' => $lineasParciales
+                    ? 'Los ajustes parciales de valor no modifican inventario automáticamente; solo las líneas acreditadas totalmente devuelven existencias.'
+                    : ''
+            ];
+        } finally {
+            if ($lock) {
+                try { notaCreditoModelo::fetchOne($cn, "SELECT RELEASE_LOCK(?) AS liberado", 's', [$lock]); } catch (Throwable $e) {}
+            }
         }
     }
 

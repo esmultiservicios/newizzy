@@ -5,6 +5,7 @@ if($peticionAjax){
 }else{
     require_once "./modelos/facturasModelo.php";
 }
+require_once __DIR__ . '/../core/notaCredito/creditoFavorService.php';
 
 class facturasControlador extends facturasModelo {
 
@@ -1288,6 +1289,26 @@ class facturasControlador extends facturasModelo {
             if(!$ok){
                 error_log("Error CxC factura: ".$facturas_id);
                 return false;
+            }
+        }
+
+        // Si es una factura fiscal al crédito, aplicar automáticamente el saldo
+        // a favor generado por Notas de Crédito anteriores del mismo cliente.
+        // Este punto es compartido por Facturación normal, Restaurante y
+        // recurrencias porque todos terminan registrando la CxC aquí.
+        if((int)$tipo_factura === 2){
+            try {
+                CreditoFavorService::aplicarDisponible(
+                    mainModel::connection(),
+                    (int)$empresa_id,
+                    (int)$clientes_id,
+                    (int)$facturas_id,
+                    (int)$usuario
+                );
+            } catch (Throwable $eCredito) {
+                // Nunca se invalida una factura ya emitida por una falla auxiliar.
+                // La aplicación queda auditable/reintentable en su propia tabla.
+                error_log('Factura '.$facturas_id.' registrada; saldo a favor pendiente: '.$eCredito->getMessage());
             }
         }
 

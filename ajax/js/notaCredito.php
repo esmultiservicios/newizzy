@@ -20,6 +20,7 @@
         factura: null,
         detalle: [],
         notas: [],
+        fiscal: null,
         cargando: false,
         emitiendo: false
     };
@@ -142,6 +143,7 @@
 
     $('#nc_motivo').off('input.nc').on('input.nc', function () {
         $('#nc_motivo_count').text(String($(this).val() || '').length);
+        actualizarEstadoBotonEmitir();
     });
 
     $('#btnEmitirNotaCredito').off('click.nc').on('click.nc', function () {
@@ -206,16 +208,13 @@
 
         resetNotaCredito();
         ncState.cargando = true;
-        $('#nc_detalle_loading').removeClass('d-none');
 
-        prepararModalNotaCreditoEnBody();
-
-        $('#modalNotaCredito').modal({
-            show: true,
-            keyboard: false,
-            backdrop: 'static'
-        });
-
+        /*
+         * Validación PREVIA al modal:
+         * primero se comprueba que la factura sea elegible y que exista una
+         * secuencia SAR válida para Nota de Crédito. Si falta autorización,
+         * el modal NO se abre.
+         */
         $.ajax({
             type: 'POST',
             url: '<?php echo SERVERURL; ?>core/notaCredito/obtenerFacturaNotaCredito.php',
@@ -228,30 +227,64 @@
                 response = parseRespuestaNc(rawResponse);
             } catch (parseError) {
                 showNotify('error', 'Nota de Crédito', parseError.message);
-                $('#modalNotaCredito').modal('hide');
                 return;
             }
 
             if (!response || response.success !== true || !response.data) {
-                showNotify('error', 'Nota de Crédito', response && response.message ? response.message : 'No se pudo cargar la factura.');
-                $('#modalNotaCredito').modal('hide');
+                showNotify(
+                    'warning',
+                    'Nota de Crédito no disponible',
+                    response && response.message
+                        ? response.message
+                        : 'No se pudo validar la factura ni la autorización fiscal.'
+                );
+                return;
+            }
+
+            var fiscal = response.data.fiscal || null;
+
+            if (!fiscal || fiscal.disponible !== true) {
+                showNotify(
+                    'warning',
+                    fiscal && fiscal.titulo ? fiscal.titulo : 'Nota de Crédito no disponible',
+                    fiscal && fiscal.mensaje
+                        ? fiscal.mensaje
+                        : 'No puede usar Nota de Crédito porque no existe una secuencia SAR válida. Utilice Anular factura cuando corresponda.'
+                );
                 return;
             }
 
             ncState.factura = response.data.factura || {};
             ncState.detalle = Array.isArray(response.data.detalle) ? response.data.detalle : [];
             ncState.notas = Array.isArray(response.data.notas) ? response.data.notas : [];
+            ncState.fiscal = fiscal;
+
+            prepararModalNotaCreditoEnBody();
 
             renderCabeceraNc();
+            renderEstadoFiscalNc();
             renderDetalleNc();
             renderHistorialNc();
             recalcularNc();
+
+            $('#nc_detalle_loading').addClass('d-none');
+
+            $('#modalNotaCredito').modal({
+                show: true,
+                keyboard: false,
+                backdrop: 'static'
+            });
         }).fail(function (xhr) {
-            showNotify('error', 'Nota de Crédito', 'Error de comunicación (' + xhr.status + ').');
-            $('#modalNotaCredito').modal('hide');
+            var mensaje = 'Error de comunicación (' + xhr.status + ').';
+
+            try {
+                var json = JSON.parse(xhr.responseText);
+                if (json && json.message) mensaje = json.message;
+            } catch (e) {}
+
+            showNotify('error', 'Nota de Crédito', mensaje);
         }).always(function () {
             ncState.cargando = false;
-            $('#nc_detalle_loading').addClass('d-none');
         });
     }
 
@@ -263,6 +296,7 @@
         ncState.factura = null;
         ncState.detalle = [];
         ncState.notas = [];
+        ncState.fiscal = null;
         $('#nc_facturas_id').val('');
         $('#nc_motivo').val('');
         $('#nc_motivo_count').text('0');
@@ -270,6 +304,44 @@
         $('#nc_historial').empty();
         $('#nc_detalle_empty').addClass('d-none');
         $('#nc_base_total,#nc_isv15_total,#nc_isv18_total,#nc_gran_total').text('L 0.00');
+        $('#btnEmitirNotaCredito').prop('disabled', true).attr('aria-disabled', 'true');
+        $('#nc_fiscal_status').removeClass('is-ok is-error').addClass('is-checking');
+        $('#nc_fiscal_title').text('Validando autorización SAR...');
+        $('#nc_fiscal_message').text('Comprobando documento y secuencia de Nota de Crédito.');
+        $('#nc_fiscal_meta').text('');
+    }
+
+    function renderEstadoFiscalNc() {
+        var fiscal = ncState.fiscal || {};
+        var disponible = fiscal.disponible === true;
+        var sec = fiscal.secuencia || {};
+        var $box = $('#nc_fiscal_status');
+        $box.removeClass('is-checking is-ok is-error').addClass(disponible ? 'is-ok' : 'is-error');
+        $box.find('.izzy-nc-fiscal-icon').html(disponible
+            ? '<i class="fas fa-shield-alt"></i>'
+            : '<i class="fas fa-exclamation-triangle"></i>');
+        $('#nc_fiscal_title').text(fiscal.titulo || (disponible ? 'Autorización SAR disponible' : 'Nota de Crédito no disponible'));
+        $('#nc_fiscal_message').text(fiscal.mensaje || '');
+        $('#nc_fiscal_meta').text(disponible
+            ? ('CAI: ' + (sec.cai || '—') + ' · Próximo: ' + (sec.prefijo || '') + String(sec.siguiente || '') + ' · Límite: ' + (sec.fecha_limite || '—'))
+            : 'La emisión permanecerá bloqueada hasta completar la configuración fiscal.');
+        actualizarEstadoBotonEmitir();
+    }
+
+    function actualizarEstadoBotonEmitir() {
+        var fiscalDisponible = !!(ncState.fiscal && ncState.fiscal.disponible === true);
+        var motivoValido = String($('#nc_motivo').val() || '').trim().length > 0;
+        var tieneMonto = false;
+
+        $('#nc_detalle_listado .izzy-nc-base-input').each(function () {
+            if (numNc($(this).val()) > 0) {
+                tieneMonto = true;
+                return false;
+            }
+        });
+
+        var habilitar = fiscalDisponible && motivoValido && tieneMonto && !ncState.cargando && !ncState.emitiendo;
+        $('#btnEmitirNotaCredito').prop('disabled', !habilitar).attr('aria-disabled', habilitar ? 'false' : 'true');
     }
 
     function renderCabeceraNc() {
@@ -379,6 +451,7 @@
         $('#nc_isv15_total').text(moneyNc(isv15));
         $('#nc_isv18_total').text(moneyNc(isv18));
         $('#nc_gran_total').text(moneyNc(base + isv15 + isv18));
+        actualizarEstadoBotonEmitir();
     }
 
     function renderHistorialNc() {
@@ -432,6 +505,12 @@
         if (ncState.emitiendo) return;
 
         var data = payloadNc();
+
+        if (!ncState.fiscal || ncState.fiscal.disponible !== true) {
+            showNotify('warning', 'Nota de Crédito no disponible',
+                (ncState.fiscal && ncState.fiscal.mensaje) ? ncState.fiscal.mensaje : 'Configure y active la secuencia SAR de Nota de Crédito antes de emitir.');
+            return;
+        }
 
         if (!data.motivo) {
             showNotify('warning', 'Dato requerido', 'Ingrese el motivo de la Nota de Crédito.');
@@ -496,6 +575,7 @@
                 r.warning ? 'warning' : 'success',
                 'Nota de Crédito emitida',
                 (r.numero ? 'Documento ' + r.numero + ' registrado correctamente.' : response.message) +
+                (numNc(r.credito_favor) > 0 ? ' Se generó un saldo a favor de ' + moneyNc(r.credito_favor) + ' y quedó disponible para aplicarlo manualmente desde el modal de pagos.' : '') +
                 (r.warning ? ' ' + r.warning : '')
             );
 
@@ -523,7 +603,8 @@
             showNotify('error', 'Nota de Crédito', mensaje);
         }).always(function () {
             ncState.emitiendo = false;
-            $btn.prop('disabled', false).html(original);
+            $btn.html(original);
+            actualizarEstadoBotonEmitir();
         });
     }
     })(window.jQuery);

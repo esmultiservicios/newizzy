@@ -71,7 +71,7 @@ body{font-family:Arial,sans-serif;color:#172b4d;background:#eef2f6;margin:0;padd
   <div class="info">
     <div class="box"><small>Cliente</small><strong><?php echo eNc($nota['cliente']); ?></strong><br><span class="muted"><?php echo eNc($nota['rtn']); ?></span></div>
     <div class="box"><small>Factura relacionada</small><strong><?php echo eNc($facturaNumero); ?></strong></div>
-    <div class="box"><small>CAI factura</small><strong><?php echo eNc($nota['cai']); ?></strong></div>
+    <div class="box"><small>CAI Nota de Crédito</small><strong><?php echo eNc($nota['nc_cai']); ?></strong></div>
   </div>
 
   <div class="reason"><strong>Motivo:</strong> <?php echo eNc($nota['motivo']); ?></div>
@@ -94,6 +94,9 @@ body{font-family:Arial,sans-serif;color:#172b4d;background:#eef2f6;margin:0;padd
     <div><span>ISV 15%</span><strong>L <?php echo number_format((float)$nota['isv15_acreditado'],2); ?></strong></div>
     <div><span>ISV 18%</span><strong>L <?php echo number_format((float)$nota['isv18_acreditado'],2); ?></strong></div>
     <div class="grand"><span>Total Nota de Crédito</span><span>L <?php echo number_format((float)$nota['total_acreditado'],2); ?></span></div>
+    <?php if ((float)($nota['credito_favor'] ?? 0) > 0): ?>
+    <div><span>Saldo a favor generado</span><strong>L <?php echo number_format((float)$nota['credito_favor'],2); ?></strong></div>
+    <?php endif; ?>
   </div>
 
   <div class="actions"><button onclick="window.print()">Imprimir / Guardar PDF</button></div>

@@ -92,10 +92,6 @@ class notaCreditoControlador extends notaCreditoModelo
             throw new Exception('La secuencia de Nota de Crédito no tiene CAI autorizado por el SAR.');
         }
 
-        if (trim((string)($sec['prefijo'] ?? '')) === '') {
-            throw new Exception('La secuencia de Nota de Crédito no tiene prefijo fiscal configurado.');
-        }
-
         $rangoInicial = (int)($sec['rango_inicial'] ?? 0);
         $rangoFinal = (int)($sec['rango_final'] ?? 0);
         $siguiente = (int)($sec['siguiente'] ?? 0);
@@ -541,7 +537,7 @@ class notaCreditoControlador extends notaCreditoModelo
                 'numero' => $numeroCompleto,
                 'total' => $totalNc,
                 'credito_favor' => $creditoFavorGenerado,
-                'warning' => trim(implode(' ', array_filter([$warningCxC, $warningInventario])))
+                'warning' => trim($warningInventario)
             ];
         } catch (Throwable $e) {
             try {

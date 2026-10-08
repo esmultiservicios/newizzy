@@ -1915,3 +1915,40 @@
     }
 
 }
+
+/* =========================================================
+   IZZY | Secuencia - botón Administrar documentos
+   Evita el botón blanco y mantiene el estándar visual premium.
+   ========================================================= */
+#btn_administrar_documentos_desde_modal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    min-height: 34px;
+    padding: .42rem .72rem;
+    border: 1px solid #2f9ddd !important;
+    border-radius: 7px;
+    background: #2f9ddd !important;
+    color: #fff !important;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none !important;
+    box-shadow: 0 2px 7px rgba(47, 157, 221, .18);
+}
+
+#btn_administrar_documentos_desde_modal i,
+#btn_administrar_documentos_desde_modal span {
+    color: #fff !important;
+}
+
+#btn_administrar_documentos_desde_modal:hover,
+#btn_administrar_documentos_desde_modal:focus,
+#btn_administrar_documentos_desde_modal:active {
+    border-color: #2588c2 !important;
+    background: #2588c2 !important;
+    color: #fff !important;
+    text-decoration: none !important;
+    outline: 0;
+}
+

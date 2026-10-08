@@ -49,3 +49,75 @@
 <!-- 12. main.js y scripts.js (dependen de jQuery?) -->
 <script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/js/main.js" crossorigin="anonymous"></script>
 <script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/js/scripts.js" crossorigin="anonymous"></script>
+
+<script>
+/* =========================================================
+   IZZY | SELECT2 - LIMPIEZA GLOBAL
+   Todos los Select2 simples conservan una opción vacía y,
+   al limpiar/resetear un formulario, permanecen realmente vacíos.
+   Se excluyen paginadores, múltiples y controles marcados para
+   conservar su valor mediante data-no-empty-option="1".
+   ========================================================= */
+(function ($) {
+    'use strict';
+
+    if (!$) {
+        return;
+    }
+
+    function esSelectExcluido($select) {
+        var id = String($select.attr('id') || '');
+
+        return $select.prop('multiple')
+            || /(?:PageSize|page_size)$/i.test(id)
+            || String($select.attr('data-no-empty-option') || '') === '1';
+    }
+
+    function asegurarOpcionVacia($select) {
+        if (!$select || !$select.length || !$select.is('select') || esSelectExcluido($select)) {
+            return;
+        }
+
+        if (!$select.find('option[value=""]').length) {
+            $select.prepend($('<option></option>').attr('value', '').text(''));
+        }
+    }
+
+    function limpiarSelect2Formulario(form) {
+        var $form = $(form);
+
+        window.setTimeout(function () {
+            $form.find('select').each(function () {
+                var $select = $(this);
+
+                if (esSelectExcluido($select)) {
+                    return;
+                }
+
+                asegurarOpcionVacia($select);
+                $select.val('');
+
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    $select.trigger('change.select2');
+                } else {
+                    $select.trigger('change');
+                }
+            });
+        }, 0);
+    }
+
+    /* Fallback global: main.php ya agrega la opción vacía al inicializar
+       Select2; esto también cubre selects presentes antes de esa conversión. */
+    $(function () {
+        $('select').each(function () {
+            asegurarOpcionVacia($(this));
+        });
+    });
+
+    $(document)
+        .off('reset.izzySelect2Global', 'form')
+        .on('reset.izzySelect2Global', 'form', function () {
+            limpiarSelect2Formulario(this);
+        });
+})(window.jQuery);
+</script>

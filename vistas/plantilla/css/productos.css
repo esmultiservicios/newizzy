@@ -2114,3 +2114,13 @@
     .productos-mini-field > strong { font-size:13px !important; }
     .productos-mini-field > span { font-size:10px !important; }
 }
+
+/* IZZY ACTION CELL CONTAINMENT START */
+.productos-actions-cell { padding-left: 6px !important; padding-right: 6px !important; overflow: visible !important; }
+.productos-actions-cell .productos-actions,
+.productos-actions-cell .acciones-dropdown { width: auto !important; max-width: 100% !important; }
+.productos-actions-cell .btn-acciones,
+.productos-detail-row .btn-acciones { min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
+.productos-actions-cell .btn-acciones span,
+.productos-detail-row .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
+/* IZZY ACTION CELL CONTAINMENT END */

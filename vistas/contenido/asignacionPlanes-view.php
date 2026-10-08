@@ -339,7 +339,7 @@
             <div class="asignacion-toolbar">
                 <div class="asignacion-toolbar-actions">
                     <button type="button"
-                            class="btn btn-secondary table_actualizar ocultar"
+                            class="btn btn-primary table_actualizar ocultar"
                             id="btn_actualizar_asignaciones">
                         <i class="fas fa-sync-alt mr-1"></i> Actualizar
                     </button>
@@ -499,7 +499,7 @@
                                 </div>
                                 <div class="ap-toolbar">
                                     <div class="ap-toolbar-left">
-                                        <button type="button" class="btn btn-secondary btn-sm" id="ap_btn_actualizar"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
+                                        <button type="button" class="btn btn-primary btn-sm" id="ap_btn_actualizar"><i class="fas fa-sync-alt mr-1"></i> Actualizar</button>
                                         <button type="button" class="btn btn-success btn-sm" id="ap_btn_excel"><i class="fas fa-file-excel mr-1"></i> Excel</button>
                                         <button type="button" class="btn btn-danger btn-sm" id="ap_btn_pdf"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                                     </div>

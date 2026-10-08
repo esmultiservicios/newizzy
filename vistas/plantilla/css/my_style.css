@@ -6368,9 +6368,9 @@ form.modo-editar input[type="date"].remembered-highlight {
 
 .btn-detalle-producto:hover,
 .btn-detalle-producto:focus {
-  background: #2563eb !important;
+  background: #2f9ddd !important;
   color: #ffffff !important;
-  border-color: #2563eb !important;
+  border-color: #2f9ddd !important;
   text-decoration: none !important;
 }
 /*FIN VER DETALLE DE PRODUCTOS*/
@@ -7020,7 +7020,7 @@ table.dataTable td .acciones-menu {
   align-items: center !important;
   justify-content: center !important;
   gap: 7px !important;
-  background: #2563eb !important;
+  background: #2f9ddd !important;
   border: 1px solid #2563eb !important;
   color: #ffffff !important;
   border-radius: 10px !important;
@@ -7036,8 +7036,8 @@ table.dataTable td .acciones-menu {
 
 .btn-acciones:hover,
 .btn-acciones:focus {
-  background: #1d4ed8 !important;
-  border-color: #1d4ed8 !important;
+  background: #258cc7 !important;
+  border-color: #258cc7 !important;
   color: #ffffff !important;
   outline: none !important;
 }
@@ -15752,3 +15752,135 @@ body > .modal-backdrop.pdf-public-backdrop {
     height: 0 !important;
 }
 
+
+/* =========================================================
+   IZZY | BOTONES DE ACCIONES CONSISTENTES
+   Mantiene azul corporativo y un indicador claro de desplegable.
+   ========================================================= */
+.btn-acciones,
+button[class*="-acciones-toggle"],
+.dropdown[class*="-actions"] > .dropdown-toggle,
+.dropdown[class*="-acciones"] > .dropdown-toggle,
+.ap-actions-trigger {
+    background: #2f9ddd !important;
+    border-color: #2f9ddd !important;
+    color: #fff !important;
+    font-weight: 700;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(47, 157, 221, .22);
+}
+
+.btn-acciones:hover,
+.btn-acciones:focus,
+button[class*="-acciones-toggle"]:hover,
+button[class*="-acciones-toggle"]:focus,
+.dropdown[class*="-actions"] > .dropdown-toggle:hover,
+.dropdown[class*="-actions"] > .dropdown-toggle:focus,
+.dropdown[class*="-acciones"] > .dropdown-toggle:hover,
+.dropdown[class*="-acciones"] > .dropdown-toggle:focus,
+.ap-actions-trigger:hover,
+.ap-actions-trigger:focus,
+.ap-actions-trigger[aria-expanded="true"] {
+    background: #258cc7 !important;
+    border-color: #258cc7 !important;
+    color: #fff !important;
+    outline: 0;
+}
+
+.btn-acciones > i,
+button[class*="-acciones-toggle"] > i,
+.dropdown[class*="-actions"] > .dropdown-toggle > i,
+.dropdown[class*="-acciones"] > .dropdown-toggle > i,
+.ap-actions-trigger > i {
+    color: #fff !important;
+}
+
+/* Los botones de acciones personalizados que no usan .dropdown-toggle
+   reciben un caret visual sin duplicar el de Bootstrap. */
+.btn-acciones:not(.dropdown-toggle)::after,
+button[class*="-acciones-toggle"]:not(.dropdown-toggle)::after {
+    content: "";
+    display: inline-block;
+    margin-left: .55rem;
+    vertical-align: .16em;
+    border-top: .32em solid currentColor;
+    border-right: .32em solid transparent;
+    border-left: .32em solid transparent;
+    transition: transform .16s ease;
+}
+
+.btn-acciones[aria-expanded="true"]:not(.dropdown-toggle)::after,
+button[class*="-acciones-toggle"][aria-expanded="true"]:not(.dropdown-toggle)::after {
+    transform: rotate(180deg);
+}
+
+/* IZZY ACTION BUTTON RESPONSIVE START */
+/* =========================================================
+   IZZY | ACCIONES RESPONSIVAS Y CONSISTENTES
+   Base global: una línea, ancho contenido y mismo azul.
+   Los módulos pueden reducir padding de su celda, pero no
+   volver a partir "Acciones" ni desbordar su columna.
+   ========================================================= */
+.acciones-dropdown,
+[class*="-actions-dropdown"],
+[class*="-acciones-dropdown"] {
+    max-width: 100% !important;
+}
+
+.btn-acciones,
+.ap-actions-trigger,
+button[class*="-acciones-toggle"] {
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 88px !important;
+    max-width: 100% !important;
+    min-height: 34px;
+    padding: 7px 9px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+    line-height: 1 !important;
+    font-size: 12px !important;
+    background: #2f9ddd !important;
+    border-color: #2f9ddd !important;
+    color: #fff !important;
+}
+
+.btn-acciones > span,
+.ap-actions-trigger > span,
+button[class*="-acciones-toggle"] > span {
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
+}
+
+.btn-acciones:hover,
+.btn-acciones:focus,
+.btn-acciones[aria-expanded="true"],
+.ap-actions-trigger:hover,
+.ap-actions-trigger:focus,
+.ap-actions-trigger[aria-expanded="true"],
+button[class*="-acciones-toggle"]:hover,
+button[class*="-acciones-toggle"]:focus,
+button[class*="-acciones-toggle"][aria-expanded="true"] {
+    background: #258cc7 !important;
+    border-color: #258cc7 !important;
+    color: #fff !important;
+}
+
+@media (max-width: 575.98px) {
+    .btn-acciones,
+    .ap-actions-trigger,
+    button[class*="-acciones-toggle"] {
+        min-width: 84px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+}
+/* IZZY ACTION BUTTON RESPONSIVE END */

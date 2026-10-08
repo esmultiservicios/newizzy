@@ -1435,7 +1435,22 @@ class sendEmail {
         $urlLogoEmpresa = '';
         $logoDisponible = false;
 
-        if ($logotipoEmpresa !== '' && $logotipoEmpresa !== 'image_preview.png') {
+        // Un cliente de correo no puede cargar imágenes desde localhost, *.test,
+        // *.local o *.localhost. En esos entornos se fuerza el fallback textual
+        // de IZZY para evitar el ícono de imagen rota en Outlook/Gmail.
+        $hostPlantilla = '';
+        if (defined('SERVERURL')) {
+            $hostPlantilla = strtolower((string)(parse_url((string)SERVERURL, PHP_URL_HOST) ?: ''));
+        }
+        $hostNoPublico = (
+            $hostPlantilla === 'localhost' ||
+            $hostPlantilla === '127.0.0.1' ||
+            str_ends_with($hostPlantilla, '.test') ||
+            str_ends_with($hostPlantilla, '.local') ||
+            str_ends_with($hostPlantilla, '.localhost')
+        );
+
+        if (!$hostNoPublico && $logotipoEmpresa !== '' && $logotipoEmpresa !== 'image_preview.png') {
             $raizProyecto = dirname(__DIR__, 2);
             $rutaLogoEmpresa = $raizProyecto
                 . '/vistas/plantilla/img/enterprise/'

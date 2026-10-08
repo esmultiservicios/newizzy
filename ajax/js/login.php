@@ -19,11 +19,12 @@ window.addEventListener('pageshow', function(event) {
 $(document).ready(function() {
     if (window.izzySyncClientAccess) { window.izzySyncClientAccess(false); }
 
-    // Recordar únicamente el correo. Nunca se almacena la contraseña.
+    // Recordar únicamente el correo en LOCAL y PRODUCCIÓN.
+    // En DEMO la opción no se renderiza y nunca se persiste información.
     var rememberEmailKey = 'izzy_login_email';
     var isDemoLogin = $('#loginform').attr('data-demo') === '1';
 
-    if (!isDemoLogin) {
+    if (!isDemoLogin && $('#rememberEmail').length) {
         try {
             var rememberedEmail = window.localStorage.getItem(rememberEmailKey) || '';
             if (rememberedEmail) {
@@ -31,22 +32,19 @@ $(document).ready(function() {
                 $('#rememberEmail').prop('checked', true);
             }
         } catch (storageError) {
-            // El inicio de sesión debe seguir funcionando aunque el navegador bloquee localStorage.
+            // El login continúa aunque el navegador bloquee localStorage.
         }
     }
 
     function syncRememberedEmail() {
-        if (isDemoLogin) return;
-
+        if (isDemoLogin || !$('#rememberEmail').length) return;
         try {
             if ($('#rememberEmail').is(':checked')) {
                 window.localStorage.setItem(rememberEmailKey, $.trim($('#inputEmail').val()));
             } else {
                 window.localStorage.removeItem(rememberEmailKey);
             }
-        } catch (storageError) {
-            // Preferencia opcional: no interrumpir el login si el almacenamiento no está disponible.
-        }
+        } catch (storageError) {}
     }
 
     $('#rememberEmail').on('change.izzyRemember', function() {

@@ -8,6 +8,7 @@
     $isDemoLogin = ($loginHost === 'demo.izzycloud.app' || str_starts_with($loginHost, 'demo.'));
     $demoUser = $isDemoLogin ? 'admin@izzycloud.app' : '';
     $demoPass = $isDemoLogin ? 'admin' : '';
+    $showRememberLogin = !$isDemoLogin;
 
     // Evita que el navegador reutilice una vista antigua del login después de publicar cambios.
     if (!headers_sent()) {
@@ -25,10 +26,10 @@
     $loginLogoVersion = is_file($loginLogoFile) ? (string) filemtime($loginLogoFile) : '1.0.13';
 ?>
 
-<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css?v=<?php echo @filemtime(__DIR__ . '/../../ajax/bootstrap/css/bootstrap.min.css') ?: time(); ?>" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css?v=<?php echo @filemtime(__DIR__ . '/../../ajax/bootstrap/css/bootstrap-select.min.css') ?: time(); ?>" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css?v=<?php echo @filemtime(__DIR__ . '/../../ajax/sweetalert/sweetalert.css') ?: time(); ?>" rel="stylesheet" crossorigin="anonymous" />
-<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/notyf.min.css') ?: time(); ?>" rel="stylesheet" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
 <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/style_login.css?v=<?php echo rawurlencode($styleLoginVersion); ?>" rel="stylesheet" crossorigin="anonymous" data-izzy-login-style-version="<?php echo htmlspecialchars($styleLoginVersion, ENT_QUOTES, 'UTF-8'); ?>" />
 
 <div class="izzy-login-page">
@@ -153,14 +154,14 @@
                                            placeholder="Ingresa tu contraseña"
                                            required tabindex="2"
                                            autocomplete="current-password">
-                                    <button id="show_password" class="auth-password-button" type="button" tabindex="3" aria-label="Mostrar u ocultar contraseña">
+                                    <button id="show_password" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
                                         <span id="icon" class="fa fa-eye-slash icon" aria-hidden="true"></span>
                                     </button>
                                 </span>
                             </label>
 
                             <div class="auth-client-option" id="groupDB">
-                                <button type="button" class="auth-client-inline" id="clientAccessTrigger" tabindex="4" aria-label="Agregar cliente y PIN" disabled aria-disabled="true">
+                                <button type="button" class="auth-client-inline" id="clientAccessTrigger" tabindex="3" aria-label="Agregar cliente y PIN" disabled aria-disabled="true">
                                     <span class="auth-client-inline-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
                                     <span class="auth-client-inline-copy">
                                         <small id="clientAccessState">Validá tus credenciales</small>
@@ -170,15 +171,26 @@
                             </div>
                         </div>
 
+                        <?php if ($showRememberLogin): ?>
+                        <label class="auth-remember-option" for="rememberEmail">
+                            <input type="checkbox" id="rememberEmail" tabindex="4">
+                            <span class="auth-remember-check" aria-hidden="true"><i class="fas fa-check"></i></span>
+                            <span class="auth-remember-copy">
+                                <strong>Recordar mi correo</strong>
+                                <small>Solo se guardará el correo en este dispositivo.</small>
+                            </span>
+                        </label>
+                        <?php endif; ?>
+
                         <div class="RespuestaAjax" aria-live="polite"></div>
 
-                        <button class="auth-button auth-button-primary" type="submit" id="enviar" tabindex="6">
+                        <button class="auth-button auth-button-primary" type="submit" id="enviar" tabindex="5">
                             <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
                             <span>Iniciar sesión</span>
                         </button>
 
                         <div class="auth-link-row">
-                            <a href="#" id="forgot_pswd" tabindex="7" class="auth-forgot-link">
+                            <a href="#" id="forgot_pswd" tabindex="6" class="auth-forgot-link">
                                 <span class="auth-forgot-icon"><i class="fas fa-key" aria-hidden="true"></i></span>
                                 <span>
                                     <small>¿Problemas para ingresar?</small>

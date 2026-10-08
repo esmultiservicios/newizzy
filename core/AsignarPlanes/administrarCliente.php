@@ -662,8 +662,8 @@ try {
             $mailSent = $notifyEmail !== '' ? apiSendChangeMail(
                 $notifyEmail,
                 $nombre,
-                'Colaborador actualizado',
-                'Se actualizaron los datos del colaborador '.$nombre.'.',
+                'Mejora y/o actualización de colaborador',
+                'Se realizó una mejora y/o actualización en los datos del colaborador '.$nombre.'.',
                 $sc['cliente_nombre']
             ) : false;
             apiResponder(
@@ -859,8 +859,8 @@ try {
             $mailSent = apiSendChangeMail(
                 $email,
                 $collab['nombre'],
-                'Usuario actualizado',
-                'Se actualizaron datos de tu usuario IZZY.',
+                'Mejora y/o actualización de usuario',
+                'Se realizó una mejora y/o actualización en los datos de tu usuario IZZY.',
                 $sc['cliente_nombre'],
                 $cambiosUsuario
             );
@@ -961,8 +961,8 @@ try {
             if(!$stmt->execute()) throw new Exception('No se pudo actualizar la empresa: '.$stmt->error);
             $stmt->close();
             $mailResult = apiNotifyAdminEvent(
-                'Empresa actualizada',
-                'Se actualizaron los datos de una empresa del cliente.',
+                'Mejora y/o actualización de empresa',
+                'Se realizó una mejora y/o actualización en los datos de una empresa del cliente.',
                 ['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>$estado===1?'Activa':'Inactiva'],
                 [],
                 'info',

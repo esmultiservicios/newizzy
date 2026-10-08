@@ -922,3 +922,11 @@
         font-size: 13px !important;
     }
 }
+
+/* IZZY ACTION CELL CONTAINMENT START */
+.colaboradores-detail-row > :last-child,
+.colaboradores-detail-header > :last-child { padding-left: 6px !important; padding-right: 6px !important; overflow: visible !important; }
+.colaboradores-detail-row > :last-child .acciones-dropdown { width: auto !important; max-width: 100% !important; }
+.colaboradores-detail-row > :last-child .btn-acciones { min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
+.colaboradores-detail-row > :last-child .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
+/* IZZY ACTION CELL CONTAINMENT END */

@@ -1973,7 +1973,9 @@ $(window).on("load", function() {
                     'data-user-extra="' + (parseInt(row.user_extra,10)||0) + '" ' +
                     'data-validar="' + limpiarHtml(row.validar) + '" ' +
                     'data-estado="' + limpiarHtml(row.estado) + '" ' +
-                    'data-cliente-nombre="' + limpiarHtml(obtenerNombreCliente(row)) + '">' +
+                    'data-cliente-nombre="' + limpiarHtml(obtenerNombreCliente(row)) + '" ' +
+                    'data-db-disponible="' + (parseInt(row.db_disponible, 10) === 1 ? '1' : '0') + '" ' +
+                    'data-db-mensaje="' + limpiarHtml(row.db_mensaje || '') + '">' +
                     '<i class="fas fa-cog"></i><span>Acciones</span><i class="fas fa-chevron-down ml-1"></i>' +
                 '</button>' +
             '</div>';
@@ -4310,6 +4312,10 @@ $(window).on("load", function() {
             }
         } catch (e) {}
 
+        if (/Unknown database|base de datos.*no existe|database.*does not exist/i.test(mensaje)) {
+            mensaje = "No se puede abrir la administración porque la base de datos del cliente no existe o no está disponible.";
+        }
+
         if (!mensaje) {
             const status = xhr && xhr.status ? " (HTTP " + xhr.status + ")" : "";
             mensaje = "No se pudo completar la operación" + status + ". Verifique la conexión e inténtelo nuevamente.";
@@ -4326,6 +4332,7 @@ $(window).on("load", function() {
         const d = $trigger.data();
         const sistemaNombre = String(d.sistemaNombre || "").trim().toUpperCase();
         const esIzzy = sistemaNombre === "IZZY";
+        const dbDisponible = String(d.dbDisponible || "0") === "1";
 
         let menuHtml =
             '<button type="button" class="btn-editar-asignacion ap-action-item" role="menuitem">' +
@@ -4333,11 +4340,19 @@ $(window).on("load", function() {
                 '<span class="ap-item-copy"><strong>Editar plan</strong><small>Plan y acceso del cliente</small></span>' +
             '</button>';
 
-        if (esIzzy) {
+        if (esIzzy && dbDisponible) {
             menuHtml +=
-                '<button type="button" class="ap-manage-client ap-action-item" role="menuitem">' +
-                    '<span class="ap-item-icon ap-item-icon-users"><i class="fas fa-users-cog"></i></span>' +
-                    '<span class="ap-item-copy"><strong>Colaboradores y usuarios</strong><small>Administrar accesos IZZY</small></span>' +
+                '<button type="button" class="ap-manage-client ap-action-item" data-ap-target="empresas" role="menuitem">' +
+                    '<span class="ap-item-icon ap-item-icon-company"><i class="fas fa-building"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Empresa</strong><small>Consultar, crear y editar empresas</small></span>' +
+                '</button>' +
+                '<button type="button" class="ap-manage-client ap-action-item" data-ap-target="colaboradores" role="menuitem">' +
+                    '<span class="ap-item-icon ap-item-icon-users"><i class="fas fa-user-shield"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Usuarios</strong><small>Administrar colaboradores y accesos</small></span>' +
+                '</button>' +
+                '<button type="button" class="ap-manage-client ap-action-item" data-ap-target="secuencias" role="menuitem">' +
+                    '<span class="ap-item-icon ap-item-icon-sequence"><i class="fas fa-file-invoice"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Secuencia</strong><small>Documentos y secuencias de facturación</small></span>' +
                 '</button>';
         }
 
@@ -4410,6 +4425,7 @@ $(window).on("load", function() {
         .on("click.apManage", ".ap-manage-client", function() {
             const id = parseInt($(this).data("id"), 10) || 0;
             const sistemaNombre = String($(this).data("sistema-nombre") || "").trim().toUpperCase();
+            const targetTab = String($(this).attr("data-ap-target") || "colaboradores").trim();
             apCloseActionsPortal();
             if (!id) return;
             if (sistemaNombre !== "IZZY") {
@@ -4428,6 +4444,15 @@ $(window).on("load", function() {
                 .filter('[data-ap-access-tab="directory"]').addClass("active");
             $(".ap-access-subpanel").removeClass("active");
             $("#ap_access_directory").addClass("active");
+
+            var safeTargetTab = ["colaboradores", "empresas", "secuencias"].indexOf(targetTab) >= 0
+                ? targetTab
+                : "colaboradores";
+            $(".ap-admin-tab").removeClass("active")
+                .filter('[data-ap-tab="' + safeTargetTab + '"]').addClass("active");
+            $(".ap-admin-panel").removeClass("active");
+            $("#ap_panel_" + safeTargetTab).addClass("active");
+
             apAdminState.planName = String($(this).data("plan-nombre") || "").trim();
             apBillingState.documentos = [];
             apBillingState.secuencias = [];
@@ -5224,10 +5249,16 @@ $(window).on("load", function() {
     function apSequenceActionsHtml(id) {
         return '<div class="dropdown ap-sequence-row-actions">' +
             '<button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i>Acciones</button>' +
-            '<div class="dropdown-menu dropdown-menu-right">' +
-                '<button type="button" class="dropdown-item ap-sequence-edit" data-id="' + id + '"><i class="fas fa-edit mr-2"></i>Editar</button>' +
+            '<div class="dropdown-menu dropdown-menu-right ap-rich-actions-menu">' +
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-sequence-edit" data-id="' + id + '">' +
+                    '<span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-edit"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Editar secuencia</strong><small>CAI, rango, vigencia y numeración</small></span>' +
+                '</button>' +
                 '<div class="dropdown-divider"></div>' +
-                '<button type="button" class="dropdown-item text-danger ap-sequence-delete" data-id="' + id + '"><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>' +
+                '<button type="button" class="dropdown-item ap-rich-action-item text-danger ap-sequence-delete" data-id="' + id + '">' +
+                    '<span class="ap-item-icon ap-item-icon-danger"><i class="fas fa-trash-alt"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Eliminar secuencia</strong><small>Quitar este registro de facturación</small></span>' +
+                '</button>' +
             '</div>' +
         '</div>';
     }
@@ -5347,13 +5378,19 @@ $(window).on("load", function() {
                 '</div>' +
                 '<div class="dropdown ap-document-actions">' +
                     '<button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i>Acciones</button>' +
-                    '<div class="dropdown-menu dropdown-menu-right">' +
-                        '<button type="button" class="dropdown-item ap-document-edit" data-id="' + id + '"><i class="fas fa-edit mr-2"></i>Editar</button>' +
-                        '<button type="button" class="dropdown-item ap-document-state" data-id="' + id + '" data-state="' + (active ? 0 : 1) + '"><i class="fas ' + (active ? 'fa-pause' : 'fa-play') + ' mr-2"></i>' + (active ? 'Desactivar' : 'Activar') + '</button>' +
+                    '<div class="dropdown-menu dropdown-menu-right ap-rich-actions-menu">' +
+                        '<button type="button" class="dropdown-item ap-rich-action-item ap-document-edit" data-id="' + id + '">' +
+                            '<span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-edit"></i></span>' +
+                            '<span class="ap-item-copy"><strong>Editar documento</strong><small>Nombre y configuración fiscal</small></span>' +
+                        '</button>' +
+                        '<button type="button" class="dropdown-item ap-rich-action-item ap-document-state" data-id="' + id + '" data-state="' + (active ? 0 : 1) + '">' +
+                            '<span class="ap-item-icon ' + (active ? 'ap-item-icon-pause' : 'ap-item-icon-add') + '"><i class="fas ' + (active ? 'fa-pause' : 'fa-play') + '"></i></span>' +
+                            '<span class="ap-item-copy"><strong>' + (active ? 'Desactivar' : 'Activar') + '</strong><small>Cambiar disponibilidad del documento</small></span>' +
+                        '</button>' +
                         '<div class="dropdown-divider"></div>' +
                         (canDelete
-                            ? '<button type="button" class="dropdown-item text-danger ap-document-delete" data-id="' + id + '"><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>'
-                            : '<button type="button" class="dropdown-item text-muted" disabled title="Tiene secuencias asociadas"><i class="fas fa-lock mr-2"></i>Eliminar</button>') +
+                            ? '<button type="button" class="dropdown-item ap-rich-action-item text-danger ap-document-delete" data-id="' + id + '"><span class="ap-item-icon ap-item-icon-danger"><i class="fas fa-trash-alt"></i></span><span class="ap-item-copy"><strong>Eliminar documento</strong><small>Quitar este documento fiscal</small></span></button>'
+                            : '<button type="button" class="dropdown-item ap-rich-action-item text-muted" disabled title="Tiene secuencias asociadas"><span class="ap-item-icon ap-item-icon-muted"><i class="fas fa-lock"></i></span><span class="ap-item-copy"><strong>Eliminar documento</strong><small>Tiene secuencias asociadas</small></span></button>') +
                     '</div>' +
                 '</div>' +
             '</article>';
@@ -5707,10 +5744,6 @@ $(window).on("load", function() {
                     '<span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-user-shield"></i></span>' +
                     '<span class="ap-item-copy"><strong>Editar usuario</strong><small>Correo, empresa y acceso</small></span>' +
                 '</button>' +
-                '<button type="button" class="ap-action-item ap-edit-user" data-cid="' + cid + '" data-uid="' + u.users_id + '" role="menuitem">' +
-                    '<span class="ap-item-icon ap-item-icon-key"><i class="fas fa-shield-alt"></i></span>' +
-                    '<span class="ap-item-copy"><strong>Privilegio y permisos</strong><small>'+limpiarHtml(apUserAccessLabel(u,"privilege"))+' · '+limpiarHtml(apUserAccessLabel(u,"type"))+'</small></span>' +
-                '</button>' +
                 '<button type="button" class="ap-action-item ap-reset-user" data-uid="' + u.users_id + '" data-email="' + limpiarHtml(u.email) + '" role="menuitem">' +
                     '<span class="ap-item-icon ap-item-icon-key"><i class="fas fa-key"></i></span>' +
                     '<span class="ap-item-copy"><strong>Nueva contraseña</strong><small>Generar y enviar al correo</small></span>' +
@@ -5951,8 +5984,11 @@ $(window).on("load", function() {
     function apCompanyActionsHtml(id) {
         return '<div class="dropdown ap-company-actions">' +
             '<button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i>Acciones</button>' +
-            '<div class="dropdown-menu dropdown-menu-right">' +
-                '<button type="button" class="dropdown-item ap-edit-company" data-id="' + id + '"><i class="fas fa-edit mr-2"></i>Editar</button>' +
+            '<div class="dropdown-menu dropdown-menu-right ap-rich-actions-menu">' +
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-edit-company" data-id="' + id + '">' +
+                    '<span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-edit"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Editar empresa</strong><small>Datos generales y configuración</small></span>' +
+                '</button>' +
             '</div>' +
         '</div>';
     }

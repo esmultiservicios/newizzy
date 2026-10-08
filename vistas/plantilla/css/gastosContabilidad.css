@@ -1110,3 +1110,15 @@
         max-width: 72px !important;
     }
 }
+
+/* IZZY ACTION CELL CONTAINMENT START */
+.egresos-detail-row > :first-child,
+.egresos-detail-header > :first-child,
+.egresos-actions-cell { padding-left: 6px !important; padding-right: 6px !important; overflow: visible !important; }
+.egresos-actions-cell .acciones-dropdown,
+.egresos-detail-row > :first-child .acciones-dropdown { width: auto !important; max-width: 100% !important; }
+.egresos-actions-cell .btn-acciones,
+.egresos-detail-row > :first-child .btn-acciones { min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
+.egresos-actions-cell .btn-acciones span,
+.egresos-detail-row > :first-child .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
+/* IZZY ACTION CELL CONTAINMENT END */

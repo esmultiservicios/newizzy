@@ -1,27 +1,30 @@
 <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/factura_compras_modales.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/factura_compras_modales.css') ?: time(); ?>">
-<div class="container-fluid">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/factura_compras.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/factura_compras.css') ?: time(); ?>">
+
+<div class="container-fluid" id="view_purchase">
     <!--<ol class="breadcrumb mt-2 mb-4">
         <li class="breadcrumb-item"><a class="breadcrumb-link" href="<?php echo SERVERURL; ?>dashboard/">Dashboard</a></li>
         <li class="breadcrumb-item active">Compras</li>
     </ol>-->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="card mb-4 purchase-main-card">
+        <div class="card-header purchase-main-header">
             <i class="fas fa-file-invoice-dollar fa-lg mr-1"></i>
             Compras
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
+        <div class="card-body purchase-main-body">
+            <div class="table-responsive purchase-form-shell">
                 <form class="FormularioAjax" id="purchase-form"
                     action="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/addComprasAjax.php"
                     method="POST" data-form="save" autocomplete="off" enctype="multipart/form-data">
-                    <div class="form-group row">
-                        <div class="col-sm-6">
+
+                    <div class="form-group row purchase-toolbar-row">
+                        <div class="col-sm-6 purchase-toolbar-actions">
                             <button class="btn btn-success" type="submit" id="reg_factura" form="purchase-form"
                                 data-toggle="tooltip" data-placement="top" title="Ingresar Factura de Compra">
                                 <div class="sb-nav-link-icon"></div><i class="far fa-save fa-lg"></i> Registrar
                             </button>
                         </div>
-                        <label for="inputFecha" class="col-sm-1 col-form-label-md">Fecha <span
+                        <label for="fechaPurchase" class="col-sm-1 col-form-label-md">Fecha <span
                                 class="priority">*<span /></label>
                         <div class="col-sm-4">
                             <input type="date" class="form-control" value="<?php echo date('Y-m-d');?>" required
@@ -29,8 +32,9 @@
                                 title="Fecha de Facturación">
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label for="inputCliente" class="col-sm-1 col-form-label-md">Proveedor <span
+
+                    <div class="form-group row purchase-meta-row">
+                        <label for="proveedor" class="col-sm-1 col-form-label-md">Proveedor <span
                                 class="priority">*<span /></label>
                         <div class="col-sm-5">
                             <div class="input-group mb-3">
@@ -47,16 +51,17 @@
                                 </select>
                             </div>
                         </div>
-                        <label for="inputCliente" class="col-sm-1 col-form-label-md">Factura <span
+                        <label for="facturaPurchase" class="col-sm-1 col-form-label-md">Factura <span
                                 class="priority">*<span /></label>
                         <div class="col-sm-4">
                             <input type="text" class="form-control" placeholder="Número de Factura de Compra"
                                 id="facturaPurchase" name="facturaPurchase" required data-toggle="tooltip"
-                                data-placement="top" title="Factura Compra" maxlength="19" required>
+                                data-placement="top" title="Factura Compra" maxlength="19">
                         </div>
                     </div>
-                    <div class="form-group row">
-                        <label for="inputCliente" class="col-sm-1 col-form-label-md">Usuario <span
+
+                    <div class="form-group row purchase-meta-row purchase-meta-row-secondary">
+                        <label for="colaborador" class="col-sm-1 col-form-label-md">Usuario <span
                                 class="priority">*<span /></label>
                         <div class="col-sm-3">
                             <div class="input-group mb-3">
@@ -68,18 +73,18 @@
                                 </select>
                             </div>
                         </div>
-                        <label for="inputCliente" class="col-sm-1 col-form-label-md" data-toggle="tooltip"
+                        <label for="tipoPurchase" class="col-sm-1 col-form-label-md" data-toggle="tooltip"
                             data-placement="top"
                             title="Es para definir si la factura de compra será al crédito o al contado">Tipo
                             Factura<span class="priority">*<span /></label>
-                        <div class="col-md-2">
+                        <div class="col-md-2 purchase-type-control">
                             <label class="switch">
                                 <input type="checkbox" id="tipoPurchase" name="tipoPurchase" value="1" checked>
                                 <div class="slider round"></div>
                             </label>
                             <span class="question mb-2" id="label_tipoPurchase"></span>
                         </div>
-                        <label for="inputCliente" class="col-sm-1 col-form-label-md recordatorio" data-toggle="tooltip"
+                        <label for="recordatorio" class="col-sm-1 col-form-label-md recordatorio" data-toggle="tooltip"
                             style="display: none;" data-placement="top"
                             title="Selecciona el número de días para establecer un recordatorio mensual. El recordatorio se activará automáticamente a partir del próximo mes después del registro de la factura.">Recordatorio</label>
                         <div class="col-md-3 recordatorio" style="display: none;">
@@ -90,7 +95,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group row table-responsive-xl table table-hover">
+                    <div class="form-group row table-responsive-xl table table-hover purchase-detail-shell">
                         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <table class="table-header-pro table-footer-pro" id="purchaseItem">
                                 <thead class="text-align: center">
@@ -133,17 +138,18 @@
                                         <td>
                                             <div class="input-group mb-3">
                                                 <input type="hidden" name="isvPurchase[]" id="isvPurchase_0"
-                                                    class="form-control" placeholder="Producto ISV" autocomplete="off">                                                
+                                                    class="form-control" placeholder="Producto ISV" autocomplete="off">
 
-                                                <!-- ISV1 (15% u otro valor que venga como ISV id=1) -->
-                                                <input type="hidden" name="valor_isvPurchase[]" id="valor_isvPurchase_0" class="form-control inputfield-details1" placeholder="Valor ISV (id=1)" autocomplete="off">
+                                                <input type="hidden" name="valor_isvPurchase[]" id="valor_isvPurchase_0"
+                                                    class="form-control inputfield-details1" placeholder="Valor ISV (id=1)"
+                                                    autocomplete="off">
 
-                                                <!-- NUEVO: ISV2 (18% u otro valor que venga como ISV id=2) -->
-                                                <input type="hidden" name="valor_isvPurchase1[]" id="valor_isvPurchase1_0" class="form-control inputfield-details1" placeholder="Valor ISV2 (id=2)" autocomplete="off">
+                                                <input type="hidden" name="valor_isvPurchase1[]" id="valor_isvPurchase1_0"
+                                                    class="form-control inputfield-details1" placeholder="Valor ISV2 (id=2)"
+                                                    autocomplete="off">
 
-                                                <!-- ¿qué ISV aplica a ESTA fila? 1/0 -->
-                                                <input type="hidden" name="isv1_flagPurchase[]" id="isv1_flagPurchase_0" value="0">  <!-- 1 => usa ISV id=1 (15%) -->
-                                                <input type="hidden" name="isv2_flagPurchase[]" id="isv2_flagPurchase_0" value="0">  <!-- 1 => usa ISV id=2 (18%) -->
+                                                <input type="hidden" name="isv1_flagPurchase[]" id="isv1_flagPurchase_0" value="0">
+                                                <input type="hidden" name="isv2_flagPurchase[]" id="isv2_flagPurchase_0" value="0">
 
                                                 <input type="hidden" name="productos_idPurchase[]"
                                                     id="productos_idPurchase_0" class="form-control" autocomplete="off">
@@ -180,10 +186,18 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        <div class="purchase-detail-empty" aria-hidden="true">
+                            <i class="fas fa-shopping-cart"></i>
+                            <strong>Detalle de la compra</strong>
+                            <span>Agregue productos por código o búsqueda. El encabezado permanece fijo y las acciones quedan siempre visibles debajo.</span>
+                        </div>
                     </div>
+
                     <hr class="line_table" />
-                    <div class="form-group row">
-                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+
+                    <div class="form-group row purchase-actions-row">
+                        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 purchase-actions-bar">
                             <button class="btn btn-success ml-3 bill-bottom-add" id="addRowsPurchase" type="button"
                                 data-toggle="tooltip" data-placement="top" title="Agregar filas en la factura">
                                 <div class="sb-nav-link-icon"></div><i class="fas fa-plus fa-lg"></i> Agregar
@@ -195,7 +209,8 @@
                             </button>
                         </div>
                     </div>
-                    <div class="form-group row">
+
+                    <div class="form-group row purchase-notes-row">
                         <div class="form-row col-xs-12 col-sm-12 col-md-12 col-lg-12">
                             <div class="col-sm-12 col-md-12">
                                 <h3>Notas: </h3>
@@ -359,30 +374,33 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="RespuestaAjax"></div>
                 </form>
             </div>
         </div>
-        <div class="card-footer small text-muted">
+        <div class="card-footer small text-muted purchase-update-footer">
             <?php
-				require_once "./core/mainModel.php";
-				
-				$insMainModel = new mainModel();
-				$entidad = "compras";
-				
-				if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
-					$consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
-					$fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
-					$hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
-					echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
-				} else {
-					echo "No se encontraron registros ";
-				}				
-			?>
+                require_once "./core/mainModel.php";
+
+                $insMainModel = new mainModel();
+                $entidad = "compras";
+
+                if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
+                    $consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
+                    $fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
+                    $hora = htmlspecialchars(date('g:i:s a', strtotime($fecha_registro)), ENT_QUOTES, 'UTF-8');
+                    echo "Última Actualización ".htmlspecialchars($insMainModel->getTheDay($fecha_registro, $hora), ENT_QUOTES, 'UTF-8');
+                } else {
+                    echo "No se encontraron registros ";
+                }
+            ?>
         </div>
     </div>
 </div>
 
 <?php
-	$insMainModel->guardar_historial_accesos("Ingreso al modulo Compras");
+    $insMainModel->guardar_historial_accesos("Ingreso al modulo Compras");
 ?>
+
+<script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/js/factura_compras_ui_premium.js?v=<?php echo @filemtime(__DIR__ . '/../../ajax/js/factura_compras_ui_premium.js') ?: time(); ?>"></script>

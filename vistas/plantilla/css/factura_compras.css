@@ -1,0 +1,1008 @@
+/* ============================================================
+   IZZY | COMPRAS PREMIUM
+   Referencia visual directa: Facturas / Cotización
+   Archivo legible, no minificado.
+   ============================================================ */
+
+#view_purchase,
+#view_purchase * {
+    box-sizing: border-box;
+}
+
+#view_purchase {
+    font-family: "Manrope", sans-serif !important;
+    color: #26384a;
+}
+
+/* ============================================================
+   1. CARD / HEADER PRINCIPAL
+   ============================================================ */
+
+#view_purchase .purchase-main-card {
+    border: 1px solid #dce6ef !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 5px 16px rgba(23, 43, 77, .055) !important;
+}
+
+#view_purchase .purchase-main-header {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+
+    min-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 7px 14px !important;
+
+    border: 0 !important;
+    border-bottom: 3px solid #19c7a5 !important;
+
+    background: #f7fbfe !important;
+    color: #17324d !important;
+
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    letter-spacing: .1px !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase .purchase-main-header::before {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width: 4px;
+
+    background: #2d9fd7;
+}
+
+#view_purchase .purchase-main-header > i {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+
+    margin: 0 2px 0 4px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 9px !important;
+
+    background: #e7f6f3 !important;
+    color: #14a98c !important;
+
+    font-size: 14px !important;
+
+    box-shadow: inset 0 0 0 1px #ccece5 !important;
+}
+
+#view_purchase .purchase-main-body {
+    padding-top: 8px !important;
+}
+
+#view_purchase .purchase-form-shell {
+    overflow: visible !important;
+}
+
+/* ============================================================
+   2. INFORMACIÓN SUPERIOR / FORMULARIO
+   ============================================================ */
+
+#view_purchase .purchase-toolbar-row,
+#view_purchase .purchase-meta-row {
+    align-items: center !important;
+
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    padding: 8px 10px !important;
+
+    border: 1px solid #dfe7ef !important;
+    border-radius: 11px !important;
+
+    background: #f8fafc !important;
+}
+
+#view_purchase .purchase-toolbar-row {
+    margin-bottom: 8px !important;
+}
+
+#view_purchase .purchase-meta-row {
+    margin-bottom: 8px !important;
+}
+
+#view_purchase .purchase-meta-row-secondary {
+    margin-bottom: 12px !important;
+}
+
+#view_purchase .purchase-toolbar-row > label,
+#view_purchase .purchase-meta-row > label {
+    margin-bottom: 0 !important;
+
+    color: #344b61 !important;
+
+    font-size: 12px !important;
+    font-weight: 800 !important;
+}
+
+#view_purchase .priority {
+    color: #e14b4b !important;
+}
+
+#view_purchase .purchase-toolbar-actions {
+    display: flex !important;
+    align-items: center !important;
+}
+
+#view_purchase #reg_factura {
+    min-height: 40px !important;
+
+    padding: 8px 18px !important;
+
+    border: 1px solid #20a85b !important;
+    border-radius: 9px !important;
+
+    background: #20a85b !important;
+    color: #fff !important;
+
+    font-size: 13px !important;
+    font-weight: 800 !important;
+
+    box-shadow: 0 4px 11px rgba(32, 168, 91, .18) !important;
+
+    transition:
+        transform .15s ease,
+        background-color .15s ease,
+        box-shadow .15s ease !important;
+}
+
+#view_purchase #reg_factura:hover,
+#view_purchase #reg_factura:focus {
+    background: #198c4c !important;
+    border-color: #198c4c !important;
+    color: #fff !important;
+
+    transform: translateY(-1px) !important;
+
+    box-shadow: 0 6px 14px rgba(32, 168, 91, .22) !important;
+}
+
+#view_purchase .purchase-toolbar-row .form-control,
+#view_purchase .purchase-meta-row .form-control,
+#view_purchase .purchase-meta-row .bootstrap-select > .dropdown-toggle {
+    height: 42px !important;
+    min-height: 42px !important;
+
+    border: 1px solid #cfd9e5 !important;
+    border-radius: 8px !important;
+
+    background: #fff !important;
+    color: #26384a !important;
+
+    font-size: 13px !important;
+    font-weight: 600 !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase .purchase-toolbar-row .form-control:focus,
+#view_purchase .purchase-meta-row .form-control:focus,
+#view_purchase .purchase-meta-row .bootstrap-select > .dropdown-toggle:focus {
+    border-color: #2f9fe8 !important;
+
+    outline: 0 !important;
+
+    box-shadow: 0 0 0 3px rgba(47, 159, 232, .10) !important;
+}
+
+#view_purchase .purchase-meta-row .input-group {
+    margin-bottom: 0 !important;
+}
+
+#view_purchase .purchase-meta-row .bootstrap-select {
+    width: 100% !important;
+}
+
+#view_purchase .purchase-meta-row .bootstrap-select > .dropdown-toggle {
+    display: flex !important;
+    align-items: center !important;
+}
+
+#view_purchase .purchase-type-control {
+    min-height: 42px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+#view_purchase .purchase-type-control .switch {
+    margin: 0 !important;
+}
+
+#view_purchase #label_tipoPurchase {
+    margin: 0 !important;
+
+    color: #26384a !important;
+
+    font-size: 12px !important;
+    font-weight: 700 !important;
+}
+
+/* ============================================================
+   3. DETALLE DE COMPRA
+   ============================================================ */
+
+#view_purchase .purchase-detail-shell {
+    position: relative !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    height: 300px !important;
+    min-height: 300px !important;
+    max-height: 300px !important;
+
+    margin: 8px 0 14px !important;
+    padding: 0 !important;
+
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+
+    border: 1px solid #dbe4ed !important;
+    border-radius: 10px !important;
+
+    background: #fbfcfe !important;
+
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+
+    scrollbar-width: thin !important;
+    scrollbar-color: #315b7c #edf3f7 !important;
+}
+
+#view_purchase .purchase-detail-shell > .col-xs-12,
+#view_purchase .purchase-detail-shell > .col-sm-12,
+#view_purchase .purchase-detail-shell > .col-md-12,
+#view_purchase .purchase-detail-shell > .col-lg-12 {
+    position: relative !important;
+    z-index: 2 !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+
+    padding: 0 !important;
+}
+
+#view_purchase #purchaseItem {
+    width: 100% !important;
+    min-width: 1220px !important;
+
+    margin: 0 !important;
+
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+
+    table-layout: fixed !important;
+
+    background: #fff !important;
+}
+
+#view_purchase #purchaseItem thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 6 !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+
+    padding: 9px 8px !important;
+
+    background: #17324d !important;
+    color: #fff !important;
+
+    border: 0 !important;
+    border-bottom: 3px solid #18c7a5 !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+
+    text-align: center !important;
+    text-transform: uppercase !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase #purchaseItem tbody tr {
+    background: #fff !important;
+
+    transition:
+        background-color .16s ease,
+        box-shadow .16s ease !important;
+}
+
+#view_purchase #purchaseItem tbody tr:hover {
+    background: #f8fbfe !important;
+}
+
+#view_purchase #purchaseItem tbody td {
+    padding: 6px !important;
+
+    vertical-align: middle !important;
+
+    border-top: 0 !important;
+    border-bottom: 1px solid #e7edf3 !important;
+
+    background: #fff !important;
+}
+
+#view_purchase #purchaseItem tbody .input-group {
+    width: 100% !important;
+
+    display: flex !important;
+    align-items: stretch !important;
+    flex-wrap: nowrap !important;
+
+    margin: 0 !important;
+}
+
+#view_purchase #purchaseItem tbody .mb-3 {
+    margin-bottom: 0 !important;
+}
+
+#view_purchase #purchaseItem tbody .form-control,
+#view_purchase #purchaseItem tbody .bootstrap-select > .dropdown-toggle {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+
+    margin: 0 !important;
+
+    border: 1px solid #cfd9e5 !important;
+    border-radius: 8px !important;
+
+    background: #fff !important;
+    color: #26384a !important;
+
+    font-size: 12px !important;
+    font-weight: 600 !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase #purchaseItem tbody .form-control:focus,
+#view_purchase #purchaseItem tbody .bootstrap-select > .dropdown-toggle:focus {
+    border-color: #2f9fe8 !important;
+
+    outline: 0 !important;
+
+    box-shadow: 0 0 0 3px rgba(47, 159, 232, .10) !important;
+}
+
+#view_purchase #purchaseItem .bootstrap-select {
+    width: 100% !important;
+}
+
+/* Código + búsqueda como una sola pieza */
+#view_purchase #purchaseItem tbody td:nth-child(2) > .input-group > .input-group {
+    height: 42px !important;
+
+    border: 1px solid #cfd9e5 !important;
+    border-radius: 9px !important;
+
+    overflow: hidden !important;
+
+    background: #fff !important;
+}
+
+#view_purchase #purchaseItem tbody td:nth-child(2) > .input-group > .input-group:focus-within {
+    border-color: #2f9fe8 !important;
+
+    box-shadow: 0 0 0 3px rgba(47, 159, 232, .10) !important;
+}
+
+#view_purchase #purchaseItem .buscar_productos_purchase {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-right: 1px solid #e0e7ef !important;
+    border-radius: 0 !important;
+
+    background: #f5f8fb !important;
+    color: #397da8 !important;
+
+    text-decoration: none !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase #purchaseItem .buscar_productos_purchase:hover,
+#view_purchase #purchaseItem .buscar_productos_purchase:focus {
+    background: #eaf5fd !important;
+    color: #137fbd !important;
+}
+
+#view_purchase #purchaseItem .product-bar-codePurchase {
+    height: 42px !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase #purchaseItem input[name="quantityPurchase[]"],
+#view_purchase #purchaseItem input[name="pricePurchase[]"],
+#view_purchase #purchaseItem input[name="isvPurchaseWrite[]"],
+#view_purchase #purchaseItem input[name="discountPurchase[]"],
+#view_purchase #purchaseItem input[name="totalPurchase[]"] {
+    text-align: center !important;
+}
+
+#view_purchase #purchaseItem input[name="quantityPurchase[]"] {
+    font-weight: 700 !important;
+}
+
+#view_purchase #purchaseItem input[name="totalPurchase[]"] {
+    background: #eef2f6 !important;
+    color: #172b4d !important;
+    font-weight: 800 !important;
+}
+
+#view_purchase #purchaseItem .itemRowPurchase,
+#view_purchase #purchaseItem #checkAllPurchase {
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+
+    margin: 0 !important;
+}
+
+/* Estado vacío */
+#view_purchase .purchase-detail-empty {
+    position: absolute !important;
+    z-index: 1 !important;
+
+    left: 50% !important;
+    top: 60% !important;
+
+    width: min(760px, 76%) !important;
+    min-height: 118px !important;
+
+    transform: translate(-50%, -50%) !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+
+    padding: 20px 28px !important;
+
+    border: 1px dashed #bdd3e3 !important;
+    border-radius: 16px !important;
+
+    background: rgba(247, 250, 253, .94) !important;
+
+    color: #6a7f93 !important;
+
+    text-align: center !important;
+
+    box-shadow: 0 8px 24px rgba(23, 43, 77, .05) !important;
+
+    pointer-events: none !important;
+}
+
+#view_purchase .purchase-detail-empty i {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 10px !important;
+
+    background: #e8f5fc !important;
+    color: #278fd1 !important;
+
+    font-size: 18px !important;
+}
+
+#view_purchase .purchase-detail-empty strong {
+    color: #263f58 !important;
+
+    font-size: 15px !important;
+    font-weight: 800 !important;
+}
+
+#view_purchase .purchase-detail-empty span {
+    max-width: 600px !important;
+
+    color: #6a7f93 !important;
+
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+}
+
+#view_purchase .purchase-detail-shell.has-products .purchase-detail-empty {
+    display: none !important;
+}
+
+/* ============================================================
+   4. ACCIONES INFERIORES
+   ============================================================ */
+
+#view_purchase .line_table {
+    margin-top: 0 !important;
+    margin-bottom: 14px !important;
+}
+
+#view_purchase .purchase-actions-row {
+    margin-bottom: 4px !important;
+}
+
+#view_purchase .purchase-actions-bar {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+
+#view_purchase #addRowsPurchase,
+#view_purchase #removeRowsPurchase {
+    min-height: 38px !important;
+
+    margin: 0 !important;
+    padding: 8px 15px !important;
+
+    border: 1px solid transparent !important;
+    border-radius: 9px !important;
+
+    color: #fff !important;
+
+    font-size: 13px !important;
+    font-weight: 800 !important;
+
+    box-shadow: 0 3px 8px rgba(23, 43, 77, .12) !important;
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease,
+        background-color .15s ease !important;
+}
+
+#view_purchase #addRowsPurchase {
+    background: #20a86b !important;
+    border-color: #20a86b !important;
+}
+
+#view_purchase #removeRowsPurchase {
+    background: #587086 !important;
+    border-color: #587086 !important;
+}
+
+#view_purchase #addRowsPurchase:hover,
+#view_purchase #addRowsPurchase:focus {
+    background: #198b58 !important;
+    border-color: #198b58 !important;
+    color: #fff !important;
+
+    transform: translateY(-1px) !important;
+}
+
+#view_purchase #removeRowsPurchase:hover,
+#view_purchase #removeRowsPurchase:focus {
+    background: #455c70 !important;
+    border-color: #455c70 !important;
+    color: #fff !important;
+
+    transform: translateY(-1px) !important;
+}
+
+/* ============================================================
+   5. NOTAS
+   ============================================================ */
+
+#view_purchase .purchase-notes-row {
+    width: 100% !important;
+
+    margin: 0 !important;
+}
+
+#view_purchase .purchase-notes-row > .form-row {
+    width: 100% !important;
+
+    margin: 0 !important;
+}
+
+#view_purchase .purchase-notes-row > .form-row > .col-sm-12 {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+#view_purchase .purchase-notes-row h3 {
+    margin: 4px 0 6px !important;
+
+    color: #212529 !important;
+
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+
+#view_purchase #notesPurchase {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    height: 92px !important;
+    min-height: 92px !important;
+
+    margin: 0 !important;
+    padding: 10px 12px !important;
+
+    border: 1px solid #d9e2ec !important;
+    border-radius: 9px !important;
+
+    background: #fbfcfe !important;
+    color: #26384a !important;
+
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+
+    resize: vertical !important;
+
+    box-shadow: none !important;
+}
+
+#view_purchase #notesPurchase:focus {
+    border-color: #3498db !important;
+
+    outline: 0 !important;
+
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, .10) !important;
+}
+
+#view_purchase #charNum_notasPurchase {
+    margin: 4px 0 0 !important;
+
+    color: #596f83 !important;
+
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+}
+
+/* ============================================================
+   6. FOOTER DE TOTALES
+   ============================================================ */
+
+#view_purchase ~ .footer1,
+body:has(#view_purchase) .footer1 {
+    background: #f7fafc !important;
+
+    border-top: 1px solid #cfdbe7 !important;
+
+    box-shadow: 0 -8px 22px rgba(23, 43, 77, .10) !important;
+
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+}
+
+body:has(#view_purchase) .footer1::before {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+
+    height: 3px;
+
+    background: #17324d;
+
+    pointer-events: none;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid {
+    gap: 12px !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric {
+    min-width: 0 !important;
+
+    padding: 7px 8px !important;
+
+    border: 1px solid #d8e3ec !important;
+    border-radius: 12px !important;
+
+    background: #fff !important;
+
+    box-shadow: 0 3px 10px rgba(23, 43, 77, .055) !important;
+
+    transition:
+        border-color .16s ease,
+        box-shadow .16s ease,
+        transform .16s ease !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:hover {
+    border-color: #b9ccdd !important;
+
+    box-shadow: 0 5px 14px rgba(23, 43, 77, .08) !important;
+
+    transform: translateY(-1px) !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric > label {
+    margin-bottom: 5px !important;
+
+    color: #344b61 !important;
+
+    font-size: 13px !important;
+    font-weight: 800 !important;
+
+    text-align: center !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric .input-group {
+    min-height: 48px !important;
+
+    display: flex !important;
+    align-items: stretch !important;
+
+    border: 1px solid #dbe4ec !important;
+    border-radius: 9px !important;
+
+    overflow: hidden !important;
+
+    background: #f3f7fa !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric .input-group-text {
+    min-width: 40px !important;
+    height: 46px !important;
+    min-height: 46px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-right: 1px solid #dbe4ec !important;
+
+    background: #edf3f7 !important;
+    color: #53697d !important;
+
+    font-size: 14px !important;
+    font-weight: 800 !important;
+
+    line-height: 1 !important;
+    text-align: center !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric textarea.form-control {
+    height: 46px !important;
+    min-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+
+    background: #f3f7fa !important;
+    color: #41586c !important;
+
+    font-size: 13px !important;
+    font-weight: 700 !important;
+
+    line-height: 46px !important;
+    text-align: center !important;
+
+    resize: none !important;
+
+    overflow: hidden !important;
+    white-space: nowrap !important;
+
+    box-shadow: none !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:last-child {
+    position: relative !important;
+
+    border-color: #99ddba !important;
+
+    background: #edf9f3 !important;
+
+    box-shadow: 0 4px 13px rgba(22, 145, 86, .10) !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:last-child::before {
+    content: "";
+
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    top: 0;
+
+    height: 3px;
+
+    background: #17a86b;
+
+    border-radius: 0 0 5px 5px;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:last-child > label {
+    color: #0d7545 !important;
+
+    font-size: 15px !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:last-child .input-group {
+    border-color: #b9e6cd !important;
+
+    background: #fff !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:last-child .input-group-text {
+    border-right-color: #ccebd9 !important;
+
+    background: #f2fbf6 !important;
+    color: #087940 !important;
+}
+
+body:has(#view_purchase) .footer1 .totals-grid .metric:last-child textarea.form-control {
+    background: #fff !important;
+    color: #08733e !important;
+
+    font-size: 14px !important;
+    font-weight: 900 !important;
+}
+
+/* ============================================================
+   7. PIE DE ACTUALIZACIÓN
+   ============================================================ */
+
+#view_purchase .purchase-update-footer {
+    padding: 10px 14px !important;
+
+    border-top: 1px solid #e4e9ef !important;
+
+    background: #fbfcfe !important;
+    color: #75869a !important;
+
+    font-size: 11px !important;
+}
+
+/* ============================================================
+   8. RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1199.98px) {
+    #view_purchase .purchase-detail-shell {
+        height: 290px !important;
+        min-height: 290px !important;
+        max-height: 290px !important;
+    }
+
+    #view_purchase #purchaseItem {
+        min-width: 1180px !important;
+    }
+}
+
+@media (max-width: 991.98px) {
+    #view_purchase .purchase-toolbar-row,
+    #view_purchase .purchase-meta-row {
+        row-gap: 8px !important;
+    }
+
+    #view_purchase .purchase-toolbar-row > label,
+    #view_purchase .purchase-meta-row > label {
+        padding-top: 8px !important;
+    }
+}
+
+@media (max-width: 767.98px) {
+    #view_purchase .purchase-main-header {
+        min-height: 44px !important;
+
+        padding: 6px 10px !important;
+    }
+
+    #view_purchase .purchase-main-header > i {
+        width: 30px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+    }
+
+    #view_purchase .purchase-toolbar-row,
+    #view_purchase .purchase-meta-row {
+        padding: 9px !important;
+    }
+
+    #view_purchase .purchase-toolbar-actions {
+        margin-bottom: 4px !important;
+    }
+
+    #view_purchase #reg_factura {
+        width: 100% !important;
+    }
+
+    #view_purchase .purchase-detail-shell {
+        height: 270px !important;
+        min-height: 270px !important;
+        max-height: 270px !important;
+
+        border-radius: 8px !important;
+    }
+
+    #view_purchase .purchase-detail-empty {
+        width: 90% !important;
+        min-height: 104px !important;
+
+        padding: 16px 18px !important;
+    }
+
+    #view_purchase .purchase-detail-empty strong {
+        font-size: 14px !important;
+    }
+
+    #view_purchase .purchase-detail-empty span {
+        font-size: 11px !important;
+    }
+
+    #view_purchase #notesPurchase {
+        height: 82px !important;
+        min-height: 82px !important;
+    }
+
+    body:has(#view_purchase) .footer1 {
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+    }
+
+    body:has(#view_purchase) .footer1 .totals-grid .metric {
+        padding: 6px !important;
+
+        border-radius: 10px !important;
+    }
+
+    body:has(#view_purchase) .footer1 .totals-grid .metric .input-group,
+    body:has(#view_purchase) .footer1 .totals-grid .metric .input-group-text,
+    body:has(#view_purchase) .footer1 .totals-grid .metric textarea.form-control {
+        height: 43px !important;
+        min-height: 43px !important;
+    }
+
+    body:has(#view_purchase) .footer1 .totals-grid .metric textarea.form-control {
+        line-height: 43px !important;
+    }
+}

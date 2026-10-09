@@ -501,6 +501,67 @@
         };
     }
 
+    /* IZZY NC V6.71 CONFIRMACION: swal() existente, sin JS adicional. */
+    function confirmarEmisionNc(data, continuar) {
+        if (typeof window.swal !== 'function') {
+            showNotify('error', 'Confirmación no disponible', 'No se encontró swal() en IZZY.');
+            return;
+        }
+
+        var factura = ncState.factura && ncState.factura.numero
+            ? String(ncState.factura.numero) : String(data.facturas_id);
+        var total = $('#nc_gran_total').text().trim();
+
+        if (!document.getElementById('izzy-nc-swal-superior')) {
+            var estilo = document.createElement('style');
+            estilo.id = 'izzy-nc-swal-superior';
+            estilo.textContent = '.swal-overlay { z-index: 40000 !important; }';
+            document.head.appendChild(estilo);
+        }
+
+        window.swal({
+            title: '¿Emitir Nota de Crédito?',
+            text: 'Factura: ' + factura + '\nTotal a acreditar: ' + total +
+                '\nSe solicitará autorización administrativa antes de registrar.',
+            icon: 'warning',
+            buttons: {
+                cancel: {text: 'Cancelar', value: false, visible: true, closeModal: true},
+                confirm: {text: 'Sí, continuar', value: true, visible: true, closeModal: true}
+            },
+            closeOnEsc: false,
+            closeOnClickOutside: false
+        }).then(function (confirmado) {
+            if (confirmado === true && $('#modalNotaCredito').hasClass('show')) {
+                continuar();
+            }
+        }).catch(function (error) {
+            console.error('No se pudo mostrar la confirmación de NC:', error);
+            showNotify('error', 'Nota de Crédito', 'No se pudo completar la confirmación.');
+        });
+    }
+
+    /* Elevar la autorización administrativa al nivel más alto al abrirse sobre NC. */
+    $(document)
+        .off('show.bs.modal.izzyNcAuthTop shown.bs.modal.izzyNcAuthTop hidden.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema')
+        .on('show.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema', function () {
+            if (!$('#modalNotaCredito').hasClass('show')) return;
+            $(this).appendTo(document.body).css('z-index', '30000');
+        })
+        .on('shown.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema', function () {
+            if (!$('#modalNotaCredito').hasClass('show')) return;
+            var $auth = $(this);
+            $auth.css('z-index', '30000');
+            $('.modal-backdrop').last().addClass('izzy-nc-auth-backdrop')
+                .css('z-index', '29990');
+            $auth.find('input:visible:enabled').first().trigger('focus');
+        })
+        .on('hidden.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema', function () {
+            $(this).css('z-index', '');
+            $('.modal-backdrop.izzy-nc-auth-backdrop').removeClass('izzy-nc-auth-backdrop')
+                .css('z-index', '');
+            if ($('.modal.show').length) $('body').addClass('modal-open');
+        });
+
     function prepararEmisionNc() {
         if (ncState.emitiendo) return;
 
@@ -530,16 +591,18 @@
 
         var numeroFactura = ncState.factura && ncState.factura.numero ? ncState.factura.numero : data.facturas_id;
 
-        validarAdminSistema(function (permitido) {
-            if (permitido !== true) return;
-            emitirNc(data);
-        }, {
-            mensaje: 'Para emitir una Nota de Crédito debe validar un administrador.',
-            modulo: 'Facturación',
-            accion: 'Emitir Nota de Crédito',
-            referencia_id: data.facturas_id,
-            referencia_texto: numeroFactura,
-            motivo: 'Validación requerida para emitir Nota de Crédito desde facturación'
+        confirmarEmisionNc(data, function () {
+            validarAdminSistema(function (permitido) {
+                if (permitido !== true) return;
+                emitirNc(data);
+            }, {
+                mensaje: 'Para emitir una Nota de Crédito debe validar un administrador.',
+                modulo: 'Facturación',
+                accion: 'Emitir Nota de Crédito',
+                referencia_id: data.facturas_id,
+                referencia_texto: numeroFactura,
+                motivo: 'Validación requerida para emitir Nota de Crédito desde facturación'
+            });
         });
     }
 

@@ -1,3 +1,59 @@
+<style>
+/* IZZY | Control del menú lateral en la barra superior.
+   Estilos aislados: no alteran los demás botones del navbar. */
+.sb-topnav #sidebarToggle.izzy-navbar-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 34px;
+    min-width: 38px;
+    margin: 0 6px 0 4px;
+    padding: 0;
+    border: 1px solid #183d70;
+    border-radius: 9px;
+    background: #17345b;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(11, 31, 82, 0.14);
+    transition: background-color 0.18s ease, border-color 0.18s ease,
+                box-shadow 0.18s ease, transform 0.18s ease;
+}
+.sb-topnav #sidebarToggle.izzy-navbar-menu-toggle i {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+    font-size: 17px;
+    line-height: 1;
+    pointer-events: none;
+}
+/* Los estilos globales del sidebar no deben oscurecer el icono. */
+.sb-topnav button#sidebarToggle.izzy-navbar-menu-toggle .fa-bars,
+.sb-topnav button#sidebarToggle.izzy-navbar-menu-toggle .fa-bars::before {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
+}
+.sb-topnav #sidebarToggle.izzy-navbar-menu-toggle:hover {
+    background: #245c9c;
+    border-color: #245c9c;
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(11, 31, 82, 0.19);
+    transform: translateY(-1px);
+}
+.sb-topnav #sidebarToggle.izzy-navbar-menu-toggle:focus-visible {
+    outline: 2px solid #1098ea;
+    outline-offset: 2px;
+}
+.sb-topnav #sidebarToggle.izzy-navbar-menu-toggle:active {
+    transform: translateY(0);
+    background: #0b1f52;
+}
+@media (prefers-reduced-motion: reduce) {
+    .sb-topnav #sidebarToggle.izzy-navbar-menu-toggle { transition: none; }
+}
+</style>
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-color-navarlateral">
   <div class="navbar-brand logo-container">
     <a href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>dashboard/">
@@ -7,8 +63,10 @@
   </div>
 
   <!-- Botón de alternar menú lateral (sidebar) -->
-  <button class="btn btn-link btn-sm order-1 order-lg-0" id="sidebarToggle" type="button" aria-label="Abrir menú lateral">
-    <i class="fas fa-bars fa-lg"></i>
+  <button class="btn izzy-navbar-menu-toggle order-1 order-lg-0" id="sidebarToggle"
+          type="button" title="Mostrar u ocultar menú lateral"
+          aria-label="Mostrar u ocultar menú lateral" aria-controls="layoutSidenav_nav">
+    <i class="fas fa-bars" aria-hidden="true" style="color:#fff!important;-webkit-text-fill-color:#fff!important;opacity:1!important;"></i>
   </button>
 
   <!-- Control de pantalla completa del navbar. Se mantiene al navegar la preferencia. -->
@@ -89,18 +147,19 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {display: none !important;}
 }
 </style>
 <script>
-/* IZZY: Fullscreen persistente con shell del mismo origen (patrón de ZYNKO).
-   Solo el documento raíz entra en Fullscreen. Los módulos navegan en un iframe.
-   Así el documento que mantiene Fullscreen nunca es reemplazado al cambiar de menú. */
+/* IZZY | Pantalla completa sin recargar al activar ni desactivar.
+   El iframe se crea solamente al navegar a otra pantalla en modo Fullscreen.
+   El documento principal conserva sus formularios mientras no se navegue. */
 (function () {
     'use strict';
     var boton = document.getElementById('izzy-persistent-fullscreen');
     if (!boton) return;
-
+    var origen = window.location.origin;
     var enFrame = window.self !== window.top;
     var marco = null;
     var cerrando = false;
-    var origen = window.location.origin;
+    var cargandoMarco = false;
+    var rutaRaizInicial = location.pathname + location.search + location.hash;
 
     function elementoFullscreen() {
         return document.fullscreenElement || document.webkitFullscreenElement || null;
@@ -119,29 +178,37 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {display: none !important;}
         dibujar(true);
         boton.addEventListener('click', function (event) {
             event.preventDefault();
-            try { window.parent.postMessage({tipo: 'izzy:salir-fullscreen'}, origen); } catch (error) {}
+            window.parent.postMessage({tipo: 'izzy:salir-fullscreen'}, origen);
         });
         return;
     }
 
+    function rutaActual() {
+        return location.pathname + location.search + location.hash;
+    }
+
     function rutaDelMarco() {
         try {
-            if (marco && marco.contentWindow) {
-                var url = new URL(marco.contentWindow.location.href);
-                if (url.origin === origen) return url.pathname + url.search + url.hash;
-            }
+            var url = new URL(marco.contentWindow.location.href);
+            if (url.origin === origen) return url.pathname + url.search + url.hash;
         } catch (error) {}
         return '';
     }
 
-    function montarMarco() {
-        if (marco && marco.isConnected) return;
+    function montarMarco(url) {
+        if (marco) return;
         marco = document.createElement('iframe');
         marco.id = 'izzyFullscreenFrame';
         marco.name = 'izzyFullscreenFrame';
         marco.title = 'IZZY - Pantalla completa';
         marco.setAttribute('allow', 'clipboard-read; clipboard-write');
-        marco.src = window.location.href;
+        cargandoMarco = true;
+        marco.addEventListener('load', function () {
+            cargandoMarco = false;
+            var ruta = rutaDelMarco();
+            if (ruta) history.replaceState(history.state, '', ruta);
+        });
+        marco.src = url;
         document.body.appendChild(marco);
         document.documentElement.classList.add('izzy-fs-shell-root');
         document.body.classList.add('izzy-fs-shell');
@@ -151,27 +218,30 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {display: none !important;}
         var destino = rutaDelMarco();
         if (marco) marco.remove();
         marco = null;
+        cargandoMarco = false;
         document.body.classList.remove('izzy-fs-shell');
         document.documentElement.classList.remove('izzy-fs-shell-root');
         dibujar(false);
-        var actual = window.location.pathname + window.location.search + window.location.hash;
-        if (destino && destino !== actual) window.location.replace(destino);
+        if (destino && destino !== rutaRaizInicial) {
+            // Navegar a un módulo distinto requiere cargarlo en el documento raíz.
+            location.replace(destino);
+        }
     }
 
     function activar() {
         var raiz = document.documentElement;
         var solicitar = raiz.requestFullscreen || raiz.webkitRequestFullscreen;
         if (!solicitar) {
-            if (typeof showNotify === 'function') showNotify('warning', 'Pantalla completa', 'No está disponible en este navegador.');
+            if (typeof showNotify === 'function') showNotify('warning', 'Pantalla completa', 'No disponible en este navegador.');
             return;
         }
         try {
-            Promise.resolve(solicitar.call(raiz)).then(function () {
-                montarMarco();
+            Promise.resolve(solicitar.call(raiz, {navigationUI: 'hide'})).then(function () {
+                // No volver a cargar la página actual al expandir.
                 dibujar(true);
             }).catch(function () {
                 dibujar(false);
-                if (typeof showNotify === 'function') showNotify('warning', 'Pantalla completa', 'El navegador no permitió activar la pantalla completa.');
+                if (typeof showNotify === 'function') showNotify('warning', 'Pantalla completa', 'El navegador no permitió activarla.');
             });
         } catch (error) { dibujar(false); }
     }
@@ -196,6 +266,22 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {display: none !important;}
         } catch (error) { cerrando = false; }
     }
 
+    // La navegación normal dentro de IZZY se mantiene en la ventana contenedora.
+    // Al hacer clic en un enlace de otro módulo, se carga solo el destino y
+    // nunca se recarga primero el módulo desde el que se expandió.
+    document.addEventListener('click', function (event) {
+        if (!elementoFullscreen() || marco || event.defaultPrevented ||
+            event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        var enlace = event.target.closest && event.target.closest('a[href]');
+        if (!enlace || enlace.hasAttribute('download') || enlace.target && enlace.target !== '_self') return;
+        var url;
+        try { url = new URL(enlace.href, location.href); } catch (error) { return; }
+        if (url.origin !== origen || !/^https?:$/.test(url.protocol)) return;
+        if (url.pathname === location.pathname && url.search === location.search) return;
+        event.preventDefault();
+        montarMarco(url.href);
+    }, true);
+
     boton.addEventListener('click', function (event) {
         event.preventDefault();
         if (elementoFullscreen()) salir(); else activar();
@@ -203,9 +289,8 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {display: none !important;}
 
     function alCambiarFullscreen() {
         if (elementoFullscreen()) {
-            montarMarco();
             dibujar(true);
-        } else if (marco && !cerrando) {
+        } else if (!cerrando && marco) {
             desmontarMarco();
         } else {
             dibujar(false);

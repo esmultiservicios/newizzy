@@ -1005,7 +1005,7 @@ CALL izzy_add_column('nomina_detalles','hrse75_valor','DECIMAL(12,2) NOT NULL DE
 CALL izzy_add_column('nomina_detalles','hrse100_valor','DECIMAL(12,2) NOT NULL DEFAULT 0.00');
 CALL izzy_add_column('nomina_detalles','salario','DECIMAL(12,2) NOT NULL DEFAULT 0.00');
 
-CALL izzy_add_column('nomina','vales','DECIMAL(12,2) NOT NULL DEFAULT 0.00 AFTER `isr`');
+-- 'vales' pertenece a nomina_detalles (ya se gestiona arriba); no a nomina.
 CALL izzy_add_column('nomina','cuentas_id','INT NULL AFTER `fecha_registro`');
 
 CREATE TABLE IF NOT EXISTS `vale` (
@@ -1196,5 +1196,18 @@ DROP PROCEDURE IF EXISTS izzy_add_fk;
 DROP PROCEDURE IF EXISTS izzy_drop_column;
 DROP PROCEDURE IF EXISTS izzy_change_engine;
 DROP PROCEDURE IF EXISTS izzy_exec_if_table;
+
+
+-- ============================================================================
+-- NOTAS DE CRÉDITO: FORMATOS DE IMPRESIÓN CARTA Y TICKET
+-- IDs y tipos reservados 6/7. Mantener solo una opción activa.
+-- Script idempotente: conserva las selecciones existentes al volver a ejecutarse.
+-- ============================================================================
+INSERT INTO `impresora` (`impresora_id`, `descripcion`, `estado`, `tipo`, `fecha_registro`)
+SELECT 6, 'Nota de Crédito Carta', 1, 6, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `impresora` WHERE `tipo` = 6);
+INSERT INTO `impresora` (`impresora_id`, `descripcion`, `estado`, `tipo`, `fecha_registro`)
+SELECT 7, 'Nota de Crédito Ticket', 0, 7, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `impresora` WHERE `tipo` = 7);
 
 -- FIN DB_Cambios.sql

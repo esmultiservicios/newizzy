@@ -330,7 +330,71 @@ if (typeof window.izzySwalLegacy !== 'function') {
     };
 }
 
-var impresoraModernConfig = {"table":"#dataTableConfImpresora","key":"impresora_id","title":"Impresora","exportTitle":"Reporte Impresora","fields":[{"key":"descripcion","label":"Descripción","icon":"fas fa-print","type":"text"},{"key":"estado","label":"Estado","icon":"fas fa-toggle-on","type":"status"}],"actions":[{"label":"Cambiar estado","icon":"fas fa-toggle-on","target":"button.table_impresora","classes":"table_impresora table_editar"}],"kpis":[{"id":"total","label":"Impresoras","desc":"Configuraciones encontradas","icon":"fas fa-print","color":"blue","calc":{"type":"count"}},{"id":"activos","label":"Activas","desc":"Impresoras activas","icon":"fas fa-check-circle","color":"green","calc":{"type":"eq","key":"estado","value":"1"}},{"id":"inactivos","label":"Inactivas","desc":"Impresoras inactivas","icon":"fas fa-times-circle","color":"orange","calc":{"type":"eq","key":"estado","value":"0"}}],"storageView":"izzy.confImpresora.tipo_vista"};
+var impresoraModernConfig = {
+    "table": "#dataTableConfImpresora",
+    "key": "impresora_id",
+    "title": "Impresora",
+    "exportTitle": "Reporte Impresora",
+    "fields": [
+        {
+            "key": "descripcion",
+            "label": "Descripción",
+            "icon": "fas fa-print",
+            "type": "text"
+        },
+        {
+            "key": "estado",
+            "label": "Estado",
+            "icon": "fas fa-toggle-on",
+            "type": "status"
+        }
+    ],
+    "actions": [
+        {
+            "label": "Cambiar estado",
+            "icon": "fas fa-toggle-on",
+            "target": "button.table_impresora",
+            "classes": "table_impresora table_editar"
+        }
+    ],
+    "kpis": [
+        {
+            "id": "total",
+            "label": "Impresoras",
+            "desc": "Configuraciones encontradas",
+            "icon": "fas fa-print",
+            "color": "blue",
+            "calc": {
+                "type": "count"
+            }
+        },
+        {
+            "id": "activos",
+            "label": "Activas",
+            "desc": "Impresoras activas",
+            "icon": "fas fa-check-circle",
+            "color": "green",
+            "calc": {
+                "type": "eq",
+                "key": "estado",
+                "value": "1"
+            }
+        },
+        {
+            "id": "inactivos",
+            "label": "Inactivas",
+            "desc": "Impresoras inactivas",
+            "icon": "fas fa-times-circle",
+            "color": "orange",
+            "calc": {
+                "type": "eq",
+                "key": "estado",
+                "value": "0"
+            }
+        }
+    ],
+    "storageView": "izzy.confImpresora.tipo_vista"
+};
 
 var impresoraModern = {
     rows: [],
@@ -1959,68 +2023,63 @@ var updateStatus = function(tbody, table){
 	$(tbody).off("click", "button.table_impresora");
 	$(tbody).on("click", "button.table_impresora", function(){
 		var data = table.row( $(this).parents("tr") ).data();	
-		window.izzySwalLegacy({
-			title: "¿Desea cambiar el estado?",
-			icon: "info",
-			buttons: {
-				confirm: {
-					text: "Activado!",
-					value: true,
-					visible: true
-				},
-				cancel: {
-					text: "Desactivado!",
-					value: false,
-					visible: true
-				}
-			},
-			closeOnEsc: false, // Desactiva el cierre con la tecla Esc
-			closeOnClickOutside: false // Desactiva el cierre al hacer clic fuera 
-		}).then((isConfirm) => {
-			if (isConfirm) {
-				showNotify('success', 'Estado de Impresora', 'Activado');
-				editarImpresora(data.impresora_id, 1);
-			} else {
-				showNotify('success', 'Estado de Impresora', 'Desactivado');
-				editarImpresora(data.impresora_id, 0);
-			}
-		});
+        // La plantilla de IZZY utiliza SweetAlert clásico: swal(), no Swal.fire().
+        if (typeof swal !== 'function') {
+            if (typeof showNotify === 'function') showNotify('error', 'Confirmación no disponible', 'SweetAlert no está cargado.');
+            return;
+        }
+        swal({
+            title: '¿Desea cambiar el estado?',
+            text: 'Seleccione la acción para esta configuración.',
+            icon: 'info',
+            buttons: {
+                cancelar: { text: 'Cancelar', value: null, visible: true, className: 'btn btn-secondary', closeModal: true },
+                desactivar: { text: 'Desactivar', value: 'desactivar', visible: true, className: 'btn btn-secondary', closeModal: true },
+                activar: { text: 'Activar', value: 'activar', visible: true, className: 'btn btn-primary', closeModal: true }
+            },
+            closeOnClickOutside: false,
+            closeOnEsc: true
+        }).then(function(accion) {
+            if (accion === 'activar') editarImpresora(data.impresora_id, 1);
+            if (accion === 'desactivar') editarImpresora(data.impresora_id, 0);
+        });
 	})
 };
 
 function editarImpresora(id, estado) {
-    var url = '<?php echo SERVERURL; ?>core/editarImpresora.php';
-
     $.ajax({
         type: 'POST',
-        url: url,
+        url: '<?php echo SERVERURL; ?>core/editarImpresora.php',
+        dataType: 'json',
+        timeout: 20000,
         data: {
             id: id,
             estado: estado
-        },
-        success: function (response) {
-            // Convertir la respuesta en un objeto JSON si no está ya parseada
-            var data = typeof response === 'object' ? response : JSON.parse(response);
-
-            if (data.success) {
-                impresoraModern.rows.forEach(function (row) {
-                    if (String(row.impresora_id) === String(id)) {
-                        row.estado = String(estado);
-                        row.activo = parseInt(estado, 10) === 1 ? 'Activado' : 'Desactivado';
-                    }
-                });
-                impresoraModernFiltrar();
-                impresoraModernRender();
-
-                showNotify('success', 'Éxito', data.message); // Mensaje del backend
-                getImpresora(); // Confirmar el estado real desde el backend
-            } else {
-                showNotify('error', 'Error', data.message); // Mensaje del backend
-            }
-        },
-        error: function () {
-            showNotify('error', 'Error', 'Hubo un problema con la conexión al servidor. Por favor, inténtelo de nuevo.');
         }
+    }).done(function (data) {
+        if (!data || data.success !== true) {
+            showNotify('error', 'Error', data && data.message ? data.message : 'No se pudo actualizar la impresora.');
+            return;
+        }
+
+        showNotify('success', 'Éxito', data.message || 'Configuración actualizada.');
+        // Refrescar desde la base de datos, incluyendo el formato NC excluido.
+        getImpresora();
+    }).fail(function (xhr, textStatus, errorThrown) {
+        var respuesta = xhr.responseJSON;
+        var mensaje = respuesta && respuesta.message ? respuesta.message : '';
+        if (!mensaje && xhr.responseText) {
+            console.error('Respuesta inesperada de editarImpresora.php:', xhr.responseText);
+            mensaje = 'El servidor devolvió una respuesta inválida. Revise la consola.';
+        }
+        if (!mensaje) {
+            mensaje = textStatus === 'timeout'
+                ? 'Se agotó el tiempo de espera del servidor.'
+                : 'No se pudo conectar con el servidor.';
+        }
+        console.error('Error al cambiar impresora:', xhr.status, textStatus, errorThrown);
+        showNotify('error', 'Error al actualizar impresora', mensaje);
     });
 }
+
 </script>

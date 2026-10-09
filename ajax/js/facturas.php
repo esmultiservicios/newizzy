@@ -7205,6 +7205,7 @@ function construirHeaderFooterDataTableBill() {
                 '<th>SubTotal</th>' +
                 '<th>ISV</th>' +
                 '<th>Descuento</th>' +
+                '<th>NC</th>' +
                 '<th>Total</th>' +
             '</tr>' +
         '</thead>' +
@@ -7214,6 +7215,7 @@ function construirHeaderFooterDataTableBill() {
                 '<th id="bill_footer_subtotal" class="text-right" style="font-size:0.95rem; font-weight:400;">L. 0.00</th>' +
                 '<th id="bill_footer_isv" class="text-right" style="font-size:0.95rem; font-weight:400;">L. 0.00</th>' +
                 '<th id="bill_footer_descuento" class="text-right" style="font-size:0.95rem; font-weight:400;">L. 0.00</th>' +
+                '<th id="bill_footer_nc" class="text-right">L. 0.00</th>' +
                 '<th id="bill_footer_total" class="text-right" style="font-size:0.95rem; font-weight:400;">L. 0.00</th>' +
             '</tr>' +
         '</tfoot>'
@@ -7414,6 +7416,14 @@ var listar_busqueda_bill = function() {
                 }
             },
             {
+                data: "nc",
+                defaultContent: 0,
+                className: "text-right text-nowrap",
+                render: function(data, type) {
+                    return renderMonedaBill(data, type);
+                }
+            },
+            {
                 data: "total",
                 className: "text-right text-nowrap",
                 render: function(data, type) {
@@ -7456,8 +7466,12 @@ var listar_busqueda_bill = function() {
                 targets: 7
             },
             {
-                width: "11%",
+                width: "9%",
                 targets: 8
+            },
+            {
+                width: "11%",
+                targets: 9
             }
         ],
 
@@ -7478,7 +7492,7 @@ var listar_busqueda_bill = function() {
                 messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
                 className: "table_reportes btn btn-success ocultar",
                 exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                 }
             },
             {
@@ -7490,7 +7504,7 @@ var listar_busqueda_bill = function() {
                 messageBottom: "Fecha de Reporte: " + convertDateFormat(today()),
                 className: "table_reportes btn btn-danger ocultar",
                 exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
                 },
                 customize: function(doc) {
                     if (typeof imagen !== "undefined" && imagen) {
@@ -7520,7 +7534,11 @@ var listar_busqueda_bill = function() {
                 return parseMontoBill(a) + parseMontoBill(b);
             }, 0);
 
-            var totalGeneral = api.column(8, { page: "current" }).data().reduce(function(a, b) {
+            var totalNC = api.column(8, { page: "current" }).data().reduce(function(a, b) {
+                return parseMontoBill(a) + parseMontoBill(b);
+            }, 0);
+
+            var totalGeneral = api.column(9, { page: "current" }).data().reduce(function(a, b) {
                 return parseMontoBill(a) + parseMontoBill(b);
             }, 0);
 
@@ -7541,6 +7559,8 @@ var listar_busqueda_bill = function() {
                     formatoMonedaBill(totalDescuento) +
                 '</span>'
             );
+
+            $("#bill_footer_nc").text(formatoMonedaBill(totalNC));
 
             $("#bill_footer_total").html(
                 '<span style="font-size:0.95rem; font-weight:400; white-space:nowrap;">' +
@@ -10753,7 +10773,7 @@ $('#modalConfigFactura')
 
     fmRegister('facturasEmitidas', {
         selector: '#facturasEmitidasListado',
-        searchFields: ['fecha','tipo_documento','cliente','numero','subtotal','isv','descuento','total'],
+        searchFields: ['fecha','tipo_documento','cliente','numero','subtotal','isv','descuento','nc','total'],
         detailHeader: [
             {label:'Acciones',className:'fm-cell-actions'},
             {label:'Fecha',className:'fm-cell-small'},
@@ -10763,6 +10783,7 @@ $('#modalConfigFactura')
             {label:'Subtotal',className:'fm-cell-money'},
             {label:'ISV',className:'fm-cell-money'},
             {label:'Descuento',className:'fm-cell-money'},
+            {label:'NC',className:'fm-cell-money'},
             {label:'Total',className:'fm-cell-money'}
         ],
         renderDetail: function(r,i){
@@ -10786,6 +10807,7 @@ $('#modalConfigFactura')
                 fmCell('Subtotal',fmMoney(r.subtotal),'fm-cell-money')+
                 fmCell('ISV',fmMoney(r.isv),'fm-cell-money')+
                 fmCell('Descuento',fmMoney(r.descuento),'fm-cell-money')+
+                fmCell('NC',fmMoney(r.nc),'fm-cell-money')+
                 fmCell('Total','<strong>'+fmMoney(r.total)+'</strong>','fm-cell-money')+
             '</article>';
         },
@@ -10805,6 +10827,7 @@ $('#modalConfigFactura')
                 fmMiniField('Subtotal',fmMoney(r.subtotal)),
                 fmMiniField('ISV',fmMoney(r.isv)),
                 fmMiniField('Descuento',fmMoney(r.descuento)),
+                fmMiniField('NC',fmMoney(r.nc)),
                 fmMiniField('Total',fmMoney(r.total))
             ],fmActionsMenu(items));
         },
@@ -10813,20 +10836,22 @@ $('#modalConfigFactura')
             {field:'subtotal',label:'Subtotal',index:5},
             {field:'isv',label:'ISV',index:6},
             {field:'descuento',label:'Descuento',index:7},
-            {field:'total',label:'Total',index:8}
+            {field:'nc',label:'NC',index:8},
+            {field:'total',label:'Total',index:9}
         ],
         exportConfig:{
             title:'REPORTE DE FACTURAS',
             subtitle:'Facturación emitida, impuestos, descuentos y total',
             file:'Reporte_Facturas',
-            headers:['Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','Total'],
-            row:function(r){return [r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',fmNumber(r.subtotal),fmNumber(r.isv),fmNumber(r.descuento),fmNumber(r.total)];},
-            numeric:[4,5,6,7],
-            columnTotals:[4,5,6,7],
+            headers:['Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','NC','Total'],
+            row:function(r){return [r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',fmNumber(r.subtotal),fmNumber(r.isv),fmNumber(r.descuento),fmNumber(r.nc),fmNumber(r.total)];},
+            numeric:[4,5,6,7,8],
+            columnTotals:[4,5,6,7,8],
             summary:function(rows){
                 return [
                     {label:'FACTURAS',value:rows.length},
                     {label:'ISV',value:rows.reduce(function(a,r){return a+fmNumber(r.isv);},0),money:true},
+                    {label:'NC',value:rows.reduce(function(a,r){return a+fmNumber(r.nc);},0),money:true},
                     {label:'TOTAL',value:rows.reduce(function(a,r){return a+fmNumber(r.total);},0),money:true}
                 ];
             },

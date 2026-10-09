@@ -3279,3 +3279,9 @@ body#view_bill #invoiceItem input[id^="total_"].izzy-money-concealed{
         flex:0 0 auto!important;
     }
 }
+
+/* Buscar Facturas: columna NC y tabla completa dentro del modal. */
+#modal_buscar_bill .modal-dialog { max-width: min(1540px, calc(100vw - 24px)); width: calc(100vw - 24px); }
+#modal_buscar_bill .modal-body { min-width: 0; }
+#modal_buscar_bill .dataTables_wrapper { width: 100%; overflow-x: auto; }
+@media (max-width: 767.98px) { #modal_buscar_bill .modal-dialog { width: calc(100vw - 12px); max-width: calc(100vw - 12px); margin: 6px auto; } }

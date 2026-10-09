@@ -142,6 +142,11 @@ try {
             f.number AS number,
             f.fecha AS fecha_orden,
             f.importe AS total,
+            (SELECT COALESCE(SUM(nc.total_acreditado), 0)
+             FROM notas_credito nc
+             WHERE nc.facturas_id = f.facturas_id
+               AND nc.empresa_id = f.empresa_id
+               AND nc.estado = 1) AS nc,
             CASE
                 WHEN f.tipo_factura = 1 THEN 'Contado'
                 ELSE 'Crédito'
@@ -307,6 +312,7 @@ try {
             'numero_sort'          => (int)($row['number'] ?? 0),
             'number'               => (int)($row['number'] ?? 0),
 
+            'nc'                   => (float)($row['nc'] ?? 0),
             'subtotal'             => (float)($row['subtotal'] ?? 0),
             'isv'                  => (float)($row['isv'] ?? 0),
             'descuento'            => (float)($row['descuento'] ?? 0),

@@ -14886,25 +14886,45 @@ function ocultarBotonImprimirDocumentoPreview() {
 ========================================================= */
 
 function prepararUrlDocumentoPreview(urlDocumento) {
-  if (!urlDocumento) {
-    return "";
+  if (!urlDocumento) return "";
+  var url = String(urlDocumento).split('#')[0];
+  url += (url.indexOf('?') === -1 ? '?' : '&') + '_preview=' + Date.now();
+  return url + '#toolbar=1&navpanes=0&scrollbar=1&view=Fit';
+}
+
+/* Indicador y controles de zoom propios: el visor PDF nativo no permite
+   insertar el porcentaje dentro de su barra ni leer sus botones internos. */
+var izzyZoomPdf = 100;
+var izzyZoomUrl = '';
+var izzyZoomEsPost = false;
+function izzyZoomPreparar(url, esPost) {
+  izzyZoomPdf = 100;
+  izzyZoomUrl = String(url || '').split('#')[0];
+  izzyZoomEsPost = !!esPost;
+  var $modal = $('#modalPreviewDocumento');
+  if (!$modal.length) return;
+  var $barra = $('#izzy-zoom-pdf-global');
+  if (!$barra.length) {
+    $barra = $('<div id="izzy-zoom-pdf-global" role="group" aria-label="Zoom del documento">' +
+      '<button type="button" data-izzy-zoom="-" aria-label="Reducir zoom">−</button>' +
+      '<span id="izzy-zoom-pdf-valor" aria-live="polite">100%</span>' +
+      '<button type="button" data-izzy-zoom="+" aria-label="Aumentar zoom">+</button></div>');
+    $barra.css({display:'inline-flex',alignItems:'center',gap:'9px',padding:'4px 10px',
+      background:'#fff',color:'#172b4d',border:'1px solid #cbd5e1',borderRadius:'7px',
+      fontSize:'13px',fontWeight:'600',marginLeft:'14px',verticalAlign:'middle'});
+    $barra.find('button').css({border:'0',background:'transparent',color:'#172b4d',
+      fontSize:'19px',cursor:'pointer',padding:'0 4px'});
+    $modal.find('#modalPreviewDocumentoLabel').after($barra);
+    $barra.on('click', 'button', function() {
+      if (izzyZoomEsPost) return;
+      izzyZoomPdf = Math.max(25, Math.min(300, izzyZoomPdf + ($(this).attr('data-izzy-zoom') === '+' ? 10 : -10)));
+      $('#izzy-zoom-pdf-valor').text(izzyZoomPdf + '%');
+      $('#iframePreviewDocumento').attr('src', izzyZoomUrl + '#toolbar=1&navpanes=0&scrollbar=1&zoom=' + izzyZoomPdf);
+    });
   }
-
-  var url = String(urlDocumento);
-  var separadorCache = url.indexOf("?") === -1 ? "?" : "&";
-
-  url += separadorCache + "_preview=" + new Date().getTime();
-
-  /*
-    Opciones del visor PDF del navegador:
-    toolbar=1   muestra barra del PDF
-    navpanes=0  oculta panel lateral
-    scrollbar=1 permite scroll
-    zoom=115    tamaño inicial del documento
-  */
-  url += "#toolbar=1&navpanes=0&scrollbar=1&zoom=115";
-
-  return url;
+  $barra.show();
+  $('#izzy-zoom-pdf-valor').text(esPost ? 'Zoom nativo' : 'Ajustar página');
+  $barra.find('button').prop('disabled', !!esPost).css('opacity', esPost ? .4 : 1);
 }
 
 /* =========================================================
@@ -14922,6 +14942,7 @@ function abrirDocumentoEnModal(urlDocumento, tituloDocumento = "Vista previa del
   }
 
   var urlPreview = prepararUrlDocumentoPreview(urlDocumento);
+  izzyZoomPreparar(urlPreview, false);
   var iframe = $("#iframePreviewDocumento");
 
   tipoPreviewDocumentoActual = "documento";
@@ -14992,6 +15013,8 @@ function abrirReporteIISDentroDelModal(urlReporte, tituloReporte = "Vista previa
   var iframe = $("#iframePreviewDocumento");
 
   tipoPreviewDocumentoActual = "iis";
+  izzyZoomPreparar(url, true);
+  izzyZoomPreparar(urlReporte, false);
 
   $("#modalPreviewDocumentoLabel").text(tituloReporte);
   $("#btnAbrirDocumentoNuevaVentana").attr("href", urlReporte);
@@ -15246,6 +15269,7 @@ $(document).on("hidden.bs.modal", "#modalPreviewDocumento", function () {
   $("#btnAbrirDocumentoNuevaVentana").attr("href", "#");
 
   tipoPreviewDocumentoActual = "documento";
+  $("#izzy-zoom-pdf-global").hide();
 
   /*
     Dejamos el botón imprimir visible por defecto para los documentos normales.

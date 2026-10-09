@@ -56,7 +56,7 @@
 
                 <section class="izzy-nc-toolbar">
                     <div>
-                        <h6><i class="fas fa-box-open"></i> Conceptos a acreditar</h6>
+                        <h6><i class="fas fa-box-open"></i> Conceptos a acreditar <span class="izzy-nc-item-count" id="nc_total_items" aria-live="polite">0 ítems</span></h6>
                         <small>Ingrese el monto base a acreditar. IZZY calcula el ISV proporcional automáticamente.</small>
                     </div>
                     <div class="izzy-nc-toolbar-actions">

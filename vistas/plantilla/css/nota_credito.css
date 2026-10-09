@@ -100,3 +100,9 @@
     cursor:not-allowed!important;
     pointer-events:none!important;
 }
+
+/* Numeración y contador de conceptos de Nota de Crédito */
+.izzy-nc-item-count{display:inline-block;margin-left:9px;padding:4px 9px;border-radius:20px;background:#eaf3fb;color:#17324e;font-size:.75rem;font-weight:700;vertical-align:middle;white-space:nowrap}
+.izzy-nc-product-title{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.izzy-nc-product-title strong{min-width:0;overflow-wrap:anywhere}
+.izzy-nc-item-number{display:inline-flex;align-items:center;justify-content:center;flex:0 0 27px;height:27px;border-radius:7px;background:#eaf3fb;color:#123657;font-size:.8rem;font-weight:800}

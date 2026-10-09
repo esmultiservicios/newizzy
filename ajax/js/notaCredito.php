@@ -315,6 +315,7 @@
         $('#nc_motivo').val('');
         $('#nc_motivo_count').text('0');
         $('#nc_detalle_listado').empty();
+        $('#nc_total_items').text('0 ítems');
         $('#nc_historial').empty();
         $('#nc_detalle_empty').addClass('d-none');
         $('#nc_base_total,#nc_isv15_total,#nc_isv18_total,#nc_gran_total').text('L 0.00');
@@ -379,10 +380,11 @@
         });
 
         $('#nc_detalle_empty').toggleClass('d-none', disponibles.length > 0);
+        $('#nc_total_items').text(disponibles.length + (disponibles.length === 1 ? ' ítem' : ' ítems'));
 
         if (!disponibles.length) return;
 
-        var html = disponibles.map(function (d) {
+        var html = disponibles.map(function (d, index) {
             var taxText = [];
             if (numNc(d.isv15_original) > 0) taxText.push('ISV 15%');
             if (numNc(d.isv18_original) > 0) taxText.push('ISV 18%');
@@ -391,7 +393,7 @@
             return '' +
                 '<article class="izzy-nc-line" data-id="' + escapeNc(d.facturas_detalle_id) + '">' +
                     '<div class="izzy-nc-product">' +
-                        '<strong>' + escapeNc(d.producto) + '</strong>' +
+                        '<div class="izzy-nc-product-title"><span class="izzy-nc-item-number" aria-label="Ítem ' + (index + 1) + '">' + (index + 1) + '</span><strong>' + escapeNc(d.producto) + '</strong></div>' +
                         '<small>Cant. original: ' + escapeNc(d.cantidad) + ' · Precio: ' + moneyNc(d.precio) + ' · ' + taxText.join(' / ') + '</small>' +
                     '</div>' +
                     '<div>' +
@@ -468,6 +470,18 @@
         actualizarEstadoBotonEmitir();
     }
 
+    // Reutilizar el visor público existente sin abrir una pestaña adicional.
+    $(document).off('click.ncVerPublico', '.izzy-nc-ver-documento')
+        .on('click.ncVerPublico', '.izzy-nc-ver-documento', function (e) {
+            e.preventDefault();
+            var url = $(this).attr('href') + '&pdf=1';
+            if (typeof abrirModalPdfPublico !== 'function') {
+                showNotify('error', 'Visor no disponible', 'No se encontró el visor público de documentos.');
+                return;
+            }
+            abrirModalPdfPublico(url, 'Nota de Crédito', 'Nota_de_Credito.pdf');
+        });
+
     function renderHistorialNc() {
         var $hist = $('#nc_historial');
 
@@ -485,7 +499,7 @@
                     '</div>' +
                     '<div class="izzy-nc-history-total">' + moneyNc(n.total_acreditado) + '</div>' +
                     '<div>' +
-                        '<a class="btn btn-info btn-sm" target="_blank" rel="noopener" href="<?php echo SERVERURL; ?>core/notaCredito/verNotaCredito.php?nota_credito_id=' + escapeNc(n.nota_credito_id) + '">' +
+                        '<a class="btn btn-info btn-sm izzy-nc-ver-documento" href="<?php echo SERVERURL; ?>core/notaCredito/verNotaCredito.php?nota_credito_id=' + escapeNc(n.nota_credito_id) + '">' +
                             '<i class="fas fa-eye"></i> Ver' +
                         '</a>' +
                     '</div>' +

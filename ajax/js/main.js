@@ -1496,26 +1496,25 @@ function moneyCell(data, type) {
 
     var pdfPublicoUrlActual = null;
 
-    function pdfPublicoUrlConZoom(url) {
+    // Zoom opcional en porcentaje; por defecto 100%.
+    // Ejemplo: abrirModalPdfPublico(url, titulo, archivo, 65);
+    function pdfPublicoUrlConZoom(url, zoom) {
         var valor = String(url || '');
+        if (!valor) return valor;
 
-        if (!valor) {
-            return valor;
+        var porcentaje = Number(zoom);
+        if (zoom === undefined || zoom === null || zoom === '' ||
+            !Number.isFinite(porcentaje) || porcentaje <= 0) {
+            porcentaje = 100;
         }
+        porcentaje = Math.min(500, Math.max(10, porcentaje));
 
-        /*
-         * El visor nativo de Chrome/Edge respeta estos parámetros y abre
-         * el documento ajustado al ancho, evitando iniciar demasiado pequeño.
-         * La descarga conserva la URL original, sin parámetros visuales.
-         */
-        if (valor.indexOf('#') >= 0) {
-            valor = valor.split('#')[0];
-        }
-
-        return valor + '#zoom=page-width&view=FitH&pagemode=none';
+        // Reemplaza únicamente el fragmento visual; la URL de descarga
+        // sigue siendo la original. Evita el ajuste automático al ancho.
+        return valor.split('#')[0] + '#zoom=' + porcentaje + '&pagemode=none';
     }
 
-    window.abrirModalPdfPublico = function (url, titulo, nombreArchivo) {
+    window.abrirModalPdfPublico = function (url, titulo, nombreArchivo, zoom) {
         if (!url) {
             return false;
         }
@@ -1545,7 +1544,7 @@ function moneyCell(data, type) {
         $('#titulo_pdf_publico').text(titulo || 'Vista previa del PDF');
         $('#visor_pdf_publico')
             .attr('src', 'about:blank')
-            .attr('src', pdfPublicoUrlConZoom(url));
+            .attr('src', pdfPublicoUrlConZoom(url, zoom));
 
         $('#btn_descargar_pdf_publico')
             .attr('href', url)

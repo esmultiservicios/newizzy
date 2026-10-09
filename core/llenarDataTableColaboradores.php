@@ -29,8 +29,21 @@ $result = $insMainModel->getColaboradoresTabla($datos);
 $arreglo = array();
 $data = array();
 
+/*
+ * IZZY | Cotización
+ * El mismo endpoint se utiliza en distintos módulos.
+ * Únicamente cuando la petición proviene de /cotizacion/
+ * se limita el listado al puesto "Vendedores".
+ */
+$referer = isset($_SERVER['HTTP_REFERER']) ? (string)$_SERVER['HTTP_REFERER'] : '';
+$solo_vendedores_cotizacion = preg_match('~/cotizacion(?:/|$|\?)~i', $referer) === 1;
+
 while ($row = $result->fetch_assoc()) {
 	if ($row['puesto'] === 'Clientes') {
+		continue;
+	}
+
+	if ($solo_vendedores_cotizacion && strcasecmp(trim((string)$row['puesto']), 'Vendedores') !== 0) {
 		continue;
 	}
 
@@ -52,4 +65,5 @@ $arreglo = array(
 	'data' => $data
 );
 
-echo json_encode($arreglo);
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($arreglo, JSON_UNESCAPED_UNICODE);

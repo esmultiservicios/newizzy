@@ -1,0 +1,2708 @@
+@charset "UTF-8";
+
+/* ============================================================
+   IZZY | COTIZACIÓN PREMIUM
+   Mismo lenguaje visual aprobado en Facturación.
+   ============================================================ */
+
+#view_quote{
+  --izzy-navy:#17324d;
+  --izzy-blue:#2d9fd7;
+  --izzy-teal:#18c7a5;
+  --izzy-green:#20a86b;
+  --izzy-border:#d8e3ec;
+}
+
+/* Card principal */
+#view_quote > .container-fluid > .card{
+  border:1px solid #dce6ef!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+  box-shadow:0 5px 16px rgba(23,43,77,.055)!important;
+}
+
+#view_quote > .container-fluid > .card > .card-header{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-height:46px!important;
+  padding:7px 14px!important;
+  border:0!important;
+  border-bottom:3px solid var(--izzy-teal)!important;
+  background:#f7fbfe!important;
+  color:var(--izzy-navy)!important;
+  font-size:15px!important;
+  font-weight:800!important;
+}
+#view_quote > .container-fluid > .card > .card-header::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--izzy-blue);
+}
+#view_quote > .container-fluid > .card > .card-header > i{
+  width:32px!important;height:32px!important;min-width:32px!important;
+  margin:0 2px 0 4px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  border-radius:9px!important;background:#e7f6f3!important;color:#14a98c!important;
+  font-size:14px!important;box-shadow:inset 0 0 0 1px #ccece5!important;
+}
+#view_quote > .container-fluid > .card > .card-body{padding-top:8px!important}
+
+/* Acciones superiores */
+#view_quote .bill > .form-group:first-child > div{
+  display:flex!important;flex-wrap:wrap!important;gap:8px!important;
+  padding:8px 10px!important;margin-bottom:8px!important;
+  border:1px solid #d9e5ee!important;border-radius:11px!important;background:#f7fafc!important;
+}
+#view_quote #help_factura,#view_quote #reg_cotizacion,#view_quote #add_cliente,#view_quote #add_vendedor{
+  min-height:38px!important;margin:0!important;padding:8px 14px!important;
+  border:1px solid transparent!important;border-radius:9px!important;color:#fff!important;
+  font-size:13px!important;font-weight:800!important;box-shadow:0 3px 8px rgba(23,43,77,.12)!important;
+}
+#view_quote #help_factura{background:#587086!important}
+#view_quote #reg_cotizacion{background:#20a86b!important}
+#view_quote #add_cliente{background:#367ca8!important}
+#view_quote #add_vendedor{background:#2d88bd!important}
+
+/* Detalle con alto fijo */
+#view_quote .quote-detail-shell{
+  position:relative!important;height:255px!important;min-height:255px!important;max-height:255px!important;
+  margin:0 0 10px!important;overflow:auto!important;
+  border:1px solid #d8e3ec!important;border-radius:12px!important;background:#fff!important;
+  scrollbar-gutter:stable!important;
+}
+#view_quote .quote-detail-shell > .form-group{margin:0!important;border:0!important}
+#view_quote .quote-detail-shell #QuoteItem{width:100%!important;margin:0!important;table-layout:fixed!important;background:#fff!important}
+#view_quote .quote-detail-shell #QuoteItem thead{position:sticky!important;top:0!important;z-index:12!important}
+#view_quote #QuoteItem thead th{
+  padding:10px 8px!important;vertical-align:middle!important;background:var(--izzy-navy)!important;color:#fff!important;
+  border:0!important;border-bottom:3px solid var(--izzy-teal)!important;font-size:12px!important;font-weight:800!important;text-align:center!important;
+}
+#view_quote #QuoteItem tbody td{padding:7px 6px!important;vertical-align:middle!important;border-bottom:1px solid #e6edf3!important;background:#fff!important}
+
+/* Inputs premium */
+#view_quote #QuoteItem td:nth-child(2) .input-group{
+  min-height:42px!important;margin:0!important;border:1px solid #cfdae5!important;border-radius:9px!important;overflow:hidden!important;background:#fff!important;
+}
+#view_quote #QuoteItem td:nth-child(2) .input-group-prepend{width:42px!important;display:flex!important}
+#view_quote #QuoteItem .buscar_productos_quote{
+  width:42px!important;height:40px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  border:0!important;border-right:1px solid #dbe4ec!important;border-radius:0!important;background:#f8fafc!important;color:#60788e!important;
+}
+#view_quote #QuoteItem .product-bar-code{
+  min-height:40px!important;height:40px!important;border:0!important;padding:0 10px!important;font-size:12px!important;font-weight:700!important;box-shadow:none!important;
+}
+#view_quote #QuoteItem .product-description{display:block!important;padding:0 8px!important;color:#20384f!important;font-size:12px!important;font-weight:700!important}
+#view_quote #QuoteItem input[id^="quantityQuote_"],
+#view_quote #QuoteItem input[id^="priceQuote_"],
+#view_quote #QuoteItem input[id^="discountQuote_"],
+#view_quote #QuoteItem input[id^="totalQuote_"]{
+  height:42px!important;min-height:42px!important;border:1px solid #cfdae5!important;border-radius:9px!important;
+  background:#f5f8fb!important;color:#40566a!important;font-size:12px!important;font-weight:700!important;text-align:center!important;box-shadow:none!important;
+}
+#view_quote #QuoteItem td:nth-child(5) .input-group,
+#view_quote #QuoteItem td:nth-child(6) .input-group{
+  min-height:42px!important;height:42px!important;margin:0!important;border:1px solid #cfdae5!important;border-radius:9px!important;overflow:hidden!important;background:#f5f8fb!important;
+}
+#view_quote #QuoteItem td:nth-child(5) .input-group input,
+#view_quote #QuoteItem td:nth-child(6) .input-group input{border:0!important;border-radius:0!important}
+#view_quote #QuoteItem td:nth-child(5) .input-group-append,
+#view_quote #QuoteItem td:nth-child(6) .input-group-append{width:42px!important;min-width:42px!important;display:flex!important}
+#view_quote #QuoteItem td:nth-child(5) .input-group-append .btn,
+#view_quote #QuoteItem td:nth-child(6) .input-group-append .btn{
+  width:42px!important;height:40px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  border:0!important;border-left:1px solid #cfe8db!important;border-radius:0!important;background:#e9f7ef!important;color:#138650!important;
+}
+#view_quote #QuoteItem td:nth-child(5) .input-group-append .btn:hover,
+#view_quote #QuoteItem td:nth-child(5) .input-group-append .btn:focus,
+#view_quote #QuoteItem td:nth-child(6) .input-group-append .btn:hover,
+#view_quote #QuoteItem td:nth-child(6) .input-group-append .btn:focus{
+  background:#15945b!important;color:#fff!important;
+}
+#view_quote #QuoteItem td:nth-child(5) .input-group-append .btn i,
+#view_quote #QuoteItem td:nth-child(6) .input-group-append .btn i{margin:0!important;padding:0!important;line-height:1!important}
+
+/* Estado vacío */
+#view_quote .quote-detail-empty{
+  position:absolute!important;left:50%!important;top:58%!important;transform:translate(-50%,-50%)!important;
+  z-index:4!important;width:min(620px,76%)!important;padding:20px 24px!important;border:1px dashed #cfe0eb!important;
+  border-radius:13px!important;background:#f8fcfe!important;color:#60758a!important;text-align:center!important;pointer-events:none!important;
+}
+#view_quote .quote-detail-empty i{
+  width:42px!important;height:42px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  margin-bottom:8px!important;border-radius:10px!important;background:#e6f5fb!important;color:#2694c9!important;font-size:17px!important;
+}
+#view_quote .quote-detail-empty strong{display:block!important;color:#20384f!important;font-size:15px!important;margin-bottom:4px!important}
+#view_quote .quote-detail-empty span{display:block!important;font-size:12px!important;line-height:1.45!important}
+
+/* Barra de botones + controles */
+#view_quote .quote-actions-bar{display:flex!important;align-items:center!important;gap:8px!important;margin:0 0 8px!important}
+#view_quote .quote-actions-main{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:8px!important}
+#view_quote #addRowsQuote,#view_quote #removeRowsQuote{
+  min-height:38px!important;margin:0!important;padding:8px 15px!important;border:1px solid transparent!important;
+  border-radius:9px!important;color:#fff!important;font-size:13px!important;font-weight:800!important;box-shadow:0 3px 8px rgba(23,43,77,.12)!important;
+}
+#view_quote #addRowsQuote{background:#20a86b!important}
+#view_quote #removeRowsQuote{background:#587086!important}
+#view_quote #addRowsQuote:hover,#view_quote #addRowsQuote:focus{background:#198b58!important;color:#fff!important}
+#view_quote #removeRowsQuote:hover,#view_quote #removeRowsQuote:focus{background:#455c70!important;color:#fff!important}
+
+#view_quote .quote-inline-options{margin-left:auto!important;display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
+#view_quote .quote-inline-control{
+  display:flex!important;align-items:stretch!important;height:38px!important;border:1px solid #cfdce7!important;
+  border-radius:9px!important;overflow:hidden!important;background:#fff!important;box-shadow:0 2px 7px rgba(23,43,77,.05)!important;
+}
+#view_quote .quote-inline-control .input-group-text{
+  height:36px!important;padding:0 10px!important;display:flex!important;align-items:center!important;
+  border:0!important;border-right:1px solid #dbe5ed!important;border-radius:0!important;background:#eef5f9!important;
+  color:#304b61!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;
+}
+#view_quote .quote-inline-control select,
+#view_quote .quote-inline-control input{
+  height:36px!important;min-width:130px!important;max-width:165px!important;border:0!important;border-radius:0!important;
+  background:#fff!important;color:#30465c!important;font-size:11px!important;font-weight:700!important;box-shadow:none!important;
+}
+
+/* Notas */
+#view_quote .quote-notes-row{margin-top:0!important}
+
+
+
+/* Footer premium */
+#view_quote .footer1{
+  background:#f7fafc!important;border-top:1px solid #cfdbe7!important;box-shadow:0 -8px 22px rgba(23,43,77,.10)!important;
+  padding-top:8px!important;padding-bottom:8px!important;
+}
+#view_quote .footer1::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:#17324d;pointer-events:none}
+#view_quote .footer1 .totals-grid .metric{
+  border:1px solid #d8e3ec!important;border-radius:12px!important;background:#fff!important;padding:7px 8px!important;box-shadow:0 3px 10px rgba(23,43,77,.055)!important;
+}
+#view_quote .footer1 .totals-grid .metric > label{margin-bottom:5px!important;color:#344b61!important;font-size:13px!important;font-weight:800!important;text-align:center!important}
+#view_quote .footer1 .totals-grid .metric .input-group{
+  min-height:48px!important;display:flex!important;align-items:stretch!important;border:1px solid #dbe4ec!important;border-radius:9px!important;overflow:hidden!important;background:#f3f7fa!important;
+}
+#view_quote .footer1 .totals-grid .metric .input-group-text{
+  min-width:40px!important;height:46px!important;padding:0!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  border:0!important;border-right:1px solid #dbe4ec!important;background:#edf3f7!important;color:#53697d!important;font-weight:800!important;
+}
+#view_quote .footer1 .totals-grid .metric textarea.form-control{
+  height:46px!important;min-height:46px!important;padding:0!important;border:0!important;background:#f3f7fa!important;color:#41586c!important;
+  font-size:13px!important;font-weight:700!important;text-align:center!important;line-height:46px!important;resize:none!important;overflow:hidden!important;box-shadow:none!important;
+}
+#view_quote .footer1 .totals-grid .metric:last-child{
+  position:relative!important;border-color:#99ddba!important;background:#edf9f3!important;box-shadow:0 4px 13px rgba(22,145,86,.10)!important;
+}
+#view_quote .footer1 .totals-grid .metric:last-child::before{
+  content:"";position:absolute;left:12px;right:12px;top:0;height:3px;background:#17a86b;border-radius:0 0 5px 5px;
+}
+#view_quote .footer1 .totals-grid .metric:last-child > label{color:#0d7545!important;font-size:15px!important}
+#view_quote .footer1 .totals-grid .metric:last-child .input-group-text,
+#view_quote .footer1 .totals-grid .metric:last-child textarea.form-control{background:#fff!important;color:#08733e!important;font-weight:900!important}
+
+@media (max-width:991.98px){
+  #view_quote .quote-actions-bar{align-items:flex-start!important;flex-direction:column!important}
+  #view_quote .quote-inline-options{margin-left:0!important;width:100%!important}
+  #view_quote .quote-detail-shell{height:235px!important;min-height:235px!important;max-height:235px!important}
+}
+@media (max-width:767.98px){
+  #view_quote .quote-inline-options{flex-direction:column!important;align-items:stretch!important}
+  #view_quote .quote-inline-control{width:100%!important}
+  #view_quote .quote-inline-control select,#view_quote .quote-inline-control input{max-width:none!important;width:100%!important}
+  #view_quote .quote-detail-shell{height:220px!important;min-height:220px!important;max-height:220px!important}
+}
+
+
+/* ============================================================
+   IZZY v6.36 | Corrección de carga + Ayuda premium Cotización
+   ============================================================ */
+
+/* Centro de Ayuda de Cotización: mismo nivel visual que Facturación */
+#modalAyudaQuote .modal-dialog{
+  width:calc(100vw - 64px)!important;
+  max-width:1180px!important;
+  height:calc(100vh - 64px)!important;
+  max-height:calc(100vh - 64px)!important;
+  margin:32px auto!important;
+}
+
+#modalAyudaQuote .modal-content{
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:16px!important;
+  background:#f7f9fc!important;
+  box-shadow:0 22px 60px rgba(9,30,66,.24)!important;
+}
+
+#modalAyudaQuote .help-header{
+  flex:0 0 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:16px!important;
+  padding:14px 18px!important;
+  border:0!important;
+  border-bottom:4px solid #18c7a5!important;
+  background:#17324d!important;
+  color:#fff!important;
+}
+
+#modalAyudaQuote .title-wrap{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+
+#modalAyudaQuote .help-badge{
+  width:42px!important;
+  height:42px!important;
+  min-width:42px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:11px!important;
+  background:rgba(255,255,255,.12)!important;
+  color:#63d7ff!important;
+  font-size:17px!important;
+}
+
+#modalAyudaQuote .title-text{
+  min-width:0!important;
+}
+
+#modalAyudaQuote .help-title{
+  margin:0!important;
+  max-width:none!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:normal!important;
+  color:#fff!important;
+  font-size:20px!important;
+  font-weight:800!important;
+  line-height:1.15!important;
+}
+
+#modalAyudaQuote .help-subtitle{
+  display:block!important;
+  margin-top:3px!important;
+  color:#d8e6f2!important;
+  font-size:12px!important;
+}
+
+#modalAyudaQuote .header-actions{
+  flex:0 0 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+
+#modalAyudaQuote #helpCopyQuote,
+#modalAyudaQuote #helpPrintQuote{
+  min-height:38px!important;
+  padding:8px 13px!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:9px!important;
+  background:#284760!important;
+  color:#fff!important;
+  font-weight:700!important;
+  box-shadow:none!important;
+}
+
+#modalAyudaQuote #helpCopyQuote:hover,
+#modalAyudaQuote #helpCopyQuote:focus,
+#modalAyudaQuote #helpPrintQuote:hover,
+#modalAyudaQuote #helpPrintQuote:focus{
+  background:#35617f!important;
+  color:#fff!important;
+}
+
+#modalAyudaQuote .close{
+  width:38px!important;
+  height:38px!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:50%!important;
+  background:#102638!important;
+  color:#fff!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+
+#modalAyudaQuote .modal-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+  padding:14px 18px 16px!important;
+  background:#f7f9fc!important;
+}
+
+#modalAyudaQuote .callout{
+  margin:0 0 12px!important;
+  padding:11px 13px!important;
+  border:1px solid #cce6f4!important;
+  border-left:4px solid #2d9fd7!important;
+  border-radius:9px!important;
+  background:#edf7fc!important;
+  color:#355269!important;
+}
+
+#modalAyudaQuote #helpSearchQuote{
+  height:44px!important;
+  border:1px solid #cbd9e5!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+
+#modalAyudaQuote #helpSearchQuote:focus{
+  border-color:#2d9fd7!important;
+  box-shadow:0 0 0 3px rgba(45,159,215,.12)!important;
+}
+
+#modalAyudaQuote .table-shortcuts{
+  overflow:hidden!important;
+  border:1px solid #dbe5ed!important;
+  border-radius:11px!important;
+  background:#fff!important;
+}
+
+#modalAyudaQuote .table-shortcuts thead th{
+  padding:10px 12px!important;
+  border:0!important;
+  border-bottom:3px solid #18c7a5!important;
+  background:#17324d!important;
+  color:#fff!important;
+  font-size:11px!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+}
+
+#modalAyudaQuote .table-shortcuts tbody td{
+  padding:10px 12px!important;
+  vertical-align:middle!important;
+  border-top:1px solid #e5edf3!important;
+  color:#344b61!important;
+  font-size:12px!important;
+}
+
+#modalAyudaQuote .table-shortcuts tbody tr:hover td{
+  background:#f7fbfe!important;
+}
+
+#modalAyudaQuote kbd{
+  min-width:32px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:5px 7px!important;
+  border-radius:6px!important;
+  background:#17324d!important;
+  color:#fff!important;
+  font-size:11px!important;
+  box-shadow:none!important;
+}
+
+#modalAyudaQuote .col-lg-4 .card{
+  border:1px solid #dbe5ed!important;
+  border-radius:11px!important;
+  box-shadow:0 3px 10px rgba(23,43,77,.055)!important;
+}
+
+#modalAyudaQuote .col-lg-4 .card h6{
+  color:#17324d!important;
+  font-weight:800!important;
+}
+
+#modalAyudaQuote .modal-footer{
+  flex:0 0 auto!important;
+  padding:11px 18px!important;
+  border-top:1px solid #dce6ee!important;
+  background:#fff!important;
+}
+
+#modalAyudaQuote .modal-footer .btn-secondary{
+  background:#587086!important;
+  border-color:#587086!important;
+  color:#fff!important;
+  border-radius:9px!important;
+  font-weight:700!important;
+}
+
+#modalAyudaQuote .modal-footer .btn-primary{
+  background:#2d9fd7!important;
+  border-color:#2d9fd7!important;
+  color:#fff!important;
+  border-radius:9px!important;
+  font-weight:700!important;
+}
+
+/* Asegura que el texto de estado vacío quede dentro de su tarjeta,
+   aun si existen reglas heredadas agresivas. */
+#view_quote .quote-detail-empty{
+  display:block!important;
+}
+#view_quote .quote-detail-empty i,
+#view_quote .quote-detail-empty strong,
+#view_quote .quote-detail-empty span{
+  position:static!important;
+  float:none!important;
+}
+#view_quote .quote-detail-empty i{
+  display:inline-flex!important;
+}
+#view_quote .quote-detail-empty strong,
+#view_quote .quote-detail-empty span{
+  width:100%!important;
+  text-align:center!important;
+}
+
+/* Controles de Vigencia y Dólar: forzar alineación en la misma barra */
+#view_quote .quote-actions-bar{
+  width:100%!important;
+  min-height:46px!important;
+  padding:4px 0!important;
+}
+#view_quote .quote-inline-options{
+  justify-content:flex-end!important;
+}
+#view_quote .quote-inline-control{
+  flex:0 0 auto!important;
+}
+
+/* Header de cotización y separaciones superiores */
+#view_quote > .container-fluid > .card > .card-body{
+  padding-top:8px!important;
+}
+#view_quote .customer-bill-box-left,
+#view_quote .customer-bill-box-right{
+  margin-bottom:8px!important;
+}
+
+@media (max-width:767.98px){
+  #modalAyudaQuote .modal-dialog{
+    width:calc(100vw - 12px)!important;
+    height:calc(100vh - 12px)!important;
+    max-height:calc(100vh - 12px)!important;
+    margin:6px auto!important;
+  }
+  #modalAyudaQuote .help-header{
+    align-items:flex-start!important;
+    flex-wrap:wrap!important;
+  }
+  #modalAyudaQuote .header-actions{
+    width:100%!important;
+    justify-content:flex-end!important;
+  }
+}
+
+
+/* ============================================================
+   IZZY v6.39 | Ajustes finales Cotización
+   ============================================================ */
+
+/* 1) Header principal: forzado por clase real del card */
+#view_quote .izzy-quote-main-card{
+  border:1px solid #dce6ef!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+  box-shadow:0 5px 16px rgba(23,43,77,.055)!important;
+}
+#view_quote .izzy-quote-main-header{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-height:46px!important;
+  padding:7px 14px!important;
+  border:0!important;
+  border-bottom:3px solid #18c7a5!important;
+  background:#f7fbfe!important;
+  color:#17324d!important;
+  font-size:15px!important;
+  font-weight:800!important;
+}
+#view_quote .izzy-quote-main-header::before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:4px;
+  background:#2d9fd7;
+}
+#view_quote .izzy-quote-main-header > i{
+  width:32px!important;
+  height:32px!important;
+  min-width:32px!important;
+  margin:0 2px 0 4px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:9px!important;
+  background:#e7f6f3!important;
+  color:#14a98c!important;
+  font-size:14px!important;
+  box-shadow:inset 0 0 0 1px #ccece5!important;
+}
+#view_quote .izzy-quote-main-body{
+  padding-top:8px!important;
+}
+
+/* 2) Estado vacío: debajo de la primera fila, nunca encima de inputs */
+#view_quote .quote-detail-empty{
+  top:112px!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  width:min(620px,72%)!important;
+  padding:16px 20px!important;
+}
+#view_quote .quote-detail-empty i{
+  width:38px!important;
+  height:38px!important;
+  margin-bottom:6px!important;
+}
+#view_quote .quote-detail-empty strong{
+  font-size:14px!important;
+}
+#view_quote .quote-detail-empty span{
+  font-size:11px!important;
+}
+
+/* 3) Agregar/Quitar + Vigencia + Fecha en UNA sola línea y en ese orden */
+#view_quote .quote-actions-bar{
+  display:flex!important;
+  align-items:center!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  gap:8px!important;
+  width:100%!important;
+  min-height:46px!important;
+  margin:0 0 4px!important;
+  padding:2px 0!important;
+}
+#view_quote .quote-actions-main{
+  flex:0 0 auto!important;
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:8px!important;
+}
+#view_quote .quote-inline-options{
+  flex:0 1 auto!important;
+  margin-left:8px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex-wrap:nowrap!important;
+  gap:8px!important;
+  min-width:0!important;
+}
+#view_quote .quote-inline-control{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  height:38px!important;
+  display:flex!important;
+  align-items:stretch!important;
+}
+#view_quote .quote-inline-control .input-group-text{
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:auto!important;
+  justify-content:flex-start!important;
+  text-align:left!important;
+}
+#view_quote .quote-inline-control select{
+  width:150px!important;
+  min-width:150px!important;
+  max-width:150px!important;
+  text-align:left!important;
+}
+#view_quote .quote-inline-control input{
+  width:150px!important;
+  min-width:150px!important;
+  max-width:150px!important;
+  text-align:left!important;
+}
+
+/* 4) Notas más arriba, justo debajo de la barra */
+#view_quote .quote-notes-row{
+  margin-top:0!important;
+  padding-top:0!important;
+}
+#view_quote .quote-notes-row > .form-row,
+#view_quote .quote-notes-row .col-sm-12{
+  padding-top:0!important;
+}
+
+
+/* 5) Modal Ayuda: separar acciones del botón cerrar */
+#modalAyudaQuote .header-actions{
+  gap:12px!important;
+  padding-right:48px!important;
+}
+#modalAyudaQuote .header-actions .btn-group{
+  margin-right:0!important;
+  gap:8px!important;
+}
+#modalAyudaQuote .header-actions .btn-group .btn{
+  border-radius:9px!important;
+}
+#modalAyudaQuote .close{
+  position:absolute!important;
+  top:16px!important;
+  right:16px!important;
+  z-index:5!important;
+}
+
+/* Mantener una sola línea mientras haya espacio; en tablet/móvil puede bajar */
+@media (max-width:1100px){
+  #view_quote .quote-actions-bar{
+    flex-wrap:wrap!important;
+  }
+  #view_quote .quote-inline-options{
+    margin-left:0!important;
+    flex-wrap:wrap!important;
+  }
+}
+@media (max-width:767.98px){
+  #view_quote .quote-actions-bar{
+    flex-direction:column!important;
+    align-items:stretch!important;
+  }
+  #view_quote .quote-actions-main,
+  #view_quote .quote-inline-options{
+    width:100%!important;
+  }
+  #view_quote .quote-inline-options{
+    flex-direction:column!important;
+    align-items:stretch!important;
+  }
+  #view_quote .quote-inline-control,
+  #view_quote .quote-inline-control select,
+  #view_quote .quote-inline-control input{
+    width:100%!important;
+    max-width:none!important;
+  }
+  #modalAyudaQuote .header-actions{
+    padding-right:44px!important;
+  }
+}
+
+
+/* ============================================================
+   IZZY v6.40 | Cotización igual a Facturación
+   ============================================================ */
+
+/* Header principal: no depende del id del body */
+.izzy-quote-main-card{
+  border:1px solid #dce6ef!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+  box-shadow:0 5px 16px rgba(23,43,77,.055)!important;
+}
+.izzy-quote-main-header{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-height:46px!important;
+  margin:0!important;
+  padding:7px 14px!important;
+  border:0!important;
+  border-bottom:3px solid #18c7a5!important;
+  background:#f7fbfe!important;
+  color:#17324d!important;
+  font-size:15px!important;
+  font-weight:800!important;
+  box-shadow:none!important;
+}
+.izzy-quote-main-header::before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:4px;
+  background:#2d9fd7;
+}
+.izzy-quote-main-header > i{
+  width:32px!important;
+  height:32px!important;
+  min-width:32px!important;
+  margin:0 2px 0 4px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:9px!important;
+  background:#e7f6f3!important;
+  color:#14a98c!important;
+  font-size:14px!important;
+  box-shadow:inset 0 0 0 1px #ccece5!important;
+}
+.izzy-quote-main-body{
+  padding-top:8px!important;
+}
+
+/* Select2 de Vigencia: conservar apariencia y altura */
+.quote-inline-control .select2-container{
+  width:150px!important;
+  min-width:150px!important;
+  height:36px!important;
+}
+.quote-inline-control .select2-container .select2-selection--single{
+  height:36px!important;
+  min-height:36px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.quote-inline-control .select2-container .select2-selection--single .select2-selection__rendered{
+  height:36px!important;
+  line-height:36px!important;
+  padding-left:10px!important;
+  padding-right:28px!important;
+  color:#30465c!important;
+  font-size:11px!important;
+  font-weight:700!important;
+  text-align:left!important;
+}
+.quote-inline-control .select2-container .select2-selection--single .select2-selection__arrow{
+  height:36px!important;
+  right:5px!important;
+}
+
+/* Centro de Ayuda Cotización: estructura visual igual a Facturas */
+#modalAyudaQuote .help-center-modal{
+  height:100%!important;
+}
+#modalAyudaQuote .help-center-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:14px 18px 12px!important;
+  background:#f7f9fc!important;
+}
+#modalAyudaQuote .help-center-toolbar{
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+  margin-bottom:10px!important;
+}
+#modalAyudaQuote .help-search-wrap{
+  position:relative!important;
+  flex:1 1 auto!important;
+}
+#modalAyudaQuote .help-search-wrap .help-search-icon{
+  position:absolute!important;
+  left:13px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  color:#7d8da0!important;
+  z-index:2!important;
+}
+#modalAyudaQuote .help-search-wrap input{
+  height:44px!important;
+  padding-left:40px!important;
+  padding-right:38px!important;
+  border:1px solid #2d9fd7!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  box-shadow:0 0 0 2px rgba(45,159,215,.06)!important;
+}
+#modalAyudaQuote .help-clear-search{
+  position:absolute!important;
+  right:8px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  width:28px!important;
+  height:28px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  color:#74869a!important;
+}
+#modalAyudaQuote .help-result-status{
+  flex:0 0 auto!important;
+  padding:8px 13px!important;
+  border:1px solid #d4e0ea!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#61758a!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+#modalAyudaQuote .help-category-nav{
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+  margin-bottom:10px!important;
+}
+#modalAyudaQuote .help-category-btn{
+  min-height:34px!important;
+  padding:6px 11px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  border:1px solid #d5e0e9!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#40566a!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+#modalAyudaQuote .help-category-btn.active{
+  border-color:#2d9fd7!important;
+  background:#eef8fd!important;
+  color:#1679af!important;
+}
+#modalAyudaQuote .help-quick-section,
+#modalAyudaQuote .help-shortcuts-panel,
+#modalAyudaQuote .help-side-card{
+  border:1px solid #d8e3ec!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  box-shadow:0 2px 7px rgba(23,43,77,.045)!important;
+}
+#modalAyudaQuote .help-quick-section{
+  padding:9px 11px!important;
+  margin-bottom:10px!important;
+}
+#modalAyudaQuote .help-section-heading{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  margin-bottom:7px!important;
+}
+#modalAyudaQuote .help-section-heading strong{
+  display:block!important;
+  color:#30465c!important;
+  font-size:12px!important;
+  font-weight:800!important;
+}
+#modalAyudaQuote .help-section-heading small{
+  display:block!important;
+  margin-top:2px!important;
+  color:#7a8b9b!important;
+  font-size:10px!important;
+}
+#modalAyudaQuote .help-quick-grid{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+#modalAyudaQuote .help-quick-btn{
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  padding:7px 9px!important;
+  border:1px solid #d9e3ec!important;
+  border-radius:8px!important;
+  background:#fbfdff!important;
+  color:#3f566d!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  text-align:left!important;
+}
+#modalAyudaQuote .help-quick-btn:hover{
+  border-color:#a8d5ec!important;
+  background:#f0f9fd!important;
+}
+#modalAyudaQuote .help-quick-btn kbd,
+#modalAyudaQuote .help-shortcut-item kbd,
+#modalAyudaQuote .help-side-card kbd{
+  min-width:30px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:5px 6px!important;
+  border-radius:6px!important;
+  background:#17324d!important;
+  color:#fff!important;
+  font-size:10px!important;
+  box-shadow:none!important;
+}
+#modalAyudaQuote .help-context-note{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:9px!important;
+  margin-bottom:10px!important;
+  padding:9px 11px!important;
+  border-left:4px solid #2d9fd7!important;
+  border-radius:8px!important;
+  background:#eaf6fc!important;
+  color:#456176!important;
+}
+#modalAyudaQuote .help-context-note > i{
+  margin-top:2px!important;
+  color:#2d9fd7!important;
+}
+#modalAyudaQuote .help-context-note strong{
+  display:block!important;
+  color:#30465c!important;
+  font-size:11px!important;
+}
+#modalAyudaQuote .help-context-note span{
+  display:block!important;
+  margin-top:2px!important;
+  font-size:10px!important;
+}
+#modalAyudaQuote .help-content-grid{
+  min-height:0!important;
+  height:calc(100% - 201px)!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 280px!important;
+  gap:12px!important;
+}
+#modalAyudaQuote .help-shortcuts-panel{
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  padding:10px!important;
+}
+#modalAyudaQuote .help-list-heading{
+  flex:0 0 auto!important;
+}
+#modalAyudaQuote .help-shortcuts-list{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  padding-right:5px!important;
+}
+#modalAyudaQuote .help-shortcut-item{
+  display:grid!important;
+  grid-template-columns:74px minmax(0,1fr)!important;
+  gap:10px!important;
+  align-items:flex-start!important;
+  padding:8px 10px!important;
+  margin-bottom:6px!important;
+  border:1px solid #d9e3ec!important;
+  border-radius:9px!important;
+  background:#fff!important;
+}
+#modalAyudaQuote .help-key{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+}
+#modalAyudaQuote .help-item-copy strong{
+  display:block!important;
+  margin-bottom:2px!important;
+  color:#17324d!important;
+  font-size:11px!important;
+  font-weight:800!important;
+}
+#modalAyudaQuote .help-item-copy p{
+  margin:0!important;
+  color:#566d81!important;
+  font-size:10px!important;
+  line-height:1.4!important;
+}
+#modalAyudaQuote .help-side-panel{
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:10px!important;
+}
+#modalAyudaQuote .help-side-card{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:10px!important;
+  padding:11px!important;
+}
+#modalAyudaQuote .help-side-icon{
+  width:36px!important;
+  height:36px!important;
+  min-width:36px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:9px!important;
+  background:#eaf6fc!important;
+  color:#2d9fd7!important;
+}
+#modalAyudaQuote .help-side-card strong{
+  display:block!important;
+  color:#17324d!important;
+  font-size:11px!important;
+  font-weight:800!important;
+}
+#modalAyudaQuote .help-side-card p,
+#modalAyudaQuote .help-side-card li{
+  color:#566d81!important;
+  font-size:10px!important;
+  line-height:1.45!important;
+}
+#modalAyudaQuote .help-side-card ul{
+  margin:6px 0 0!important;
+  padding-left:17px!important;
+}
+#modalAyudaQuote .quote-help-whatsapp{
+  margin-top:7px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#20b76a!important;
+  color:#fff!important;
+  font-weight:800!important;
+}
+#modalAyudaQuote .help-phone{
+  display:block!important;
+  margin-top:7px!important;
+  color:#74879a!important;
+  font-size:9px!important;
+}
+#modalAyudaQuote .help-empty-state{
+  padding:20px!important;
+  text-align:center!important;
+  color:#73869a!important;
+}
+#modalAyudaQuote .help-empty-state i,
+#modalAyudaQuote .help-empty-state strong,
+#modalAyudaQuote .help-empty-state span{
+  display:block!important;
+  margin-bottom:5px!important;
+}
+
+/* X perfectamente centrada en el modal de Cotización */
+#modalAyudaQuote .close{
+  font-size:0!important;
+  line-height:1!important;
+}
+#modalAyudaQuote .close > span{
+  width:100%!important;
+  height:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  padding:0!important;
+  line-height:1!important;
+  font-size:24px!important;
+  transform:translateY(-1px)!important;
+}
+
+@media (max-width:991.98px){
+  #modalAyudaQuote .help-content-grid{
+    height:auto!important;
+    grid-template-columns:1fr!important;
+  }
+  #modalAyudaQuote .help-center-body{
+    overflow-y:auto!important;
+  }
+  #modalAyudaQuote .help-quick-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+@media (max-width:575.98px){
+  #modalAyudaQuote .help-center-toolbar{
+    align-items:stretch!important;
+    flex-direction:column!important;
+  }
+  #modalAyudaQuote .help-result-status{
+    align-self:flex-start!important;
+  }
+  #modalAyudaQuote .help-quick-grid{
+    grid-template-columns:1fr 1fr!important;
+  }
+}
+
+
+/* ============================================================
+   IZZY v6.41 | Cotización = Facturación
+   ============================================================ */
+
+/* Encabezado principal REAL: las clases ahora viven en cotizacion-view.php */
+.izzy-quote-main-card{
+    border:1px solid #dce6ef!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+    box-shadow:0 5px 16px rgba(23,43,77,.055)!important;
+}
+.izzy-quote-main-header{
+    position:relative!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    min-height:46px!important;
+    margin:0!important;
+    padding:7px 14px!important;
+    border:0!important;
+    border-bottom:3px solid #18c7a5!important;
+    background:#f7fbfe!important;
+    color:#17324d!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.1px!important;
+    box-shadow:none!important;
+}
+.izzy-quote-main-header::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:4px;
+    background:#2d9fd7;
+}
+.izzy-quote-main-header > i{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    margin:0 2px 0 4px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:9px!important;
+    background:#e7f6f3!important;
+    color:#14a98c!important;
+    font-size:14px!important;
+    box-shadow:inset 0 0 0 1px #ccece5!important;
+}
+.izzy-quote-main-body{
+    padding-top:8px!important;
+}
+
+/* Detalle: jamás superpuesto encima de filas/productos */
+#view_quote .quote-detail-shell{
+    height:255px!important;
+    min-height:255px!important;
+    max-height:255px!important;
+    overflow:auto!important;
+}
+#view_quote .quote-detail-empty{
+    position:relative!important;
+    top:auto!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    width:min(620px,72%)!important;
+    margin:18px auto 22px!important;
+    padding:16px 20px!important;
+    clear:both!important;
+    z-index:1!important;
+}
+
+/* Barra inferior: Agregar | Quitar | Vigencia | Fecha, una sola línea */
+#view_quote .quote-actions-row{
+    margin:0 0 2px!important;
+}
+#view_quote .quote-actions-bar{
+    width:100%!important;
+    min-height:42px!important;
+    padding:0!important;
+    margin:0!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+    gap:8px!important;
+}
+#view_quote .quote-actions-main{
+    flex:0 0 auto!important;
+    display:flex!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+    gap:8px!important;
+}
+#view_quote .quote-inline-options{
+    flex:0 1 auto!important;
+    margin:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    flex-wrap:nowrap!important;
+    gap:8px!important;
+}
+#view_quote .quote-inline-control{
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    height:38px!important;
+    margin:0!important;
+}
+#view_quote .quote-inline-control .input-group-text{
+    height:36px!important;
+    min-width:auto!important;
+    padding:0 10px!important;
+    justify-content:flex-start!important;
+    text-align:left!important;
+    white-space:nowrap!important;
+}
+
+
+/* Select2 de Vigencia: visible y con el mismo alto */
+
+
+
+
+
+
+/* Notas inmediatamente debajo de la barra */
+#view_quote .quote-notes-row,
+
+
+
+
+#view_quote h3{
+    margin-top:4px!important;
+    margin-bottom:5px!important;
+}
+
+/* Responsive: solo bajar cuando físicamente no cabe */
+@media (max-width:1050px){
+    #view_quote .quote-actions-bar{
+        flex-wrap:wrap!important;
+    }
+    #view_quote .quote-inline-options{
+        flex-wrap:wrap!important;
+    }
+}
+@media (max-width:767.98px){
+    #view_quote .quote-actions-bar{
+        align-items:stretch!important;
+        flex-direction:column!important;
+    }
+    #view_quote .quote-actions-main,
+    #view_quote .quote-inline-options{
+        width:100%!important;
+    }
+    #view_quote .quote-inline-options{
+        flex-direction:column!important;
+        align-items:stretch!important;
+    }
+    #view_quote .quote-inline-control,
+    #view_quote .quote-vigencia-control .select2-container,
+
+}
+
+
+/* ============================================================
+   IZZY v6.42 | Correcciones solicitadas
+   ============================================================ */
+
+/* 1) Detalle de cotización FIJO como Facturas.
+   El placeholder no se desplaza con las filas y desaparece al haber producto. */
+#view_quote .quote-detail-shell{
+  position:relative!important;
+  height:255px!important;
+  min-height:255px!important;
+  max-height:255px!important;
+  overflow:auto!important;
+}
+#view_quote .quote-detail-shell > .form-group{
+  position:relative!important;
+  z-index:2!important;
+  margin:0!important;
+  background:#fff!important;
+}
+#view_quote .quote-detail-empty{
+  position:absolute!important;
+  left:50%!important;
+  top:105px!important;
+  transform:translateX(-50%)!important;
+  width:min(620px,72%)!important;
+  margin:0!important;
+  padding:16px 20px!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+#view_quote .quote-detail-shell.has-products .quote-detail-empty{
+  display:none!important;
+}
+
+/* 2) Centro de Ayuda: título SIEMPRE en una sola línea */
+#modalAyudaQuote .title-wrap{
+  min-width:0!important;
+  flex:1 1 auto!important;
+}
+#modalAyudaQuote .title-text{
+  min-width:0!important;
+  flex:1 1 auto!important;
+}
+#modalAyudaQuote .help-title{
+  width:auto!important;
+  max-width:none!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.15!important;
+  font-size:18px!important;
+}
+#modalAyudaQuote .help-subtitle{
+  white-space:nowrap!important;
+}
+
+/* Botones header separados de la X, sin apretar el título */
+#modalAyudaQuote .header-actions{
+  flex:0 0 auto!important;
+  padding-right:48px!important;
+  margin-left:18px!important;
+}
+
+/* WhatsApp igual al de Facturas */
+#modalAyudaQuote .quote-help-whatsapp{
+  display:block!important;
+  width:100%!important;
+  margin-top:8px!important;
+  padding:7px 10px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:#20b76a!important;
+  color:#fff!important;
+  font-weight:800!important;
+  text-align:center!important;
+  text-decoration:none!important;
+  box-shadow:0 2px 6px rgba(16,117,66,.15)!important;
+}
+#modalAyudaQuote .quote-help-whatsapp:hover,
+#modalAyudaQuote .quote-help-whatsapp:focus{
+  background:#169957!important;
+  color:#fff!important;
+  text-decoration:none!important;
+}
+
+/* 3) Ningún vínculo subrayado en Cotización ni en su ayuda */
+#view_quote a,
+#view_quote a:hover,
+#view_quote a:focus,
+#view_quote a:active,
+#modalAyudaQuote a,
+#modalAyudaQuote a:hover,
+#modalAyudaQuote a:focus,
+#modalAyudaQuote a:active{
+  text-decoration:none!important;
+}
+
+/* El botón de búsqueda de producto tampoco muestra underline/foco visual de enlace */
+#view_quote .buscar_productos_quote,
+#view_quote .buscar_productos_quote:hover,
+#view_quote .buscar_productos_quote:focus,
+#view_quote .buscar_productos_quote:active{
+  text-decoration:none!important;
+  outline:0!important;
+  box-shadow:none!important;
+}
+
+/* Modal de ayuda: proporciones prácticamente iguales a Facturas */
+#modalAyudaQuote .modal-dialog{
+  width:calc(100vw - 96px)!important;
+  max-width:1080px!important;
+}
+#modalAyudaQuote .help-center-toolbar{
+  margin-bottom:10px!important;
+}
+#modalAyudaQuote .help-content-grid{
+  grid-template-columns:minmax(0,1fr) 280px!important;
+}
+#modalAyudaQuote .help-side-card{
+  padding:11px!important;
+}
+
+/* Asegurar que el título quepa antes de los botones */
+@media (min-width:768px){
+  #modalAyudaQuote .help-header{
+    flex-wrap:nowrap!important;
+  }
+  #modalAyudaQuote .title-wrap{
+    max-width:calc(100% - 300px)!important;
+  }
+}
+
+@media (max-width:767.98px){
+  #modalAyudaQuote .help-title,
+  #modalAyudaQuote .help-subtitle{
+    white-space:normal!important;
+  }
+  #modalAyudaQuote .title-wrap{
+    max-width:none!important;
+  }
+}
+
+
+/* ============================================================
+   IZZY v6.43 | Ajuste ancho detalle Cotización
+   ============================================================ */
+
+/* La cabecera y el detalle deben ocupar TODO el ancho disponible,
+   igual que Facturas. Se eliminan paddings laterales heredados. */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+}
+
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl > .col-xs-12,
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl > .col-sm-12,
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl > .col-md-12,
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl > .col-lg-12{
+    width:100%!important;
+    max-width:100%!important;
+    flex:0 0 100%!important;
+    padding-left:0!important;
+    padding-right:0!important;
+}
+
+#view_quote #QuoteItem{
+    width:100%!important;
+    min-width:100%!important;
+    max-width:100%!important;
+    table-layout:fixed!important;
+    margin:0!important;
+    border-collapse:separate!important;
+    border-spacing:0!important;
+}
+
+#view_quote #QuoteItem thead,
+#view_quote #QuoteItem tbody{
+    width:100%!important;
+}
+
+#view_quote #QuoteItem thead tr,
+#view_quote #QuoteItem tbody tr{
+    width:100%!important;
+}
+
+
+/* ============================================================
+   IZZY v6.44 | Estabilidad visual + detalle igual a Facturas
+   ============================================================ */
+
+/* Reserva el alto desde el primer render para evitar el "salto"
+   cuando el JS convierte el detalle en viewport premium. */
+#view_quote #QuoteItem{
+    width:100%!important;
+}
+
+#view_quote #QuoteItem.closest-fallback,
+#view_quote .form-group.row.table-responsive-xl:has(#QuoteItem){
+    min-height:255px!important;
+    margin-bottom:10px!important;
+}
+
+/* Mismo tamaño/posición del empty-state que Facturas. */
+#view_quote .quote-detail-empty{
+    position:absolute!important;
+    left:50%!important;
+    top:60%!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+    margin:0!important;
+    padding:20px 28px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:8px!important;
+    border:1px dashed #bdd3e3!important;
+    border-radius:16px!important;
+    background:rgba(247,250,253,.94)!important;
+    box-shadow:0 8px 24px rgba(23,43,77,.05)!important;
+    text-align:center!important;
+    z-index:1!important;
+    pointer-events:none!important;
+}
+
+#view_quote .quote-detail-empty i{
+    width:38px!important;
+    height:38px!important;
+    min-width:38px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0 0 1px!important;
+    border-radius:10px!important;
+    background:#e8f5fc!important;
+    color:#278fd1!important;
+    font-size:18px!important;
+}
+
+#view_quote .quote-detail-empty strong{
+    margin:0!important;
+    color:#263f58!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.01em!important;
+}
+
+#view_quote .quote-detail-empty span{
+    max-width:600px!important;
+    margin:0!important;
+    color:#6a7f93!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+}
+
+/* Cuando ya hay un producto, el empty-state desaparece por completo. */
+#view_quote .quote-detail-shell.has-products .quote-detail-empty{
+    display:none!important;
+}
+
+@media (max-width:767.98px){
+    #view_quote .quote-detail-empty{
+        width:90%!important;
+        min-height:104px!important;
+        padding:16px 18px!important;
+    }
+    #view_quote .quote-detail-empty strong{font-size:14px!important;}
+    #view_quote .quote-detail-empty span{font-size:11px!important;}
+}
+
+
+/* ============================================================
+   IZZY v6.45 | Movimiento sutil footer Cotización
+   ============================================================ */
+
+#view_quote .footer1 .totals-grid .metric{
+    transition:
+        transform .16s ease,
+        box-shadow .16s ease,
+        border-color .16s ease!important;
+    will-change:transform;
+}
+
+#view_quote .footer1 .totals-grid .metric:hover{
+    transform:translateY(-1px)!important;
+    border-color:#b9ccdd!important;
+    box-shadow:0 5px 14px rgba(23,43,77,.08)!important;
+}
+
+#view_quote .footer1 .totals-grid .metric:last-child:hover{
+    border-color:#7fd2a6!important;
+    box-shadow:0 6px 16px rgba(22,145,86,.13)!important;
+}
+
+
+/* ============================================================
+   IZZY v6.46 | Detalle Cotización estable
+   ============================================================ */
+
+/* El contenedor conserva su alto fijo, pero el scrollbar vertical
+   aparece ÚNICAMENTE cuando las filas realmente exceden el alto. */
+#view_quote .quote-detail-shell{
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    scrollbar-gutter:auto!important;
+}
+
+/* Al quedar dentro del shell, la tabla no debe conservar el min-height
+   de precarga; ese min-height era el que provocaba scroll con una sola fila. */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl:has(#QuoteItem){
+    min-height:0!important;
+    height:auto!important;
+    margin:0!important;
+    padding-bottom:0!important;
+}
+
+/* El mensaje solicitado permanece fijo en el área libre y no participa
+   del flujo de filas, por lo que nunca empuja ni tapa el detalle. */
+#view_quote .quote-detail-empty{
+    position:absolute!important;
+    left:50%!important;
+    top:62%!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+    margin:0!important;
+    z-index:1!important;
+}
+
+/* La tabla/filas siempre quedan por encima del fondo visual. */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    position:relative!important;
+    z-index:2!important;
+    background:#fff!important;
+}
+
+
+/* ============================================================
+   IZZY v6.47 | Separación detalle / acciones en Cotización
+   ============================================================ */
+
+/* Igual que en Facturas: deja respiración visual debajo del área
+   de detalle antes de la línea y la botonera inferior. */
+#view_quote .quote-detail-shell{
+    margin-bottom:14px!important;
+}
+
+/* La línea separadora no queda pegada al detalle. */
+#view_quote .quote-detail-shell + .line_table{
+    margin-top:0!important;
+    margin-bottom:14px!important;
+}
+
+/* La fila de Agregar / Quitar conserva una separación limpia. */
+#view_quote .quote-actions-row{
+    margin-top:0!important;
+    margin-bottom:6px!important;
+}
+
+
+/* ============================================================
+   IZZY v6.48 | Separación interna detalle Cotización
+   ============================================================ */
+
+/* Igual a Facturas: el bloque "Detalle de la cotización" no debe
+   comenzar pegado justo debajo de la primera fila. Se baja dentro
+   del área libre, manteniendo su posición fija y sin mover botones. */
+#view_quote .quote-detail-empty{
+    top:66%!important;
+}
+
+/* Un poco más de aire visual entre la primera fila y el área vacía. */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    margin-bottom:10px!important;
+}
+
+
+/* ============================================================
+   IZZY v6.49 | Margen REAL entre fila y detalle
+   ============================================================ */
+
+/* No usar porcentaje vertical aquí: el alto del recuadro hacía que
+   visualmente siguiera pegado. Ahora la tarjeta comienza a una
+   distancia fija debajo de la fila de captura, igual que Facturas. */
+#view_quote .quote-detail-empty{
+    top:124px!important;
+    bottom:auto!important;
+    transform:translateX(-50%)!important;
+    min-height:112px!important;
+}
+
+/* Mantiene aire inferior dentro del viewport sin modificar su alto. */
+#view_quote .quote-detail-shell{
+    padding-bottom:14px!important;
+    box-sizing:border-box!important;
+}
+
+@media (max-width:767.98px){
+    #view_quote .quote-detail-empty{
+        top:120px!important;
+        min-height:104px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.50 | Separación EXACTA como Facturas
+   ============================================================ */
+
+/* En Facturas el recuadro comienza aprox. 16px debajo del borde
+   inferior de la primera fila. Aplicamos la misma distancia real
+   en Cotización, sin porcentajes ni cálculo relativo. */
+#view_quote .quote-detail-empty{
+    top:128px!important;
+    bottom:auto!important;
+    transform:translateX(-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+}
+
+/* El shell mantiene el mismo alto general, solo damos aire arriba
+   al recuadro interno, no a la tabla ni a los botones. */
+#view_quote .quote-detail-shell{
+    padding-top:0!important;
+    padding-bottom:14px!important;
+}
+
+/* La tabla queda pegada al header como debe; el margen es SOLO
+   entre la fila y la tarjeta "Detalle de la cotización". */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    margin-bottom:0!important;
+}
+
+
+/* ============================================================
+   IZZY v6.51 | Detalle Cotización = EXACTAMENTE Facturas
+   ============================================================ */
+
+/* Copiado con las mismas medidas/posición del watermark de Facturas.
+   La separación correcta en Facturas se logra con bottom:34px,
+   no moviéndolo con top fijo. */
+#view_quote .quote-detail-empty{
+    position:absolute!important;
+    z-index:1!important;
+    left:50%!important;
+    top:auto!important;
+    right:auto!important;
+    bottom:34px!important;
+    transform:translateX(-50%)!important;
+
+    width:min(520px,82%)!important;
+    min-height:0!important;
+    height:auto!important;
+
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:5px!important;
+
+    margin:0!important;
+    padding:14px 18px!important;
+
+    border:1px dashed #d6e2ec!important;
+    border-radius:12px!important;
+    background:rgba(247,250,252,.86)!important;
+    color:#73869a!important;
+    box-shadow:none!important;
+    text-align:center!important;
+    pointer-events:none!important;
+}
+
+/* Mismos tamaños internos de Facturas. */
+#view_quote .quote-detail-empty i{
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    background:transparent!important;
+    border-radius:0!important;
+    color:#2d95d3!important;
+    font-size:19px!important;
+}
+
+#view_quote .quote-detail-empty strong{
+    margin:0!important;
+    color:#40566a!important;
+    font-size:12px!important;
+    font-weight:800!important;
+}
+
+#view_quote .quote-detail-empty span{
+    max-width:none!important;
+    margin:0!important;
+    color:#73869a!important;
+    font-size:10px!important;
+    line-height:1.35!important;
+}
+
+/* Mantener el mismo comportamiento: oculto cuando ya hay producto. */
+#view_quote .quote-detail-shell.has-products .quote-detail-empty{
+    display:none!important;
+}
+
+/* Elimina separaciones artificiales agregadas en iteraciones anteriores:
+   la posición ahora la controla únicamente bottom:34px, como Facturas. */
+#view_quote .quote-detail-shell{
+    padding-top:0!important;
+    padding-bottom:0!important;
+}
+
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    margin-bottom:0!important;
+}
+
+
+/* ============================================================
+   IZZY v6.52 | Detalle Cotización = MISMAS MEDIDAS Facturas
+   ============================================================ */
+
+/* Copiado 1:1 del bloque visual actual de Facturas v6.44/v6.45.
+   Solo cambia el selector. */
+#view_quote .quote-detail-empty{
+    left:50%!important;
+    top:60%!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
+
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:8px!important;
+
+    margin:0!important;
+    padding:20px 28px!important;
+
+    border:1px dashed #bdd3e3!important;
+    border-radius:16px!important;
+    background:rgba(247,250,253,.94)!important;
+    box-shadow:0 8px 24px rgba(23,43,77,.05)!important;
+
+    text-align:center!important;
+    pointer-events:none!important;
+}
+
+#view_quote .quote-detail-empty i{
+    width:38px!important;
+    height:38px!important;
+    min-width:38px!important;
+    margin:0 0 1px!important;
+
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+
+    border-radius:10px!important;
+    background:#e8f5fc!important;
+    color:#278fd1!important;
+    font-size:18px!important;
+}
+
+#view_quote .quote-detail-empty strong{
+    margin:0!important;
+    color:#263f58!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.01em!important;
+}
+
+#view_quote .quote-detail-empty span{
+    max-width:600px!important;
+    margin:0!important;
+    color:#6a7f93!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+}
+
+/* Igual comportamiento responsive de Facturas. */
+@media (max-width:767.98px){
+    #view_quote .quote-detail-empty{
+        width:90%!important;
+        min-height:104px!important;
+        padding:16px 18px!important;
+    }
+
+    #view_quote .quote-detail-empty strong{
+        font-size:14px!important;
+    }
+
+    #view_quote .quote-detail-empty span{
+        font-size:11px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.53 | Separación REAL igual a Facturas
+   ============================================================ */
+
+/* El problema no era solo la posición del recuadro:
+   Cotización tenía un viewport más bajo que Facturas.
+   Se iguala el alto del área de detalle para que la separación
+   entre la primera fila y la tarjeta sea visualmente la misma. */
+#view_quote .quote-detail-shell{
+    height:300px!important;
+    min-height:300px!important;
+    max-height:300px!important;
+}
+
+/* Mismas proporciones visuales de Facturas dentro del mismo alto. */
+#view_quote .quote-detail-empty{
+    top:60%!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+}
+
+/* La fila queda arriba y el recuadro respira debajo, sin pegarse. */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    margin-bottom:0!important;
+    padding-bottom:0!important;
+}
+
+@media (max-width:991.98px){
+    #view_quote .quote-detail-shell{
+        height:280px!important;
+        min-height:280px!important;
+        max-height:280px!important;
+    }
+}
+
+@media (max-width:767.98px){
+    #view_quote .quote-detail-shell{
+        height:250px!important;
+        min-height:250px!important;
+        max-height:250px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.54 | Un poco más de separación en detalle Cotización
+   ============================================================ */
+
+/* Ajuste mínimo solicitado: baja ligeramente la tarjeta de detalle
+   sin cambiar tamaños, alto del contenedor ni posición de botones. */
+#view_quote .quote-detail-empty{
+    top:63%!important;
+}
+
+
+/* ============================================================
+   IZZY v6.55 | Misma separación EXACTA que Facturas
+   ============================================================ */
+
+/* Facturas actualmente usa un área de detalle de 300px y el
+   empty-state centrado al 60%. Cotización queda con esos mismos
+   valores, sin aproximaciones adicionales. */
+#view_quote .quote-detail-shell{
+    height:300px!important;
+    min-height:300px!important;
+    max-height:300px!important;
+}
+
+#view_quote .quote-detail-empty{
+    left:50%!important;
+    top:60%!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+    gap:8px!important;
+    padding:20px 28px!important;
+}
+
+/* El espacio entre la fila y la tarjeta queda controlado únicamente
+   por las mismas dimensiones/posición que usa Facturas. */
+#view_quote .quote-detail-shell > .form-group.row.table-responsive-xl{
+    margin-bottom:0!important;
+    padding-bottom:0!important;
+}
+
+
+/* ============================================================
+   IZZY v6.56 | Altura de fila Cotización = Facturas
+   ============================================================ */
+
+/* Facturas usa 10px 7px en las celdas de la fila de captura.
+   Cotización tenía 7px 6px, por eso visualmente el espacio
+   debajo nunca coincidía aunque el empty-state sí tuviera
+   las mismas medidas. */
+#view_quote #QuoteItem tbody td{
+    padding:10px 7px!important;
+    vertical-align:middle!important;
+    border-top:0!important;
+    border-bottom:1px solid #e7edf3!important;
+    background:#fff!important;
+}
+
+/* Código/buscador: mismas dimensiones que Facturas. */
+#view_quote #QuoteItem td:nth-child(2) .input-group{
+    min-height:42px!important;
+    height:42px!important;
+}
+
+#view_quote #QuoteItem .buscar_productos_quote{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+}
+
+#view_quote #QuoteItem .product-bar-code{
+    height:42px!important;
+    min-height:42px!important;
+}
+
+/* Descripción: misma superficie y altura visual que Facturas. */
+#view_quote #QuoteItem .product-description{
+    display:flex!important;
+    align-items:center!important;
+    min-height:42px!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0 11px!important;
+    color:#26384a!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    line-height:1.25!important;
+    box-sizing:border-box!important;
+}
+
+/* Precio / descuento: misma altura completa del control + botón. */
+#view_quote #QuoteItem td:nth-child(5) .input-group,
+#view_quote #QuoteItem td:nth-child(6) .input-group{
+    height:42px!important;
+    min-height:42px!important;
+}
+
+#view_quote #QuoteItem td:nth-child(5) .input-group-append .btn,
+#view_quote #QuoteItem td:nth-child(6) .input-group-append .btn{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+}
+
+/* Con la fila ya igualada a Facturas, mantenemos exactamente
+   la misma posición del bloque de detalle. */
+#view_quote .quote-detail-empty{
+    top:60%!important;
+}
+
+
+/* ============================================================
+   IZZY v6.57 | Separación pequeña como Facturas
+   ============================================================ */
+
+/* En Cotización el recuadro quedaba prácticamente pegado a la
+   primera fila. Lo posicionamos por su BORDE SUPERIOR, no por
+   su centro, dejando solo ~12px de aire como en Facturas. */
+#view_quote .quote-detail-empty{
+    top:112px!important;
+    bottom:auto!important;
+    transform:translateX(-50%)!important;
+}
+
+
+/* ============================================================
+   IZZY v6.58 | Notas Cotización = Facturas
+   ============================================================ */
+
+/* Mismas medidas finales usadas en Facturas. */
+#view_quote .quote-notes-row{
+    display:block!important;
+    width:100%!important;
+    margin:0!important;
+}
+
+
+
+
+
+/* Contador igual al de Facturas. */
+
+
+
+/* ============================================================
+   IZZY v6.59 | Tipografía uniforme Cotización = Facturas
+   ============================================================ */
+
+/* Centro de Ayuda: misma familia y escala visual de Facturas */
+#modalAyudaQuote,
+#modalAyudaQuote button,
+#modalAyudaQuote input,
+#modalAyudaQuote small,
+#modalAyudaQuote p,
+#modalAyudaQuote span,
+#modalAyudaQuote strong,
+#modalAyudaQuote li{
+    font-family:"Manrope",sans-serif!important;
+}
+
+#modalAyudaQuote .help-title{
+    font-size:20px!important;
+    font-weight:800!important;
+    line-height:1.18!important;
+}
+
+#modalAyudaQuote .help-subtitle{
+    font-size:12px!important;
+    line-height:1.35!important;
+}
+
+#modalAyudaQuote #helpSearchQuote{
+    font-size:14px!important;
+}
+
+#modalAyudaQuote .help-result-status{
+    font-size:11px!important;
+}
+
+#modalAyudaQuote .help-category-btn{
+    font-size:12px!important;
+    font-weight:700!important;
+}
+
+#modalAyudaQuote .help-section-heading strong{
+    font-size:13px!important;
+    font-weight:800!important;
+}
+
+#modalAyudaQuote .help-section-heading small{
+    font-size:11px!important;
+}
+
+#modalAyudaQuote .help-quick-btn{
+    font-size:11px!important;
+}
+
+#modalAyudaQuote .help-context-note strong{
+    font-size:12px!important;
+}
+
+#modalAyudaQuote .help-context-note span{
+    font-size:11px!important;
+    line-height:1.45!important;
+}
+
+#modalAyudaQuote .help-item-copy strong{
+    font-size:12px!important;
+    font-weight:800!important;
+}
+
+#modalAyudaQuote .help-item-copy p{
+    font-size:11px!important;
+    line-height:1.45!important;
+}
+
+#modalAyudaQuote .help-side-card strong{
+    font-size:12px!important;
+    font-weight:800!important;
+}
+
+#modalAyudaQuote .help-side-card p,
+#modalAyudaQuote .help-side-card li{
+    font-size:11px!important;
+    line-height:1.45!important;
+}
+
+#modalAyudaQuote .help-phone{
+    font-size:10px!important;
+}
+
+#modalAyudaQuote .help-center-footer,
+#modalAyudaQuote .help-center-footer small,
+#modalAyudaQuote .help-center-footer .btn{
+    font-size:11px!important;
+}
+
+/* Notas: mismas dimensiones finales de Facturas */
+
+
+
+
+
+
+/* Vigencia y Fecha Cambio Dólar:
+   mismas escalas de Facturas: etiqueta 11px / valor 12px */
+#view_quote .quote-inline-control .input-group-text{
+    font-size:11px!important;
+    font-weight:800!important;
+}
+
+
+
+#view_quote .quote-fecha-control input,
+
+
+
+/* ============================================================
+   IZZY v6.60 | Vigencia / Fecha Dólar = mismas medidas Facturas
+   ============================================================ */
+
+/* FECHA CAMBIO DÓLAR: copiar medidas reales de Facturas */
+
+
+/* Contenedor de Fecha: misma altura visual */
+
+
+
+
+/* VIGENCIA: misma altura, tipografía y alineación que Fecha Dólar */
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ============================================================
+   IZZY v6.61 | COTIZACIÓN = TAMAÑOS FINALES DE FACTURAS
+   ------------------------------------------------------------
+   Se copian las dimensiones finales vigentes de Facturas.
+   No se aproximan valores.
+   ============================================================ */
+
+/* ---------- FILA DE CAPTURA ---------- */
+/* Facturas termina usando padding 6px 6px (v6.25). */
+#view_quote #QuoteItem tbody td{
+    padding:6px 6px!important;
+    vertical-align:middle!important;
+    border-top:0!important;
+    border-bottom:1px solid #e7edf3!important;
+}
+
+/* Todos los controles de captura mantienen 42px, igual que Facturas. */
+#view_quote #QuoteItem tbody .form-control{
+    height:42px!important;
+    min-height:42px!important;
+    margin:0!important;
+    font-size:13px!important;
+    font-weight:600!important;
+}
+
+#view_quote #QuoteItem tbody td:nth-child(2) .input-group{
+    min-height:42px!important;
+    height:42px!important;
+}
+
+#view_quote #QuoteItem .buscar_productos_quote{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+}
+
+#view_quote #QuoteItem .product-bar-code{
+    height:42px!important;
+    min-height:42px!important;
+}
+
+#view_quote #QuoteItem .product-description{
+    min-height:42px!important;
+    height:42px!important;
+    padding:0 12px!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    line-height:1.25!important;
+}
+
+#view_quote #QuoteItem input[name="quantityQuote[]"]{
+    height:42px!important;
+    min-height:42px!important;
+    text-align:center!important;
+    font-size:13px!important;
+    font-weight:700!important;
+}
+
+#view_quote #QuoteItem tbody td:nth-child(5) .input-group,
+#view_quote #QuoteItem tbody td:nth-child(6) .input-group{
+    height:42px!important;
+    min-height:42px!important;
+}
+
+#view_quote #QuoteItem tbody td:nth-child(5) .input-group-append .btn,
+#view_quote #QuoteItem tbody td:nth-child(6) .input-group-append .btn{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+}
+
+/* ---------- DETALLE ---------- */
+/* Misma altura final del viewport de Facturas. */
+#view_quote .quote-detail-shell{
+    height:300px!important;
+    min-height:300px!important;
+    max-height:300px!important;
+}
+
+/* Mismas medidas del empty-state final de Facturas. */
+#view_quote .quote-detail-empty{
+    left:50%!important;
+    top:60%!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+    gap:8px!important;
+    padding:20px 28px!important;
+    border-radius:16px!important;
+}
+
+#view_quote .quote-detail-empty i{
+    width:38px!important;
+    height:38px!important;
+    min-width:38px!important;
+    font-size:18px!important;
+}
+
+#view_quote .quote-detail-empty strong{
+    font-size:15px!important;
+    font-weight:800!important;
+}
+
+#view_quote .quote-detail-empty span{
+    max-width:600px!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+}
+
+/* ---------- BOTONES INFERIORES ---------- */
+/* Misma escala de la botonera inferior de Facturas. */
+#view_quote #addRowsQuote,
+#view_quote #removeRowsQuote{
+    min-height:38px!important;
+    padding:8px 15px!important;
+    border-radius:9px!important;
+    font-size:13px!important;
+    font-weight:800!important;
+}
+
+/* ---------- VIGENCIA / FECHA CAMBIO DÓLAR ---------- */
+/* Fecha Cambio Dólar: mismas dimensiones reales de Facturas v6.27. */
+
+
+
+
+
+
+/* Vigencia: exactamente la misma escala que Fecha Cambio Dólar. */
+
+
+
+
+
+
+
+
+
+
+
+
+/* ---------- NOTAS ---------- */
+/* Valores finales de Facturas v6.27 + v6.44. */
+
+
+
+
+
+
+/* ---------- FOOTER ---------- */
+/* Misma altura final de inputs monetarios de Facturas v6.32/v6.33. */
+#view_quote .footer1 .totals-grid .metric{
+    padding:7px 8px!important;
+    border-radius:12px!important;
+}
+
+#view_quote .footer1 .totals-grid .metric > label{
+    margin-bottom:5px!important;
+    font-size:13px!important;
+    font-weight:800!important;
+}
+
+#view_quote .footer1 .totals-grid .metric .input-group{
+    min-height:48px!important;
+}
+
+#view_quote .footer1 .totals-grid .metric .input-group-text{
+    min-width:40px!important;
+    height:46px!important;
+    min-height:46px!important;
+    padding:0!important;
+    font-size:14px!important;
+    font-weight:800!important;
+}
+
+#view_quote .footer1 .totals-grid .metric textarea.form-control{
+    height:46px!important;
+    min-height:46px!important;
+    padding:0!important;
+    line-height:46px!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    text-align:center!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+}
+
+#view_quote .footer1 .totals-grid .metric:last-child > label{
+    font-size:15px!important;
+}
+
+#view_quote .footer1 .totals-grid .metric:last-child textarea.form-control{
+    font-size:14px!important;
+    font-weight:900!important;
+}
+
+/* ---------- AYUDA ---------- */
+/* Misma familia y tamaños principales que el modal de Facturas. */
+#modalAyudaQuote,
+#modalAyudaQuote *{
+    font-family:"Manrope",sans-serif!important;
+}
+
+#modalAyudaQuote .help-title{
+    font-size:20px!important;
+    font-weight:800!important;
+    line-height:1.18!important;
+}
+
+#modalAyudaQuote .help-subtitle{
+    font-size:12px!important;
+}
+
+#modalAyudaQuote #helpSearchQuote{
+    font-size:14px!important;
+}
+
+#modalAyudaQuote .help-category-btn{
+    font-size:12px!important;
+}
+
+#modalAyudaQuote .help-section-heading strong{
+    font-size:13px!important;
+}
+
+#modalAyudaQuote .help-section-heading small{
+    font-size:11px!important;
+}
+
+#modalAyudaQuote .help-item-copy strong{
+    font-size:12px!important;
+}
+
+#modalAyudaQuote .help-item-copy p,
+#modalAyudaQuote .help-side-card p,
+#modalAyudaQuote .help-side-card li,
+#modalAyudaQuote .help-context-note span{
+    font-size:11px!important;
+    line-height:1.45!important;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width:767.98px){
+    #view_quote #QuoteItem tbody td{
+        padding:8px 5px!important;
+    }
+
+    #view_quote #QuoteItem tbody .form-control,
+    #view_quote #QuoteItem .buscar_productos_quote,
+    #view_quote #QuoteItem tbody td:nth-child(5) .input-group-append .btn,
+    #view_quote #QuoteItem tbody td:nth-child(6) .input-group-append .btn,
+    #view_quote #QuoteItem .product-description{
+        min-height:40px!important;
+        height:40px!important;
+    }
+
+    #view_quote .quote-detail-shell{
+        height:270px!important;
+        min-height:270px!important;
+        max-height:270px!important;
+    }
+
+    #view_quote .quote-detail-empty{
+        width:90%!important;
+        min-height:104px!important;
+        padding:16px 18px!important;
+    }
+
+    #view_quote .quote-detail-empty strong{
+        font-size:14px!important;
+    }
+
+    #view_quote .quote-detail-empty span{
+        font-size:11px!important;
+    }
+
+
+}
+
+/* ============================================================
+   COTIZACIÓN | CONTROLES UNIFORMES CON FACTURAS
+   ------------------------------------------------------------
+   Bloque único y definitivo para:
+   - Notas
+   - Vigencia de Cotización
+   - Fecha Cambio Dólar
+   Evita herencia accidental de styles.css / my_styles.css.
+   ============================================================ */
+
+/* NOTAS */
+#view_quote .form-row:has(#notesQuote) {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+#view_quote .form-row:has(#notesQuote) > .col-xs-12,
+#view_quote .form-row:has(#notesQuote) > .col-sm-12,
+#view_quote .form-row:has(#notesQuote) > .col-md-12,
+#view_quote .form-row:has(#notesQuote) > .col-lg-12 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+#view_quote .form-row:has(#notesQuote) h3 {
+    margin: 4px 0 6px !important;
+    padding: 0 !important;
+    color: #212529 !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+
+#view_quote #notesQuote {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 92px !important;
+    min-height: 92px !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    border: 1px solid #d9e2ec !important;
+    border-radius: 9px !important;
+    background: #fbfcfe !important;
+    color: #26384a !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    line-height: 1.45 !important;
+    resize: vertical !important;
+    box-shadow: none !important;
+}
+
+#view_quote #notesQuote:focus {
+    border-color: #3498db !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, .10) !important;
+}
+
+#view_quote #charNum_notasQuote {
+    display: block !important;
+    margin: 4px 0 0 !important;
+    padding: 0 !important;
+    color: #596f83 !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+}
+
+/* VIGENCIA DE COTIZACIÓN */
+#view_quote .quote-vigencia-control {
+    display: flex !important;
+    align-items: stretch !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+}
+
+#view_quote .quote-vigencia-control .input-group-text {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 0 !important;
+    border-right: 1px solid #dce4ec !important;
+    border-radius: 0 !important;
+    background: #edf3f8 !important;
+    color: #334e68 !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+#view_quote .quote-vigencia-control .select2-container {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 145px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+}
+
+#view_quote .quote-vigencia-control .select2-selection--single {
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+}
+
+#view_quote .quote-vigencia-control .select2-selection__rendered {
+    height: 38px !important;
+    padding-left: 10px !important;
+    padding-right: 30px !important;
+    color: #26384a !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 38px !important;
+    text-align: left !important;
+}
+
+#view_quote .quote-vigencia-control .select2-selection__arrow {
+    top: 0 !important;
+    right: 6px !important;
+    height: 38px !important;
+}
+
+/* FECHA CAMBIO DÓLAR */
+#view_quote .quote-fecha-control {
+    display: flex !important;
+    align-items: stretch !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+}
+
+#view_quote .quote-fecha-control .input-group-text {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 0 !important;
+    border-right: 1px solid #dce4ec !important;
+    border-radius: 0 !important;
+    background: #edf3f8 !important;
+    color: #334e68 !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+#view_quote #fecha_dolar {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 145px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    color: #26384a !important;
+    font-family: "Manrope", sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 38px !important;
+    text-align: left !important;
+    box-shadow: none !important;
+}
+
+@media (max-width: 767.98px) {
+    #view_quote .form-row:has(#notesQuote) h3 {
+        font-size: 18px !important;
+    }
+
+    #view_quote #notesQuote {
+        height: 82px !important;
+        min-height: 82px !important;
+    }
+}
+

@@ -1,12 +1,13 @@
 <link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cotizacion_modales.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/cotizacion_modales.css') ?: time(); ?>">
+<link rel="stylesheet" href="<?php echo SERVERURL; ?>vistas/plantilla/css/cotizacion.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/cotizacion.css') ?: time(); ?>">
 <body id="view_quote">
     <div class="container-fluid">
-        <div class="card mb-4">
-            <div class="card-header">
+        <div class="card mb-4 izzy-quote-main-card">
+            <div class="card-header izzy-quote-main-header">
                 <i class="fas fa-file-invoice-dollar fa-lg mr-1"></i>
                 Cotización
             </div>
-            <div class="card-body">
+            <div class="card-body izzy-quote-main-body">
                 <form class="FormularioAjax" id="quoteForm" action="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8');?>ajax/addCotizacionAjax.php"
                     method="POST" data-form="save" autocomplete="off" enctype="multipart/form-data">
                     <div class="form-group row customer-bill-box-left">
@@ -177,8 +178,7 @@
                                                     class="buscar_cantidad form-control inputfield-details"
                                                     autocomplete="off" step="0.01">
                                             </td>
-                                            <td>
-                                                <input type="hidden" name="precio_realQuote[]" id="precio_realQuote_0"
+                                            <td>                                                <input type="hidden" name="precio_realQuote[]" id="precio_realQuote_0"
                                                     placeholder="Precio Real" class="form-control inputfield-details"
                                                     readonly autocomplete="off" step="0.01">
                                                 <div class="input-group mb-3">
@@ -219,17 +219,39 @@
                             </div>
                         </div>
                         <hr class="line_table" />
-                        <div class="form-group row">
-                            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                                <button class="btn btn-secondary ml-3 bill-bottom-add" id="addRowsQuote" type="button"
-                                    data-toggle="tooltip" data-placement="top" title="Agregar filas en la factura">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-plus"></i> Agregar
-                                </button>
-                                <button class="btn btn-secondary delete bill-bottom-remove" id="removeRowsQuote"
-                                    type="button" data-toggle="tooltip" data-placement="top"
-                                    title="Remover filas en la factura">
-                                    <div class="sb-nav-link-icon"></div><i class="fas fa-minus"></i> Quitar
-                                </button>
+                        <div class="form-group row quote-actions-row">
+                            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 quote-actions-bar">
+                                <div class="quote-actions-main">
+                                    <button class="btn btn-secondary bill-bottom-add" id="addRowsQuote" type="button"
+                                        data-toggle="tooltip" data-placement="top" title="Agregar filas en la cotización">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-plus"></i> Agregar
+                                    </button>
+                                    <button class="btn btn-secondary delete bill-bottom-remove" id="removeRowsQuote"
+                                        type="button" data-toggle="tooltip" data-placement="top"
+                                        title="Remover filas en la cotización">
+                                        <div class="sb-nav-link-icon"></div><i class="fas fa-minus"></i> Quitar
+                                    </button>
+                                </div>
+
+                                <div class="quote-inline-options">
+                                    <div class="input-group quote-inline-control quote-vigencia-control">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Vigencia Cotización</span>
+                                        </div>
+                                        <select id="vigencia_quote" name="vigencia_quote" class="custom-select"
+                                            data-toggle="tooltip" data-placement="top" title="Vigencia Cotización">
+                                            <option value="">Seleccione</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="input-group quote-inline-control quote-fecha-control">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Fecha Cambio Dolar</span>
+                                        </div>
+                                        <input type="date" class="form-control" id="fecha_dolar"
+                                            name="fecha_dolar" value="<?php echo date('Y-m-d');?>">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="form-group row">
@@ -242,41 +264,7 @@
                                         <p id="charNum_notasQuote">2000 Caracteres</p>
                                     </div>
                                 </div>
-                                <div class="form-group row">
-                                    <div class="card-body">
-                                        <div class="form-group mx-sm-3 mb-1">
-                                            <div class="input-group">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">
-                                                        <div class="sb-nav-link-icon"></div>Vigencia Cotización
-                                                    </span>
-                                                </div>
-                                                <select id="vigencia_quote" name="vigencia_quote" class="custom-select"
-                                                    data-toggle="tooltip" data-placement="top"
-                                                    title="Vigencia Cotización">
-                                                    <option value="">Seleccione</option>
-                                                </select>
-                                            </div>
-                                        </div>
 
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <div class="card-body">
-                                        <div class="form-group mx-sm-3 mb-1">
-                                            <div class="input-group">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">
-                                                        <div class="sb-nav-link-icon"></div>Fecha Cambio Dolar
-                                                    </span>
-                                                </div>
-                                                <input type="date" class="form-control" id="fecha_dolar"
-                                                    name="fecha_dolar" value="<?php echo date('Y-m-d');?>">
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
                                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-4" style="display: none;">
                                     <div class="row">
                                         <div class="col-sm-3 form-inline">
@@ -357,8 +345,7 @@
                                                     <span class="input-group-text">
                                                         <div class="sb-nav-link-icon"></div>L</i>
                                                     </span>
-                                                </div>
-                                                <input value="" type="number" class="form-control" name="taxAmountQuote18"
+                                                </div>                                                <input value="" type="number" class="form-control" name="taxAmountQuote18"
                                                     id="taxAmountQuote18" readonly placeholder="Impuesto">
                                             </div>
                                         </div>
@@ -391,10 +378,10 @@
             <div class="card-footer small text-muted">
                 <?php
 					require_once "./core/mainModel.php";
-					
+
 					$insMainModel = new mainModel();
 					$entidad = "cotizacion";
-					
+
 					if($insMainModel->getlastUpdate($entidad)->num_rows > 0){
 						$consulta_last_update = $insMainModel->getlastUpdate($entidad)->fetch_assoc();
 						$fecha_registro = htmlspecialchars($consulta_last_update['fecha_registro'], ENT_QUOTES, 'UTF-8');
@@ -407,11 +394,12 @@
             </div>
         </div>
     </div>
+<script src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/js/cotizacion_ui_premium.js?v=<?php echo @filemtime(__DIR__ . '/../../ajax/js/cotizacion_ui_premium.js') ?: time(); ?>"></script>
 </body>
 
 <?php
 	require_once "./core/mainModel.php";
-	
+
 	$insMainModel = new mainModel();				
 	$insMainModel->guardar_historial_accesos("Ingreso al modulo Facturas");
 ?>

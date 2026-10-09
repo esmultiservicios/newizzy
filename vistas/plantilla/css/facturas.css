@@ -282,3 +282,3000 @@
 #view_bill #mensajeFacturas.facturas-counter .counter-text{display:block!important;min-width:0!important;font-size:13px!important;font-weight:700!important;line-height:1.35!important}
 @media (min-width:992px){#view_bill #mensajeFacturas.facturas-counter{padding-left:20px!important;padding-right:20px!important}}
 @media (max-width:1199.98px){#view_bill #mensajeFacturas.facturas-counter{min-width:0!important;max-width:100%!important}}
+/* =========================================================
+   IZZY v6.20 | FACTURACIÓN ESCRITORIO - UI / UX PREMIUM
+   ---------------------------------------------------------
+   - Jerarquía visual del flujo principal sin alterar lógica.
+   - Centro de configuración legible y sin botones blancos.
+   - Datos de exoneración explicados y uniformes.
+   - Responsive desktop / tablet / móvil.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1) CENTRO DE CONFIGURACIÓN DE FACTURACIÓN
+   --------------------------------------------------------- */
+#modalConfigFactura .config-factura-header{
+    gap:16px!important;
+}
+#modalConfigFactura .config-factura-header-title{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    max-width:none!important;
+}
+#modalConfigFactura .config-factura-header-title>div:last-child{
+    flex:1 1 auto!important;
+    min-width:0!important;
+}
+#modalConfigFactura .config-factura-header h5,
+#modalConfigFactura .config-factura-header .modal-title{
+    display:block!important;
+    width:auto!important;
+    max-width:none!important;
+    margin:0!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+    line-height:1.25!important;
+}
+#modalConfigFactura .config-factura-header small{
+    white-space:normal!important;
+    overflow-wrap:anywhere!important;
+}
+#modalConfigFactura .config-factura-close{
+    flex:0 0 auto!important;
+}
+
+/* Ninguna acción del modal se presenta como botón blanco. */
+#modalConfigFactura .config-factura-section-actions .btn,
+#modalConfigFactura .btn-light{
+    background:#28445f!important;
+    border-color:#28445f!important;
+    color:#fff!important;
+    box-shadow:0 3px 9px rgba(31,52,73,.14)!important;
+}
+#modalConfigFactura .config-factura-section-actions .btn:hover,
+#modalConfigFactura .config-factura-section-actions .btn:focus,
+#modalConfigFactura .btn-light:hover,
+#modalConfigFactura .btn-light:focus{
+    background:#20384f!important;
+    border-color:#20384f!important;
+    color:#fff!important;
+}
+#modalConfigFactura .config-factura-section-actions .btn i,
+#modalConfigFactura .btn-light i{
+    color:inherit!important;
+}
+
+/* El footer conserva jerarquía: recargar secundario, cerrar peligro, guardar principal. */
+#modalConfigFactura .config-factura-footer .btn{
+    border:0!important;
+    color:#fff!important;
+}
+#modalConfigFactura #btn_recargar_config_factura{
+    background:#278fd1!important;
+}
+#modalConfigFactura #btn_recargar_config_factura:hover,
+#modalConfigFactura #btn_recargar_config_factura:focus{
+    background:#217db7!important;
+}
+#modalConfigFactura #btn_guardar_config_factura{
+    background:#55b978!important;
+}
+#modalConfigFactura #btn_guardar_config_factura:hover,
+#modalConfigFactura #btn_guardar_config_factura:focus{
+    background:#48a76a!important;
+}
+
+/* ---------------------------------------------------------
+   2) DATOS DE EXONERACIÓN
+   --------------------------------------------------------- */
+#exoneracionModal,
+#exoneracionModal *{
+    box-sizing:border-box;
+}
+#exoneracionModal .modal-dialog{
+    width:calc(100% - 28px);
+    max-width:820px;
+    margin-left:auto;
+    margin-right:auto;
+}
+#exoneracionModal .modal-content{
+    overflow:hidden;
+    border:0;
+    border-radius:14px;
+    box-shadow:0 20px 55px rgba(23,43,77,.24);
+}
+#exoneracionModal .modal-header{
+    min-height:74px;
+    padding:16px 20px!important;
+    background:#172b4d!important;
+    border:0!important;
+    border-bottom:4px solid #18c7a5!important;
+    color:#fff!important;
+    align-items:center;
+}
+#exoneracionModal .modal-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:0;
+    color:#fff;
+    font-size:19px;
+    font-weight:800;
+    line-height:1.25;
+}
+#exoneracionModal .modal-title::before{
+    content:"\f571";
+    width:38px;
+    height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 38px;
+    border-radius:10px;
+    background:#e9f7ff;
+    color:#238fcf;
+    font-family:"Font Awesome 5 Free";
+    font-weight:900;
+    font-size:16px;
+}
+#exoneracionModal .close{
+    color:#fff!important;
+    opacity:.92!important;
+    text-shadow:none!important;
+}
+#exoneracionModal .modal-body{
+    padding:18px 20px 8px;
+    background:#f7f9fc;
+}
+#exoneracionModal .modal-body::before{
+    content:"Use estos datos únicamente cuando la venta esté amparada por una exoneración fiscal autorizada. Si no aplica, puede cerrar esta ventana sin completar los campos.";
+    display:block;
+    margin:0 0 16px;
+    padding:12px 14px 12px 44px;
+    border:1px solid #cfe5f4;
+    border-radius:10px;
+    background:#eef8fd;
+    color:#38536b;
+    font-size:13px;
+    line-height:1.45;
+    position:relative;
+}
+#exoneracionModal .form-row{
+    margin-left:-6px;
+    margin-right:-6px;
+}
+#exoneracionModal .form-group{
+    padding-left:6px;
+    padding-right:6px;
+    margin-bottom:12px;
+}
+#exoneracionModal .form-group>label{
+    display:block;
+    margin:0 0 6px;
+    color:#172b4d;
+    font-size:13px;
+    font-weight:800;
+}
+#exoneracionModal label[for="modal_exoneracion_orden"]::after,
+#exoneracionModal label[for="modal_exoneracion_constancia"]::after,
+#exoneracionModal label[for="modal_exoneracion_sag"]::after,
+#exoneracionModal label[for="modal_exoneracion_orden_interno"]::after{
+    display:block;
+    margin-top:2px;
+    color:#718096;
+    font-size:11px;
+    font-weight:500;
+    line-height:1.35;
+}
+#exoneracionModal label[for="modal_exoneracion_orden"]::after{
+    content:"Número de la orden de exoneración autorizada.";
+}
+#exoneracionModal label[for="modal_exoneracion_constancia"]::after{
+    content:"Número o referencia de la constancia emitida.";
+}
+#exoneracionModal label[for="modal_exoneracion_sag"]::after{
+    content:"Identificación SAG, únicamente cuando corresponda.";
+}
+#exoneracionModal label[for="modal_exoneracion_orden_interno"]::after{
+    content:"Referencia interna del cliente o de la empresa.";
+}
+#exoneracionModal .form-control{
+    width:100%!important;
+    min-width:0!important;
+    height:44px;
+    border:1px solid #ccd7e3;
+    border-radius:9px;
+    background:#fff;
+    color:#26384a;
+    box-shadow:none!important;
+}
+#exoneracionModal .form-control:focus{
+    border-color:#2f9bd8;
+    box-shadow:0 0 0 3px rgba(47,155,216,.11)!important;
+}
+#exoneracionModal .modal-footer{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:8px;
+    padding:13px 20px;
+    background:#fff;
+    border-top:1px solid #e4e9ef;
+}
+#exoneracionModal .modal-footer .btn{
+    min-width:130px;
+    margin:0!important;
+    border:0;
+    border-radius:8px;
+    font-weight:700;
+}
+#exoneracionModal #guardar_exoneracion{
+    background:#278fd1!important;
+    color:#fff!important;
+}
+#exoneracionModal #guardar_exoneracion:hover,
+#exoneracionModal #guardar_exoneracion:focus{
+    background:#217db7!important;
+}
+
+/* ---------------------------------------------------------
+   3) JERARQUÍA VISUAL DEL FORMULARIO PRINCIPAL
+   --------------------------------------------------------- */
+
+/* Barra de acciones operativas. */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type{
+    gap:8px;
+    align-items:center;
+    padding:10px 12px;
+    margin-bottom:10px!important;
+    border:1px solid #dfe7ef;
+    border-radius:11px;
+    background:#f8fafc;
+}
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type .btn,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type .btn{
+    min-height:38px;
+    margin:0!important;
+    border-radius:8px!important;
+    font-weight:700;
+    box-shadow:0 2px 5px rgba(23,43,77,.08);
+}
+
+/* Registrar Factura es la acción primaria real. */
+#view_bill #reg_factura{
+    min-height:42px!important;
+    padding-left:20px!important;
+    padding-right:20px!important;
+    background:#24a85a!important;
+    border-color:#24a85a!important;
+    box-shadow:0 5px 13px rgba(36,168,90,.22)!important;
+}
+#view_bill #reg_factura:hover,
+#view_bill #reg_factura:focus{
+    background:#1f964f!important;
+    border-color:#1f964f!important;
+}
+
+/* Guardar queda como acción de continuidad, no compite con emitir. */
+#view_bill #guardar_factura{
+    background:#278fd1!important;
+    border-color:#278fd1!important;
+}
+
+/* Configuración operacional agrupada en una franja propia. */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+    gap:10px;
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #dfe7ef;
+    border-left:4px solid #20b7c9;
+    border-radius:11px;
+    background:#f8fbfd;
+}
+#view_bill #tipo-factura-control .btn{
+    min-height:34px;
+    font-weight:700;
+}
+#view_bill #btn-tipo-credito:not(.active){
+    background:#eef3f8!important;
+    color:#2f75b5!important;
+    border-color:#cfdae6!important;
+}
+#view_bill #btn_exoneracion,
+#view_bill #btn_ver_caja_factura{
+    min-height:36px;
+    border-radius:8px;
+    font-weight:700;
+}
+#view_bill #btn_config_factura{
+    border-radius:8px!important;
+    font-weight:700;
+}
+
+/* Separación visual para accesos secundarios debajo de la tabla. */
+#view_bill #addProduct,
+#view_bill #removeProduct,
+#view_bill #addQuote,
+#view_bill #addRecurringBill,
+#view_bill #addAccountsReceivable,
+#view_bill #addDraftBill,
+#view_bill #addBill{
+    border-radius:8px!important;
+    box-shadow:0 2px 6px rgba(23,43,77,.08)!important;
+}
+
+/* Notas: menos peso visual, manteniendo el mismo campo y comportamiento. */
+#view_bill #notes,
+#view_bill #notas,
+#view_bill textarea[name="notes"],
+#view_bill textarea[name="notas"]{
+    min-height:74px!important;
+    max-height:130px!important;
+    border-color:#d9e2ec!important;
+    border-radius:9px!important;
+    background:#fbfcfe!important;
+    box-shadow:none!important;
+}
+#view_bill #notes:focus,
+#view_bill #notas:focus,
+#view_bill textarea[name="notes"]:focus,
+#view_bill textarea[name="notas"]:focus{
+    border-color:#3498db!important;
+    box-shadow:0 0 0 3px rgba(52,152,219,.10)!important;
+}
+
+/* Resaltar Total sin alterar cálculos ni IDs. */
+#view_bill .footer1 .totals-grid{
+    gap:12px;
+}
+#view_bill .footer1 .metric{
+    min-width:0;
+}
+#view_bill .footer1 .metric:last-child{
+    padding:8px 10px;
+    border:1px solid #b9e7ce;
+    border-radius:10px;
+    background:#f3fbf6;
+}
+#view_bill .footer1 .metric:last-child label{
+    color:#167445;
+    font-weight:800;
+}
+#view_bill .footer1 .metric:last-child textarea{
+    color:#126b3f!important;
+    font-weight:800!important;
+}
+
+/* ---------------------------------------------------------
+   4) RESPONSIVE
+   --------------------------------------------------------- */
+@media (max-width:991.98px){
+    #modalConfigFactura .config-factura-header{
+        align-items:flex-start!important;
+    }
+    #modalConfigFactura .config-factura-header h5,
+    #modalConfigFactura .config-factura-header .modal-title{
+        font-size:17px!important;
+    }
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type,
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type{
+        align-items:stretch;
+    }
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+        align-items:flex-start!important;
+    }
+}
+
+@media (max-width:767.98px){
+    #modalConfigFactura .config-factura-header{
+        padding:14px 15px!important;
+    }
+    #modalConfigFactura .config-factura-header-title{
+        gap:9px!important;
+    }
+    #modalConfigFactura .config-factura-header-icon{
+        width:38px!important;
+        height:38px!important;
+        min-width:38px!important;
+    }
+    #modalConfigFactura .config-factura-footer{
+        gap:8px!important;
+    }
+    #modalConfigFactura .config-factura-footer .btn{
+        min-width:0!important;
+        flex:1 1 140px;
+    }
+
+    #exoneracionModal .modal-dialog{
+        width:calc(100% - 12px);
+        margin:6px auto;
+    }
+    #exoneracionModal .modal-body{
+        padding:14px 14px 4px;
+    }
+    #exoneracionModal .modal-header{
+        padding:13px 14px!important;
+    }
+    #exoneracionModal .modal-footer{
+        padding:11px 14px;
+    }
+
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type,
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type,
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+        padding:9px;
+        gap:7px;
+    }
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type .btn,
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type .btn{
+        flex:1 1 calc(50% - 7px);
+        min-width:132px;
+    }
+    #view_bill #reg_factura{
+        flex:1 1 100%!important;
+        order:-1;
+    }
+}
+
+@media (max-width:479.98px){
+    #modalConfigFactura .config-factura-header h5,
+    #modalConfigFactura .config-factura-header .modal-title{
+        font-size:16px!important;
+    }
+    #modalConfigFactura .config-factura-header small{
+        font-size:11px!important;
+    }
+    #modalConfigFactura .config-factura-footer{
+        align-items:stretch!important;
+        flex-direction:column!important;
+    }
+    #modalConfigFactura .config-factura-footer .config-factura-footer-status{
+        width:100%;
+        margin:0 0 4px!important;
+    }
+    #modalConfigFactura .config-factura-footer .btn{
+        width:100%;
+    }
+
+    #exoneracionModal .modal-title{
+        font-size:17px;
+    }
+    #exoneracionModal .modal-footer{
+        align-items:stretch;
+        flex-direction:column;
+    }
+    #exoneracionModal .modal-footer .btn{
+        width:100%;
+    }
+
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type .btn,
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type .btn{
+        flex:1 1 100%;
+        width:100%;
+    }
+}
+
+/* ============================================================
+   IZZY v6.21 | Jerarquía visual fuerte + moneda alineada
+   ------------------------------------------------------------
+   Solo presentación. No cambia IDs, eventos, atajos ni lógica.
+   ============================================================ */
+
+/* La fila principal deja claro qué se hace con la factura y qué
+   pertenece a la operación de caja/configuración. */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    align-items:center!important;
+    gap:8px!important;
+    padding:11px 12px!important;
+    background:#f7f9fc!important;
+    border:1px solid #dbe4ee!important;
+    border-radius:12px!important;
+}
+
+/* Acción principal: Registrar factura. */
+#view_bill #reg_factura{
+    order:1!important;
+    min-width:230px!important;
+    min-height:46px!important;
+    padding:0 24px!important;
+    font-size:14px!important;
+    font-weight:800!important;
+    letter-spacing:.1px!important;
+    background:#1fa85b!important;
+    border:1px solid #1fa85b!important;
+    color:#fff!important;
+    box-shadow:0 6px 14px rgba(31,168,91,.24)!important;
+}
+#view_bill #reg_factura i{font-size:16px!important;}
+#view_bill #reg_factura:hover,
+#view_bill #reg_factura:focus{
+    background:#188d4b!important;
+    border-color:#188d4b!important;
+    transform:translateY(-1px);
+}
+
+/* Guardar: importante, pero claramente secundario. */
+#view_bill #guardar_factura{
+    order:2!important;
+    min-height:40px!important;
+    background:#2d95d3!important;
+    border-color:#2d95d3!important;
+    color:#fff!important;
+}
+
+/* Cliente / vendedor: acciones de contexto de la factura. */
+#view_bill #add_cliente,
+#view_bill #add_vendedor{
+    order:3!important;
+    min-height:40px!important;
+    background:#397fae!important;
+    border-color:#397fae!important;
+    color:#fff!important;
+}
+#view_bill #add_vendedor{order:4!important;}
+
+/* Ayuda baja de peso y deja de competir con Registrar. */
+#view_bill #help_factura{
+    order:5!important;
+    min-height:38px!important;
+    background:#536b82!important;
+    border-color:#536b82!important;
+    color:#fff!important;
+    box-shadow:none!important;
+}
+
+/* Caja y configuración quedan al final de la fila y con una
+   familia visual propia. */
+#view_bill #btn_apertura,
+#view_bill #btn_cierre{
+    order:10!important;
+    min-height:38px!important;
+    background:#31485f!important;
+    border-color:#31485f!important;
+    color:#fff!important;
+}
+#view_bill #btn_retiro_caja{
+    order:11!important;
+    min-height:38px!important;
+    background:#e79416!important;
+    border-color:#e79416!important;
+    color:#fff!important;
+}
+#view_bill #btn_config_factura{
+    order:12!important;
+    min-height:38px!important;
+    background:#24364a!important;
+    border-color:#24364a!important;
+    color:#fff!important;
+    box-shadow:none!important;
+}
+
+/* Segunda fila = configuración de la venta actual. */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+    position:relative;
+    padding:14px 14px 11px!important;
+    border:1px solid #d9e5ee!important;
+    border-left:4px solid #1bb5c7!important;
+    border-radius:12px!important;
+    background:#f8fbfd!important;
+}
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2)::before,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2)::before{
+    content:"Configuración de esta venta";
+    flex:1 1 100%;
+    width:100%;
+    margin:0 0 4px;
+    color:#617589;
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+
+/* Moneda del resumen inferior: la celda "L" ocupa exactamente
+   la misma altura visual que el campo del valor. */
+#view_bill .footer1 .totals-grid .metric .input-group{
+    display:flex!important;
+    align-items:stretch!important;
+    flex-wrap:nowrap!important;
+}
+#view_bill .footer1 .totals-grid .metric .input-group-prepend{
+    display:flex!important;
+    align-items:stretch!important;
+    margin:0!important;
+}
+#view_bill .footer1 .totals-grid .metric .input-group-text{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    height:auto!important;
+    min-height:58px!important;
+    margin:0!important;
+    padding:0 12px!important;
+    border-radius:8px 0 0 8px!important;
+}
+#view_bill .footer1 .totals-grid .metric textarea.form-control{
+    min-height:58px!important;
+    height:58px!important;
+    margin:0!important;
+    border-radius:0 8px 8px 0!important;
+}
+
+/* El total conserva el destaque aprobado. */
+#view_bill .footer1 .metric:last-child .input-group-text{
+    background:#f3fbf6!important;
+    border-color:#b9e7ce!important;
+    color:#167445!important;
+    font-weight:800!important;
+}
+#view_bill .footer1 .metric:last-child textarea{
+    border-color:#b9e7ce!important;
+}
+
+@media (max-width:1199.98px){
+    #view_bill #reg_factura{min-width:210px!important;}
+}
+
+@media (max-width:767.98px){
+    #view_bill #reg_factura{
+        order:-10!important;
+        flex:1 1 100%!important;
+        width:100%!important;
+        min-width:0!important;
+    }
+    #view_bill #guardar_factura,
+    #view_bill #add_cliente,
+    #view_bill #add_vendedor,
+    #view_bill #help_factura,
+    #view_bill #btn_apertura,
+    #view_bill #btn_cierre,
+    #view_bill #btn_retiro_caja,
+    #view_bill #btn_config_factura{
+        flex:1 1 calc(50% - 8px)!important;
+        min-width:135px!important;
+    }
+}
+
+@media (max-width:479.98px){
+    #view_bill #guardar_factura,
+    #view_bill #add_cliente,
+    #view_bill #add_vendedor,
+    #view_bill #help_factura,
+    #view_bill #btn_apertura,
+    #view_bill #btn_cierre,
+    #view_bill #btn_retiro_caja,
+    #view_bill #btn_config_factura{
+        flex:1 1 100%!important;
+        width:100%!important;
+        min-width:0!important;
+    }
+    #view_bill .footer1 .totals-grid .metric .input-group-text,
+    #view_bill .footer1 .totals-grid .metric textarea.form-control{
+        min-height:54px!important;
+        height:54px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.22 | Orden original + configuración compacta
+   ------------------------------------------------------------
+   Conserva el estilo visual aprobado de v6.21, pero devuelve
+   exactamente el orden natural definido en el HTML. También
+   aprovecha mejor el espacio de "Configuración de esta venta".
+   ============================================================ */
+
+/* Restaurar el orden original del HTML sin alterar colores,
+   tamaños, iconos ni funcionalidad de cada botón. */
+#view_bill #help_factura,
+#view_bill #guardar_factura,
+#view_bill #reg_factura,
+#view_bill #add_cliente,
+#view_bill #add_vendedor,
+#view_bill #btn_apertura,
+#view_bill #btn_cierre,
+#view_bill #btn_retiro_caja,
+#view_bill #btn_config_factura{
+    order:initial!important;
+}
+
+/* El contenedor del retiro también permanece en su posición
+   natural; esto evita que el botón salte al inicio de la fila. */
+#view_bill #btn_retiro_caja{
+    margin-left:0!important;
+}
+
+/* Configuración de la venta: una franja más baja, compacta y
+   aprovechada horizontalmente. */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+    display:flex!important;
+    flex-wrap:wrap!important;
+    align-items:center!important;
+    gap:8px 10px!important;
+    min-height:0!important;
+    padding:8px 11px!important;
+}
+
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2)::before,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2)::before{
+    flex:0 0 auto!important;
+    width:auto!important;
+    margin:0 4px 0 0!important;
+    padding:0 10px 0 0!important;
+    border-right:1px solid #d8e3ec;
+    line-height:1.2!important;
+    white-space:nowrap;
+}
+
+/* Neutralizar márgenes Bootstrap redundantes dentro de la franja;
+   el gap del contenedor controla ahora la separación. */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2)>.mr-3,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2)>.mr-3,
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2)>.proforma-ui-box,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2)>.proforma-ui-box{
+    margin-right:0!important;
+}
+
+/* Controles internos un poco más compactos sin reducir legibilidad. */
+#view_bill #tipo-factura-control .btn{
+    min-height:34px!important;
+}
+#view_bill #facturas_proforma_container{
+    padding-top:5px!important;
+    padding-bottom:5px!important;
+}
+#view_bill #btn_exoneracion,
+#view_bill #btn_ver_caja_factura{
+    min-height:36px!important;
+}
+
+@media (max-width:991.98px){
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2)::before,
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2)::before{
+        flex:1 1 100%!important;
+        width:100%!important;
+        margin:0!important;
+        padding:0 0 5px!important;
+        border-right:0;
+        border-bottom:1px solid #d8e3ec;
+        white-space:normal;
+    }
+}
+
+/* En móvil se conserva el orden original también: ningún botón
+   recibe prioridad artificial sobre los demás. */
+@media (max-width:767.98px){
+    #view_bill #reg_factura{
+        order:initial!important;
+    }
+}
+
+/* ============================================================
+   IZZY v6.23 | Altura estable de Configuración de esta venta
+   ------------------------------------------------------------
+   Evita que la franja cambie de alto al activar Proforma y
+   mostrarse la opción "Rebajar inventario".
+   ============================================================ */
+
+/* El bloque Proforma conserva siempre una sola línea en escritorio. */
+#view_bill #facturas_proforma_container{
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    min-height:38px!important;
+    height:38px!important;
+    margin-top:0!important;
+    margin-bottom:0!important;
+    padding-top:0!important;
+    padding-bottom:0!important;
+}
+
+#view_bill #facturas_proforma_container > .d-flex{
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    min-height:38px!important;
+    height:38px!important;
+    margin-top:0!important;
+    margin-bottom:0!important;
+}
+
+#view_bill #proforma_rebajar_inventario_container{
+    min-height:38px!important;
+    height:38px!important;
+    margin-top:0!important;
+    margin-bottom:0!important;
+    padding-top:0!important;
+    padding-bottom:0!important;
+    align-items:center!important;
+}
+
+/* Evitar que labels, switch o badge agreguen altura al aparecer. */
+#view_bill #facturas_proforma_container label,
+#view_bill #facturas_proforma_container .switch,
+#view_bill #facturas_proforma_container .badge{
+    margin-top:0!important;
+    margin-bottom:0!important;
+}
+
+/* En escritorio la franja conserva exactamente el mismo alto
+   con Proforma en No o en Sí. */
+@media (min-width:1200px){
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+        height:58px!important;
+        min-height:58px!important;
+        max-height:58px!important;
+        flex-wrap:nowrap!important;
+        overflow:visible!important;
+    }
+
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2)::before,
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2)::before{
+        align-self:center!important;
+    }
+}
+
+/* Tablet y móvil pueden envolver contenido para conservar legibilidad,
+   pero el cambio de estado de Proforma no introduce márgenes extra. */
+@media (max-width:1199.98px){
+    #view_bill #facturas_proforma_container{
+        height:auto!important;
+        min-height:38px!important;
+        flex-wrap:wrap!important;
+    }
+    #view_bill #facturas_proforma_container > .d-flex,
+    #view_bill #proforma_rebajar_inventario_container{
+        height:auto!important;
+        min-height:38px!important;
+    }
+}
+
+/* ============================================================
+   IZZY v6.24 | Captura de productos premium + fecha USD visible
+   ------------------------------------------------------------
+   Mejora exclusivamente la presentación de la línea de captura
+   y aprovecha el espacio de Notas para mantener visible la fecha
+   del cambio de dólar. No altera IDs, eventos ni lógica.
+   ============================================================ */
+
+/* ---------- Línea de productos / estilo ERP premium ---------- */
+#view_bill #invoiceItem{
+    width:100%!important;
+    border-collapse:separate!important;
+    border-spacing:0!important;
+}
+
+#view_bill #invoiceItem tbody tr{
+    background:#ffffff!important;
+    transition:background-color .16s ease, box-shadow .16s ease!important;
+}
+
+#view_bill #invoiceItem tbody tr:hover{
+    background:#f8fbfe!important;
+}
+
+#view_bill #invoiceItem tbody td{
+    padding:10px 7px!important;
+    vertical-align:middle!important;
+    border-top:0!important;
+    border-bottom:1px solid #e7edf3!important;
+}
+
+#view_bill #invoiceItem tbody td:first-child{
+    text-align:center!important;
+}
+
+#view_bill #invoiceItem tbody .input-group{
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+}
+
+#view_bill #invoiceItem tbody .form-control{
+    min-width:0!important;
+    height:42px!important;
+    min-height:42px!important;
+    margin:0!important;
+    border:1px solid #cfd9e5!important;
+    border-radius:8px!important;
+    background:#ffffff!important;
+    color:#26384a!important;
+    font-size:13px!important;
+    font-weight:600!important;
+    line-height:1.2!important;
+    box-shadow:none!important;
+    transition:border-color .16s ease, box-shadow .16s ease, background-color .16s ease!important;
+}
+
+#view_bill #invoiceItem tbody .form-control:focus{
+    border-color:#2f9fe8!important;
+    box-shadow:0 0 0 3px rgba(47,159,232,.12)!important;
+    background:#ffffff!important;
+    outline:0!important;
+}
+
+#view_bill #invoiceItem tbody .form-control[readonly]{
+    background:#f3f6f9!important;
+    color:#506274!important;
+}
+
+/* Código: búsqueda integrada como un único control. */
+#view_bill #invoiceItem tbody td:nth-child(2) .input-group{
+    border:1px solid #cfd9e5!important;
+    border-radius:9px!important;
+    background:#ffffff!important;
+    overflow:hidden!important;
+    transition:border-color .16s ease, box-shadow .16s ease!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(2) .input-group:focus-within{
+    border-color:#2f9fe8!important;
+    box-shadow:0 0 0 3px rgba(47,159,232,.12)!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(2) .input-group .form-control{
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    padding-left:10px!important;
+}
+
+#view_bill #invoiceItem .buscar_productos{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-right:1px solid #e0e7ef!important;
+    border-radius:0!important;
+    background:#f5f8fb!important;
+    color:#397da8!important;
+    text-decoration:none!important;
+    box-shadow:none!important;
+}
+
+#view_bill #invoiceItem .buscar_productos:hover,
+#view_bill #invoiceItem .buscar_productos:focus{
+    background:#eaf5fd!important;
+    color:#137fbd!important;
+}
+
+#view_bill #invoiceItem .buscar_productos i{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0!important;
+    font-size:14px!important;
+    line-height:1!important;
+}
+
+/* Descripción y medida como superficies limpias de solo lectura. */
+#view_bill #invoiceItem .product-description,
+#view_bill #invoiceItem .medida-description{
+    display:flex!important;
+    align-items:center!important;
+    min-height:42px!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0 11px!important;
+    border:1px solid transparent!important;
+    border-radius:8px!important;
+    color:#26384a!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    line-height:1.25!important;
+    box-sizing:border-box!important;
+}
+
+#view_bill #invoiceItem .medida-description{
+    justify-content:center!important;
+    text-align:center!important;
+    background:#f7f9fb!important;
+    border-color:#e2e8ef!important;
+    color:#465b6e!important;
+    font-weight:700!important;
+}
+
+/* Cantidad centrada y clara. */
+#view_bill #invoiceItem input[name="quantity[]"]{
+    text-align:center!important;
+    font-weight:700!important;
+}
+
+/* Precio / descuento: input + acción forman una sola pieza. */
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group{
+    border:1px solid #cfd9e5!important;
+    border-radius:9px!important;
+    overflow:hidden!important;
+    background:#ffffff!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group .form-control,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group .form-control{
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    text-align:center!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append{
+    display:flex!important;
+    margin:0!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+    min-height:42px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-left:1px solid #dce5ed!important;
+    border-radius:0!important;
+    background:#f3fbf7!important;
+    color:#15945b!important;
+    box-shadow:none!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:hover,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:hover{
+    background:#e4f7ed!important;
+    color:#087a47!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append i,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append i{
+    margin:0!important;
+    font-size:14px!important;
+    line-height:1!important;
+}
+
+/* Total con lectura rápida, sin competir con el total general. */
+#view_bill #invoiceItem input[name="total[]"]{
+    text-align:center!important;
+    font-weight:800!important;
+    color:#172b4d!important;
+    background:#eef2f6!important;
+}
+
+#view_bill #invoiceItem .itemRow,
+#view_bill #invoiceItem #checkAll{
+    width:16px!important;
+    height:16px!important;
+    margin:0!important;
+    vertical-align:middle!important;
+}
+
+/* ---------- Fecha de cambio del dólar ----------
+   Se integra al lado de Notas en escritorio para que deje de
+   quedar escondida detrás del footer y aproveche el ancho libre. */
+#view_bill .form-row:has(#fecha_dolar){
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(270px,340px)!important;
+    gap:14px!important;
+    align-items:start!important;
+    width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-sm-12.col-md-12{
+    width:auto!important;
+    max-width:none!important;
+    flex:none!important;
+    padding-left:0!important;
+    padding-right:0!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6{
+    width:auto!important;
+    max-width:none!important;
+    flex:none!important;
+    padding:0!important;
+    align-self:start!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .form-group.row,
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .card-body,
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .form-group.mx-sm-3{
+    margin:0!important;
+    padding:0!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group{
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    width:100%!important;
+    margin:35px 0 0!important;
+    border:1px solid #cfd9e5!important;
+    border-radius:9px!important;
+    overflow:hidden!important;
+    background:#ffffff!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group-text{
+    height:42px!important;
+    min-height:42px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0!important;
+    padding:0 12px!important;
+    border:0!important;
+    border-right:1px solid #dce4ec!important;
+    border-radius:0!important;
+    background:#edf3f8!important;
+    color:#3d5267!important;
+    font-size:12px!important;
+    font-weight:700!important;
+    white-space:nowrap!important;
+}
+
+#view_bill #fecha_dolar{
+    height:42px!important;
+    min-height:42px!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#ffffff!important;
+    color:#26384a!important;
+    font-size:13px!important;
+    font-weight:600!important;
+    box-shadow:none!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group:focus-within{
+    border-color:#2f9fe8!important;
+    box-shadow:0 0 0 3px rgba(47,159,232,.12)!important;
+}
+
+@media (max-width:991.98px){
+    #view_bill .form-row:has(#fecha_dolar){
+        grid-template-columns:1fr!important;
+        gap:8px!important;
+    }
+    #view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group{
+        max-width:360px!important;
+        margin:0!important;
+    }
+}
+
+@media (max-width:767.98px){
+    #view_bill #invoiceItem tbody td{
+        padding:8px 5px!important;
+    }
+    #view_bill #invoiceItem tbody .form-control,
+    #view_bill #invoiceItem .buscar_productos,
+    #view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn,
+    #view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn,
+    #view_bill #invoiceItem .product-description,
+    #view_bill #invoiceItem .medida-description{
+        min-height:40px!important;
+        height:40px!important;
+    }
+}
+
+/* ============================================================
+   IZZY v6.25 | Compactación premium adicional
+   ------------------------------------------------------------
+   - Menos aire entre tarjetas superiores y acciones.
+   - Fecha cambio dólar al extremo derecho arriba de Notas.
+   - Modal de cambio a crédito más premium (visual).
+   - Configuración de venta un poco más alta y limpia.
+   - Tabla de productos más compacta.
+   ============================================================ */
+
+/* Encabezado superior más compacto */
+#view_bill .customer-bill-box-left,
+#view_bill .customer-bill-box-center,
+#view_bill .customer-bill-box-right{
+    margin-bottom:10px!important;
+}
+
+#view_bill .customer-bill-box-left .col-xs-12,
+#view_bill .customer-bill-box-left .col-sm-12,
+#view_bill .customer-bill-box-left .col-md-12,
+#view_bill .customer-bill-box-left .col-lg-12,
+#view_bill .customer-bill-box-right .col-xs-12,
+#view_bill .customer-bill-box-right .col-sm-12,
+#view_bill .customer-bill-box-right .col-md-12,
+#view_bill .customer-bill-box-right .col-lg-12{
+    padding-top:2px!important;
+    padding-bottom:2px!important;
+}
+
+#view_bill .bill-header-row,
+#view_bill .bill-row{
+    margin-bottom:4px!important;
+    line-height:1.25!important;
+}
+#view_bill .bill-row:last-child,
+#view_bill .bill-header-row:last-child{
+    margin-bottom:0!important;
+}
+
+/* Bloque de acciones un poco más compacto */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type{
+    padding:8px 10px!important;
+    margin-bottom:8px!important;
+}
+
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:first-of-type .btn,
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:first-of-type .btn{
+    min-height:36px!important;
+}
+
+/* Configuración de venta: apenas más alta, mejor centrada, sin desbordes */
+#view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+#view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+    gap:8px 12px!important;
+    padding:10px 12px!important;
+    min-height:56px!important;
+}
+
+#view_bill #facturas_proforma_container{
+    min-height:40px!important;
+}
+#view_bill #facturas_proforma_container > .d-flex,
+#view_bill #proforma_rebajar_inventario_container{
+    min-height:40px!important;
+}
+
+#view_bill #tipo-factura-control .btn,
+#view_bill #btn_exoneracion,
+#view_bill #btn_ver_caja_factura{
+    min-height:38px!important;
+}
+
+/* Fila de productos todavía más limpia */
+#view_bill .form-group.row.table-responsive-xl{
+    margin-bottom:8px!important;
+}
+
+#view_bill #invoiceItem thead th{
+    padding-top:10px!important;
+    padding-bottom:10px!important;
+}
+
+#view_bill #invoiceItem tbody td{
+    padding:6px 6px!important;
+}
+
+#view_bill #invoiceItem tbody tr:last-child td{
+    border-bottom:1px solid #dde6ef!important;
+}
+
+#view_bill #invoiceItem .product-description{
+    padding-left:12px!important;
+    padding-right:12px!important;
+}
+
+/* Notas y Fecha Cambio Dólar reorganizados:
+   fecha queda arriba a la derecha, notas ocupan el ancho completo abajo */
+#view_bill .form-row:has(#fecha_dolar){
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(300px,360px)!important;
+    grid-template-areas:
+        ". fecha"
+        "notas notas"!important;
+    gap:10px 16px!important;
+    align-items:start!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-sm-12.col-md-12{
+    grid-area:notas!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6{
+    grid-area:fecha!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group{
+    margin:0!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-sm-12.col-md-12 h3{
+    margin-bottom:8px!important;
+}
+
+#view_bill textarea#notesBill,
+#view_bill textarea[name="notesBill"]{
+    min-height:108px!important;
+    resize:vertical!important;
+}
+
+#view_bill #charNum_notasQuote{
+    margin-top:4px!important;
+    margin-bottom:0!important;
+}
+
+/* Fecha cambio dólar más corporativa y compacta */
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group{
+    box-shadow:0 2px 8px rgba(23,43,77,.05)!important;
+}
+
+#view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group-text{
+    min-width:168px!important;
+    justify-content:flex-start!important;
+}
+
+#view_bill #fecha_dolar{
+    text-align:left!important;
+}
+
+/* Modal confirmación crédito más premium (solo visual) */
+#confirmTipoFactura .modal-dialog{
+    max-width:500px!important;
+}
+#confirmTipoFactura .modal-content{
+    border:0!important;
+    border-radius:16px!important;
+    overflow:hidden!important;
+    box-shadow:0 20px 55px rgba(23,43,77,.24)!important;
+}
+#confirmTipoFactura .modal-header{
+    padding:15px 18px!important;
+    background:#172b4d!important;
+    border:0!important;
+    border-bottom:4px solid #18c7a5!important;
+    color:#fff!important;
+}
+#confirmTipoFactura .modal-title{
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    margin:0!important;
+    color:#fff!important;
+    font-size:18px!important;
+    font-weight:800!important;
+}
+#confirmTipoFactura .modal-title::before{
+    content:"\f06a";
+    font-family:"Font Awesome 5 Free";
+    font-weight:900;
+    width:36px;
+    height:36px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    background:#eef8fd;
+    color:#2790d2;
+    flex:0 0 36px;
+}
+#confirmTipoFactura .close{
+    color:#fff!important;
+    opacity:.92!important;
+    text-shadow:none!important;
+}
+#confirmTipoFactura .modal-body{
+    padding:18px!important;
+    background:#f7f9fc!important;
+    color:#304558!important;
+    font-size:14px!important;
+    line-height:1.55!important;
+}
+#confirmTipoFactura .modal-body::before{
+    content:"Al confirmar, la venta quedará preparada como factura a crédito. Si deseas que esta selección se recuerde siempre, puedo agregarte la opción funcional ‘Recordar esta elección’ en el siguiente ajuste de lógica.";
+    display:block;
+    margin:0 0 14px!important;
+    padding:12px 14px!important;
+    border:1px solid #cfe2f0!important;
+    border-radius:10px!important;
+    background:#eef7fc!important;
+    color:#486075!important;
+    font-size:12px!important;
+    line-height:1.45!important;
+}
+#confirmTipoFactura .modal-footer{
+    padding:13px 18px!important;
+    border-top:1px solid #e0e8f0!important;
+    background:#fff!important;
+    gap:8px!important;
+}
+#confirmTipoFactura .modal-footer .btn{
+    min-width:146px!important;
+    min-height:40px!important;
+    border-radius:10px!important;
+    font-weight:700!important;
+}
+#confirmTipoFactura .modal-footer .btn-secondary{
+    background:#ebeff4!important;
+    border-color:#d7e0e9!important;
+    color:#33495c!important;
+}
+#confirmTipoFactura .modal-footer .btn-primary{
+    background:#278fd1!important;
+    border-color:#278fd1!important;
+    color:#fff!important;
+}
+
+/* Responsive final */
+@media (max-width:991.98px){
+    #view_bill .form-row:has(#fecha_dolar){
+        grid-template-columns:1fr!important;
+        grid-template-areas:
+            "fecha"
+            "notas"!important;
+        gap:8px!important;
+    }
+
+    #view_bill .form-row:has(#fecha_dolar) > .col-12.col-md-6 .input-group{
+        max-width:380px!important;
+    }
+}
+
+@media (max-width:767.98px){
+    #confirmTipoFactura .modal-footer{
+        flex-direction:column!important;
+        align-items:stretch!important;
+    }
+    #confirmTipoFactura .modal-footer .btn{
+        width:100%!important;
+    }
+
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+        min-height:0!important;
+        padding:9px 10px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.26 | Modal tipo factura + dinero visual + hover +
+   ------------------------------------------------------------
+   Correcciones solicitadas:
+   - Sin botones claros/blancos en confirmación.
+   - Opción Recordar esta elección.
+   - Hover sólido para botones +.
+   - Formato de miles visual, sin alterar valores crudos.
+   ============================================================ */
+
+/* Quitar el aviso temporal de v6.25: la ayuda real ahora vive
+   dentro del control funcional "Recordar esta elección". */
+#confirmTipoFactura .modal-body::before{
+    display:none!important;
+    content:none!important;
+}
+
+/* Modal más claro y profesional */
+#confirmTipoFactura .modal-body{
+    padding:18px!important;
+}
+
+#confirmTipoFactura .tipo-factura-recordar{
+    display:grid;
+    grid-template-columns:42px minmax(0,1fr) 48px;
+    gap:12px;
+    align-items:center;
+    margin:0 0 16px;
+    padding:13px 14px;
+    border:1px solid #cfe2f0;
+    border-radius:12px;
+    background:#eef7fc;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-icon{
+    width:42px;
+    height:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:11px;
+    background:#ffffff;
+    color:#278fd1;
+    font-size:16px;
+    box-shadow:0 2px 7px rgba(23,43,77,.08);
+}
+
+#confirmTipoFactura .tipo-factura-recordar-copy{
+    min-width:0;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-copy strong{
+    display:block;
+    margin:0 0 3px;
+    color:#172b4d;
+    font-size:13px;
+    font-weight:800;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-copy small{
+    display:block;
+    color:#5f7387;
+    font-size:11px;
+    line-height:1.42;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-switch{
+    position:relative;
+    width:48px;
+    height:26px;
+    margin:0;
+    cursor:pointer;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-switch input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-switch span{
+    position:absolute;
+    inset:0;
+    border-radius:999px;
+    background:#b9c7d3;
+    transition:.18s ease;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);
+}
+
+#confirmTipoFactura .tipo-factura-recordar-switch span::before{
+    content:"";
+    position:absolute;
+    width:20px;
+    height:20px;
+    left:3px;
+    top:3px;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 2px 5px rgba(23,43,77,.22);
+    transition:.18s ease;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-switch input:checked + span{
+    background:#20a6d8;
+}
+
+#confirmTipoFactura .tipo-factura-recordar-switch input:checked + span::before{
+    transform:translateX(22px);
+}
+
+/* Ningún botón claro/blanco en este modal. */
+#confirmTipoFactura .modal-footer .btn-secondary{
+    background:#536b82!important;
+    border-color:#536b82!important;
+    color:#fff!important;
+    box-shadow:0 3px 9px rgba(23,43,77,.12)!important;
+}
+
+#confirmTipoFactura .modal-footer .btn-secondary:hover,
+#confirmTipoFactura .modal-footer .btn-secondary:focus{
+    background:#41586d!important;
+    border-color:#41586d!important;
+    color:#fff!important;
+}
+
+#confirmTipoFactura .modal-footer .btn-primary{
+    background:#278fd1!important;
+    border-color:#278fd1!important;
+    color:#fff!important;
+    box-shadow:0 4px 11px rgba(39,143,209,.20)!important;
+}
+
+#confirmTipoFactura .modal-footer .btn-primary:hover,
+#confirmTipoFactura .modal-footer .btn-primary:focus{
+    background:#1f7eb9!important;
+    border-color:#1f7eb9!important;
+    color:#fff!important;
+}
+
+/* + Precio / Descuento: nunca blanco al hover. */
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn{
+    background:#e9f7ef!important;
+    color:#138650!important;
+    border-left:1px solid #cfe8db!important;
+    transition:background-color .15s ease,color .15s ease,box-shadow .15s ease!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:hover,
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:focus,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:hover,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:focus{
+    background:#15945b!important;
+    border-color:#15945b!important;
+    color:#fff!important;
+    box-shadow:none!important;
+}
+
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:hover i,
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:focus i,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:hover i,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:focus i{
+    color:#fff!important;
+}
+
+/* Separadores de miles SOLO visuales.
+   El input original sigue guardando 6396 / 0 / 6396.0000. */
+#view_bill #invoiceItem .input-group{
+    position:relative!important;
+}
+
+#view_bill #invoiceItem .izzy-money-raw{
+    color:transparent!important;
+    caret-color:transparent!important;
+}
+
+#view_bill #invoiceItem .izzy-money-display{
+    position:absolute;
+    z-index:2;
+    top:0;
+    bottom:0;
+    left:0;
+    right:42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 10px;
+    pointer-events:none;
+    color:#40566a;
+    font-size:13px;
+    font-weight:600;
+    line-height:1;
+    white-space:nowrap;
+}
+
+#view_bill #invoiceItem .izzy-money-readonly-wrap{
+    position:relative;
+    width:100%;
+    min-width:0;
+}
+
+#view_bill #invoiceItem .izzy-money-readonly-wrap .izzy-money-display{
+    right:0;
+    height:42px;
+    color:#172b4d;
+    font-weight:800;
+}
+
+#view_bill #invoiceItem .izzy-money-readonly-wrap .izzy-money-raw{
+    width:100%!important;
+}
+
+@media (max-width:767.98px){
+    #confirmTipoFactura .tipo-factura-recordar{
+        grid-template-columns:38px minmax(0,1fr) 46px;
+        gap:9px;
+        padding:11px;
+    }
+
+    #confirmTipoFactura .tipo-factura-recordar-icon{
+        width:38px;
+        height:38px;
+    }
+
+    #view_bill #invoiceItem .izzy-money-display,
+    #view_bill #invoiceItem .izzy-money-readonly-wrap .izzy-money-display{
+        height:40px;
+    }
+}
+
+/* ============================================================
+   IZZY v6.27 | Detalle fijo + fecha dólar en botonera + cleanup
+   ============================================================ */
+
+/* Desactivar por completo el experimento visual de moneda de v6.26.
+   Evita cualquier texto duplicado sobre Precio / Descuento / Total. */
+#view_bill #invoiceItem .izzy-money-display{
+    display:none!important;
+}
+#view_bill #invoiceItem .izzy-money-raw{
+    color:#26384a!important;
+    caret-color:auto!important;
+}
+#view_bill #invoiceItem .izzy-money-readonly-wrap{
+    display:contents!important;
+}
+
+/* Fecha Cambio Dólar al final de la misma fila de acciones inferiores. */
+#view_bill .factura-fecha-dolar-inline{
+    display:flex!important;
+    align-items:center!important;
+    flex:0 0 auto!important;
+    margin-left:auto!important;
+    min-width:330px!important;
+    max-width:370px!important;
+}
+#view_bill .factura-fecha-dolar-inline .input-group{
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    width:100%!important;
+    margin:0!important;
+    border:1px solid #cfd9e5!important;
+    border-radius:9px!important;
+    overflow:hidden!important;
+    background:#fff!important;
+    box-shadow:0 2px 7px rgba(23,43,77,.06)!important;
+}
+#view_bill .factura-fecha-dolar-inline .input-group-append{
+    display:flex!important;
+    margin:0!important;
+}
+#view_bill .factura-fecha-dolar-inline .input-group-text{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    height:38px!important;
+    min-height:38px!important;
+    margin:0!important;
+    padding:0 12px!important;
+    border:0!important;
+    border-right:1px solid #dce4ec!important;
+    border-radius:0!important;
+    background:#edf3f8!important;
+    color:#334e68!important;
+    font-size:11px!important;
+    font-weight:800!important;
+    white-space:nowrap!important;
+}
+#view_bill .factura-fecha-dolar-inline #fecha_dolar{
+    flex:1 1 auto!important;
+    width:auto!important;
+    min-width:145px!important;
+    height:38px!important;
+    min-height:38px!important;
+    margin:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#fff!important;
+    color:#26384a!important;
+    font-size:12px!important;
+    font-weight:700!important;
+    box-shadow:none!important;
+}
+#view_bill .factura-fecha-dolar-inline .input-group:focus-within{
+    border-color:#2f9fe8!important;
+    box-shadow:0 0 0 3px rgba(47,159,232,.10)!important;
+}
+
+/* Botonera inferior siempre fuera del scroll del detalle. */
+#view_bill #addRows,
+#view_bill #removeRows,
+#view_bill #addQuotetoBill,
+#view_bill #addRecurringBill,
+#view_bill #addPayCustomers,
+#view_bill #addDraft,
+#view_bill #BillReports{
+    min-height:38px!important;
+    margin-top:0!important;
+    margin-bottom:0!important;
+}
+#view_bill #addRows.closest,
+#view_bill .bill > .form-group.row:has(#addRows){
+    margin-top:8px!important;
+    margin-bottom:8px!important;
+}
+#view_bill .bill > .form-group.row:has(#addRows) > div{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    align-items:center!important;
+    gap:8px!important;
+}
+#view_bill .bill > .form-group.row:has(#addRows) .btn{
+    margin-left:0!important;
+    margin-right:0!important;
+}
+
+/* Área fija tipo body para líneas de factura. */
+#view_bill .detalle-factura-scroll{
+    position:relative!important;
+    display:block!important;
+    width:100%!important;
+    height:300px!important;
+    min-height:300px!important;
+    max-height:300px!important;
+    margin:8px 0 0!important;
+    padding:0!important;
+    overflow-y:auto!important;
+    overflow-x:auto!important;
+    overscroll-behavior:contain!important;
+    border:1px solid #dbe4ed!important;
+    border-radius:10px!important;
+    background:#fbfcfe!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9)!important;
+    scrollbar-width:thin;
+}
+#view_bill .detalle-factura-scroll > .col-xs-12,
+#view_bill .detalle-factura-scroll > .col-sm-12,
+#view_bill .detalle-factura-scroll > .col-md-12,
+#view_bill .detalle-factura-scroll > .col-lg-12{
+    width:100%!important;
+    max-width:none!important;
+    flex:0 0 auto!important;
+    padding:0!important;
+    position:relative!important;
+    z-index:2!important;
+}
+#view_bill .detalle-factura-scroll #invoiceItem{
+    margin:0!important;
+    background:#fff!important;
+}
+#view_bill .detalle-factura-scroll #invoiceItem thead th{
+    position:sticky!important;
+    top:0!important;
+    z-index:6!important;
+    box-shadow:0 1px 0 #19c69f!important;
+}
+#view_bill .detalle-factura-scroll #invoiceItem tbody tr{
+    background:#fff!important;
+}
+
+/* Zona premium visible cuando todavía hay pocas líneas. */
+#view_bill .detalle-factura-watermark{
+    position:absolute!important;
+    z-index:1!important;
+    left:50%!important;
+    bottom:34px!important;
+    transform:translateX(-50%)!important;
+    width:min(520px,82%)!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:5px!important;
+    padding:14px 18px!important;
+    border:1px dashed #d6e2ec!important;
+    border-radius:12px!important;
+    background:rgba(247,250,252,.86)!important;
+    color:#73869a!important;
+    text-align:center!important;
+    pointer-events:none!important;
+}
+#view_bill .detalle-factura-watermark i{
+    color:#2d95d3!important;
+    font-size:19px!important;
+}
+#view_bill .detalle-factura-watermark strong{
+    color:#40566a!important;
+    font-size:12px!important;
+    font-weight:800!important;
+}
+#view_bill .detalle-factura-watermark span{
+    font-size:10px!important;
+    line-height:1.35!important;
+}
+#view_bill .detalle-factura-watermark.d-none{
+    display:none!important;
+}
+
+/* Notas suben inmediatamente después de la botonera. */
+#view_bill .form-row:has(#notesBill){
+    display:block!important;
+    width:100%!important;
+    margin:0!important;
+}
+#view_bill .form-row:has(#notesBill) > .col-sm-12.col-md-12{
+    width:100%!important;
+    max-width:100%!important;
+    padding-left:0!important;
+    padding-right:0!important;
+}
+#view_bill .form-row:has(#notesBill) h3{
+    margin:4px 0 6px!important;
+    font-size:20px!important;
+}
+#view_bill #notesBill{
+    min-height:92px!important;
+    height:92px!important;
+    margin:0!important;
+}
+#view_bill #charNum_notasQuote{
+    margin:3px 0 0!important;
+    font-size:10px!important;
+}
+
+/* Evitar el aspecto gris pegado después de hacer clic. */
+#view_bill .btn:focus,
+#view_bill .btn.focus{
+    outline:none!important;
+    filter:none!important;
+    opacity:1!important;
+}
+#view_bill .btn:not(:disabled):not(.disabled):active,
+#view_bill .btn:not(:disabled):not(.disabled).active{
+    filter:none!important;
+    opacity:1!important;
+}
+
+/* Mantener los + sólidos y nunca blancos. */
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn{
+    background:#e9f7ef!important;
+    color:#138650!important;
+}
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:hover,
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:focus,
+#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn:active,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:hover,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:focus,
+#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn:active{
+    background:#15945b!important;
+    border-color:#15945b!important;
+    color:#fff!important;
+}
+
+/* Footer un poco más compacto para que el detalle respire. */
+#view_bill .footer1 .totals-grid .metric .input-group-text,
+#view_bill .footer1 .totals-grid .metric textarea.form-control{
+    min-height:52px!important;
+    height:52px!important;
+}
+#view_bill .footer1 .metric:last-child{
+    padding:6px 8px!important;
+}
+
+@media (max-width:1199.98px){
+    #view_bill .factura-fecha-dolar-inline{
+        flex:1 1 100%!important;
+        max-width:390px!important;
+        margin-left:0!important;
+    }
+    #view_bill .detalle-factura-scroll{
+        height:290px!important;
+        min-height:290px!important;
+        max-height:290px!important;
+    }
+}
+
+@media (max-width:767.98px){
+    #view_bill .factura-fecha-dolar-inline{
+        width:100%!important;
+        min-width:0!important;
+        max-width:100%!important;
+    }
+    #view_bill .factura-fecha-dolar-inline .input-group-text{
+        min-width:145px!important;
+    }
+    #view_bill .detalle-factura-scroll{
+        height:270px!important;
+        min-height:270px!important;
+        max-height:270px!important;
+        border-radius:8px!important;
+    }
+    #view_bill .detalle-factura-watermark{
+        width:88%!important;
+        bottom:22px!important;
+    }
+    #view_bill #notesBill{
+        min-height:82px!important;
+        height:82px!important;
+    }
+}
+
+/* ============================================================
+   IZZY v6.28 | Detalle premium + espacio vacio mas util
+   ============================================================ */
+
+/* El body del detalle conserva su tamaño y usa la barra global IZZY. */
+#view_bill .detalle-factura-scroll{
+    scrollbar-width:thin!important;
+    scrollbar-color:#315b7c #edf3f7!important;
+}
+
+/* Empty state más amplio, legible y centrado en el espacio disponible. */
+#view_bill .detalle-factura-watermark{
+    left:50%!important;
+    top:58%!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+    gap:8px!important;
+    padding:20px 28px!important;
+    border:1px dashed #bdd3e3!important;
+    border-radius:16px!important;
+    background:rgba(247,250,253,.94)!important;
+    box-shadow:0 8px 24px rgba(23,43,77,.05)!important;
+}
+#view_bill .detalle-factura-watermark i{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:38px!important;
+    height:38px!important;
+    margin-bottom:1px!important;
+    border-radius:10px!important;
+    background:#e8f5fc!important;
+    color:#278fd1!important;
+    font-size:18px!important;
+}
+#view_bill .detalle-factura-watermark strong{
+    color:#263f58!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.01em!important;
+}
+#view_bill .detalle-factura-watermark span{
+    max-width:600px!important;
+    color:#6a7f93!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+}
+
+/* Checkbox del detalle: mantiene alineación aun con el estilo global. */
+#view_bill #invoiceItem .itemRow,
+#view_bill #invoiceItem #checkAll{
+    width:18px!important;
+    height:18px!important;
+    min-width:18px!important;
+    min-height:18px!important;
+}
+
+@media (max-width:767.98px){
+    #view_bill .detalle-factura-watermark{
+        width:90%!important;
+        min-height:104px!important;
+        padding:16px 18px!important;
+    }
+    #view_bill .detalle-factura-watermark strong{font-size:14px!important;}
+    #view_bill .detalle-factura-watermark span{font-size:11px!important;}
+}
+
+
+/* ============================================================
+   IZZY v6.29 | Ayuda + cabecera principal Facturas
+   ------------------------------------------------------------
+   - Título completo del Centro de Ayuda.
+   - Menos espacio entre cabecera de módulo y contenido.
+   - Cabecera "Facturas" premium y compacta.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   CENTRO DE AYUDA DE FACTURACIÓN
+   El título no debe truncarse nunca.
+   ------------------------------------------------------------ */
+#modalAyuda .help-header{
+    display:flex!important;
+    align-items:center!important;
+    gap:16px!important;
+    padding:14px 18px!important;
+}
+
+#modalAyuda .help-header .title-wrap{
+    display:flex!important;
+    align-items:center!important;
+    gap:12px!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+    overflow:visible!important;
+}
+
+#modalAyuda .help-header .title-text{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    overflow:visible!important;
+}
+
+#modalAyuda #modalAyudaLabel,
+#modalAyuda .help-title{
+    display:block!important;
+    width:auto!important;
+    max-width:none!important;
+    margin:0!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    word-break:normal!important;
+    line-height:1.18!important;
+    font-size:20px!important;
+    font-weight:800!important;
+}
+
+#modalAyuda .help-subtitle{
+    display:block!important;
+    margin-top:3px!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+}
+
+#modalAyuda .header-actions{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    flex:0 0 auto!important;
+    white-space:nowrap!important;
+}
+
+#modalAyuda .help-badge{
+    flex:0 0 auto!important;
+}
+
+/* En anchos intermedios se mantiene el título completo y las acciones
+   bajan solo si realmente hace falta. */
+@media (max-width: 900px){
+    #modalAyuda .help-header{
+        align-items:flex-start!important;
+        flex-wrap:wrap!important;
+    }
+
+    #modalAyuda .header-actions{
+        margin-left:auto!important;
+    }
+
+    #modalAyuda #modalAyudaLabel,
+    #modalAyuda .help-title{
+        font-size:18px!important;
+    }
+}
+
+/* ------------------------------------------------------------
+   CARD PRINCIPAL DE FACTURACIÓN
+   ------------------------------------------------------------ */
+#view_bill > .container-fluid > .card{
+    border:1px solid #dbe5ee!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+    box-shadow:0 5px 18px rgba(23,43,77,.06)!important;
+}
+
+#view_bill > .container-fluid > .card > .card-header{
+    position:relative!important;
+    min-height:48px!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    padding:10px 16px!important;
+    margin:0!important;
+    background:#17324d!important;
+    border:0!important;
+    border-bottom:3px solid #18c7a5!important;
+    color:#ffffff!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.1px!important;
+}
+
+#view_bill > .container-fluid > .card > .card-header > i{
+    width:32px!important;
+    height:32px!important;
+    margin:0!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    flex:0 0 32px!important;
+    border-radius:9px!important;
+    background:rgba(255,255,255,.10)!important;
+    color:#31d5b5!important;
+    font-size:14px!important;
+}
+
+/* Reduce el espacio marcado entre "Facturas" y la información de cliente. */
+#view_bill > .container-fluid > .card > .card-body{
+    padding-top:10px!important;
+}
+
+#view_bill .customer-bill-box-left,
+#view_bill .customer-bill-box-center,
+#view_bill .customer-bill-box-right{
+    margin-top:0!important;
+}
+
+/* Evita aire adicional del primer bloque interno. */
+#view_bill > .container-fluid > .card > .card-body > #invoice-form{
+    margin-top:0!important;
+    padding-top:0!important;
+}
+
+@media (max-width: 767.98px){
+    #view_bill > .container-fluid > .card > .card-header{
+        min-height:44px!important;
+        padding:8px 12px!important;
+    }
+
+    #view_bill > .container-fluid > .card > .card-body{
+        padding-top:8px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.31 | Corrección header Facturas
+   ------------------------------------------------------------
+   - NO toca footer de totales.
+   - Header premium claro, compacto y con separación correcta.
+   - Reduce espacio entre header y datos del cliente.
+   ============================================================ */
+
+/* Reemplaza visualmente el header anterior por una versión más limpia */
+body#view_bill .container-fluid > .card.mb-4{
+    border:1px solid #dce6ef!important;
+    border-radius:14px!important;
+    overflow:hidden!important;
+    box-shadow:0 5px 16px rgba(23,43,77,.055)!important;
+}
+
+body#view_bill .container-fluid > .card.mb-4 > .card-header{
+    position:relative!important;
+    display:flex!important;
+    align-items:center!important;
+    gap:10px!important;
+    min-height:46px!important;
+    margin:0!important;
+    padding:7px 14px!important;
+    border:0!important;
+    border-bottom:3px solid #19c7a5!important;
+    border-radius:0!important;
+    background:#f7fbfe!important;
+    color:#17324d!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.1px!important;
+    box-shadow:none!important;
+}
+
+body#view_bill .container-fluid > .card.mb-4 > .card-header::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:4px;
+    background:#2d9fd7;
+}
+
+body#view_bill .container-fluid > .card.mb-4 > .card-header > i{
+    width:32px!important;
+    height:32px!important;
+    min-width:32px!important;
+    margin:0 2px 0 4px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:9px!important;
+    background:#e7f6f3!important;
+    color:#14a98c!important;
+    font-size:14px!important;
+    box-shadow:inset 0 0 0 1px #ccece5!important;
+}
+
+/* Menos aire entre el título Facturas y la información superior */
+body#view_bill .container-fluid > .card.mb-4 > .card-body{
+    padding-top:3px!important;
+}
+
+body#view_bill .container-fluid > .card.mb-4 > .card-body > #invoice-form{
+    margin-top:0!important;
+    padding-top:0!important;
+}
+
+body#view_bill .customer-bill-box-left,
+body#view_bill .customer-bill-box-center,
+body#view_bill .customer-bill-box-right{
+    margin-top:0!important;
+    margin-bottom:5px!important;
+}
+
+@media (max-width:767.98px){
+    body#view_bill .container-fluid > .card.mb-4 > .card-header{
+        min-height:44px!important;
+        padding:6px 10px!important;
+        gap:8px!important;
+    }
+
+    body#view_bill .container-fluid > .card.mb-4 > .card-header > i{
+        width:30px!important;
+        height:30px!important;
+        min-width:30px!important;
+    }
+
+    body#view_bill .container-fluid > .card.mb-4 > .card-body{
+        padding-top:2px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.32 | Footer premium de Facturación
+   ------------------------------------------------------------
+   IMPORTANTE:
+   - Mantiene exactamente la posición actual del footer.
+   - No cambia su fixed/sticky/layout funcional.
+   - Solo mejora su presentación visual.
+   ============================================================ */
+
+body#view_bill .footer1{
+    background:#f7fafc!important;
+    border-top:1px solid #cfdbe7!important;
+    box-shadow:0 -8px 22px rgba(23,43,77,.10)!important;
+    padding-top:8px!important;
+    padding-bottom:8px!important;
+}
+
+body#view_bill .footer1::before{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    height:3px;
+    background:#17324d;
+    pointer-events:none;
+}
+
+/* Cada total se convierte visualmente en una tarjeta premium,
+   sin alterar tamaño ni estructura funcional. */
+body#view_bill .footer1 .totals-grid .metric{
+    border:1px solid #d8e3ec!important;
+    border-radius:12px!important;
+    background:#ffffff!important;
+    padding:7px 8px!important;
+    box-shadow:0 3px 10px rgba(23,43,77,.055)!important;
+    transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric:hover{
+    border-color:#b9ccdd!important;
+    box-shadow:0 5px 14px rgba(23,43,77,.08)!important;
+    transform:translateY(-1px);
+}
+
+body#view_bill .footer1 .totals-grid .metric > label{
+    margin-bottom:5px!important;
+    color:#344b61!important;
+    font-size:13px!important;
+    font-weight:800!important;
+    letter-spacing:.1px!important;
+    text-align:center!important;
+}
+
+/* Input monetario premium */
+body#view_bill .footer1 .totals-grid .metric .input-group{
+    min-height:48px!important;
+    border:1px solid #dbe4ec!important;
+    border-radius:9px!important;
+    overflow:hidden!important;
+    background:#f3f7fa!important;
+    box-shadow:inset 0 1px 1px rgba(23,43,77,.02)!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric .input-group-prepend,
+body#view_bill .footer1 .totals-grid .metric .input-group-append{
+    margin:0!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric .input-group-text{
+    min-width:40px!important;
+    height:46px!important;
+    padding:0 10px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border:0!important;
+    border-right:1px solid #dbe4ec!important;
+    background:#edf3f7!important;
+    color:#53697d!important;
+    font-size:14px!important;
+    font-weight:800!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric textarea.form-control{
+    height:46px!important;
+    min-height:46px!important;
+    padding:11px 12px!important;
+    border:0!important;
+    background:#f3f7fa!important;
+    color:#41586c!important;
+    font-size:13px!important;
+    font-weight:700!important;
+    text-align:center!important;
+    resize:none!important;
+    box-shadow:none!important;
+}
+
+/* Total destacado de forma premium sin aumentar el footer */
+body#view_bill .footer1 .totals-grid .metric:last-child{
+    position:relative!important;
+    border-color:#99ddba!important;
+    background:#edf9f3!important;
+    box-shadow:0 4px 13px rgba(22,145,86,.10)!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric:last-child::before{
+    content:"";
+    position:absolute;
+    left:12px;
+    right:12px;
+    top:0;
+    height:3px;
+    background:#17a86b;
+    border-radius:0 0 5px 5px;
+}
+
+body#view_bill .footer1 .totals-grid .metric:last-child > label{
+    color:#0d7545!important;
+    font-size:15px!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric:last-child .input-group{
+    border-color:#b9e6cd!important;
+    background:#ffffff!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric:last-child .input-group-text{
+    border-right-color:#ccebd9!important;
+    background:#f2fbf6!important;
+    color:#087940!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric:last-child textarea.form-control{
+    background:#ffffff!important;
+    color:#08733e!important;
+    font-size:14px!important;
+    font-weight:900!important;
+}
+
+/* Focus limpio, sin grises ni anillos agresivos */
+body#view_bill .footer1 .totals-grid .metric textarea.form-control:focus{
+    outline:0!important;
+    box-shadow:none!important;
+}
+
+/* En pantallas pequeñas mantenemos el mismo layout responsive
+   existente, solo compactamos las tarjetas. */
+@media (max-width:767.98px){
+    body#view_bill .footer1{
+        padding-top:6px!important;
+        padding-bottom:6px!important;
+    }
+
+    body#view_bill .footer1 .totals-grid .metric{
+        padding:6px!important;
+        border-radius:10px!important;
+    }
+
+    body#view_bill .footer1 .totals-grid .metric .input-group,
+    body#view_bill .footer1 .totals-grid .metric .input-group-text,
+    body#view_bill .footer1 .totals-grid .metric textarea.form-control{
+        min-height:43px!important;
+        height:43px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.33 | Ajustes finales de Facturación
+   ------------------------------------------------------------
+   - Centrado perfecto de botones +.
+   - Margen entre header Facturas y datos superiores.
+   - Centrado vertical/horizontal real de valores del footer.
+   ============================================================ */
+
+/* 1) Botones + totalmente centrados */
+body#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn,
+body#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:0!important;
+    text-align:center!important;
+    line-height:1!important;
+}
+
+body#view_bill #invoiceItem tbody td:nth-child(6) .input-group-append .btn i,
+body#view_bill #invoiceItem tbody td:nth-child(7) .input-group-append .btn i{
+    display:block!important;
+    margin:0!important;
+    padding:0!important;
+    line-height:1!important;
+    transform:none!important;
+}
+
+/* 2) Un poco de respiración entre el header Facturas y RTN/Cliente/Fecha */
+body#view_bill .container-fluid > .card.mb-4 > .card-body{
+    padding-top:8px!important;
+}
+
+body#view_bill .customer-bill-box-left,
+body#view_bill .customer-bill-box-center,
+body#view_bill .customer-bill-box-right{
+    margin-top:0!important;
+    margin-bottom:7px!important;
+}
+
+/* 3) Valores del footer perfectamente centrados */
+body#view_bill .footer1 .totals-grid .metric .input-group{
+    display:flex!important;
+    align-items:stretch!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric .input-group-text{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    padding:0!important;
+    line-height:1!important;
+}
+
+body#view_bill .footer1 .totals-grid .metric textarea.form-control{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+    padding:0!important;
+    line-height:46px!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+}
+
+@media (max-width:767.98px){
+    body#view_bill .container-fluid > .card.mb-4 > .card-body{
+        padding-top:6px!important;
+    }
+
+    body#view_bill .footer1 .totals-grid .metric textarea.form-control{
+        line-height:43px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.34 | Acciones inferiores + formato monetario seguro
+   ------------------------------------------------------------
+   - Botonera inferior premium, sin cambiar orden ni lógica.
+   - Hover sólido: ningún botón se vuelve blanco.
+   - Precio / Descuento / Total con separadores visuales.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   BOTONERA INFERIOR PREMIUM
+   ------------------------------------------------------------ */
+body#view_bill #addRows,
+body#view_bill #removeRows,
+body#view_bill #addQuote,
+body#view_bill #addRecurringBill,
+body#view_bill #addPayCustomers,
+body#view_bill #addDraft,
+body#view_bill #BillReports{
+    min-height:38px!important;
+    padding:8px 15px!important;
+    border:1px solid transparent!important;
+    border-radius:9px!important;
+    color:#fff!important;
+    font-size:13px!important;
+    font-weight:800!important;
+    letter-spacing:.05px!important;
+    box-shadow:0 3px 8px rgba(23,43,77,.12)!important;
+    transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease!important;
+}
+
+body#view_bill #addRows{
+    background:#20a86b!important;
+    border-color:#20a86b!important;
+}
+
+body#view_bill #removeRows{
+    background:#587086!important;
+    border-color:#587086!important;
+}
+
+body#view_bill #addQuote{
+    background:#2a93d0!important;
+    border-color:#2a93d0!important;
+}
+
+body#view_bill #addRecurringBill{
+    background:#367ca8!important;
+    border-color:#367ca8!important;
+}
+
+body#view_bill #addPayCustomers{
+    background:#168e9d!important;
+    border-color:#168e9d!important;
+}
+
+body#view_bill #addDraft{
+    background:#c98918!important;
+    border-color:#c98918!important;
+}
+
+body#view_bill #BillReports{
+    background:#17324d!important;
+    border-color:#17324d!important;
+}
+
+body#view_bill #addRows:hover,
+body#view_bill #addRows:focus{
+    background:#198b58!important;
+    border-color:#198b58!important;
+}
+
+body#view_bill #removeRows:hover,
+body#view_bill #removeRows:focus{
+    background:#455c70!important;
+    border-color:#455c70!important;
+}
+
+body#view_bill #addQuote:hover,
+body#view_bill #addQuote:focus{
+    background:#207db2!important;
+    border-color:#207db2!important;
+}
+
+body#view_bill #addRecurringBill:hover,
+body#view_bill #addRecurringBill:focus{
+    background:#2d678c!important;
+    border-color:#2d678c!important;
+}
+
+body#view_bill #addPayCustomers:hover,
+body#view_bill #addPayCustomers:focus{
+    background:#11737f!important;
+    border-color:#11737f!important;
+}
+
+body#view_bill #addDraft:hover,
+body#view_bill #addDraft:focus{
+    background:#aa7316!important;
+    border-color:#aa7316!important;
+}
+
+body#view_bill #BillReports:hover,
+body#view_bill #BillReports:focus{
+    background:#0f253b!important;
+    border-color:#0f253b!important;
+}
+
+body#view_bill #addRows:hover,
+body#view_bill #removeRows:hover,
+body#view_bill #addQuote:hover,
+body#view_bill #addRecurringBill:hover,
+body#view_bill #addPayCustomers:hover,
+body#view_bill #addDraft:hover,
+body#view_bill #BillReports:hover{
+    color:#fff!important;
+    transform:translateY(-1px)!important;
+    box-shadow:0 5px 12px rgba(23,43,77,.16)!important;
+}
+
+body#view_bill #addRows:active,
+body#view_bill #removeRows:active,
+body#view_bill #addQuote:active,
+body#view_bill #addRecurringBill:active,
+body#view_bill #addPayCustomers:active,
+body#view_bill #addDraft:active,
+body#view_bill #BillReports:active{
+    transform:translateY(0)!important;
+}
+
+/* Iconos perfectamente alineados */
+body#view_bill #addRows i,
+body#view_bill #removeRows i,
+body#view_bill #addQuote i,
+body#view_bill #addRecurringBill i,
+body#view_bill #addPayCustomers i,
+body#view_bill #addDraft i,
+body#view_bill #BillReports i{
+    vertical-align:middle!important;
+    margin-right:5px!important;
+}
+
+/* ------------------------------------------------------------
+   FORMATO MONETARIO VISUAL SEGURO
+   ------------------------------------------------------------
+   El valor REAL del input no se modifica.
+   Al enfocar se ve/edita el número crudo; al salir se muestra
+   el formato visual con separadores de miles.
+   ------------------------------------------------------------ */
+body#view_bill #invoiceItem .izzy-money-host{
+    position:relative!important;
+}
+
+body#view_bill #invoiceItem .izzy-money-display-safe{
+    position:absolute;
+    z-index:4;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 8px;
+    pointer-events:none;
+    color:#40566a;
+    font-size:13px;
+    font-weight:700;
+    line-height:1;
+    white-space:nowrap;
+}
+
+body#view_bill #invoiceItem .izzy-money-display-safe.is-total{
+    color:#172b4d;
+    font-weight:900;
+}
+
+body#view_bill #invoiceItem input.izzy-money-concealed{
+    color:transparent!important;
+    -webkit-text-fill-color:transparent!important;
+    caret-color:transparent!important;
+}
+
+body#view_bill #invoiceItem input.izzy-money-concealed::placeholder{
+    color:transparent!important;
+    -webkit-text-fill-color:transparent!important;
+    opacity:0!important;
+}
+
+/* Al editar el campo vuelve a mostrarse normal */
+body#view_bill #invoiceItem input.izzy-money-editing{
+    color:#40566a!important;
+    -webkit-text-fill-color:#40566a!important;
+    caret-color:auto!important;
+}
+
+/* Total no editable: visual limpio siempre */
+body#view_bill #invoiceItem input[id^="total_"].izzy-money-concealed{
+    color:transparent!important;
+    -webkit-text-fill-color:transparent!important;
+}
+
+@media (max-width:767.98px){
+    body#view_bill #addRows,
+    body#view_bill #removeRows,
+    body#view_bill #addQuote,
+    body#view_bill #addRecurringBill,
+    body#view_bill #addPayCustomers,
+    body#view_bill #addDraft,
+    body#view_bill #BillReports{
+        min-height:36px!important;
+        padding:7px 11px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.39 | Ayuda Facturas - acciones estilo Cotización
+   ============================================================ */
+#modalAyuda .header-actions{
+  gap:12px!important;
+  padding-right:48px!important;
+}
+#modalAyuda .header-actions .btn-group{
+  margin-right:0!important;
+  gap:8px!important;
+}
+#modalAyuda #helpCopy,
+#modalAyuda #helpPrint{
+  min-height:38px!important;
+  padding:8px 13px!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:9px!important;
+  background:#284760!important;
+  color:#fff!important;
+  font-weight:700!important;
+  box-shadow:none!important;
+}
+#modalAyuda #helpCopy:hover,
+#modalAyuda #helpCopy:focus,
+#modalAyuda #helpPrint:hover,
+#modalAyuda #helpPrint:focus{
+  background:#35617f!important;
+  color:#fff!important;
+}
+#modalAyuda .close{
+  position:absolute!important;
+  top:16px!important;
+  right:16px!important;
+  z-index:5!important;
+  width:38px!important;
+  height:38px!important;
+  margin:0!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border-radius:50%!important;
+  background:#102638!important;
+  color:#fff!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+
+
+/* ============================================================
+   IZZY v6.40 | X centrada - Ayuda Facturación
+   ============================================================ */
+#modalAyuda .close{
+  font-size:0!important;
+  line-height:1!important;
+}
+#modalAyuda .close > span{
+  width:100%!important;
+  height:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  padding:0!important;
+  line-height:1!important;
+  font-size:24px!important;
+  transform:translateY(-1px)!important;
+}
+
+
+/* ============================================================
+   IZZY v6.44 | Estabilidad de carga + detalle uniforme
+   ============================================================ */
+
+/* Reserva desde el primer render el mismo espacio final del detalle.
+   Así la pantalla no "crece" cuando entra facturas_ui_premium.js. */
+#view_bill .form-group.row.table-responsive-xl:has(#invoiceItem){
+    min-height:300px!important;
+    margin-bottom:8px!important;
+}
+
+/* Detalle de factura un poco más abajo y EXACTAMENTE del mismo
+   tamaño visual que Cotización. */
+#view_bill .detalle-factura-watermark{
+    left:50%!important;
+    top:60%!important;
+    bottom:auto!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(760px,76%)!important;
+    min-height:118px!important;
+    gap:8px!important;
+    padding:20px 28px!important;
+    border:1px dashed #bdd3e3!important;
+    border-radius:16px!important;
+    background:rgba(247,250,253,.94)!important;
+    box-shadow:0 8px 24px rgba(23,43,77,.05)!important;
+}
+
+#view_bill .detalle-factura-watermark i{
+    width:38px!important;
+    height:38px!important;
+    min-width:38px!important;
+    margin:0 0 1px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border-radius:10px!important;
+    background:#e8f5fc!important;
+    color:#278fd1!important;
+    font-size:18px!important;
+}
+
+#view_bill .detalle-factura-watermark strong{
+    margin:0!important;
+    color:#263f58!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:.01em!important;
+}
+
+#view_bill .detalle-factura-watermark span{
+    max-width:600px!important;
+    margin:0!important;
+    color:#6a7f93!important;
+    font-size:12px!important;
+    line-height:1.5!important;
+}
+
+/* "2000 Caracteres" igual de legible que en Cotización. */
+#view_bill #charNum_notasQuote{
+    margin:4px 0 0!important;
+    color:#596f83!important;
+    font-size:12px!important;
+    font-weight:600!important;
+    line-height:1.35!important;
+}
+
+@media (max-width:767.98px){
+    #view_bill .detalle-factura-watermark{
+        width:90%!important;
+        min-height:104px!important;
+        padding:16px 18px!important;
+    }
+    #view_bill .detalle-factura-watermark strong{font-size:14px!important;}
+    #view_bill .detalle-factura-watermark span{font-size:11px!important;}
+}
+
+
+/* ============================================================
+   IZZY v6.45 | Acciones de configuración a la derecha
+   ============================================================ */
+
+/* Mantiene Datos de Exoneración y Ver Caja alineados al extremo
+   derecho de la fila de configuración, sin alterar su lógica. */
+#view_bill #btn_exoneracion{
+    margin-left:auto!important;
+}
+
+#view_bill #btn_ver_caja_factura{
+    margin-left:8px!important;
+}
+
+@media (max-width:767.98px){
+    #view_bill #btn_exoneracion{
+        margin-left:auto!important;
+    }
+
+    #view_bill #btn_ver_caja_factura{
+        margin-left:6px!important;
+    }
+}
+
+
+/* ============================================================
+   IZZY v6.46 | Proforma sin redimensionar configuración
+   ============================================================ */
+
+/* Reserva desde el estado "No" exactamente el espacio que utilizará
+   "Rebajar inventario" al cambiar Proforma a "Sí".
+   De esta forma no cambia altura, ancho ni posición de la franja. */
+@media (min-width:1200px){
+    #view_bill .bill>.form-group:first-child>.col-xs-12>div.d-flex:nth-of-type(2),
+    #view_bill .bill>.form-group:first-child>.col-sm-12>div.d-flex:nth-of-type(2){
+        height:58px!important;
+        min-height:58px!important;
+        max-height:58px!important;
+        flex-wrap:nowrap!important;
+        align-items:center!important;
+        overflow:visible!important;
+    }
+
+    #view_bill #facturas_proforma_container{
+        flex:0 0 540px!important;
+        width:540px!important;
+        min-width:540px!important;
+        max-width:540px!important;
+        height:40px!important;
+        min-height:40px!important;
+        max-height:40px!important;
+        display:flex!important;
+        flex-wrap:nowrap!important;
+        align-items:center!important;
+        overflow:visible!important;
+    }
+
+    #view_bill #facturas_proforma_container > .d-flex,
+    #view_bill #proforma_rebajar_inventario_container{
+        flex:0 0 auto!important;
+        height:40px!important;
+        min-height:40px!important;
+        max-height:40px!important;
+        align-items:center!important;
+        flex-wrap:nowrap!important;
+        margin-top:0!important;
+        margin-bottom:0!important;
+    }
+
+    /* Exoneración y Ver Caja continúan pegados al extremo derecho. */
+    #view_bill #btn_exoneracion{
+        margin-left:auto!important;
+        flex:0 0 auto!important;
+    }
+
+    #view_bill #btn_ver_caja_factura{
+        flex:0 0 auto!important;
+    }
+}

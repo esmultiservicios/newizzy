@@ -126,6 +126,20 @@
         recalcularNc();
     });
 
+    // Impedir cambios accidentales con la rueda del mouse en montos de NC.
+    // Las flechas propias del control y la escritura siguen habilitadas.
+    if (!window.__izzyNcBloqueoRueda) {
+        window.__izzyNcBloqueoRueda = true;
+        document.addEventListener('wheel', function (evento) {
+            var campo = evento.target;
+            if (!campo || !campo.matches ||
+                !campo.matches('#modalNotaCredito input[type="number"], #nc_detalle_listado .izzy-nc-base-input')) {
+                return;
+            }
+            evento.preventDefault();
+        }, { capture: true, passive: false });
+    }
+
     $('#nc_detalle_listado')
         .off('input.nc change.nc', '.izzy-nc-base-input')
         .on('input.nc change.nc', '.izzy-nc-base-input', function () {
@@ -539,28 +553,6 @@
             showNotify('error', 'Nota de Crédito', 'No se pudo completar la confirmación.');
         });
     }
-
-    /* Elevar la autorización administrativa al nivel más alto al abrirse sobre NC. */
-    $(document)
-        .off('show.bs.modal.izzyNcAuthTop shown.bs.modal.izzyNcAuthTop hidden.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema')
-        .on('show.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema', function () {
-            if (!$('#modalNotaCredito').hasClass('show')) return;
-            $(this).appendTo(document.body).css('z-index', '30000');
-        })
-        .on('shown.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema', function () {
-            if (!$('#modalNotaCredito').hasClass('show')) return;
-            var $auth = $(this);
-            $auth.css('z-index', '30000');
-            $('.modal-backdrop').last().addClass('izzy-nc-auth-backdrop')
-                .css('z-index', '29990');
-            $auth.find('input:visible:enabled').first().trigger('focus');
-        })
-        .on('hidden.bs.modal.izzyNcAuthTop', '#modalAutenticacionAdminSistema', function () {
-            $(this).css('z-index', '');
-            $('.modal-backdrop.izzy-nc-auth-backdrop').removeClass('izzy-nc-auth-backdrop')
-                .css('z-index', '');
-            if ($('.modal.show').length) $('body').addClass('modal-open');
-        });
 
     function prepararEmisionNc() {
         if (ncState.emitiendo) return;

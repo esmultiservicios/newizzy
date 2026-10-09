@@ -306,3 +306,86 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {display: none !important;}
     dibujar(false);
 })();
 </script>
+
+
+<script>
+/* Prioridad GLOBAL de la validación administrativa para todos los módulos. */
+(function () {
+    'use strict';
+    if (window.__izzyAdminModalSuperiorGlobal) return;
+    window.__izzyAdminModalSuperiorGlobal = true;
+    var selector = '#modalAutenticacionAdminSistema';
+    var modalZ = '2147483000';
+    var backdropZ = '2147482990';
+    var ultimoBackdrop = null;
+
+    function autorizacionAbierta() {
+        var modal = document.querySelector(selector);
+        return !!(modal && (modal.classList.contains('show') ||
+            modal.style.display === 'block'));
+    }
+    function elevarAutorizacion() {
+        var modal = document.querySelector(selector);
+        if (!modal) return;
+        if (modal.parentElement !== document.body) document.body.appendChild(modal);
+        modal.style.setProperty('z-index', modalZ, 'important');
+        modal.style.setProperty('position', 'fixed', 'important');
+        var fondos = document.querySelectorAll('.modal-backdrop');
+        if (fondos.length) {
+            var fondo = fondos[fondos.length - 1];
+            if (ultimoBackdrop && ultimoBackdrop !== fondo) {
+                ultimoBackdrop.classList.remove('izzy-admin-priority-backdrop');
+                ultimoBackdrop.style.removeProperty('z-index');
+            }
+            ultimoBackdrop = fondo;
+            fondo.classList.add('izzy-admin-priority-backdrop');
+            fondo.style.setProperty('z-index', backdropZ, 'important');
+        }
+    }
+    function limpiar() {
+        var modal = document.querySelector(selector);
+        if (modal) {
+            modal.style.removeProperty('z-index');
+            modal.style.removeProperty('position');
+        }
+        if (ultimoBackdrop) {
+            ultimoBackdrop.classList.remove('izzy-admin-priority-backdrop');
+            ultimoBackdrop.style.removeProperty('z-index');
+            ultimoBackdrop = null;
+        }
+        if (document.querySelector('.modal.show')) document.body.classList.add('modal-open');
+    }
+    function iniciar() {
+        if (!window.jQuery) return;
+        var $ = window.jQuery;
+        $(document)
+            .off('.izzyAdminPriorityGlobal')
+            .on('show.bs.modal.izzyAdminPriorityGlobal', selector, function () {
+                elevarAutorizacion();
+            })
+            .on('shown.bs.modal.izzyAdminPriorityGlobal', selector, function () {
+                elevarAutorizacion();
+                window.setTimeout(elevarAutorizacion, 0);
+            })
+            .on('hidden.bs.modal.izzyAdminPriorityGlobal', selector, limpiar)
+            .on('shown.bs.modal.izzyAdminPriorityGlobal', '.modal', function () {
+                if (this.id !== 'modalAutenticacionAdminSistema' && autorizacionAbierta())
+                    elevarAutorizacion();
+            });
+        // Bootstrap inserta backdrops entre los eventos show y shown.
+        var observer = new MutationObserver(function (cambios) {
+            if (!autorizacionAbierta()) return;
+            for (var i = 0; i < cambios.length; i++) {
+                if (cambios[i].addedNodes.length) {
+                    elevarAutorizacion();
+                    return;
+                }
+            }
+        });
+        observer.observe(document.body, {childList: true});
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', iniciar, {once: true});
+    } else iniciar();
+})();
+</script>

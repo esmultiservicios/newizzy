@@ -28,7 +28,7 @@ define('SERVERURL', $baseURL);
 // DEMO y PRODUCCIÓN usan el servicio publicado.
 $hostActual = strtolower(
     preg_replace(
-        '/:\d+$/',
+        '/:\\d+$/',
         '',
         (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '')
     )
@@ -55,6 +55,49 @@ define('SERVERURLLOGO', $urlLogo);
 define('PRODUCT_PATH', '/vistas/plantilla/img/products/');
 define('ENTERPRISE_PATH', '/vistas/plantilla/img/enterprise/');
 define('COMPANY', 'IZZY :: ES MULTISERVICIOS');
+
+/* =========================================================
+   VERSIÓN DEL PROYECTO
+   ---------------------------------------------------------
+   Orden de resolución:
+   1. Variable de entorno IZZY_APP_VERSION.
+   2. Tag/commit actual de Git mediante `git describe`.
+   3. Versión de respaldo definida aquí.
+
+   De esta forma no es necesario modificar múltiples vistas o archivos
+   cada vez que se publique una nueva versión del sistema.
+   ========================================================= */
+function izzyDetectProjectVersion(): string
+{
+    $versionEntorno = getenv('IZZY_APP_VERSION');
+
+    if ($versionEntorno !== false && trim((string) $versionEntorno) !== '') {
+        return trim((string) $versionEntorno);
+    }
+
+    $projectRoot = dirname(__DIR__);
+
+    if (function_exists('shell_exec') && is_dir($projectRoot . '/.git')) {
+        $command = 'git -C ' . escapeshellarg($projectRoot) . ' describe --tags --always --dirty 2>&1';
+        $gitVersion = @shell_exec($command);
+
+        if ($gitVersion !== null) {
+            $gitVersion = trim($gitVersion);
+
+            if (
+                $gitVersion !== '' &&
+                preg_match('/^[A-Za-z0-9._-]+$/', $gitVersion)
+            ) {
+                return $gitVersion;
+            }
+        }
+    }
+
+    return 'v6.87';
+}
+
+define('APP_VERSION', izzyDetectProjectVersion());
+define('APP_VERSION_LABEL', str_starts_with(APP_VERSION, 'v') ? APP_VERSION : 'v' . APP_VERSION);
 
 // Configurar la zona horaria
 date_default_timezone_set('America/Tegucigalpa');

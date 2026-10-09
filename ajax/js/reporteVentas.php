@@ -229,6 +229,7 @@ function facturaEstaAnuladaReporte(row) {
                 '<th>SubTotal</th>' +
                 '<th>ISV</th>' +
                 '<th>Descuento</th>' +
+                '<th>NC</th>' +
                 '<th>Total Ventas</th>' +
                 '<th>Ganancia</th>' +
                 '<th>Vendedor</th>' +
@@ -241,6 +242,7 @@ function facturaEstaAnuladaReporte(row) {
                 '<td id="subtotal-i"></td>' +
                 '<td id="impuesto-i"></td>' +
                 '<td id="descuento-i"></td>' +
+                '<td id="nc-i"></td>' +
                 '<td id="total-footer-ingreso"></td>' +
                 '<td id="ganancia"></td>' +
                 '<td colspan="2"></td>' +
@@ -452,6 +454,10 @@ var listar_reporte_ventas = function () {
                 render: moneyCell
             },
             {
+                data: "nc",
+                render: moneyCell
+            },
+            {
                 data: "total",
                 render: function (data, type, row) {
                     const total = parseFloat(row.total) || 0;
@@ -574,6 +580,7 @@ var listar_reporte_ventas = function () {
             var totalSubtotal = data.reduce((acc, r) => acc + (parseFloat(r.subtotal) || 0), 0);
             var totalIsv = data.reduce((acc, r) => acc + (parseFloat(r.isv) || 0), 0);
             var totalDescuento = data.reduce((acc, r) => acc + (parseFloat(r.descuento) || 0), 0);
+            var totalNc = data.reduce((acc, r) => acc + (parseFloat(r.nc) || 0), 0);
             var totalVentas = data.reduce((acc, r) => acc + (parseFloat(r.total) || 0), 0);
             var totalGanancia = data.reduce((acc, r) => acc + (parseFloat(r.ganancia) || 0), 0);
 
@@ -586,6 +593,7 @@ var listar_reporte_ventas = function () {
             $('#subtotal-i').html(fmt.format(totalSubtotal));
             $('#impuesto-i').html(fmt.format(totalIsv));
             $('#descuento-i').html(fmt.format(totalDescuento));
+            $('#nc-i').html(fmt.format(totalNc));
             $('#total-footer-ingreso').html(fmt.format(totalVentas));
             $('#ganancia').html(fmt.format(totalGanancia));
         },
@@ -624,7 +632,7 @@ var listar_reporte_ventas = function () {
                 messageTop: 'Fecha desde: ' + convertDateFormat(fechai) + ' Fecha hasta: ' + convertDateFormat(fechaf),
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
                 },
                 className: 'table_reportes btn btn-success ocultar'
             },
@@ -640,7 +648,7 @@ var listar_reporte_ventas = function () {
                 messageBottom: 'Fecha de Reporte: ' + convertDateFormat(today()),
                 className: 'table_reportes btn btn-danger ocultar',
                 exportOptions: {
-                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+                    columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
                 },
                 customize: function (doc) {
                     if (imagen) {
@@ -1511,17 +1519,21 @@ function getClientesPagos(){
   function rvRenderMain(){
     var s=RV.main;rvFilterState(s);
     var start=(s.page-1)*s.pageSize, pageRows=s.filtered.slice(start,start+s.pageSize), html='';
-    var grid='135px 105px 100px minmax(190px,1.55fr) minmax(150px,1.15fr) 108px 96px 105px 132px 108px minmax(120px,.95fr) minmax(120px,.95fr)';
+    var grid='135px 105px 100px minmax(190px,1.55fr) minmax(150px,1.15fr) 108px 96px 105px 100px 132px 108px minmax(120px,.95fr) minmax(120px,.95fr)';
     if(!pageRows.length){html=rvEmpty();}
     else if(s.view==='miniatura'){
       html=pageRows.map(function(r,idx){
         var i=start+idx;
         return '<div class="rv-mini-card"><div class="rv-mini-head"><div><div class="rv-mini-title">'+rvEsc(r.cliente||'Sin cliente')+'</div><span class="rv-mini-sub">'+rvEsc(r.numero||'')+' • '+rvEsc(r.fecha||'')+'</span></div>'+rvDropdown(r,i)+'</div>'+
-          '<div class="rv-mini-body">'+rvField('Tipo',rvTypeBadge(r))+rvField('Subtotal',rvMoney(r.subtotal))+rvField('ISV',rvMoney(r.isv))+rvField('Descuento',rvMoney(r.descuento))+rvField('Total',rvTotalBadge(r))+rvField('Ganancia',rvMoney(r.ganancia))+rvField('Vendedor',rvEsc(r.vendedor||''))+rvField('Facturador',rvEsc(r.facturador||''))+'</div></div>';
+          '<div class="rv-mini-body">'+rvField('Tipo',rvTypeBadge(r))+rvField('Subtotal',rvMoney(r.subtotal))+rvField('ISV',rvMoney(r.isv))+rvField('Descuento',rvMoney(r.descuento))+rvField('NC',rvMoney(r.nc))+rvField('Total',rvTotalBadge(r))+rvField('Ganancia',rvMoney(r.ganancia))+rvField('Vendedor',rvEsc(r.vendedor||''))+rvField('Facturador',rvEsc(r.facturador||''))+'</div></div>';
       }).join('');
     }else{
-      var headers=['Acciones','Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','Total','Ganancia','Vendedor','Facturador'];
-      html='<div class="rv-detail-header" style="grid-template-columns:'+grid+'">'+headers.map(function(h){return '<div class="rv-cell">'+h+'</div>';}).join('')+'</div>'+
+      var headers=['Acciones','Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','NC','Total','Ganancia','Vendedor','Facturador'];
+      var numericHeaderIndexes=[5,6,7,8,9,10];
+      html='<div class="rv-detail-header" style="grid-template-columns:'+grid+'">'+headers.map(function(h,index){
+        var headerClass='rv-cell'+(numericHeaderIndexes.indexOf(index)!==-1?' rv-money':'');
+        return '<div class="'+headerClass+'">'+h+'</div>';
+      }).join('')+'</div>'+
       pageRows.map(function(r,idx){var i=start+idx;
         return '<div class="rv-detail-row" style="grid-template-columns:'+grid+'">'+
           '<div class="rv-cell rv-actions-cell" data-label="Acciones">'+rvDropdown(r,i)+'</div>'+
@@ -1532,6 +1544,7 @@ function getClientesPagos(){
           '<div class="rv-cell rv-money" data-label="Subtotal">'+rvMoney(r.subtotal)+'</div>'+
           '<div class="rv-cell rv-money" data-label="ISV">'+rvMoney(r.isv)+'</div>'+
           '<div class="rv-cell rv-money" data-label="Descuento">'+rvMoney(r.descuento)+'</div>'+
+          '<div class="rv-cell rv-money" data-label="NC">'+rvMoney(r.nc)+'</div>'+
           '<div class="rv-cell rv-money" data-label="Total">'+rvTotalBadge(r)+'</div>'+
           '<div class="rv-cell rv-money" data-label="Ganancia">'+rvMoney(r.ganancia)+'</div>'+
           '<div class="rv-cell" data-label="Vendedor">'+rvEsc(r.vendedor||'')+'</div>'+
@@ -1540,7 +1553,7 @@ function getClientesPagos(){
       }).join('');
     }
     $('#rvListado').toggleClass('rv-mini',s.view==='miniatura').html(html);
-    var totals=rvTotals(s.filtered,['subtotal','isv','descuento','total','ganancia']);
+    var totals=rvTotals(s.filtered,['subtotal','isv','descuento','nc','total','ganancia']);
     $('#rvKpiRegistros').text(s.filtered.length);
     $('#rvKpiSubtotal').text(rvMoney(totals.subtotal));
     $('#rvKpiIsv').text(rvMoney(totals.isv));
@@ -1548,8 +1561,8 @@ function getClientesPagos(){
     $('#rvKpiTotal').text(rvMoney(totals.total));
     $('#rvKpiGanancia').text(rvMoney(totals.ganancia));
     rvRenderTotalBar('#rvTotales',s.view,[
-      ['Subtotal',totals.subtotal],['ISV',totals.isv],['Descuento',totals.descuento],['Total',totals.total],['Ganancia',totals.ganancia]
-    ],12,[5,6,7,8,9]);
+      ['Subtotal',totals.subtotal],['ISV',totals.isv],['Descuento',totals.descuento],['NC',totals.nc],['Total',totals.total],['Ganancia',totals.ganancia]
+    ],13,[5,6,7,8,9,10]);
     $('#rvInfo').text(s.filtered.length?'Mostrando '+(start+1)+' a '+Math.min(start+pageRows.length,s.filtered.length)+' de '+s.filtered.length+' registros':'0 registros');
     rvPagination(s,'#rvPagination',rvRenderMain);
     try{getPermisosTipoUsuarioAccesosTable(getPrivilegioTipoUsuario());}catch(e){}
@@ -1567,19 +1580,20 @@ function getClientesPagos(){
       return;
     }
 
-    var grid=colCount===12
-      ? '135px 105px 100px minmax(190px,1.55fr) minmax(150px,1.15fr) 108px 96px 105px 132px 108px minmax(120px,.95fr) minmax(120px,.95fr)'
+    var grid=colCount===13
+      ? '135px 105px 100px minmax(190px,1.55fr) minmax(150px,1.15fr) 108px 96px 105px 100px 132px 108px minmax(120px,.95fr) minmax(120px,.95fr)'
       : 'repeat('+colCount+',minmax(100px,1fr))';
 
-    if(colCount===12 && items.length===5){
+    if(colCount===13 && items.length===6){
       $(selector).html(
         '<div class="rv-total-detail rv-total-main-grid" style="grid-template-columns:'+grid+'">'+
           '<div class="rv-total-main-label">TOTALES GENERALES</div>'+
           '<div class="rv-cell rv-money rv-total-value">'+rvMoney(items[0][1])+'</div>'+
           '<div class="rv-cell rv-money rv-total-value">'+rvMoney(items[1][1])+'</div>'+
           '<div class="rv-cell rv-money rv-total-value">'+rvMoney(items[2][1])+'</div>'+
-          '<div class="rv-cell rv-money rv-total-value rv-total-highlight">'+rvMoney(items[3][1])+'</div>'+
-          '<div class="rv-cell rv-money rv-total-value">'+rvMoney(items[4][1])+'</div>'+
+          '<div class="rv-cell rv-money rv-total-value">'+rvMoney(items[3][1])+'</div>'+
+          '<div class="rv-cell rv-money rv-total-value rv-total-highlight">'+rvMoney(items[4][1])+'</div>'+
+          '<div class="rv-cell rv-money rv-total-value">'+rvMoney(items[5][1])+'</div>'+
           '<div class="rv-cell"></div>'+
           '<div class="rv-cell"></div>'+
         '</div>'
@@ -1840,8 +1854,8 @@ function getClientesPagos(){
             tr.push({
               text:rvMoney(sums[c]),
               bold:true,
-              fillColor:c===7?'#E8F7EF':'#EAF4FC',
-              color:c===7?'#087F5B':'#17324D',
+              fillColor:c===(cfg.highlightTotalCol!==undefined?cfg.highlightTotalCol:7)?'#E8F7EF':'#EAF4FC',
+              color:c===(cfg.highlightTotalCol!==undefined?cfg.highlightTotalCol:7)?'#087F5B':'#17324D',
               alignment:'right',
               margin:[3,4,3,4],
               fontSize:7
@@ -1872,8 +1886,8 @@ function getClientesPagos(){
   }
 
   function rvMainExportCfg(){
-    var rows=RV.main.filtered.map(function(r){return[r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',rvNum(r.subtotal),rvNum(r.isv),rvNum(r.descuento),rvNum(r.total),rvNum(r.ganancia),r.vendedor||'',r.facturador||''];});
-    return{title:'REPORTE DE VENTAS',subtitle:'Ventas, impuestos, descuentos y ganancia',file:'Reporte_Ventas',headers:['Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','Total Ventas','Ganancia','Vendedor','Facturador'],rows:rows,numeric:[4,5,6,7,8],totalCols:[4,5,6,7,8],grandTotal:rows.reduce(function(a,r){return a+rvNum(r[7]);},0),filters:'Fechas: '+($('#fechai').val()||'')+' a '+($('#fechaf').val()||'')};
+    var rows=RV.main.filtered.map(function(r){return[r.fecha||'',r.tipo_documento||'',r.cliente||'',r.numero||'',rvNum(r.subtotal),rvNum(r.isv),rvNum(r.descuento),rvNum(r.nc),rvNum(r.total),rvNum(r.ganancia),r.vendedor||'',r.facturador||''];});
+    return{title:'REPORTE DE VENTAS',subtitle:'Ventas, notas de crédito, impuestos, descuentos y ganancia',file:'Reporte_Ventas',headers:['Fecha','Tipo','Cliente','Factura','Subtotal','ISV','Descuento','NC','Total Ventas','Ganancia','Vendedor','Facturador'],rows:rows,numeric:[4,5,6,7,8,9],totalCols:[4,5,6,7,8,9],grandTotal:rows.reduce(function(a,r){return a+rvNum(r[8]);},0),highlightTotalCol:8,filters:'Fechas: '+($('#fechai').val()||'')+' a '+($('#fechaf').val()||'')};
   }
   function rvDetailExportCfg(){
     var rows=RV.detail.filtered.map(function(r){return[r.Fecha||'',r.Producto||'',r.numero||'',r.Cliente||'',rvNum(r.Precio),rvNum(r.Cantidad),rvNum(r.ISV),rvNum(r.Descuento),rvNum(r.Total),r.Vendedor||''];});

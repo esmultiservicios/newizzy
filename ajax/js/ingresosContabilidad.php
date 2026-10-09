@@ -531,7 +531,7 @@ function ingresosAcciones(row,index) {
     ? '<button type="button" class="dropdown-item accion-item accion-anular table_cancelar anular_ingreso js-ingreso-reversar" data-index="'+index+'"><span class="accion-icon accion-icon-danger"><i class="fas fa-ban"></i></span><span class="accion-label">Reversar</span></button>'
     : '<button type="button" class="dropdown-item accion-item accion-anulado" disabled><span class="accion-icon accion-icon-eliminar"><i class="fas fa-ban"></i></span><span class="accion-label">Ingreso inactivo</span></button>';
   return '<div class="dropdown acciones-dropdown">'+
-    '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog"></i><span>Acciones</span></button>'+
+    '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog" aria-hidden="true"></i><span>Acciones</span></button>'+
     '<div class="dropdown-menu dropdown-menu-right acciones-menu">'+
       '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar js-ingreso-editar" data-index="'+index+'"><span class="accion-icon accion-icon-primary"><i class="fas fa-edit"></i></span><span class="accion-label">Editar</span></button>'+
       '<button type="button" class="dropdown-item accion-item accion-imprimir table_reportes print_gastos js-ingreso-reporte" data-index="'+index+'"><span class="accion-icon accion-icon-success"><i class="fas fa-file-download"></i></span><span class="accion-label">Reporte</span></button>'+

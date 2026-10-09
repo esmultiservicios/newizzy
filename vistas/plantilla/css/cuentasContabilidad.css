@@ -191,7 +191,7 @@
 .cuentas-detail-header,
 .cuentas-detail-row {
     display:grid;
-    grid-template-columns:minmax(220px,1.45fr) 120px 115px 115px 120px 125px minmax(135px,.9fr) 110px;
+    grid-template-columns:minmax(220px,1.45fr) 120px 115px 115px 120px 125px minmax(135px,.9fr) 132px;
     gap:9px;
     align-items:center;
     width:100%;
@@ -864,10 +864,32 @@
 
 }
 
-/* IZZY ACTION CELL CONTAINMENT START */
+/* =========================================================
+   CUENTAS | COLUMNA ACCIONES
+   El diseño visual del botón lo controla actions.css.
+   Aquí únicamente se reserva el espacio necesario para
+   mantenerlo completo y dentro de su columna.
+   ========================================================= */
+.cuentas-detail-header > :last-child,
 .cuentas-detail-row > :last-child,
-.cuentas-detail-header > :last-child { min-width: 0 !important; padding-left: 6px !important; padding-right: 6px !important; overflow: visible !important; }
-.cuentas-detail-row > :last-child .acciones-dropdown { width: auto !important; max-width: 100% !important; }
-.cuentas-detail-row > :last-child .btn-acciones { min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
-.cuentas-detail-row > :last-child .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
-/* IZZY ACTION CELL CONTAINMENT END */
+.cuentas-detail-actions {
+    min-width:0 !important;
+    padding-left:6px !important;
+    padding-right:6px !important;
+    text-align:center !important;
+    overflow:visible !important;
+}
+
+.cuentas-detail-actions .acciones-dropdown,
+.cuentas-detail-row > :last-child .acciones-dropdown {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    margin:0 auto !important;
+}
+
+.cuentas-detail-actions .btn-acciones,
+.cuentas-detail-row > :last-child .btn-acciones {
+    max-width:100% !important;
+    white-space:nowrap !important;
+}

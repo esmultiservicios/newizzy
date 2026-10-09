@@ -804,7 +804,7 @@ function egresosAcciones(row, index) {
 
   return '<div class="dropdown acciones-dropdown">' +
     '<button type="button" class="btn btn-sm btn-acciones js-acciones-toggle" aria-haspopup="true" aria-expanded="false">' +
-      '<i class="fas fa-cog"></i><span>Acciones</span>' +
+      '<i class="fas fa-cog" aria-hidden="true"></i><span>Acciones</span>' +
     '</button>' +
     '<div class="dropdown-menu dropdown-menu-right acciones-menu">' + html + '</div>' +
   '</div>';

@@ -331,7 +331,7 @@
 .contrato-detail-header,
 .contrato-detail-row {
     display:grid;
-    grid-template-columns:minmax(230px,1.35fr) minmax(155px,.9fr) minmax(135px,.8fr) 120px minmax(175px,1fr) minmax(190px,1.1fr) 105px 110px;
+    grid-template-columns:minmax(230px,1.35fr) minmax(155px,.9fr) minmax(135px,.8fr) 120px minmax(175px,1fr) minmax(190px,1.1fr) 105px 132px;
     gap:9px;
     align-items:center;
     width:100%;
@@ -1060,13 +1060,7 @@
     min-width:44px !important;
 }
 
-/* IZZY ACTION CELL CONTAINMENT START */
-.contrato-detail-row > :last-child,
-.contrato-detail-header > :last-child { padding-left: 6px !important; padding-right: 6px !important; overflow: visible !important; }
-.contrato-detail-row > :last-child .acciones-dropdown { width: auto !important; max-width: 100% !important; }
-.contrato-detail-row > :last-child .btn-acciones { min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
-.contrato-detail-row > :last-child .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
-/* IZZY ACTION CELL CONTAINMENT END */
+
 
 /* =========================================================
    IZZY 6.09 | Contratos - validación y acciones premium
@@ -1118,3 +1112,30 @@
     color:#c9372c!important;
 }
 
+/* =========================================================
+   CONTRATOS | COLUMNA ACCIONES
+   actions.css controla el diseño visual global del botón.
+   Este bloque únicamente reserva el espacio necesario.
+   ========================================================= */
+.contrato-detail-row > :last-child,
+.contrato-detail-header > :last-child {
+    min-width:0 !important;
+    padding-left:6px !important;
+    padding-right:6px !important;
+    text-align:center !important;
+    overflow:visible !important;
+}
+
+.contrato-detail-row > :last-child .acciones-dropdown,
+.contrato-mini-card .acciones-dropdown {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    margin:0 auto !important;
+}
+
+.contrato-detail-row > :last-child .btn-acciones,
+.contrato-mini-card .btn-acciones {
+    max-width:100% !important;
+    white-space:nowrap !important;
+}

@@ -381,15 +381,9 @@ try {
   $stc->close();
   $db->query("UNLOCK TABLES");
 
-  // Aplicar saldo a favor de Notas de Crédito anteriores únicamente cuando
-  // la nueva factura es AL CRÉDITO. En contado no se simula un pago automático.
-  if ($tipoFactura === 2) {
-    try {
-      CreditoFavorService::aplicarDisponible($db, $empresaId, $clienteId, $facturaId, $usuarioId);
-    } catch (Throwable $eCredito) {
-      error_log('Factura '.$facturaId.' registrada; saldo a favor pendiente: '.$eCredito->getMessage());
-    }
-  }
+  // El crédito a favor de NC NO se consume al crear la factura.
+  // Se consulta en el modal de pago y se aplica únicamente al confirmar
+  // el cobro, tanto en contado como en crédito.
 
   echo json_encode([
     'estado'     => true,

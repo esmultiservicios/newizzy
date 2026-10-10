@@ -3,6 +3,7 @@
 $peticionAjax = true;
 require_once "configGenerales.php";
 require_once "mainModel.php";
+require_once __DIR__ . "/notaCredito/creditoFavorService.php";
 
 $insMainModel = new mainModel();
 
@@ -71,6 +72,27 @@ if ($saldo <= 0 && $importe > 0) {
   $saldo = $importe;
 }
 
+$creditoNc = [
+  'facturas_id' => $facturas_id,
+  'clientes_id' => (int)$clientes_id,
+  'total_factura' => $importe,
+  'saldo_base' => $saldo,
+  'credito_disponible' => 0.00,
+  'credito_aplicable' => 0.00,
+  'total_cobrar' => $saldo,
+  'cantidad_notas' => 0,
+  'notas' => []
+];
+
+try {
+  $empresaId = (int)($_SESSION['empresa_id_sd'] ?? 0);
+  if ($empresaId > 0 && $clientes_id > 0) {
+    $creditoNc = CreditoFavorService::resumenDisponible($cn, $empresaId, $facturas_id);
+  }
+} catch (Throwable $e) {
+  error_log('editarPagoFacturas NC: ' . $e->getMessage());
+}
+
 $datos = [
   0 => $cliente,
   1 => $clientes_id,
@@ -78,7 +100,10 @@ $datos = [
   3 => $importe,       // ← mostrará exactamente lo guardado en facturas
   4 => $facturas_id,
   5 => $estado,
-  6 => $saldo          // ← saldo redondeado igual que en BD
+  6 => $saldo,
+  'credito_nc' => $creditoNc
 ];
 
+$cn->close();
+header('Content-Type: application/json; charset=utf-8');
 echo json_encode($datos, JSON_UNESCAPED_UNICODE);

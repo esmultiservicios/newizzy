@@ -954,7 +954,7 @@
   .modal-dialog.payment-modal { 
     max-width: 95%; 
   }
-  
+
   .payment-methods-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -965,50 +965,50 @@
   .payment-header {
     padding: 1rem 1.25rem;
   }
-  
+
   .step-icon { 
     width: 36px; 
     height: 36px; 
     font-size: .9rem; 
   }
-  
+
   .step-label { 
     font-size: .8rem; 
   }
-  
+
   .payment-body {
     padding: .8rem 1rem;
   }
-  
+
   .payment-info-card {
     padding: .8rem .9rem;
   }
-  
+
   .payment-info-card .customer-info i,
   .payment-info-card .amount-info i {
     width: 28px;
     height: 28px;
   }
-  
+
   .method-card {
     min-width: 100px;
     min-height: 110px;
     padding: .9rem .7rem;
   }
-  
+
   .method-icon {
     font-size: 1.5rem;
   }
-  
+
   .method-name {
     font-size: .85rem;
   }
-  
+
   .payment-actions {
     padding: .8rem 1rem;
     gap: 6px;
   }
-  
+
   .payment-btn {
     padding: .75rem .8rem;
     font-size: .8rem;
@@ -1023,213 +1023,213 @@
     margin: .5rem 0;
     border-radius: 8px;
   }
-  
+
   .payment-header {
     padding: .8rem 1rem;
   }
-  
+
   .step-icon { 
     width: 32px; 
     height: 32px; 
     font-size: .85rem; 
   }
-  
+
   .step-label { 
     font-size: .75rem; 
     margin-top: 6px;
   }
-  
+
   .payment-close {
     right: 15px;
     top: 15px;
     width: 36px;
     height: 36px;
   }
-  
+
   .payment-body {
     padding: .7rem .8rem;
   }
-  
+
   .payment-info-card { 
     padding: .7rem .8rem; 
     gap: .6rem; 
   }
-  
+
   .payment-info-card .customer-info,
   .payment-info-card .amount-info { 
     padding: .4rem .7rem; 
   }
-  
+
   .payment-info-card .customer-info i,
   .payment-info-card .amount-info i { 
     width: 26px; 
     height: 26px; 
     font-size: .8rem; 
   }
-  
+
   .payment-info-card .label { 
     font-size: .85rem; 
   }
-  
+
   .payment-info-card .value { 
     font-size: .9rem; 
   }
-  
+
   .payment-info-card .amount { 
     font-size: .95rem; 
   }
-  
+
   .payment-options-card { 
     padding: .6rem .7rem; 
     gap: .6rem; 
   }
-  
+
   .switch-label, 
   .option-item .question { 
     font-size: .8rem; 
   }
-  
+
   .payment-slider { 
     width: 40px; 
     height: 20px; 
   }
-  
+
   .payment-slider:before { 
     width: 12px; 
     height: 12px; 
     left: 4px; 
     bottom: 4px; 
   }
-  
+
   .payment-switch input:checked + .payment-slider:before { 
     transform: translateX(20px); 
   }
-  
+
   .payment-methods-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
-  
+
   .method-card { 
     min-width: auto;
     min-height: 100px;
     padding: .8rem .5rem; 
   }
-  
+
   .method-icon {
     font-size: 1.4rem;
     margin-bottom: 6px;
   }
-  
+
   .method-name {
     font-size: .8rem;
     margin-bottom: 4px;
   }
-  
+
   .method-badge {
     font-size: .65rem;
     padding: 2px 6px;
   }
-  
+
   .info-icon {
     top: 8px;
     right: 8px;
     font-size: .8rem;
   }
-  
+
   .payment-details-container {
     padding: .8rem .9rem;
   }
-  
+
   .method-display {
     font-size: 1rem;
   }
-  
+
   .method-display i {
     font-size: 1.3rem;
   }
-  
+
   .payment-form-control {
     padding: .65rem 2rem .65rem .9rem;
     font-size: .9rem;
   }
-  
+
   .payment-form-group label {
     top: .65rem;
     left: .9rem;
     font-size: .85rem;
   }
-  
+
   .payment-form-control:focus~label,
   .payment-form-control:not(:placeholder-shown)~label {
     top: -.5rem;
     left: .8rem;
     font-size: .7rem;
   }
-  
+
   .currency-symbol {
     right: .8rem;
     top: .65rem;
     font-size: .85rem;
   }
-  
+
   /* Confirm responsive */
   .confirm-info-grid,
   .confirm-options-grid { 
     grid-template-columns: 1fr; 
     gap: .5rem;
   }
-  
+
   .confirm-info-pill {
     padding: .55rem .8rem;
   }
-  
+
   .confirm-info-pill i {
     width: 26px;
     height: 26px;
   }
-  
+
   .confirm-option {
     padding: .55rem .8rem;
   }
-  
+
   .method-summary-item { 
     padding: .55rem .7rem; 
     flex-direction: column;
     align-items: flex-start;
     gap: .3rem;
   }
-  
+
   .method-summary-amount {
     align-self: flex-end;
     font-size: .95rem;
   }
-  
+
   .total-line { 
     padding: .7rem .8rem; 
   }
-  
+
   .total-line .total-amount {
     font-size: 1rem;
   }
-  
+
   .payment-actions {
     padding: .7rem .8rem;
     gap: 6px;
   }
-  
+
   .payment-btn {
     padding: .7rem .6rem;
     font-size: .75rem;
     min-width: auto;
     flex: 1;
   }
-  
+
   .ad-space {
     padding: .6rem;
     margin-top: .8rem;
   }
-  
+
   .ad-space small {
     font-size: .75rem;
   }
@@ -1242,42 +1242,819 @@
     margin: 0;
     border-radius: 0;
   }
-  
+
   .payment-header {
     padding: .7rem .8rem;
   }
-  
+
   .payment-body {
     padding: .6rem .7rem;
   }
-  
+
   .payment-info-card {
     padding: .6rem .7rem;
   }
-  
+
   .payment-options-card {
     padding: .5rem .6rem;
   }
-  
+
   .method-card {
     min-height: 90px;
     padding: .7rem .4rem;
   }
-  
+
   .method-icon {
     font-size: 1.2rem;
   }
-  
+
   .method-name {
     font-size: .75rem;
   }
-  
+
   .payment-btn {
     padding: .6rem .4rem;
     font-size: .7rem;
   }
-  
+
   .payment-actions {
     padding: .6rem .7rem;
   }
 }
+
+/* =======================================================================
+   IZZY | MODAL DE PAGOS - COMPACTO + CRÉDITO NC
+   ======================================================================= */
+#modal_pagos_unificado .payment-body{padding:.72rem .95rem!important;gap:8px!important;}
+#modal_pagos_unificado .payment-info-card{margin:0!important;padding:.72rem .82rem!important;gap:.52rem!important;}
+#modal_pagos_unificado .payment-info-card .customer-info,
+#modal_pagos_unificado .payment-info-card .amount-info{padding:.42rem .78rem!important;}
+#modal_pagos_unificado .payment-options-card{margin:0!important;padding:.55rem .72rem!important;gap:.3rem!important;}
+#modal_pagos_unificado .option-item{min-height:36px!important;padding:.18rem 0!important;}
+#modal_pagos_unificado .section-methods{padding:.75rem .82rem!important;}
+#modal_pagos_unificado .payment-methods-grid{gap:10px!important;}
+#modal_pagos_unificado .method-card{min-height:108px!important;padding:.82rem .62rem!important;}
+#modal_pagos_unificado .confirm-card{margin-top:0!important;padding:1rem!important;}
+#modal_pagos_unificado .payment-actions{padding:.72rem 1rem!important;}
+
+#modal_pagos_unificado .payment-nc-credit-box{
+  display:block!important;width:100%!important;max-width:100%!important;
+  min-height:66px!important;margin:0!important;padding:0!important;
+  overflow:hidden!important;border:1px solid #dbe5ee!important;
+  border-radius:12px!important;background:#fff!important;
+  box-shadow:0 4px 14px rgba(23,50,77,.06)!important;box-sizing:border-box!important;
+}
+#modal_pagos_unificado .payment-nc-summary{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  width:100%!important;min-width:0!important;min-height:66px!important;
+}
+#modal_pagos_unificado .payment-nc-metric{
+  appearance:none!important;-webkit-appearance:none!important;
+  display:grid!important;grid-template-rows:auto auto!important;align-content:center!important;
+  gap:5px!important;width:100%!important;min-width:0!important;min-height:66px!important;
+  margin:0!important;padding:9px 13px!important;overflow:hidden!important;
+  border:0!important;border-right:1px solid #e5ebf1!important;border-radius:0!important;
+  background:#fff!important;color:#17324d!important;text-align:left!important;
+  box-shadow:none!important;box-sizing:border-box!important;
+}
+#modal_pagos_unificado .payment-nc-metric:last-child{border-right:0!important;}
+#modal_pagos_unificado .payment-nc-metric-head{
+  display:flex!important;align-items:center!important;gap:6px!important;min-width:0!important;
+  color:#66788a!important;font-size:10px!important;font-weight:800!important;line-height:1.2!important;
+  letter-spacing:.16px!important;text-transform:uppercase!important;white-space:normal!important;
+}
+#modal_pagos_unificado .payment-nc-metric-head i{flex:0 0 auto!important;width:13px!important;text-align:center!important;}
+#modal_pagos_unificado .payment-nc-value{
+  display:block!important;min-width:0!important;color:#17324d!important;font-size:17px!important;
+  font-weight:800!important;line-height:1.2!important;white-space:nowrap!important;overflow:visible!important;
+}
+#modal_pagos_unificado .payment-nc-credit-btn{cursor:pointer!important;outline:0!important;}
+#modal_pagos_unificado .payment-nc-credit-btn:not(:disabled):hover{
+  background:#f5faff!important;box-shadow:inset 0 0 0 1px #cfe2f3!important;
+}
+#modal_pagos_unificado .payment-nc-credit-btn:disabled{cursor:default!important;opacity:1!important;}
+#modal_pagos_unificado .payment-nc-credit-line{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:8px!important;min-width:0!important;
+}
+#modal_pagos_unificado .payment-nc-value-credit{color:#1478b8!important;}
+#modal_pagos_unificado .payment-nc-view-icon{flex:0 0 auto!important;color:#1478b8!important;font-size:12px!important;}
+#modal_pagos_unificado .payment-nc-count{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  min-width:20px!important;height:20px!important;margin-left:2px!important;padding:0 6px!important;
+  border-radius:999px!important;background:#e7f3fb!important;color:#1478b8!important;
+  font-size:9px!important;font-weight:800!important;
+}
+#modal_pagos_unificado .payment-nc-total{border-left:4px solid #20a36a!important;background:#f8fffb!important;}
+#modal_pagos_unificado .payment-nc-value-total{color:#087f5b!important;}
+
+/* Modal independiente del histórico NC */
+#modal_detalle_credito_nc_pago{z-index:1085!important;}
+.modal-backdrop.payment-nc-history-backdrop{z-index:1080!important;}
+#modal_detalle_credito_nc_pago .modal-dialog{width:calc(100% - 24px);max-width:760px;margin:12px auto;}
+#modal_detalle_credito_nc_pago .payment-nc-history-content{
+  max-height:calc(100vh - 24px);border:0;border-radius:14px;overflow:hidden;
+  box-shadow:0 18px 45px rgba(15,35,55,.25);
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-header{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;
+  background:#17324d;color:#fff;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-header h5{font-size:17px;font-weight:800;}
+#modal_detalle_credito_nc_pago .payment-nc-history-header small{display:block;color:rgba(255,255,255,.76);font-size:11px;}
+#modal_detalle_credito_nc_pago .payment-nc-history-close{
+  flex:0 0 auto;width:36px;height:36px;border:0;border-radius:50%;background:rgba(0,0,0,.22);color:#fff;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-body{padding:14px;background:#f7f9fc;overflow-y:auto;}
+#modal_detalle_credito_nc_pago .payment-nc-history-summary{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-kpi{
+  min-width:0;padding:10px 12px;border:1px solid #dfe7ef;border-radius:10px;background:#fff;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-kpi span{
+  display:block;margin-bottom:4px;color:#6b7b8d;font-size:9px;font-weight:800;text-transform:uppercase;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-kpi strong{
+  display:block;color:#17324d;font-size:16px;white-space:nowrap;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-kpi.nc strong{color:#1478b8;}
+#modal_detalle_credito_nc_pago .payment-nc-history-kpi.total{border-left:4px solid #20a36a;}
+#modal_detalle_credito_nc_pago .payment-nc-history-kpi.total strong{color:#087f5b;}
+#modal_detalle_credito_nc_pago .payment-nc-history-list{display:grid;gap:8px;}
+#modal_detalle_credito_nc_pago .payment-nc-history-item{
+  display:grid;grid-template-columns:minmax(0,1fr) 155px;gap:12px;align-items:center;
+  padding:12px;border:1px solid #dfe7ef;border-radius:10px;background:#fff;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-item-main{min-width:0;}
+#modal_detalle_credito_nc_pago .payment-nc-history-item-title{
+  display:flex;align-items:center;gap:7px;color:#17324d;font-size:13px;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-origin{
+  display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:6px;color:#627386;font-size:10px;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-origin span{display:inline-flex;align-items:center;gap:4px;}
+#modal_detalle_credito_nc_pago .payment-nc-history-motive{
+  margin-top:6px;color:#526476;font-size:10px;line-height:1.35;
+}
+#modal_detalle_credito_nc_pago .js-payment-nc-view-origin{margin-top:8px;}
+#modal_detalle_credito_nc_pago .payment-nc-history-values{display:grid;gap:5px;}
+#modal_detalle_credito_nc_pago .payment-nc-history-values>div{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-values span{color:#718096;font-size:9px;}
+#modal_detalle_credito_nc_pago .payment-nc-history-values strong{color:#17324d;font-size:11px;white-space:nowrap;}
+#modal_detalle_credito_nc_pago .payment-nc-history-values .apply strong{color:#1478b8;}
+#modal_detalle_credito_nc_pago .payment-nc-history-empty{
+  padding:20px;border:1px dashed #cfdae5;border-radius:10px;background:#fff;color:#68798b;text-align:center;font-size:11px;
+}
+#modal_detalle_credito_nc_pago .payment-nc-history-footer{
+  display:flex;justify-content:flex-end;padding:10px 14px;border-top:1px solid #e4ebf2;background:#fff;
+}
+
+@media(max-width:768px){
+  #modal_pagos_unificado .payment-body{padding:.62rem .72rem!important;gap:7px!important;}
+  #modal_pagos_unificado .payment-nc-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  #modal_pagos_unificado .payment-nc-total{
+    grid-column:1/-1!important;border-top:1px solid #e5ebf1!important;border-right:0!important;
+  }
+  #modal_pagos_unificado .payment-nc-metric:nth-child(2){border-right:0!important;}
+  #modal_detalle_credito_nc_pago .payment-nc-history-summary{grid-template-columns:1fr 1fr;}
+  #modal_detalle_credito_nc_pago .payment-nc-history-kpi.total{grid-column:1/-1;}
+  #modal_detalle_credito_nc_pago .payment-nc-history-item{grid-template-columns:1fr;}
+}
+@media(max-width:480px){
+  #modal_pagos_unificado .payment-nc-summary{grid-template-columns:1fr!important;}
+  #modal_pagos_unificado .payment-nc-metric,
+  #modal_pagos_unificado .payment-nc-metric:nth-child(2){
+    min-height:58px!important;border-right:0!important;border-bottom:1px solid #e5ebf1!important;
+  }
+  #modal_pagos_unificado .payment-nc-total{
+    grid-column:auto!important;border-top:0!important;border-bottom:0!important;
+  }
+  #modal_detalle_credito_nc_pago .payment-nc-history-summary{grid-template-columns:1fr;}
+  #modal_detalle_credito_nc_pago .payment-nc-history-kpi.total{grid-column:auto;}
+}
+
+/* =======================================================================
+   IZZY | MODAL PAGOS - REFINAMIENTO EJECUTIVO RESPONSIVO
+   ======================================================================= */
+
+/* Cliente + importe en una sola fila en escritorio/tablet amplio. */
+#modal_pagos_unificado .payment-info-card{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.55fr) minmax(260px,.85fr)!important;
+  align-items:center!important;
+  gap:10px!important;
+  width:100%!important;
+}
+
+#modal_pagos_unificado .payment-info-card .customer-info,
+#modal_pagos_unificado .payment-info-card .amount-info{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+
+#modal_pagos_unificado .payment-info-card .customer-info .value,
+#modal_pagos_unificado .payment-info-card .amount-info .amount{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* Modal detalle NC siempre por encima del modal de pagos. */
+#modal_detalle_credito_nc_pago,
+#modal_detalle_credito_nc_pago.show{
+  z-index:12050!important;
+}
+
+.modal-backdrop.payment-nc-history-backdrop{
+  z-index:12040!important;
+}
+
+/* Ningún botón blanco en el detalle de NC. */
+#modal_detalle_credito_nc_pago .payment-nc-origin-btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  width:auto!important;
+  min-height:34px!important;
+  margin-top:9px!important;
+  padding:7px 11px!important;
+  border:1px solid #168fd2!important;
+  border-radius:8px!important;
+  background:#168fd2!important;
+  color:#fff!important;
+  font-size:11px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  box-shadow:0 4px 10px rgba(22,143,210,.18)!important;
+}
+
+#modal_detalle_credito_nc_pago .payment-nc-origin-btn:hover,
+#modal_detalle_credito_nc_pago .payment-nc-origin-btn:focus{
+  border-color:#1179b5!important;
+  background:#1179b5!important;
+  color:#fff!important;
+  text-decoration:none!important;
+  outline:0!important;
+}
+
+#modal_detalle_credito_nc_pago .payment-nc-history-footer-btn{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  min-width:110px!important;
+  min-height:38px!important;
+  padding:8px 14px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:#2f9ddd!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:700!important;
+  box-shadow:0 4px 10px rgba(47,157,221,.18)!important;
+}
+
+#modal_detalle_credito_nc_pago .payment-nc-history-footer-btn:hover,
+#modal_detalle_credito_nc_pago .payment-nc-history-footer-btn:focus{
+  background:#247fb5!important;
+  color:#fff!important;
+  outline:0!important;
+}
+
+/* Composición más limpia del modal NC. */
+#modal_detalle_credito_nc_pago .payment-nc-history-content{
+  width:100%!important;
+  max-width:100%!important;
+}
+
+#modal_detalle_credito_nc_pago .payment-nc-history-body{
+  min-height:0!important;
+}
+
+#modal_detalle_credito_nc_pago .payment-nc-history-item{
+  overflow:hidden!important;
+}
+
+#modal_detalle_credito_nc_pago .payment-nc-history-values{
+  min-width:0!important;
+}
+
+/* Tablet: aún conserva cliente + pagar en fila si hay espacio. */
+@media (max-width:900px){
+  #modal_pagos_unificado .payment-info-card{
+    grid-template-columns:minmax(0,1.35fr) minmax(230px,.8fr)!important;
+  }
+
+  #modal_pagos_unificado .payment-info-card .label{
+    font-size:.85rem!important;
+  }
+
+  #modal_pagos_unificado .payment-info-card .value,
+  #modal_pagos_unificado .payment-info-card .amount{
+    font-size:.9rem!important;
+  }
+}
+
+/* Móvil: apilar sin desbordes. */
+@media (max-width:640px){
+  #modal_pagos_unificado .payment-info-card{
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+    padding:.62rem!important;
+  }
+
+  #modal_pagos_unificado .payment-info-card .customer-info,
+  #modal_pagos_unificado .payment-info-card .amount-info{
+    min-height:46px!important;
+    padding:.4rem .68rem!important;
+  }
+
+  #modal_pagos_unificado .payment-info-card .customer-info i,
+  #modal_pagos_unificado .payment-info-card .amount-info i{
+    width:30px!important;
+    height:30px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .modal-dialog{
+    width:calc(100% - 16px)!important;
+    margin:8px auto!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-content{
+    max-height:calc(100vh - 16px)!important;
+    border-radius:12px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-header{
+    padding:12px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-header h5{
+    font-size:15px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-summary{
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-kpi,
+  #modal_detalle_credito_nc_pago .payment-nc-history-kpi.total{
+    grid-column:auto!important;
+    padding:9px 10px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-item{
+    grid-template-columns:1fr!important;
+    gap:9px!important;
+    padding:10px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-values{
+    padding-top:8px!important;
+    border-top:1px solid #e5ebf1!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-footer{
+    padding:9px 10px!important;
+  }
+
+  #modal_detalle_credito_nc_pago .payment-nc-history-footer-btn{
+    width:100%!important;
+  }
+}
+
+/* =======================================================================
+   IZZY | PASO CONFIRMAR - COMPACTACIÓN FINAL
+   ======================================================================= */
+
+/* El cliente y el total ya se muestran arriba; el paso confirmar inicia
+   directamente con opciones y métodos de pago. */
+#modal_pagos_unificado #section_confirm .confirm-header{
+  margin-bottom:.62rem!important;
+  padding-bottom:.48rem!important;
+}
+
+/* Imprimir comprobante + Pagos múltiples: menor alto, misma legibilidad. */
+#modal_pagos_unificado #section_confirm .confirm-options-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:.5rem!important;
+  margin-bottom:.62rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-option{
+  min-height:42px!important;
+  padding:.38rem .72rem!important;
+  border-radius:9px!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-option .option-label{
+  min-width:0!important;
+  font-size:.82rem!important;
+  line-height:1.2!important;
+  white-space:normal!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-option .option-value.pill{
+  flex:0 0 auto!important;
+  margin-left:.55rem!important;
+  padding:.2rem .62rem!important;
+  font-size:.78rem!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+
+/* Reducir separaciones verticales del paso 3 sin pegar componentes. */
+#modal_pagos_unificado #section_confirm .confirm-separator{
+  margin:.58rem 0!important;
+}
+
+#modal_pagos_unificado #section_confirm .payment-methods-summary h6{
+  margin-bottom:.5rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-totals-grid{
+  gap:.45rem!important;
+}
+
+/* Responsive: mantener dos columnas mientras exista espacio real. */
+@media(max-width:640px){
+  #modal_pagos_unificado #section_confirm .confirm-options-grid{
+    grid-template-columns:1fr!important;
+    gap:.42rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-option{
+    min-height:40px!important;
+    padding:.34rem .62rem!important;
+  }
+}
+
+/* =======================================================================
+   IZZY | PASO CONFIRMAR - ALTURA UNIFORME FINAL
+   Objetivo: mantener los 3 pasos del modal dentro de una altura equivalente,
+   sin perder legibilidad ni provocar desbordes.
+   ======================================================================= */
+
+/* Resumen de métodos aplicado: más compacto sin pegar filas. */
+#modal_pagos_unificado #section_confirm .payment-methods-summary{
+  margin-top:.42rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .payment-methods-summary h6{
+  margin:0 0 .34rem!important;
+  font-size:.9rem!important;
+  line-height:1.2!important;
+}
+
+#modal_pagos_unificado #section_confirm .payment-summary-row{
+  min-height:34px!important;
+  padding:.3rem .7rem!important;
+  line-height:1.15!important;
+}
+
+#modal_pagos_unificado #section_confirm .payment-summary-row + .payment-summary-row{
+  margin-top:0!important;
+}
+
+#modal_pagos_unificado #section_confirm .payment-summary-row .label,
+#modal_pagos_unificado #section_confirm .payment-summary-row .value{
+  font-size:.82rem!important;
+  line-height:1.15!important;
+}
+
+#modal_pagos_unificado #section_confirm .payment-summary-row .summary-dot{
+  width:14px!important;
+  height:14px!important;
+  min-width:14px!important;
+  margin-right:.42rem!important;
+}
+
+/* Total a aplicar / Diferencia: misma presencia visual, menor altura. */
+#modal_pagos_unificado #section_confirm .confirm-total-row,
+#modal_pagos_unificado #section_confirm .confirm-difference-row{
+  min-height:48px!important;
+  margin-top:.42rem!important;
+  padding:.48rem .82rem!important;
+  border-radius:9px!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-total-row .label,
+#modal_pagos_unificado #section_confirm .confirm-difference-row .label{
+  font-size:.88rem!important;
+  line-height:1.15!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-total-row .value,
+#modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+  min-width:112px!important;
+  padding:.34rem .55rem!important;
+  font-size:1rem!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+}
+
+/* Botón registrar pago: más bajo pero sigue siendo cómodo y premium. */
+#modal_pagos_unificado #section_confirm .btn-register-payment,
+#modal_pagos_unificado #section_confirm #btnRegistrarPago,
+#modal_pagos_unificado #section_confirm .btn-registrar-pago{
+  min-height:38px!important;
+  height:38px!important;
+  margin-top:.48rem!important;
+  padding:.4rem .85rem!important;
+  font-size:.82rem!important;
+  line-height:1.1!important;
+  border-radius:8px!important;
+}
+
+/* Reducir espacios internos del bloque de confirmación. */
+#modal_pagos_unificado #section_confirm{
+  padding-bottom:.1rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-card{
+  padding:.78rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-totals-grid{
+  gap:.4rem!important;
+  margin-top:.42rem!important;
+}
+
+/* Mantener todo estable en pantallas angostas. */
+@media(max-width:640px){
+  #modal_pagos_unificado #section_confirm .payment-summary-row{
+    min-height:32px!important;
+    padding:.28rem .58rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row{
+    min-height:44px!important;
+    padding:.42rem .65rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .value,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+    min-width:100px!important;
+    font-size:.92rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .btn-register-payment,
+  #modal_pagos_unificado #section_confirm #btnRegistrarPago,
+  #modal_pagos_unificado #section_confirm .btn-registrar-pago{
+    min-height:38px!important;
+    height:auto!important;
+    width:100%!important;
+  }
+}
+
+/* =======================================================================
+   IZZY | TOTAL A APLICAR + DIFERENCIA - AJUSTE FINAL
+   Menor altura sin perder legibilidad ni romper responsive.
+   ======================================================================= */
+#modal_pagos_unificado #section_confirm .confirm-total-row,
+#modal_pagos_unificado #section_confirm .confirm-difference-row{
+  min-height:40px!important;
+  margin-top:.32rem!important;
+  padding:.32rem .72rem!important;
+  border-radius:8px!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-total-row .label,
+#modal_pagos_unificado #section_confirm .confirm-difference-row .label{
+  font-size:.84rem!important;
+  line-height:1.1!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-total-row .value,
+#modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+  min-width:104px!important;
+  padding:.24rem .48rem!important;
+  font-size:.94rem!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+}
+
+/* Evita altura extra innecesaria entre totales y botón final. */
+#modal_pagos_unificado #section_confirm .confirm-totals-grid{
+  gap:.32rem!important;
+  margin-top:.32rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .btn-register-payment,
+#modal_pagos_unificado #section_confirm #btnRegistrarPago,
+#modal_pagos_unificado #section_confirm .btn-registrar-pago{
+  margin-top:.34rem!important;
+}
+
+/* En móvil conserva lectura y evita cualquier desborde horizontal. */
+@media(max-width:640px){
+  #modal_pagos_unificado #section_confirm .confirm-total-row,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row{
+    min-height:38px!important;
+    padding:.3rem .58rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .label,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .label{
+    min-width:0!important;
+    font-size:.8rem!important;
+    white-space:normal!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .value,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+    flex:0 0 auto!important;
+    min-width:94px!important;
+    padding:.22rem .42rem!important;
+    font-size:.88rem!important;
+  }
+}
+
+@media(max-width:380px){
+  #modal_pagos_unificado #section_confirm .confirm-total-row,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row{
+    gap:.4rem!important;
+    padding:.28rem .5rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .value,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+    min-width:88px!important;
+    font-size:.84rem!important;
+  }
+}
+
+/* =======================================================================
+   IZZY | TOTAL A APLICAR + DIFERENCIA - ULTRA COMPACTO
+   ======================================================================= */
+#modal_pagos_unificado #section_confirm .confirm-total-row,
+#modal_pagos_unificado #section_confirm .confirm-difference-row{
+  min-height:34px!important;
+  margin-top:.24rem!important;
+  padding:.22rem .62rem!important;
+  border-radius:8px!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-total-row .label,
+#modal_pagos_unificado #section_confirm .confirm-difference-row .label{
+  font-size:.81rem!important;
+  line-height:1.05!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-total-row .value,
+#modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+  min-width:96px!important;
+  padding:.18rem .4rem!important;
+  font-size:.9rem!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+}
+
+#modal_pagos_unificado #section_confirm .confirm-totals-grid{
+  gap:.24rem!important;
+  margin-top:.24rem!important;
+}
+
+#modal_pagos_unificado #section_confirm .btn-register-payment,
+#modal_pagos_unificado #section_confirm #btnRegistrarPago,
+#modal_pagos_unificado #section_confirm .btn-registrar-pago{
+  margin-top:.26rem!important;
+}
+
+@media(max-width:640px){
+  #modal_pagos_unificado #section_confirm .confirm-total-row,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row{
+    min-height:34px!important;
+    padding:.22rem .5rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .label,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .label{
+    min-width:0!important;
+    font-size:.78rem!important;
+    white-space:normal!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .value,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+    flex:0 0 auto!important;
+    min-width:88px!important;
+    font-size:.84rem!important;
+  }
+}
+
+@media(max-width:380px){
+  #modal_pagos_unificado #section_confirm .confirm-total-row,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row{
+    gap:.35rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .confirm-total-row .value,
+  #modal_pagos_unificado #section_confirm .confirm-difference-row .value{
+    min-width:82px!important;
+    font-size:.8rem!important;
+  }
+}
+
+/* =======================================================================
+   IZZY | TOTAL A APLICAR Y DIFERENCIA - SELECTORES REALES
+   ======================================================================= */
+
+/*
+ * El HTML real del paso Confirmar usa .total-line y #difference-line.
+ * Estas reglas reducen la altura efectiva de ambos bloques.
+ */
+#modal_pagos_unificado #section_confirm .confirm-totals-grid{
+  gap:5px!important;
+  margin:6px 0 3px!important;
+}
+
+#modal_pagos_unificado #section_confirm .total-line,
+#modal_pagos_unificado #section_confirm #difference-line{
+  min-height:38px!important;
+  margin:0!important;
+  padding:5px 10px!important;
+  border-radius:9px!important;
+  box-sizing:border-box!important;
+}
+
+#modal_pagos_unificado #section_confirm .total-line .total-label,
+#modal_pagos_unificado #section_confirm #difference-line .total-label{
+  min-width:0!important;
+  margin:0!important;
+  font-size:.82rem!important;
+  line-height:1.08!important;
+  white-space:normal!important;
+}
+
+#modal_pagos_unificado #section_confirm .total-line .total-amount,
+#modal_pagos_unificado #section_confirm #difference-line .total-amount{
+  flex:0 0 auto!important;
+  min-width:94px!important;
+  margin:0!important;
+  padding:4px 7px!important;
+  font-size:.9rem!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+}
+
+/* El botón final queda cerca de los totales, sin pegarlos. */
+#modal_pagos_unificado #section_confirm .confirm-submit-btn{
+  min-height:36px!important;
+  margin-top:5px!important;
+  padding:7px 12px!important;
+  border-radius:8px!important;
+  font-size:.82rem!important;
+  line-height:1.05!important;
+}
+
+/* Responsive: conserva lectura y evita desbordamiento. */
+@media(max-width:640px){
+  #modal_pagos_unificado #section_confirm .confirm-totals-grid{
+    gap:4px!important;
+    margin-top:5px!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .total-line,
+  #modal_pagos_unificado #section_confirm #difference-line{
+    min-height:36px!important;
+    padding:4px 8px!important;
+    gap:7px!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .total-line .total-label,
+  #modal_pagos_unificado #section_confirm #difference-line .total-label{
+    font-size:.78rem!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .total-line .total-amount,
+  #modal_pagos_unificado #section_confirm #difference-line .total-amount{
+    min-width:86px!important;
+    padding:3px 6px!important;
+    font-size:.84rem!important;
+  }
+}
+
+@media(max-width:380px){
+  #modal_pagos_unificado #section_confirm .total-line,
+  #modal_pagos_unificado #section_confirm #difference-line{
+    min-height:34px!important;
+    padding:4px 7px!important;
+  }
+
+  #modal_pagos_unificado #section_confirm .total-line .total-amount,
+  #modal_pagos_unificado #section_confirm #difference-line .total-amount{
+    min-width:80px!important;
+    font-size:.8rem!important;
+  }
+}
+

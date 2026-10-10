@@ -1292,25 +1292,9 @@ class facturasControlador extends facturasModelo {
             }
         }
 
-        // Si es una factura fiscal al crédito, aplicar automáticamente el saldo
-        // a favor generado por Notas de Crédito anteriores del mismo cliente.
-        // Este punto es compartido por Facturación normal, Restaurante y
-        // recurrencias porque todos terminan registrando la CxC aquí.
-        if((int)$tipo_factura === 2){
-            try {
-                CreditoFavorService::aplicarDisponible(
-                    mainModel::connection(),
-                    (int)$empresa_id,
-                    (int)$clientes_id,
-                    (int)$facturas_id,
-                    (int)$usuario
-                );
-            } catch (Throwable $eCredito) {
-                // Nunca se invalida una factura ya emitida por una falla auxiliar.
-                // La aplicación queda auditable/reintentable en su propia tabla.
-                error_log('Factura '.$facturas_id.' registrada; saldo a favor pendiente: '.$eCredito->getMessage());
-            }
-        }
+        // El crédito a favor de NC se conserva disponible al registrar la CxC.
+        // El modal global de pago lo consulta y lo aplica únicamente cuando
+        // el usuario confirma el cobro. Aplica igual para contado y crédito.
 
         return true;
     }

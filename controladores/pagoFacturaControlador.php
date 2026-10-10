@@ -2,8 +2,10 @@
 //pagoFacturaControlador.php
 if ($peticionAjax) {
     require_once "../modelos/pagoFacturaModelo.php";
+    require_once "../core/notaCredito/creditoFavorService.php";
 } else {
     require_once "./modelos/pagoFacturaModelo.php";
+    require_once "./core/notaCredito/creditoFavorService.php";
 }
 
 class pagoFacturaControlador extends pagoFacturaModelo {
@@ -89,7 +91,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         // === Saldo pendiente CxC ===
         $saldoPendiente = 0.00;
-        $saldoRes = mainModel::connection()->query(
+        $saldoRes = mainModel::staticConnection()->query(
             "SELECT ROUND(saldo,2) AS saldo FROM cobrar_clientes WHERE facturas_id = '".$facturas_id."' LIMIT 1"
         );
         if ($saldoRes && $saldoRes->num_rows > 0) {
@@ -103,7 +105,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         }
 
         if ($totalFacturaBD <= 0) {
-            $rsTotalFactura = mainModel::connection()->query(
+            $rsTotalFactura = mainModel::staticConnection()->query(
                 "SELECT ROUND(importe,2) AS importe FROM facturas WHERE facturas_id = '".$facturas_id."' LIMIT 1"
             );
 
@@ -112,6 +114,34 @@ class pagoFacturaControlador extends pagoFacturaModelo {
                 $totalFacturaBD = round((float)$rowTotalFactura['importe'] + 1e-9, 2);
             }
         }
+
+        /* ==========================================================
+         * CRÉDITO A FAVOR POR NOTA DE CRÉDITO
+         * ----------------------------------------------------------
+         * Solo se consulta aquí. La aplicación real ocurre después,
+         * cuando el usuario confirma el pago.
+         * ========================================================== */
+        $usarCreditoFavor = !isset($_POST['usar_credito_favor'])
+            || intval($_POST['usar_credito_favor']) === 1;
+
+        $resumenCredito = CreditoFavorService::resumenDisponible(
+            mainModel::staticConnection(),
+            intval($_SESSION['empresa_id_sd']),
+            $facturas_id
+        );
+
+        $creditoFavorAplicable = $usarCreditoFavor
+            ? round((float)($resumenCredito['credito_aplicable'] ?? 0), 2)
+            : 0.00;
+
+        $baseCobro = $saldoPendiente > 0
+            ? $saldoPendiente
+            : $totalFacturaBD;
+
+        $totalCobrarDespuesNc = round(
+            max(0, $baseCobro - $creditoFavorAplicable),
+            2
+        );
 
         // === valores digitados / aplicados ===
         $montoEntregadoCliente = 0.0;   // lo que escribe el cajero (solo efectivo)
@@ -201,9 +231,9 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         // Si es contado desde facturación y el método no es efectivo, el pago debe cubrir el total.
         // Esto evita falsos errores cuando el JS no envía importe_tarjeta/transferencia/cheque
         // porque el modal ya asumió el total de la factura.
-        if ($tipo_factura_post == 1 && !$esCxc && $tipoPago !== 'efectivo' && $monto <= 0 && $totalFacturaBD > 0) {
-            $monto = $totalFacturaBD;
-            $montoAplicado = $totalFacturaBD;
+        if ($tipo_factura_post == 1 && !$esCxc && $tipoPago !== 'efectivo' && $monto <= 0 && $totalCobrarDespuesNc > 0) {
+            $monto = $totalCobrarDespuesNc;
+            $montoAplicado = $totalCobrarDespuesNc;
         }
 
         // Tolerancia
@@ -211,61 +241,68 @@ class pagoFacturaControlador extends pagoFacturaModelo {
 
         // === Importe que afecta saldo ===
         if ($tipo_factura_post == 1) {
-            if ($esCxc) {
-                // Desde CxC: liquida el saldo pendiente.
-                $importeReal = ($saldoPendiente > 0 ? $saldoPendiente : ($totalFacturaBD > 0 ? $totalFacturaBD : $monto));
-            } else {
-                // Desde facturación: siempre toma el total real de la factura, no el efectivo entregado.
-                $importeReal = ($totalFacturaBD > 0 ? $totalFacturaBD : ($saldoPendiente > 0 ? $saldoPendiente : ($montoAplicado > 0 ? $montoAplicado : $monto)));
-            }
+            // Contado: el medio de pago cubre únicamente el neto después de NC.
+            $importeReal = $totalCobrarDespuesNc;
         } else {
-            // Crédito / abono: toma el monto realmente aplicado.
+            // Crédito / abono: el usuario puede abonar hasta el saldo neto.
             $importeReal = ($montoAplicado > 0 ? $montoAplicado : $monto);
         }
 
         $importeReal = round((float)$importeReal + 1e-9, 2);
 
         // === Validaciones por tipo de factura ===
+        $cubiertaSoloConCredito = (
+            $totalCobrarDespuesNc <= $EPS &&
+            $creditoFavorAplicable > $EPS
+        );
+
         if ($tipo_factura_post == 1) { // contado
-            if ($importeReal <= 0) {
-                return [
-                    "status"=>false,"title"=>"Error",
-                    "message"=>"No se pudo determinar el total real de la factura."
-                ];
-            }
-
-            if ($tipoPago === 'efectivo') {
-                if ($montoEntregadoCliente <= 0) {
-                    return ["status"=>false,"title"=>"Error","message"=>"El efectivo recibido debe ser mayor que cero"];
-                }
-
-                if ($montoEntregadoCliente + $EPS < $importeReal) {
+            if (!$cubiertaSoloConCredito) {
+                if ($importeReal <= 0) {
                     return [
                         "status"=>false,"title"=>"Error",
-                        "message"=>"El monto recibido no puede ser menor al total de la factura (L. ".number_format($importeReal,2).")"
+                        "message"=>"No se pudo determinar el total a cobrar."
                     ];
-                }
-            } else {
-                if ($monto <= 0) {
-                    return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
                 }
 
-                if ($monto + $EPS < $importeReal) {
-                    return [
-                        "status"=>false,"title"=>"Error",
-                        "message"=>"El monto recibido no puede ser menor al total de la factura (L. ".number_format($importeReal,2).")"
-                    ];
+                if ($tipoPago === 'efectivo') {
+                    if ($montoEntregadoCliente <= 0) {
+                        return ["status"=>false,"title"=>"Error","message"=>"El efectivo recibido debe ser mayor que cero"];
+                    }
+
+                    if ($montoEntregadoCliente + $EPS < $importeReal) {
+                        return [
+                            "status"=>false,"title"=>"Error",
+                            "message"=>"El monto recibido no puede ser menor al total a cobrar (L. ".number_format($importeReal,2).")"
+                        ];
+                    }
+                } else {
+                    if ($monto <= 0) {
+                        return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
+                    }
+
+                    if ($monto + $EPS < $importeReal) {
+                        return [
+                            "status"=>false,"title"=>"Error",
+                            "message"=>"El monto recibido no puede ser menor al total a cobrar (L. ".number_format($importeReal,2).")"
+                        ];
+                    }
                 }
             }
         } else { // crédito / abono
-            if ($importeReal <= 0) {
+            if (!$cubiertaSoloConCredito && $importeReal <= 0) {
                 return ["status"=>false,"title"=>"Error","message"=>"El monto debe ser mayor que cero"];
             }
 
-            if ($saldoPendiente > 0 && ($importeReal - $saldoPendiente > $EPS)) {
+            $saldoNetoDisponible = round(max(0, $saldoPendiente - $creditoFavorAplicable), 2);
+
+            if (
+                $saldoNetoDisponible > 0 &&
+                ($importeReal - $saldoNetoDisponible > $EPS)
+            ) {
                 return [
                     "status"=>false,"title"=>"Error",
-                    "message"=>"El monto no puede ser mayor al saldo pendiente (L. ".number_format($saldoPendiente,2).")"
+                    "message"=>"El monto no puede ser mayor al saldo pendiente después de NC (L. ".number_format($saldoNetoDisponible,2).")"
                 ];
             }
         }
@@ -351,8 +388,130 @@ class pagoFacturaControlador extends pagoFacturaModelo {
             'referencia_pago3'   => $referencia3,
             'clientes_id'        => isset($factura['clientes_id']) ? $factura['clientes_id'] : 0,
             'factura_number'     => $factura_number,
-            'origen_pago'        => $origen_pago
+            'origen_pago'        => $origen_pago,
+            'usar_credito_favor' => $usarCreditoFavor ? 1 : 0,
+            'credito_favor_estimado' => $creditoFavorAplicable,
+            'total_factura_original' => $totalFacturaBD,
+            'total_cobrar_nc'    => $totalCobrarDespuesNc
         ];
+    }
+
+    /**
+     * Aplica el crédito a favor únicamente cuando el pago ya fue confirmado.
+     * Si el pago posterior falla, restaura las aplicaciones creadas en este intento.
+     */
+    private function procesarPagoConCreditoFavor(array $datos): array
+    {
+        $conexion = mainModel::staticConnection();
+        $credito = [
+            'aplicado' => 0.0,
+            'saldo' => null,
+            'saldo_antes' => null,
+            'aplicaciones_ids' => []
+        ];
+
+        $datos['credito_favor_aplicado'] = 0.0;
+        $datos['saldo_antes_credito_favor'] = null;
+
+        try {
+            if (!empty($datos['usar_credito_favor']) && !empty($datos['credito_favor_estimado'])) {
+                $credito = CreditoFavorService::aplicarDisponible(
+                    $conexion,
+                    (int)$datos['empresa'],
+                    (int)$datos['clientes_id'],
+                    (int)$datos['facturas_id'],
+                    (int)$datos['usuario'],
+                    true
+                );
+
+                $datos['credito_favor_aplicado'] = round(
+                    (float)($credito['aplicado'] ?? 0),
+                    2
+                );
+                $datos['saldo_antes_credito_favor'] = isset($credito['saldo_antes'])
+                    ? round((float)$credito['saldo_antes'], 2)
+                    : null;
+
+                $esperado = round((float)$datos['credito_favor_estimado'], 2);
+                $aplicado = round((float)($credito['aplicado'] ?? 0), 2);
+
+                // Evita cobrar con un resumen desactualizado.
+                if (abs($esperado - $aplicado) > 0.01) {
+                    CreditoFavorService::revertirAplicacionesPago(
+                        $conexion,
+                        (int)$datos['empresa'],
+                        (int)$datos['clientes_id'],
+                        (int)$datos['facturas_id'],
+                        $credito['aplicaciones_ids'] ?? [],
+                        isset($credito['saldo_antes']) ? (float)$credito['saldo_antes'] : null
+                    );
+
+                    return [
+                        'status' => false,
+                        'title' => 'Crédito a favor actualizado',
+                        'message' => 'El saldo disponible de Nota de Crédito cambió. Abra nuevamente el pago para recalcularlo.'
+                    ];
+                }
+
+                // Si la NC cubre todo, no se crea un pago de importe cero.
+                if (
+                    $aplicado > 0.005 &&
+                    (float)($credito['saldo'] ?? 0) <= 0.005 &&
+                    (float)$datos['importe'] <= 0.005
+                ) {
+                    return [
+                        'status' => true,
+                        'title' => 'Factura saldada',
+                        'message' => 'La factura quedó saldada completamente con crédito a favor de Nota de Crédito.',
+                        'funcion' => "printBill(".$datos['facturas_id'].",".$datos['print_comprobante'].");listar_cuentas_por_cobrar_clientes();getCollaboradoresModalPagoFacturas();",
+                        'closeAllModals' => true,
+                        'credito_favor_aplicado' => $aplicado,
+                        'convertida_a_factura' => false,
+                        'numero_factura' => 0,
+                        'factura_formateada' => ''
+                    ];
+                }
+            }
+
+            $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
+
+            if (isset($result['status']) && $result['status'] === false) {
+                CreditoFavorService::revertirAplicacionesPago(
+                    $conexion,
+                    (int)$datos['empresa'],
+                    (int)$datos['clientes_id'],
+                    (int)$datos['facturas_id'],
+                    $credito['aplicaciones_ids'] ?? [],
+                    isset($credito['saldo_antes']) ? (float)$credito['saldo_antes'] : null
+                );
+            } else {
+                $result['credito_favor_aplicado'] = round(
+                    (float)($credito['aplicado'] ?? 0),
+                    2
+                );
+            }
+
+            return $result;
+        } catch (Throwable $e) {
+            try {
+                CreditoFavorService::revertirAplicacionesPago(
+                    $conexion,
+                    (int)($datos['empresa'] ?? 0),
+                    (int)($datos['clientes_id'] ?? 0),
+                    (int)($datos['facturas_id'] ?? 0),
+                    $credito['aplicaciones_ids'] ?? [],
+                    isset($credito['saldo_antes']) ? (float)$credito['saldo_antes'] : null
+                );
+            } catch (Throwable $rollbackError) {
+                error_log('Error restaurando crédito a favor: ' . $rollbackError->getMessage());
+            }
+
+            return [
+                'status' => false,
+                'title' => 'Error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
     /* ===========================
@@ -368,7 +527,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['banco_id']     = 0;
         $datos['tarjeta']      = 0; // asegurar índice
 
-        $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
+        $result = $this->procesarPagoConCreditoFavor($datos);
         if (isset($result['status']) && $result['status'] === false) {
             $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
@@ -407,7 +566,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['referencia_pago2'] = isset($_POST['exp']) ? $_POST['exp'] : ($datos['referencia_pago2'] ?? '');
         $datos['referencia_pago3'] = isset($_POST['cvcpwd']) ? $_POST['cvcpwd'] : ($datos['referencia_pago3'] ?? '');
 
-        $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
+        $result = $this->procesarPagoConCreditoFavor($datos);
         if (isset($result['status']) && $result['status'] === false) {
             $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
@@ -443,7 +602,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['referencia_pago2'] = $datos['referencia_pago2'] ?? '';
         $datos['referencia_pago3'] = $datos['referencia_pago3'] ?? '';
 
-        $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
+        $result = $this->procesarPagoConCreditoFavor($datos);
         if (isset($result['status']) && $result['status'] === false) {
             $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }
@@ -479,7 +638,7 @@ class pagoFacturaControlador extends pagoFacturaModelo {
         $datos['referencia_pago2'] = '';
         $datos['referencia_pago3'] = '';
 
-        $result = pagoFacturaModelo::agregar_pago_factura_base($datos);
+        $result = $this->procesarPagoConCreditoFavor($datos);
         if (isset($result['status']) && $result['status'] === false) {
             $this->json(["status"=>false, "title"=>$result['title'] ?? "Error", "message"=>$result['message'] ?? "No se pudo registrar el pago"]);
         }

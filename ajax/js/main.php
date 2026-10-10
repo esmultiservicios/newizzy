@@ -9564,6 +9564,7 @@ function goToStep(step) {
 
   if (step === 1) {
     $('#pills_info').show();
+    $('#payment_nc_credit_box').show();
     $('#global_options_bar').show();
     $('#opt_multi_wrap').show();
 
@@ -9578,6 +9579,7 @@ function goToStep(step) {
 
   } else if (step === 2) {
     $('#pills_info').show();
+    $('#payment_nc_credit_box').show();
     $('#global_options_bar').show();
     $('#opt_multi_wrap').hide();
 
@@ -9605,7 +9607,8 @@ function goToStep(step) {
     cacheAllPaymentForms();
     hydrateSelectedPaymentForms();
 
-    $('#pills_info').hide();
+    $('#pills_info').show();
+    $('#payment_nc_credit_box').show();
     $('#global_options_bar').hide();
 
     $m.find('#section_methods').hide();
@@ -10672,15 +10675,56 @@ function syncAmountToForm(method, override) {
    AJAX
    =============================== */
 function handleServerResponse(resp) {
-  try {
-    if (resp && typeof resp.funcion === 'string' && resp.funcion.trim()) {
-      try {
-        eval(resp.funcion);
-      } catch (e) {
-         showNotify('warning', 'Aviso', 'No se pudo completar la acción solicitada.');
-      }
+  var funcionRespuesta = (
+    resp &&
+    typeof resp.funcion === 'string' &&
+    resp.funcion.trim()
+  ) ? resp.funcion.trim() : '';
+
+  var funcionIncluyePreview = /(?:^|[;\s])printBill\s*\(/.test(funcionRespuesta);
+
+  /*
+   * Restaurar el flujo original de IZZY:
+   * la acción post-pago (printBill, listados, correo, etc.) se ejecuta
+   * INMEDIATAMENTE al recibir la respuesta exitosa.
+   *
+   * No se espera a hidden.bs.modal. Ese cambio fue el que alteró el
+   * comportamiento histórico del preview después de registrar el pago.
+   */
+  if (resp && resp.status && funcionRespuesta) {
+    try {
+      eval(funcionRespuesta);
+    } catch (e) {
+      console.error('Error ejecutando acción post-pago:', e);
+
+      showNotify(
+        'warning',
+        'Aviso',
+        'El pago se registró, pero una acción posterior no pudo completarse.'
+      );
     }
-  } catch (_) {}
+  }
+
+  /*
+   * Respaldo exclusivo para pagos iniciados desde Facturación.
+   * Si por alguna respuesta especial del backend no vino printBill(),
+   * se abre la factura actual una sola vez.
+   */
+  if (
+    resp &&
+    resp.status &&
+    resp.closeAllModals &&
+    String(CURRENT_ORIGEN || '').toLowerCase() === 'facturacion' &&
+    !funcionIncluyePreview &&
+    CURRENT_FACTURA_ID &&
+    typeof printBill === 'function'
+  ) {
+    try {
+      printBill(CURRENT_FACTURA_ID, 0);
+    } catch (e) {
+      console.error('No se pudo abrir el preview de la factura:', e);
+    }
+  }
 
   showNotify(
     resp && resp.status ? 'success' : 'error',
@@ -10688,7 +10732,12 @@ function handleServerResponse(resp) {
     resp && resp.message ? resp.message : ''
   );
 
+  if (resp && resp.status) {
+    $('#modal_detalle_credito_nc_pago').modal('hide');
+  }
+
   if (resp && resp.closeAllModals) {
+    $('#modal_detalle_credito_nc_pago').modal('hide');
     $('#modal_pagos_unificado').modal('hide');
   }
 }
@@ -11351,6 +11400,10 @@ function hardResetModalState() {
   CURRENT_TIPO_PAGO = 1;
   CURRENT_ORIGEN = '';
 
+  PAYMENT_NC_RESUMEN = null;
+  PAYMENT_NC_REQUEST_TOKEN++;
+  $('#payment_nc_detail_btn').attr('aria-expanded', 'false');
+
   resetPaymentCache();
 
   $m.find('#comprobante_print_switch').prop('checked', false).val(0);
@@ -11389,6 +11442,334 @@ function hardResetModalState() {
   updateMethodsUI();
   setStepActive(1);
 }
+
+/* ==========================================================
+   CRÉDITO A FAVOR NC EN MODAL DE PAGO
+   ========================================================== */
+var PAYMENT_NC_REQUEST_TOKEN = 0;
+var PAYMENT_NC_RESUMEN = null;
+
+function paymentNcSetHiddenFields(credito) {
+  var $m = $('#modal_pagos_unificado');
+
+  $m.find('#formEfectivoBill, #formTarjetaBill, #formTransferenciaBill, #formChequeBill, #formPuntosBill')
+    .each(function () {
+      var $f = $(this);
+
+      $f.find('input[name="usar_credito_favor"], input[name="credito_favor_estimado"]').remove();
+
+      $('<input>', {
+        type: 'hidden',
+        name: 'usar_credito_favor',
+        value: credito > 0.005 ? '1' : '0'
+      }).appendTo($f);
+
+      $('<input>', {
+        type: 'hidden',
+        name: 'credito_favor_estimado',
+        value: fixed2(credito)
+      }).appendTo($f);
+    });
+}
+
+function paymentNcRender(resumen) {
+  var $m = $('#modal_pagos_unificado');
+  var $box = $m.find('#payment_nc_credit_box');
+
+  if (!$box.length) return;
+
+  resumen = resumen || {};
+  PAYMENT_NC_RESUMEN = resumen;
+
+  var totalOriginal = parseMonto(resumen.saldo_base);
+  if (totalOriginal <= 0) {
+    totalOriginal = parseMonto(resumen.total_factura);
+  }
+
+  var credito = parseMonto(resumen.credito_aplicable);
+  var totalCobrar = parseMonto(resumen.total_cobrar);
+  var cantidad = parseInt(resumen.cantidad_notas || 0, 10) || 0;
+  var notas = Array.isArray(resumen.notas) ? resumen.notas : [];
+
+  $box.find('#payment_nc_factura_valor').text('L. ' + fmtMiles(totalOriginal));
+  $box.find('#payment_nc_credito_valor').text(
+    credito > 0.005 ? '- L. ' + fmtMiles(credito) : 'L. 0.00'
+  );
+  $box.find('#payment_nc_total_valor').text('L. ' + fmtMiles(totalCobrar));
+  $box.find('#payment_nc_count').text(cantidad);
+
+  var $btn = $box.find('#payment_nc_detail_btn');
+  $btn
+    .prop('disabled', cantidad === 0)
+    .attr('aria-expanded', 'false')
+    .toggleClass('is-empty', cantidad === 0)
+    .toggleClass('has-credit', cantidad > 0);
+
+  // El detalle de NC se presenta en un modal independiente.
+
+  paymentNcSetHiddenFields(credito);
+
+  // El resto del flujo global debe trabajar con el neto después de NC.
+  $m.find('#customer_bill_pay').val(fixed2(totalCobrar));
+  $m.find('#bill-pay').text('L. ' + fmtMiles(totalCobrar));
+  $m.find('#payment_pay_label').text(credito > 0.005 ? 'Pagar después de NC:' : 'Pagar:');
+  $m.data('totalPago', totalCobrar);
+
+  configurarFormularioEfectivo(
+    CURRENT_FACTURA_ID,
+    CURRENT_TIPO_PAGO,
+    totalCobrar,
+    CURRENT_ORIGEN
+  );
+  configurarFormularioTarjeta(
+    CURRENT_FACTURA_ID,
+    CURRENT_TIPO_PAGO,
+    totalCobrar,
+    CURRENT_ORIGEN
+  );
+  configurarFormularioTransferencia(
+    CURRENT_FACTURA_ID,
+    CURRENT_TIPO_PAGO,
+    totalCobrar,
+    CURRENT_ORIGEN
+  );
+  configurarFormularioCheque(
+    CURRENT_FACTURA_ID,
+    CURRENT_TIPO_PAGO,
+    totalCobrar,
+    CURRENT_ORIGEN
+  );
+  configurarFormularioPuntos(
+    CURRENT_FACTURA_ID,
+    CURRENT_TIPO_PAGO,
+    totalCobrar,
+    CURRENT_ORIGEN
+  );
+
+  paymentNcSetHiddenFields(credito);
+  limpiarMontosPagoUnificado();
+  updateCardAmountVisibility();
+  cacheAllPaymentForms();
+  syncPaymentConfirm();
+
+  $box.removeClass('is-loading');
+}
+
+function paymentNcReset(total) {
+  var $m = $('#modal_pagos_unificado');
+  var $box = $m.find('#payment_nc_credit_box');
+
+  PAYMENT_NC_RESUMEN = null;
+
+  if (!$box.length) return;
+
+  var monto = parseMonto(total);
+
+  $box.addClass('is-loading');
+  $m.find('#payment_pay_label').text('Pagar:');
+  $box.find('#payment_nc_factura_valor').text('L. ' + fmtMiles(monto));
+  $box.find('#payment_nc_credito_valor').text('Consultando...');
+  $box.find('#payment_nc_total_valor').text('L. ' + fmtMiles(monto));
+  $box.find('#payment_nc_count').text('0');
+  $box.find('#payment_nc_detail_btn').prop('disabled', true).attr('aria-expanded', 'false');
+
+  paymentNcSetHiddenFields(0);
+}
+
+function cargarCreditoFavorPago(facturas_id, totalOriginal) {
+  paymentNcReset(totalOriginal);
+  var token = ++PAYMENT_NC_REQUEST_TOKEN;
+
+  $.ajax({
+    type: 'POST',
+    url: '<?php echo SERVERURL;?>core/notaCredito/listarNotasCreditoFactura.php',
+    dataType: 'json',
+    data: {
+      modo: 'credito_favor_pago',
+      facturas_id: facturas_id
+    }
+  }).done(function (resp) {
+    if (token !== PAYMENT_NC_REQUEST_TOKEN || CURRENT_FACTURA_ID != facturas_id) {
+      return;
+    }
+
+    if (!resp || resp.success !== true || !resp.data) {
+      paymentNcRender({
+        total_factura: totalOriginal,
+        saldo_base: totalOriginal,
+        credito_aplicable: 0,
+        total_cobrar: totalOriginal,
+        cantidad_notas: 0,
+        notas: []
+      });
+
+      showNotify(
+        'warning',
+        'Crédito a favor',
+        (resp && resp.message)
+          ? resp.message
+          : 'No se pudo obtener el saldo de Nota de Crédito del cliente.'
+      );
+      return;
+    }
+
+    paymentNcRender(resp.data);
+  }).fail(function () {
+    if (token !== PAYMENT_NC_REQUEST_TOKEN || CURRENT_FACTURA_ID != facturas_id) {
+      return;
+    }
+
+    paymentNcRender({
+      total_factura: totalOriginal,
+      saldo_base: totalOriginal,
+      credito_aplicable: 0,
+      total_cobrar: totalOriginal,
+      cantidad_notas: 0,
+      notas: []
+    });
+
+    showNotify(
+      'warning',
+      'Crédito a favor',
+      'No se pudo consultar el saldo a favor de Notas de Crédito. El pago continuará sin aplicar crédito.'
+    );
+  });
+}
+
+function paymentNcHistoryHtml(resumen) {
+  resumen = resumen || {};
+
+  var notas = Array.isArray(resumen.notas) ? resumen.notas : [];
+  var html = '';
+
+  notas.forEach(function (nota) {
+    var aplicar = parseMonto(nota.aplicar);
+    if (aplicar <= 0.005) return;
+
+    var numeroNc = $('<div>').text(
+      nota.numero || ('NC #' + nota.nota_credito_id)
+    ).html();
+
+    var facturaOrigen = $('<div>').text(
+      nota.factura_origen_numero || ('#' + (nota.factura_origen_id || ''))
+    ).html();
+
+    var fechaOrigen = $('<div>').text(
+      nota.factura_origen_fecha || nota.fecha || ''
+    ).html();
+
+    var motivo = $('<div>').text(nota.motivo || '').html();
+    var facturaId = parseInt(nota.factura_origen_id || 0, 10) || 0;
+
+    html += ''
+      + '<article class="payment-nc-history-item">'
+      +   '<div class="payment-nc-history-item-main">'
+      +     '<div class="payment-nc-history-item-title">'
+      +       '<i class="fas fa-receipt"></i>'
+      +       '<strong>' + numeroNc + '</strong>'
+      +     '</div>'
+      +     '<div class="payment-nc-history-origin">'
+      +       '<span><i class="fas fa-file-invoice"></i>Factura origen: <strong>' + facturaOrigen + '</strong></span>'
+      +       (fechaOrigen ? '<span><i class="far fa-calendar-alt"></i>' + fechaOrigen + '</span>' : '')
+      +     '</div>'
+      +     (motivo ? '<div class="payment-nc-history-motive">' + motivo + '</div>' : '')
+      +     (facturaId > 0
+              ? '<button type="button" class="btn btn-sm payment-nc-origin-btn js-payment-nc-view-origin" data-factura-id="' + facturaId + '"><i class="fas fa-eye mr-1"></i>Ver factura origen</button>'
+              : '')
+      +   '</div>'
+      +   '<div class="payment-nc-history-values">'
+      +     '<div><span>Crédito generado</span><strong>L. ' + fmtMiles(parseMonto(nota.credito_favor)) + '</strong></div>'
+      +     '<div><span>Saldo disponible</span><strong>L. ' + fmtMiles(parseMonto(nota.disponible)) + '</strong></div>'
+      +     '<div class="apply"><span>Aplicar ahora</span><strong>- L. ' + fmtMiles(aplicar) + '</strong></div>'
+      +   '</div>'
+      + '</article>';
+  });
+
+  if (!html) {
+    html = '<div class="payment-nc-history-empty"><i class="fas fa-info-circle mr-1"></i>No hay Nota de Crédito disponible para aplicar.</div>';
+  }
+
+  return html;
+}
+
+function openPaymentNcHistoryModal() {
+  var resumen = PAYMENT_NC_RESUMEN || {};
+  var cantidad = parseInt(resumen.cantidad_notas || 0, 10) || 0;
+
+  if (cantidad <= 0) return;
+
+  var $modal = $('#modal_detalle_credito_nc_pago');
+
+  // Mantener el modal de detalle fuera de cualquier stacking context
+  // del modal principal y siempre por encima de éste.
+  if (!$modal.parent().is('body')) {
+    $modal.appendTo(document.body);
+  }
+
+  $modal.find('#payment_nc_history_invoice').text(
+    'L. ' + fmtMiles(parseMonto(resumen.saldo_base || resumen.total_factura))
+  );
+  $modal.find('#payment_nc_history_credit').text(
+    '- L. ' + fmtMiles(parseMonto(resumen.credito_aplicable))
+  );
+  $modal.find('#payment_nc_history_total').text(
+    'L. ' + fmtMiles(parseMonto(resumen.total_cobrar))
+  );
+  $modal.find('#payment_nc_history_list').html(
+    paymentNcHistoryHtml(resumen)
+  );
+
+  $modal
+    .off('shown.bs.modal.paymentNcLayer')
+    .on('shown.bs.modal.paymentNcLayer', function () {
+      $(this).css('z-index', '12050');
+
+      var $backdrop = $('.modal-backdrop').last();
+      $backdrop
+        .addClass('payment-nc-history-backdrop')
+        .css('z-index', '12040');
+    })
+    .modal({
+      show: true,
+      keyboard: false,
+      backdrop: 'static'
+    });
+}
+
+$(document)
+  .off('click.paymentNcDetail', '#payment_nc_detail_btn')
+  .on('click.paymentNcDetail', '#payment_nc_detail_btn', function () {
+    if ($(this).prop('disabled')) return;
+    openPaymentNcHistoryModal();
+  })
+  .off('click.paymentNcOrigin', '.js-payment-nc-view-origin')
+  .on('click.paymentNcOrigin', '.js-payment-nc-view-origin', function () {
+    var facturaId = parseInt($(this).data('factura-id') || 0, 10) || 0;
+
+    if (facturaId > 0 && typeof printBill === 'function') {
+      printBill(facturaId, 0);
+    }
+  });
+
+$('#modal_detalle_credito_nc_pago')
+  .off('hidden.bs.modal.paymentNcHistory')
+  .on('hidden.bs.modal.paymentNcHistory', function () {
+    if ($('#modal_pagos_unificado').hasClass('show')) {
+      $('body').addClass('modal-open');
+    }
+  });
+
+
+$('#modal_pagos_unificado')
+  .off('hide.bs.modal.paymentNcCleanup')
+  .on('hide.bs.modal.paymentNcCleanup', function () {
+    var $detalleNc = $('#modal_detalle_credito_nc_pago');
+
+    if ($detalleNc.hasClass('show')) {
+      $detalleNc.modal('hide');
+    }
+  });
+
 
 /* ===============================
    FUNCIÓN GLOBAL PARA ABRIR MODAL
@@ -11435,6 +11816,12 @@ function pago(facturas_id, tipoPago, origen, totalManual, clienteManual) {
     configurarFormularioPuntos(facturas_id, CURRENT_TIPO_PAGO, total, CURRENT_ORIGEN);
 
     limpiarMontosPagoUnificado();
+
+    if (datos && datos.credito_nc && typeof datos.credito_nc === 'object') {
+      paymentNcRender(datos.credito_nc);
+    } else {
+      cargarCreditoFavorPago(facturas_id, total);
+    }
 
     goToStep(1);
 
@@ -15013,7 +15400,6 @@ function abrirReporteIISDentroDelModal(urlReporte, tituloReporte = "Vista previa
   var iframe = $("#iframePreviewDocumento");
 
   tipoPreviewDocumentoActual = "iis";
-  izzyZoomPreparar(url, true);
   izzyZoomPreparar(urlReporte, false);
 
   $("#modalPreviewDocumentoLabel").text(tituloReporte);

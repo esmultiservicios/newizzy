@@ -618,7 +618,7 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+        <button type="button" class="payment-nc-history-footer-btn" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
       </div>
     </div>
   </div>
@@ -1768,6 +1768,8 @@
 <!--FIN MODAL PAGOS FACTURACION-->
 
 <!-- MODAL PAGOS UNIFICADO -->
+
+
 <div class="modal fade" id="modal_pagos_unificado" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog payment-modal modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="payment-content modal-content">
@@ -1801,11 +1803,29 @@
           </div>
           <div class="amount-info">
             <i class="far fa-credit-card"></i>
-            <span class="label">Pagar: </span>
+            <span class="label" id="payment_pay_label">Pagar: </span>
             <span class="amount" id="bill-pay">L. 0.00</span>
           </div>
           <input type="hidden" name="customer_bill_pay" id="customer_bill_pay">
         </div>
+
+        <!-- Crédito a favor de Nota de Crédito -->
+        <section class="payment-nc-credit-box" id="payment_nc_credit_box" aria-live="polite">
+          <div class="payment-nc-summary">
+            <div class="payment-nc-metric payment-nc-invoice">
+              <div class="payment-nc-metric-head"><i class="fas fa-file-invoice"></i><span>Total factura / saldo</span></div>
+              <div class="payment-nc-value" id="payment_nc_factura_valor">L. 0.00</div>
+            </div>
+            <button type="button" class="payment-nc-metric payment-nc-credit-btn" id="payment_nc_detail_btn" aria-expanded="false" aria-controls="modal_detalle_credito_nc_pago" title="Ver composición e historial del crédito NC">
+              <div class="payment-nc-metric-head"><i class="fas fa-receipt"></i><span>Crédito NC a aplicar</span><span class="payment-nc-count" id="payment_nc_count">0</span></div>
+              <div class="payment-nc-credit-line"><span class="payment-nc-value payment-nc-value-credit" id="payment_nc_credito_valor">L. 0.00</span><i class="fas fa-eye payment-nc-view-icon" aria-hidden="true"></i></div>
+            </button>
+            <div class="payment-nc-metric payment-nc-total">
+              <div class="payment-nc-metric-head"><i class="fas fa-hand-holding-usd"></i><span>Total real a cobrar</span></div>
+              <div class="payment-nc-value payment-nc-value-total" id="payment_nc_total_valor">L. 0.00</div>
+            </div>
+          </div>
+        </section>
 
         <!-- Opciones -->
         <div class="payment-options-card" id="global_options_bar">
@@ -2190,19 +2210,6 @@
               <span>Confirmar pago</span>
             </div>
 
-            <div class="confirm-info-grid">
-              <div class="confirm-info-pill">
-                <i class="far fa-user"></i>
-                <span class="label">Cliente: </span>
-                <span class="value" id="confirm-customer-name">—</span>
-              </div>
-              <div class="confirm-info-pill amount">
-                <i class="far fa-credit-card"></i>
-                <span class="label">Total factura: </span>
-                <span class="value" id="confirm-total-amount">L. 0.00</span>
-              </div>
-            </div>
-
             <div class="confirm-options-grid">
               <div class="confirm-option">
                 <span class="option-label">Imprimir comprobante</span>
@@ -2259,6 +2266,61 @@
   </div>
 </div>
 <!-- /MODAL PAGOS UNIFICADO -->
+
+<!-- MODAL DETALLE / HISTÓRICO DE CRÉDITO NC -->
+<div class="modal fade payment-nc-history-modal"
+     id="modal_detalle_credito_nc_pago"
+     tabindex="-1"
+     role="dialog"
+     aria-hidden="true"
+     data-backdrop="static"
+     data-keyboard="false">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content payment-nc-history-content">
+      <div class="payment-nc-history-header">
+        <div>
+          <h5 class="mb-1">
+            <i class="fas fa-receipt mr-2"></i>
+            Detalle del crédito de Nota de Crédito
+          </h5>
+          <small>Origen, saldo disponible y valor utilizado en este cobro.</small>
+        </div>
+        <button type="button"
+                class="payment-nc-history-close"
+                data-dismiss="modal"
+                aria-label="Cerrar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body payment-nc-history-body">
+        <div class="payment-nc-history-summary">
+          <div class="payment-nc-history-kpi">
+            <span>Total factura / saldo</span>
+            <strong id="payment_nc_history_invoice">L. 0.00</strong>
+          </div>
+          <div class="payment-nc-history-kpi nc">
+            <span>Crédito NC aplicado</span>
+            <strong id="payment_nc_history_credit">L. 0.00</strong>
+          </div>
+          <div class="payment-nc-history-kpi total">
+            <span>Total real a cobrar</span>
+            <strong id="payment_nc_history_total">L. 0.00</strong>
+          </div>
+        </div>
+
+        <div class="payment-nc-history-list" id="payment_nc_history_list"></div>
+      </div>
+
+      <div class="payment-nc-history-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times mr-1"></i>Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- /MODAL DETALLE / HISTÓRICO DE CRÉDITO NC -->
 
 <!--INICIO MODAL CLIENTES-->
 <div class="modal fade" id="modal_registrar_clientes">

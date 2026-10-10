@@ -36,8 +36,8 @@ class pagoFacturaModelo extends mainModel {
             NULL
         )";
 
-        $ok = mainModel::connection()->query($insert);
-        if (!$ok) throw new Exception("Error al insertar pago: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($insert);
+        if (!$ok) throw new Exception("Error al insertar pago: ".mainModel::staticConnection()->error);
 
         return $pagos_id;
     }
@@ -56,8 +56,8 @@ class pagoFacturaModelo extends mainModel {
             '".$datos['descripcion2']."',
             '".$datos['descripcion3']."'
         )";
-        $ok = mainModel::connection()->query($insert);
-        if (!$ok) throw new Exception("Error al insertar detalle de pago: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($insert);
+        if (!$ok) throw new Exception("Error al insertar detalle de pago: ".mainModel::staticConnection()->error);
         return true;
     }
 
@@ -65,29 +65,29 @@ class pagoFacturaModelo extends mainModel {
         $update = "UPDATE pagos
             SET contabilizado = 1, referencia_ingreso_id = '$ingresos_id'
             WHERE pagos_id = '$pagos_id'";
-        $ok = mainModel::connection()->query($update);
-        if (!$ok) throw new Exception("Error al marcar pago contabilizado: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($update);
+        if (!$ok) throw new Exception("Error al marcar pago contabilizado: ".mainModel::staticConnection()->error);
         return true;
     }
 
     protected function cancelar_pago_modelo($pagos_id) {
         $update = "UPDATE pagos SET estado = 2 WHERE pagos_id = '$pagos_id'";
-        $ok = mainModel::connection()->query($update);
-        if (!$ok) throw new Exception("Error al cancelar pago: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($update);
+        if (!$ok) throw new Exception("Error al cancelar pago: ".mainModel::staticConnection()->error);
         return true;
     }
 
     protected function valid_pagos_factura($facturas_id) {
         $query = "SELECT pagos_id FROM pagos WHERE facturas_id = '$facturas_id' AND estado = 1";
-        $rs = mainModel::connection()->query($query);
-        if ($rs === false) throw new Exception("Error en valid_pagos_factura: ".mainModel::connection()->error);
+        $rs = mainModel::staticConnection()->query($query);
+        if ($rs === false) throw new Exception("Error en valid_pagos_factura: ".mainModel::staticConnection()->error);
         return $rs;
     }
 
     protected function consulta_cuenta_pago_modelo($tipo_pago_id) {
         $query = "SELECT cuentas_id FROM tipo_pago WHERE tipo_pago_id = '$tipo_pago_id'";
-        $rs = mainModel::connection()->query($query);
-        if ($rs === false) throw new Exception("Error en consulta_cuenta_pago_modelo: ".mainModel::connection()->error);
+        $rs = mainModel::staticConnection()->query($query);
+        if ($rs === false) throw new Exception("Error en consulta_cuenta_pago_modelo: ".mainModel::staticConnection()->error);
         return $rs;
     }
 
@@ -98,8 +98,8 @@ class pagoFacturaModelo extends mainModel {
                          estado, tipo_factura, usuario, empresa_id, fecha_registro
                   FROM cobrar_clientes
                   WHERE facturas_id = '$facturas_id'";
-        $rs = mainModel::connection()->query($query);
-        if ($rs === false) throw new Exception("Error en consultar_factura_cuentas_por_cobrar: ".mainModel::connection()->error);
+        $rs = mainModel::staticConnection()->query($query);
+        if ($rs === false) throw new Exception("Error en consultar_factura_cuentas_por_cobrar: ".mainModel::staticConnection()->error);
         return $rs;
     }    
 
@@ -109,15 +109,15 @@ class pagoFacturaModelo extends mainModel {
             $importe = ', saldo = '.sprintf('%.2f', round((float)$importe + 1e-9, 2));
         }
         $update = "UPDATE cobrar_clientes SET estado = '$estado' $importe WHERE facturas_id = '$facturas_id'";
-        $ok = mainModel::connection()->query($update);
-        if (!$ok) throw new Exception("Error en update_status_factura_cuentas_por_cobrar: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($update);
+        if (!$ok) throw new Exception("Error en update_status_factura_cuentas_por_cobrar: ".mainModel::staticConnection()->error);
         return true;
     }    
 
     protected function update_status_factura($facturas_id) {
         $update = "UPDATE facturas SET estado = 2 WHERE facturas_id = '$facturas_id'";
-        $ok = mainModel::connection()->query($update);
-        if (!$ok) throw new Exception("Error en update_status_factura: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($update);
+        if (!$ok) throw new Exception("Error en update_status_factura: ".mainModel::staticConnection()->error);
         return true;
     }
 
@@ -128,8 +128,8 @@ class pagoFacturaModelo extends mainModel {
                   JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
                   WHERE f.facturas_id = '$facturas_id'
                   LIMIT 1";
-        $rs = mainModel::connection()->query($query);
-        if ($rs === false) throw new Exception("Error en es_factura_proforma: ".mainModel::connection()->error);
+        $rs = mainModel::staticConnection()->query($query);
+        if ($rs === false) throw new Exception("Error en es_factura_proforma: ".mainModel::staticConnection()->error);
 
         if ($rs->num_rows > 0) {
             $d = $rs->fetch_assoc();
@@ -152,7 +152,7 @@ class pagoFacturaModelo extends mainModel {
          no bloquear el cobro. Ese caso debe corregirse en facturación.
        ========================================================== */
     protected function actualizar_estado_facturas_proforma_pago($facturas_id, $estado = 1) {
-        $conexion = mainModel::connection();
+        $conexion = mainModel::staticConnection();
         $facturas_id = (int)$facturas_id;
         $estado = (int)$estado;
 
@@ -218,7 +218,7 @@ class pagoFacturaModelo extends mainModel {
             return false;
         }
 
-        $cn = $conexion ?: mainModel::connection();
+        $cn = $conexion ?: mainModel::staticConnection();
 
         if (!$cn) {
             return false;
@@ -259,7 +259,7 @@ class pagoFacturaModelo extends mainModel {
             $documento_id = (int)$documento_id;
 
             if($conexion === null) {
-                $conexion = mainModel::connection();
+                $conexion = mainModel::staticConnection();
                 $conexionLocal = true;
                 $conexion->begin_transaction();
             }
@@ -423,14 +423,14 @@ class pagoFacturaModelo extends mainModel {
     }
 
     protected function tablaExiste($tabla, $conexion = null) {
-        $conexion = $conexion ?: mainModel::connection();
+        $conexion = $conexion ?: mainModel::staticConnection();
         $tabla = $conexion->real_escape_string($tabla);
         $rs = $conexion->query("SHOW TABLES LIKE '$tabla'");
         return ($rs && $rs->num_rows > 0);
     }
 
     protected function columnaExiste($tabla, $columna, $conexion = null) {
-        $conexion = $conexion ?: mainModel::connection();
+        $conexion = $conexion ?: mainModel::staticConnection();
         $tabla = $conexion->real_escape_string($tabla);
         $columna = $conexion->real_escape_string($columna);
         $rs = $conexion->query("SHOW COLUMNS FROM `$tabla` LIKE '$columna'");
@@ -443,7 +443,7 @@ class pagoFacturaModelo extends mainModel {
      * Si el registro no existe, conserva el comportamiento actual: no convertir.
      */
     protected function convertir_proforma_pagada_activo($conexion = null) {
-        $conexion = $conexion ?: mainModel::connection();
+        $conexion = $conexion ?: mainModel::staticConnection();
 
         $stmt = $conexion->prepare("SELECT activar FROM config WHERE config_id = 7 LIMIT 1");
         if (!$stmt) {
@@ -475,7 +475,7 @@ class pagoFacturaModelo extends mainModel {
      * - facturas_detalle con solo isv_valor
      */
     protected function obtener_totales_factura($facturas_id) {
-        $conexion = mainModel::connection();
+        $conexion = mainModel::staticConnection();
         $facturas_id = (int)$facturas_id;
 
         if ($facturas_id <= 0) {
@@ -636,7 +636,7 @@ class pagoFacturaModelo extends mainModel {
        ========================================================== */
 
     protected function agregar_pago_factura_base($datos) {
-        $conexion = mainModel::connection();
+        $conexion = mainModel::staticConnection();
         $conexion->begin_transaction();
     
         try {
@@ -741,7 +741,12 @@ class pagoFacturaModelo extends mainModel {
             $this->marcar_pago_contabilizado($pagoId, $ingreso_id);
         }
 
-        $historial = "Se registró pago al contado";
+        $creditoFavorAplicado = round((float)($datos['credito_favor_aplicado'] ?? 0), 2);
+
+        $historial = "Se registró pago al contado por L. " . number_format((float)$datos['importe'], 2);
+        if ($creditoFavorAplicado > 0.005) {
+            $historial .= " y se aplicó crédito a favor de NC por L. " . number_format($creditoFavorAplicado, 2);
+        }
         if (!empty($conversion['convertida'])) {
             $historial .= " y la proforma se convirtió en factura " . $conversion['factura_formateada'];
         }
@@ -750,6 +755,10 @@ class pagoFacturaModelo extends mainModel {
         $mensaje = !empty($conversion['convertida'])
             ? "El pago se registró y la proforma se convirtió en la factura " . $conversion['factura_formateada']
             : "El pago se registró correctamente";
+
+        if ($creditoFavorAplicado > 0.005) {
+            $mensaje .= ". Crédito NC aplicado: L. " . number_format($creditoFavorAplicado, 2);
+        }
 
         return [
             "status"=>true,
@@ -822,17 +831,27 @@ class pagoFacturaModelo extends mainModel {
         $ingreso_id = $this->registrar_contabilidad_pago($datos);
         $this->marcar_pago_contabilizado($pagoId, $ingreso_id);
 
-        $historial = "Se registró pago al crédito/abono";
+        $creditoFavorAplicado = round((float)($datos['credito_favor_aplicado'] ?? 0), 2);
+
+        $historial = "Se registró pago al crédito/abono por L. " . number_format((float)$datos['importe'], 2);
+        if ($creditoFavorAplicado > 0.005) {
+            $historial .= " y se aplicó crédito a favor de NC por L. " . number_format($creditoFavorAplicado, 2);
+        }
         if (!empty($conversion['convertida'])) {
             $historial .= " y la proforma se convirtió en factura " . $conversion['factura_formateada'];
         }
         $this->registrarHistorial($historial);
 
         if ($nuevoSaldo > 0) {
+            $mensajeParcial = "Pago registrado correctamente";
+            if ($creditoFavorAplicado > 0.005) {
+                $mensajeParcial .= ". Crédito NC aplicado: L. " . number_format($creditoFavorAplicado, 2);
+            }
+
             return [
                 "status"=>true,
                 "title"=>"Pago registrado",
-                "message"=>"Pago múltiple registrado correctamente",
+                "message"=>$mensajeParcial,
                 "funcion"=>"pago(".$datos['facturas_id'].");saldoFactura(".$datos['facturas_id'].");",
                 "convertida_a_factura"=>false,
                 "numero_factura"=>0,
@@ -842,6 +861,10 @@ class pagoFacturaModelo extends mainModel {
             $mensaje = !empty($conversion['convertida'])
                 ? "El pago se completó y la proforma se convirtió en la factura " . $conversion['factura_formateada']
                 : "El pago se completó correctamente";
+
+            if ($creditoFavorAplicado > 0.005) {
+                $mensaje .= ". Crédito NC aplicado: L. " . number_format($creditoFavorAplicado, 2);
+            }
 
             return [
                 "status"=>true,
@@ -958,15 +981,15 @@ class pagoFacturaModelo extends mainModel {
             '".$datos['colaboradores_id']."',
             '".date("Y-m-d H:i:s")."'
         )";
-        $ok = mainModel::connection()->query($insert);
-        if (!$ok) throw new Exception("Error al registrar ingreso contable: ".mainModel::connection()->error);
+        $ok = mainModel::staticConnection()->query($insert);
+        if (!$ok) throw new Exception("Error al registrar ingreso contable: ".mainModel::staticConnection()->error);
 
         // Movimiento en cuenta: sumar al saldo actual
         $qSaldo = "SELECT saldo FROM movimientos_cuentas 
                    WHERE cuentas_id = '".$cuenta['cuentas_id']."' 
                    ORDER BY movimientos_cuentas_id DESC LIMIT 1";
-        $r = mainModel::connection()->query($qSaldo);
-        if ($r === false) throw new Exception("Error al consultar saldo: ".mainModel::connection()->error);
+        $r = mainModel::staticConnection()->query($qSaldo);
+        if ($r === false) throw new Exception("Error al consultar saldo: ".mainModel::staticConnection()->error);
 
         $saldoActual = 0.0;
         if ($r->num_rows > 0) {
@@ -997,8 +1020,8 @@ class pagoFacturaModelo extends mainModel {
             '".$datos['colaboradores_id']."',
             '".date("Y-m-d H:i:s")."'
         )";
-        $ok2 = mainModel::connection()->query($insMov);
-        if (!$ok2) throw new Exception("Error al registrar movimiento contable: ".mainModel::connection()->error);
+        $ok2 = mainModel::staticConnection()->query($insMov);
+        if (!$ok2) throw new Exception("Error al registrar movimiento contable: ".mainModel::staticConnection()->error);
 
         return $ingresos_id;
     }

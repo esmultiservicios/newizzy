@@ -21,7 +21,7 @@
 
                         <div class="card-body">
                             <div class="form-row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-3 mb-3 egresos-fecha-field">
                                     <label for="fecha_egresos"><i class="fas fa-calendar-day mr-1"></i>Fecha Factura <span class="priority">*</span></label>
                                     <input type="date" required id="fecha_egresos" name="fecha_egresos" data-remember="date" data-rem-key="egresos:lastFecha" value="<?php echo date ("Y-m-d");?>" class="form-control">
                                     <small class="form-text text-muted">Fecha de la factura del egreso</small>
@@ -29,14 +29,26 @@
 
                                 <div class="col-md-6 mb-3">
                                     <label for="proveedor_egresos"><i class="fas fa-user-tie mr-1"></i>Entregado a <span class="priority">*</span></label>
-                                    <select id="proveedor_egresos" name="proveedor_egresos" class="selectpicker form-control" data-live-search="true" title="Seleccione proveedor" required>
-                                        <option value="">Seleccione</option>
-                                        <!-- Las opciones se llenarán con JavaScript -->
-                                    </select>
-                                    <small class="form-text text-muted">Seleccione el cliente o ingrese uno nuevo</small>
-                                    <button type="button" class="btn btn-sm btn-primary mt-2" id="btnNuevoProveedor">
-                                        <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Proveedor
-                                    </button>
+
+                                    <div class="egresos-persona-control">
+                                        <div class="egresos-persona-select">
+                                            <select id="proveedor_egresos" name="proveedor_egresos" class="selectpicker form-control" data-live-search="true" title="Seleccione proveedor" required>
+                                                <option value="">Seleccione</option>
+                                                <!-- Las opciones se llenarán con JavaScript -->
+                                            </select>
+                                        </div>
+
+                                        <button type="button"
+                                                class="btn btn-primary egresos-persona-add"
+                                                id="btnNuevoProveedor"
+                                                title="Agregar nuevo proveedor"
+                                                aria-label="Agregar nuevo proveedor">
+                                            <i class="fas fa-user-plus mr-1" aria-hidden="true"></i>
+                                            <span>Nuevo Proveedor</span>
+                                        </button>
+                                    </div>
+
+                                    <small class="form-text text-muted">Seleccione el proveedor o ingrese uno nuevo</small>
                                 </div>
 
                                 <div class="col-md-3 mb-3">

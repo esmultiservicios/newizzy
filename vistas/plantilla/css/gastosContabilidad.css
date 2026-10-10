@@ -1141,3 +1141,212 @@
     max-width:100% !important;
     white-space:nowrap !important;
 }
+
+/* =========================================================
+   IZZY | MODAL EGRESOS - CONTROLES PREMIUM
+   Proveedor junto al selector + recordatorio de fecha compacto.
+   ========================================================= */
+#modalEgresosContables .egresos-persona-control {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+}
+
+#modalEgresosContables .egresos-persona-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#modalEgresosContables .egresos-persona-select .bootstrap-select,
+#modalEgresosContables .egresos-persona-select .bootstrap-select > .dropdown-toggle,
+#modalEgresosContables .egresos-persona-select select {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+#modalEgresosContables .egresos-persona-add {
+    flex: 0 0 auto;
+    min-height: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0 13px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(47, 157, 221, .16);
+}
+
+/* Recordatorio de fecha debajo del texto de ayuda.
+   Se mantiene compacto, legible y sin tapar labels ni controles. */
+#modalEgresosContables .egresos-fecha-field {
+    position: relative;
+}
+
+#modalEgresosContables .egresos-fecha-field > .form-text {
+    padding-right: 0;
+    min-height: 0;
+    display: block;
+    margin-bottom: 0;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint {
+    position: static !important;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 30px;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 6px;
+    margin: 6px 0 0 !important;
+    padding: 4px 7px !important;
+    border: 1px solid #efc65a;
+    border-radius: 8px;
+    background: #fff9e8;
+    color: #6f5600;
+    box-shadow: 0 2px 6px rgba(80, 65, 15, .08);
+    font-size: 10px;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint > .fa-exclamation-triangle {
+    display: none !important;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint > span {
+    margin: 0 !important;
+    font-size: 0 !important;
+    white-space: nowrap;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint > span::before {
+    content: "Última fecha: ";
+    font-size: 10px;
+    font-weight: 700;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint .remember-date {
+    font-size: 10px !important;
+    font-weight: 800;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint .btn-use-today {
+    min-width: 68px;
+    height: 23px;
+    min-height: 23px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin: 0 !important;
+    padding: 0 7px !important;
+    border: 0;
+    border-radius: 6px;
+    background: #1098ea;
+    color: #fff;
+    font-size: 10px !important;
+    font-weight: 700;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint .btn-use-today i {
+    margin: 0 !important;
+    font-size: 10px !important;
+}
+
+#modalEgresosContables .egresos-fecha-field > .remember-hint .btn-hide-hint {
+    width: 22px;
+    min-width: 22px;
+    height: 23px;
+    min-height: 23px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0;
+    border-radius: 6px;
+    background: #f0f3f6;
+    color: #516173;
+    font-size: 13px;
+    line-height: 1;
+}
+/* Responsive */
+@media (max-width: 767.98px) {
+    #modalEgresosContables .egresos-persona-control {
+        gap: 6px;
+    }
+
+    #modalEgresosContables .egresos-persona-add {
+        width: 42px;
+        min-width: 42px;
+        padding: 0;
+    }
+
+    #modalEgresosContables .egresos-persona-add span {
+        display: none;
+    }
+
+    #modalEgresosContables .egresos-persona-add i {
+        margin-right: 0 !important;
+        font-size: 14px;
+    }
+
+    #modalEgresosContables .egresos-fecha-field > .remember-hint {
+        max-width: 100%;
+    }
+}
+
+
+@media (max-width: 430px) {
+    #modalEgresosContables .egresos-fecha-field > .remember-hint {
+        width: 100%;
+        justify-content: flex-start;
+        white-space: normal;
+    }
+
+    #modalEgresosContables .egresos-fecha-field > .remember-hint > span {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: normal;
+    }
+
+    #modalEgresosContables .egresos-fecha-field > .remember-hint .btn-use-today {
+        flex: 0 0 auto;
+    }
+}
+
+/* =========================================================
+   IZZY | DATOS PRINCIPALES - ESPACIO INFERIOR COMPACTO
+   Elimina el espacio muerto debajo de los campos sin alterar
+   el tamaño general del modal ni el comportamiento responsive.
+   ========================================================= */
+#modalEgresosContables #formEgresosContables > .card:first-of-type .card-body {
+    padding-bottom: .65rem !important;
+}
+
+#modalEgresosContables #formEgresosContables > .card:first-of-type .card-body > .form-row > [class*="col-"] {
+    margin-bottom: 0 !important;
+}
+
+/* Mantiene una separación mínima y limpia antes de la siguiente sección. */
+#modalEgresosContables #formEgresosContables > .card:first-of-type {
+    margin-bottom: 1rem !important;
+}
+
+@media (max-width: 767.98px) {
+    #modalEgresosContables #formEgresosContables > .card:first-of-type .card-body {
+        padding-bottom: .75rem !important;
+    }
+
+    #modalEgresosContables #formEgresosContables > .card:first-of-type {
+        margin-bottom: .9rem !important;
+    }
+}
+

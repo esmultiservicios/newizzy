@@ -21,7 +21,7 @@
 
                         <div class="card-body">
                             <div class="form-row">
-                                <div class="col-md-3 mb-3">
+                                <div class="col-md-3 mb-3 ingresos-fecha-field">
                                     <label for="fecha_ingresos"><i class="fas fa-calendar-day mr-1"></i>Fecha Factura <span class="priority">*</span></label>
                                     <input type="date" required id="fecha_ingresos" name="fecha_ingresos" data-remember="date" data-rem-key="ingresos:lastFecha" value="<?php echo date ("Y-m-d");?>" class="form-control">
                                     <small class="form-text text-muted">Fecha del documento del ingreso</small>
@@ -29,14 +29,26 @@
 
                                 <div class="col-md-6 mb-3">
                                     <label for="recibide_ingresos"><i class="fas fa-user-tie mr-1"></i>Recibí de <span class="priority">*</span></label>
-                                    <select id="recibide_ingresos" name="recibide_ingresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cliente" required>
-                                        <option value="">Seleccione</option>
-                                        <!-- Las opciones se llenarán con JavaScript -->
-                                    </select>
+
+                                    <div class="ingresos-persona-control">
+                                        <div class="ingresos-persona-select">
+                                            <select id="recibide_ingresos" name="recibide_ingresos" class="selectpicker form-control" data-live-search="true" title="Seleccione cliente" required>
+                                                <option value="">Seleccione</option>
+                                                <!-- Las opciones se llenarán con JavaScript -->
+                                            </select>
+                                        </div>
+
+                                        <button type="button"
+                                                class="btn btn-primary ingresos-persona-add"
+                                                id="btnNuevoCliente"
+                                                title="Agregar nuevo cliente"
+                                                aria-label="Agregar nuevo cliente">
+                                            <i class="fas fa-user-plus mr-1" aria-hidden="true"></i>
+                                            <span>Nuevo Cliente</span>
+                                        </button>
+                                    </div>
+
                                     <small class="form-text text-muted">Seleccione el cliente o ingrese uno nuevo</small>
-                                    <button type="button" class="btn btn-sm btn-primary mt-2" id="btnNuevoCliente">
-                                        <i class="fas fa-plus-circle mr-1"></i> Agregar Nuevo Cliente
-                                    </button>
                                 </div>
 
                                 <div class="col-md-3 mb-3">

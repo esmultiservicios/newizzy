@@ -6542,20 +6542,30 @@
                                     <small class="form-text text-muted">Empresa asociada a esta secuencia</small>
                                 </div>
 
-                                <div class="col-12 col-md-6 col-xl-3 mb-3">
+                                <div class="col-12 col-md-6 col-xl-4 mb-3">
                                     <label for="documento_secuencia"><i class="fas fa-file-alt mr-1"></i>Documento <span class="priority">*</span></label>
-                                    <select id="documento_secuencia" name="documento_secuencia" class="izzy-select2" data-width="100%" title="Seleccione un documento" required data-placeholder="Seleccione un documento">
-                                        <option value="">Seleccione</option>
-                                    </select>
-                                    <div class="secuencia-field-help-row">
-                                        <small class="form-text text-muted">Solo se muestran documentos activos</small>
-                                        <button type="button" class="btn btn-link btn-sm p-0" id="btn_administrar_documentos_desde_modal">
-                                            Administrar
+
+                                    <div class="secuencia-documento-control">
+                                        <div class="secuencia-documento-select">
+                                            <select id="documento_secuencia" name="documento_secuencia" class="izzy-select2" data-width="100%" title="Seleccione un documento" required data-placeholder="Seleccione un documento">
+                                                <option value="">Seleccione</option>
+                                            </select>
+                                        </div>
+
+                                        <button type="button"
+                                                class="btn btn-primary secuencia-btn-administrar-documentos"
+                                                id="btn_administrar_documentos_desde_modal"
+                                                title="Administrar documentos"
+                                                aria-label="Administrar documentos">
+                                            <i class="fas fa-cog mr-1" aria-hidden="true"></i>
+                                            <span>Administrar</span>
                                         </button>
                                     </div>
+
+                                    <small class="form-text text-muted">Solo se muestran documentos activos</small>
                                 </div>
 
-                                <div class="col-12 col-xl-6 mb-3">
+                                <div class="col-12 col-xl-5 mb-3">
                                     <label for="cai_secuencia"><i class="fas fa-id-card mr-1"></i>CAI</label>
                                     <input type="text" name="cai_secuencia" id="cai_secuencia" class="form-control" placeholder="CAI" maxlength="37">
                                     <small class="form-text text-muted">Código de Autorización de Impresión (máximo 37 caracteres)</small>

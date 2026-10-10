@@ -270,17 +270,38 @@ $isLocalDomain = (
 define('ES_LOCAL', $isLocalDomain);
 
 /* =========================================================
-   MODO DEMO
+   ENTORNO / MODO DEMO
+   ---------------------------------------------------------
+   La URL determina automáticamente el entorno visible y la
+   variable histórica SISTEMA_PRUEBA utilizada por otros módulos.
+
+   LOCAL:
+     localhost, 127.0.0.1, *.test, *.local, *.localhost
+     -> SISTEMA_PRUEBA = NO
+     -> etiqueta: MODO DESARROLLO
+
+   DEMO:
+     demo.izzycloud.app o cualquier host demo.*
+     -> SISTEMA_PRUEBA = SI
+     -> etiqueta: DEMO
+
+   PRODUCCIÓN:
+     cualquier otro host, incluido sistema.izzycloud.app
+     -> SISTEMA_PRUEBA = NO
+     -> sin etiqueta de entorno
    ========================================================= */
-define('SISTEMA_PRUEBA', strtoupper(izzyEnv('SISTEMA_PRUEBA', 'NO')));
+define('SISTEMA_PRUEBA', $esDemo ? 'SI' : 'NO');
+define(
+    'IZZY_ENTORNO',
+    ES_LOCAL ? 'LOCAL' : (SISTEMA_PRUEBA === 'SI' ? 'DEMO' : 'PRODUCCION')
+);
 
 if (ES_LOCAL) {
     define('SISTEMA_PRUEBA_LABEL', 'MODO DESARROLLO');
+} elseif (SISTEMA_PRUEBA === 'SI') {
+    define('SISTEMA_PRUEBA_LABEL', 'DEMO');
 } else {
-    define(
-        'SISTEMA_PRUEBA_LABEL',
-        SISTEMA_PRUEBA === 'SI' ? 'DEMO' : ''
-    );
+    define('SISTEMA_PRUEBA_LABEL', '');
 }
 
 /* =========================================================

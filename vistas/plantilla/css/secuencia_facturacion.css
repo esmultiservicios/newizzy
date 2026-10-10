@@ -1952,3 +1952,83 @@
     outline: 0;
 }
 
+/* =========================================================
+   IZZY - DOCUMENTO + ADMINISTRAR
+   Select2 y acción de administración en una sola línea.
+   ========================================================= */
+#modal_registrar_secuencias .secuencia-documento-control {
+    display: flex;
+    align-items: stretch;
+    gap: .5rem;
+    width: 100%;
+    min-width: 0;
+}
+
+#modal_registrar_secuencias .secuencia-documento-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#modal_registrar_secuencias .secuencia-documento-select .select2-container,
+#modal_registrar_secuencias .secuencia-documento-select .bootstrap-select,
+#modal_registrar_secuencias .secuencia-documento-select select {
+    width: 100% !important;
+    max-width: 100%;
+}
+
+#modal_registrar_secuencias .secuencia-btn-administrar-documentos {
+    flex: 0 0 auto;
+    min-height: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    padding: 0 .8rem;
+    border-radius: 7px;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(47, 157, 221, .16);
+}
+
+#modal_registrar_secuencias .secuencia-btn-administrar-documentos i {
+    font-size: .85rem;
+}
+
+/* Tablet pequeña / móvil: evita desbordes y mantiene lectura. */
+@media (max-width: 767.98px) {
+    #modal_registrar_secuencias .secuencia-documento-control {
+        gap: .4rem;
+    }
+
+    #modal_registrar_secuencias .secuencia-btn-administrar-documentos {
+        min-width: 44px;
+        width: 44px;
+        padding: 0;
+    }
+
+    #modal_registrar_secuencias .secuencia-btn-administrar-documentos span {
+        display: none;
+    }
+
+    #modal_registrar_secuencias .secuencia-btn-administrar-documentos i {
+        margin-right: 0 !important;
+        font-size: .95rem;
+    }
+}
+
+/* Pantallas extremadamente angostas: mantiene ambos controles utilizables. */
+@media (max-width: 380px) {
+    #modal_registrar_secuencias .secuencia-documento-control {
+        gap: .35rem;
+    }
+
+    #modal_registrar_secuencias .secuencia-btn-administrar-documentos {
+        min-width: 42px;
+        width: 42px;
+        height: 42px;
+        min-height: 42px;
+    }
+}
+

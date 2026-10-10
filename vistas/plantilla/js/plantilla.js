@@ -1,131 +1,135 @@
 /* ============================================================
-   IZZY | Dropdown de usuario
-   Control propio para evitar conflicto con el toggle de Bootstrap.
-   1er clic: abre
-   2do clic: cierra
-   clic fuera: cierra
-   Escape: cierra
+   IZZY | MENÚ DE USUARIO
+   Dos estados reales: ABIERTO / CERRADO.
+   Segundo clic sobre el icono de persona = CERRAR.
    ============================================================ */
 (function () {
-    'use strict';
+    "use strict";
 
-    function obtenerElementos() {
-        var toggle = document.getElementById('userDropdown');
-        if (!toggle) return null;
+    var initialized = false;
 
-        var item = toggle.closest('.nav-item.dropdown');
-        if (!item) return null;
+    function getUserMenuElements() {
+        var button = document.getElementById("userDropdown");
+        if (!button) return null;
 
-        var menu = item.querySelector('.user-dropdown');
+        var wrapper = button.closest(".nav-item.dropdown");
+        if (!wrapper) return null;
+
+        var menu = wrapper.querySelector(".user-dropdown");
         if (!menu) return null;
 
         return {
-            toggle: toggle,
-            item: item,
+            button: button,
+            wrapper: wrapper,
             menu: menu
         };
     }
 
-    function estaAbierto(partes) {
-        return !!(
-            partes &&
-            (
-                partes.item.classList.contains('show') ||
-                partes.menu.classList.contains('show') ||
-                partes.toggle.getAttribute('aria-expanded') === 'true'
-            )
-        );
+    function openUserMenu() {
+        var els = getUserMenuElements();
+        if (!els) return;
+
+        if (
+            window.IZZYMobileMainMenu &&
+            typeof window.IZZYMobileMainMenu.close === "function"
+        ) {
+            window.IZZYMobileMainMenu.close();
+        }
+
+        els.wrapper.classList.add("show");
+        els.menu.classList.add("show");
+        els.menu.style.display = "block";
+        els.button.classList.add("show");
+        els.button.setAttribute("aria-expanded", "true");
     }
 
-    function abrir(partes) {
-        if (!partes) return;
+    function closeUserMenu() {
+        var els = getUserMenuElements();
+        if (!els) return;
 
-        partes.item.classList.add('show');
-        partes.menu.classList.add('show');
-        partes.toggle.classList.add('show');
-        partes.toggle.setAttribute('aria-expanded', 'true');
+        els.wrapper.classList.remove("show");
+        els.menu.classList.remove("show");
+        els.menu.style.removeProperty("display");
+        els.button.classList.remove("show");
+        els.button.setAttribute("aria-expanded", "false");
     }
 
-    function cerrar(partes) {
-        if (!partes) return;
+    function toggleUserMenu(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
 
-        partes.item.classList.remove('show');
-        partes.menu.classList.remove('show');
-        partes.toggle.classList.remove('show');
-        partes.toggle.setAttribute('aria-expanded', 'false');
-    }
+        var els = getUserMenuElements();
+        if (!els) return;
 
-    function toggleUsuario(event) {
-        var partes = obtenerElementos();
-        if (!partes) return;
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (estaAbierto(partes)) {
-            cerrar(partes);
+        if (
+            els.menu.classList.contains("show") ||
+            els.menu.style.display === "block" ||
+            els.button.getAttribute("aria-expanded") === "true"
+        ) {
+            closeUserMenu();
         } else {
-            abrir(partes);
+            openUserMenu();
         }
     }
 
-    function iniciar() {
-        var partes = obtenerElementos();
-        if (!partes) return;
+    function initUserMenu() {
+        if (initialized) return;
 
-        /* Evita registrar el comportamiento más de una vez. */
-        if (partes.toggle.getAttribute('data-izzy-user-dropdown-ready') === '1') {
-            return;
-        }
+        var els = getUserMenuElements();
+        if (!els) return;
 
-        partes.toggle.setAttribute('data-izzy-user-dropdown-ready', '1');
+        initialized = true;
 
-        partes.toggle.addEventListener('click', toggleUsuario, false);
+        /* Evita doble control con Bootstrap. */
+        els.button.removeAttribute("data-toggle");
+        els.button.removeAttribute("data-bs-toggle");
 
-        /* Cerrar al tocar cualquier zona fuera del menú. */
-        document.addEventListener('click', function (event) {
-            var actuales = obtenerElementos();
-            if (!actuales || !estaAbierto(actuales)) return;
+        /* Captura el clic directamente sobre el usuario. */
+        els.button.addEventListener("click", toggleUserMenu, false);
+
+        /* Clic fuera = cerrar. */
+        document.addEventListener("click", function (event) {
+            var current = getUserMenuElements();
+            if (!current) return;
 
             if (
-                actuales.toggle.contains(event.target) ||
-                actuales.menu.contains(event.target)
+                !current.button.contains(event.target) &&
+                !current.menu.contains(event.target)
             ) {
-                return;
+                closeUserMenu();
             }
-
-            cerrar(actuales);
         }, false);
 
-        /* Cerrar con Escape. */
-        document.addEventListener('keydown', function (event) {
-            if (event.key !== 'Escape') return;
-
-            var actuales = obtenerElementos();
-            if (!actuales || !estaAbierto(actuales)) return;
-
-            cerrar(actuales);
-            actuales.toggle.focus();
+        /* ESC = cerrar. */
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape") {
+                closeUserMenu();
+            }
         }, false);
 
-        /* Al seleccionar una opción real del menú, dejarlo cerrado. */
-        partes.menu.addEventListener('click', function (event) {
-            var enlace = event.target && event.target.closest
-                ? event.target.closest('a.dropdown-item')
-                : null;
-
-            if (!enlace) return;
-
-            window.setTimeout(function () {
-                cerrar(obtenerElementos());
-            }, 0);
+        /* Clic en opción = cerrar. */
+        els.menu.addEventListener("click", function (event) {
+            if (event.target.closest(".dropdown-item")) {
+                closeUserMenu();
+            }
         }, false);
+
+        closeUserMenu();
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', iniciar, { once: true });
+    window.IZZYUserMenu = {
+        init: initUserMenu,
+        open: openUserMenu,
+        close: closeUserMenu,
+        toggle: toggleUserMenu
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initUserMenu);
     } else {
-        iniciar();
+        initUserMenu();
     }
 })();
 

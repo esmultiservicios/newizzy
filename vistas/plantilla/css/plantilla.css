@@ -396,3 +396,61 @@ body.izzy-fs-shell > :not(#izzyFullscreenFrame) {
         transition:none;
     }
 }
+
+
+/* ============================================================
+   IZZY | MENÚ USUARIO - CONTENCIÓN RESPONSIVE
+   ============================================================ */
+@media (max-width: 991.98px) {
+    .sb-topnav .navbar-nav-user .user-dropdown {
+        position:absolute!important;
+        right:0!important;
+        left:auto!important;
+        width:min(300px, calc(100vw - 16px))!important;
+        max-width:calc(100vw - 16px)!important;
+        min-width:0!important;
+        box-sizing:border-box!important;
+        overflow:hidden!important;
+    }
+
+    .sb-topnav .navbar-nav-user .user-dropdown .dropdown-item {
+        white-space:normal!important;
+        overflow-wrap:anywhere!important;
+    }
+}
+
+@media (max-width: 576px) {
+    .sb-topnav .navbar-nav-user .user-dropdown {
+        right:0!important;
+        left:auto!important;
+        width:min(290px, calc(100vw - 12px))!important;
+        max-width:calc(100vw - 12px)!important;
+    }
+}
+
+/* ============================================================
+   IZZY | MENÚ USUARIO - POSICIÓN BAJO EL ICONO
+   El dropdown nace visualmente desde el control del usuario.
+   ============================================================ */
+.sb-topnav .navbar-nav-user > .nav-item.dropdown:last-child{
+    position:relative!important;
+}
+
+.sb-topnav .navbar-nav-user .user-dropdown{
+    top:calc(100% + 6px)!important;
+    right:0!important;
+    left:auto!important;
+    margin-top:0!important;
+    transform:none!important;
+    transform-origin:top right!important;
+}
+
+/* En móvil queda pegado al icono sin invadir el borde superior. */
+@media (max-width:576px){
+    .sb-topnav .navbar-nav-user .user-dropdown{
+        top:calc(100% + 5px)!important;
+        right:0!important;
+        left:auto!important;
+    }
+}
+

@@ -68,6 +68,7 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
     <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/dataTables.bootstrap4.min.css?v=<?php echo rawurlencode($izzyAssetVersion('ajax/bootstrap/css/dataTables.bootstrap4.min.css')); ?>" rel="stylesheet" crossorigin="anonymous" />
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/styles.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/styles.css')); ?>" rel="stylesheet" />
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/my_style.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/my_style.css')); ?>" rel="stylesheet" />
+    <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/plantilla.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/plantilla.css')); ?>" rel="stylesheet" />
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/pagos.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/pagos.css')); ?>" rel="stylesheet" />
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/facturasMovil.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/facturasMovil.css')); ?>" rel="stylesheet" />
     <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/main_cards.css?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/css/main_cards.css')); ?>" rel="stylesheet" />
@@ -189,6 +190,7 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
     }       
     require_once "./vistas/contenido/modals/vistasModals.php";   
     require_once "./vistas/plantilla/modulos/script.php";
+    echo '<script src="' . htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8') . 'vistas/plantilla/js/plantilla.js?v=' . rawurlencode($izzyAssetVersion('vistas/plantilla/js/plantilla.js')) . '"></script>';
 
     echo '<script src="' . htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8') . 'ajax/librerias/select2.min.js"></script>';
     require_once "./vistas/plantilla/modulos/logoutScript.php";

@@ -375,6 +375,30 @@ CALL izzy_add_column(
 -- 2026-08-21 | FACTURACIÓN RECURRENTE
 -- ============================================================================
 
+-- 2026-10-11 | FACTURAS: AMPLIAR CAMPO DE NOTAS / COMENTARIO
+-- La marca de trazabilidad [IZZY-REC:id:fecha] se agrega a las notas
+-- existentes; evitar truncamiento al emitir facturas recurrentes.
+-- Solo modifica una columna existente que aún no sea TEXT o superior.
+-- No crea tablas ni altera datos de facturas existentes.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS izzy_ampliar_notas_facturas$$
+CREATE PROCEDURE izzy_ampliar_notas_facturas()
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'facturas'
+          AND COLUMN_NAME = 'notas'
+          AND DATA_TYPE IN ('char', 'varchar', 'tinytext')
+    ) THEN
+        ALTER TABLE `facturas` MODIFY COLUMN `notas` TEXT NULL;
+    END IF;
+END$$
+DELIMITER ;
+CALL izzy_ampliar_notas_facturas();
+DROP PROCEDURE IF EXISTS izzy_ampliar_notas_facturas;
+
+
 CALL izzy_exec_if_table(
     'config',
     "UPDATE `config`

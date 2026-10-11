@@ -99,8 +99,20 @@ function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal
 // Protección: el cron normal usa --execute. Sin esa bandera, solo consulta.
 $ejecutar = in_array('--execute', $argv ?? [], true);
 $soloDb = null;
+$recuperarMes = null;
+$aceptarCiclosAnteriores = in_array('--confirmar-ciclos-previos', $argv ?? [], true);
+$maxPorBase = 0; // Sin límite artificial de facturas.
+
 
 foreach (($argv ?? []) as $argumento) {
+    if (str_starts_with($argumento, '--recuperar-mes=')) {
+        $recuperarMes = substr($argumento, strlen('--recuperar-mes='));
+        if (!preg_match('/^20[0-9]{2}-(0[1-9]|1[0-2])$/', $recuperarMes)) {
+            fwrite(STDERR, "Mes de recuperación inválido. Use AAAA-MM.\n");
+            exit(1);
+        }
+    }
+
     if (str_starts_with($argumento, '--db=')) {
         $soloDb = substr($argumento, 5);
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $soloDb)) {
@@ -110,6 +122,13 @@ foreach (($argv ?? []) as $argumento) {
     }
 }
 
+if ($recuperarMes !== null && (!$aceptarCiclosAnteriores || $soloDb === null)) {
+    fwrite(STDERR, "La recuperación histórica requiere --db=BASE y --confirmar-ciclos-previos. Revise antes los documentos manuales y períodos anteriores.\n");
+    exit(1);
+}
+if ($recuperarMes !== null && !$ejecutar) {
+    // Se permite simular la selección histórica sin confirmar la emisión.
+}
 $lock = fopen($logDir.'/facturas_recurrentes.lock', 'c');
 if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
     fwrite(STDERR, "Otro procesamiento de facturas recurrentes está activo.\n");
@@ -160,7 +179,7 @@ $hoy = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
 foreach ($baseDatos as $nombreDb) {
     $GLOBALS['db'] = $nombreDb;
     $contadores = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'recuperadas' => 0];
-    $resumen['bases'][$nombreDb] = &$contadores;
+    $resumen['bases'][$nombreDb] = $contadores;
     $cn = null;
     try {
         $cn = $mainModelCron->connection();
@@ -189,7 +208,28 @@ foreach ($baseDatos as $nombreDb) {
         }
         foreach ($pendientes as $pendiente) {
             $recId = (int)$pendiente['rec_id'];
-            $programada = (string)$pendiente['next_run_at'];
+            $programadaOriginal = (string)$pendiente['next_run_at'];
+            $programada = $programadaOriginal;
+            if ($recuperarMes !== null) {
+                // Proyectar el ciclo solicitado sin facturar automáticamente meses previos.
+                $info = $cn->prepare('SELECT periodicidad, dia_mes, until_at FROM facturas_recurrentes WHERE rec_id = ?');
+                $info->bind_param('i', $recId);
+                $info->execute();
+                $regla = $info->get_result()->fetch_assoc();
+                $info->close();
+                if (!$regla) { continue; }
+                $iteraciones = 0;
+                while (substr($programada, 0, 7) < $recuperarMes && $iteraciones++ < 1200) {
+                    $siguiente = proximaFechaRecurrente($programada, $regla['periodicidad'], $regla['dia_mes']);
+                    if ($siguiente === null || $siguiente <= $programada) { break; }
+                    $programada = $siguiente;
+                }
+                if (substr($programada, 0, 7) !== $recuperarMes ||
+                    $programada > date('Y-m-d H:i:s') ||
+                    (!empty($regla['until_at']) && substr($programada, 0, 10) > $regla['until_at'])) {
+                    continue;
+                }
+            }
             $empresaId = 0;
             $reservaConfirmada = false;
             $ejecucionId = 0;
@@ -197,7 +237,7 @@ foreach ($baseDatos as $nombreDb) {
                 $fechaProgramada = new DateTimeImmutable($programada, new DateTimeZone('America/Tegucigalpa'));
                 // Ventana definida: fecha programada y día siguiente. Las más antiguas
                 // requieren autorización y conciliación manual, sin saltar ciclos.
-                if ($fechaProgramada->format('Y-m-d') < $hoy->modify('-1 day')->format('Y-m-d')) {
+                if ($recuperarMes === null && $fechaProgramada->format('Y-m-d') < $hoy->modify('-1 day')->format('Y-m-d')) {
                     $contadores['revision']++;
                     $resumen['revision']++;
                     continue;
@@ -208,11 +248,16 @@ foreach ($baseDatos as $nombreDb) {
                 $stmt->execute();
                 $rec = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
-                if (!$rec || (string)$rec['next_run_at'] !== $programada) {
+                if (!$rec || (string)$rec['next_run_at'] !== $programadaOriginal) {
                     $cn->rollback();
                     continue;
                 }
                 $empresaId = (int)$rec['empresa_id'];
+                // El ciclo proyectado se usa solo para identificar la emisión y su auditoría.
+                $rec['next_run_at'] = $programada;
+                if ($recuperarMes !== null) {
+                    izzyFacturaRecurrenteLog('Recuperación autorizada: base '.$nombreDb.', rec '.$recId.', ciclo '.$programada.', desde '.$programadaOriginal);
+                }
                 $stmt = $cn->prepare('SELECT ejecucion_id, estado, facturas_id FROM facturas_recurrentes_ejecuciones WHERE rec_id = ? AND scheduled_at = ? FOR UPDATE');
                 $stmt->bind_param('is', $recId, $programada);
                 $stmt->execute();
@@ -282,7 +327,7 @@ foreach ($baseDatos as $nombreDb) {
                 }
                 $cn->begin_transaction();
                 $stmt = $cn->prepare('UPDATE facturas_recurrentes SET next_run_at = ?, estado = ?, ultimo_facturas_id = ?, fecha_dolar = ?, last_run_at = NOW(), ultimo_error = NULL WHERE rec_id = ? AND next_run_at = ?');
-                $stmt->bind_param('siisis', $proxima, $estado, $facturasId, $rec['fecha_dolar'], $recId, $programada);
+                $stmt->bind_param('siisis', $proxima, $estado, $facturasId, $rec['fecha_dolar'], $recId, $programadaOriginal);
                 if (!$stmt->execute() || $stmt->affected_rows !== 1) {
                     throw new RuntimeException('No se pudo avanzar la recurrencia.');
                 }
@@ -299,6 +344,9 @@ foreach ($baseDatos as $nombreDb) {
                 }
                 $contadores['generadas']++;
                 $resumen['generadas']++;
+                if ($recuperarMes !== null) {
+                    $contadores['recuperadas']++;
+                }
                 if ((int)$rec['enviar_correo'] === 1) {
                     try {
                         $correo = enviarCorreoFacturaRecurrente($facturasId, $empresaId, false);

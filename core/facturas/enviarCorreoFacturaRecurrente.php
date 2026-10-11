@@ -90,7 +90,7 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId, bool $enviarInte
             .'<p>¡Hola '.$nombreCliente.'!</p>'
             .'<p>Su factura recurrente <b>'.$numeroHtml.'</b> fue generada correctamente y ya está disponible.</p>'
             .'<div style="text-align:center;margin:25px 0">'
-            .'<a href="'.$urlHtml.'" target="_blank" style="display:inline-block;background:#198754;color:#fff;padding:13px 24px;text-decoration:none;border-radius:8px">Ver factura</a>'
+            .'<a href="'.$urlHtml.'" target="_blank" style="display:inline-block;background:#0b1f52;color:#fff;padding:13px 24px;text-decoration:none;border-radius:8px">Ver factura</a>'
             .'</div><p>Gracias por su confianza.</p><p><b>El Equipo de '.$nombreEmpresa.'</b></p></div>';
 
         try {

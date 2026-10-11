@@ -1168,74 +1168,103 @@ CREATE TABLE IF NOT EXISTS `documento` (
 
 CALL izzy_add_column('secuencia_facturacion','documento_id','INT NULL AFTER `fecha_registro`');
 
--- ============================================================================
--- 2026-10-11 | SEGURIDAD DE SECUENCIAS FISCALES (IDEMPOTENTE)
--- Ejecutar sin facturación simultánea, con respaldo previo.
--- Si existen números duplicados, detiene esta sección sin alterar registros.
--- No crea secuencias ni modifica autorizaciones SAR o fechas de vigencia.
--- ============================================================================
+-- IZZY | Seguridad fiscal compatible con borradores (idempotente)
+-- Requiere MySQL/MariaDB con columnas generadas STORED.
+-- Ejecutar con respaldo y sin facturacion simultanea.
+-- NO cambia el numero 0 ni modifica facturas existentes.
+-- El indice unico protege solo number > 0; NULL admite muchos borradores.
 
-DROP PROCEDURE IF EXISTS izzy_validar_secuencia_fiscal;
+DROP PROCEDURE IF EXISTS izzy_seguridad_facturas_borradores;
 DELIMITER $$
-CREATE PROCEDURE izzy_validar_secuencia_fiscal()
+CREATE PROCEDURE izzy_seguridad_facturas_borradores()
 BEGIN
-    DECLARE v_duplicados INT DEFAULT 0;
     DECLARE v_tablas INT DEFAULT 0;
+    DECLARE v_duplicados INT DEFAULT 0;
+    DECLARE v_columna INT DEFAULT 0;
     DECLARE v_indice INT DEFAULT 0;
+    DECLARE v_legacy INT DEFAULT 0;
 
     SELECT COUNT(*) INTO v_tablas
     FROM information_schema.TABLES
     WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME IN ('facturas', 'secuencia_facturacion');
 
-    IF v_tablas = 2 THEN
-        SELECT COUNT(*) INTO v_duplicados FROM (
-            SELECT empresa_id, secuencia_facturacion_id, `number`
-            FROM facturas
-            GROUP BY empresa_id, secuencia_facturacion_id, `number`
-            HAVING COUNT(*) > 1
-        ) AS duplicados;
+    IF v_tablas <> 2 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'IZZY: faltan tablas facturas o secuencia_facturacion';
+    END IF;
 
-        IF v_duplicados > 0 THEN
-            SIGNAL SQLSTATE '45000'
-                SET MESSAGE_TEXT = 'IZZY: existen numeros de factura duplicados. Revisar antes de migrar.';
-        END IF;
+    SELECT COUNT(*) INTO v_duplicados FROM (
+        SELECT empresa_id, secuencia_facturacion_id, `number`
+        FROM facturas
+        WHERE `number` > 0
+        GROUP BY empresa_id, secuencia_facturacion_id, `number`
+        HAVING COUNT(*) > 1
+    ) AS d;
 
-        -- InnoDB es necesario para que FOR UPDATE bloquee la fila fiscal.
-        CALL izzy_change_engine('secuencia_facturacion', 'InnoDB');
+    IF v_duplicados > 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'IZZY: hay duplicados fiscales positivos; revisar sin modificar datos';
+    END IF;
 
-        SELECT COUNT(*) INTO v_indice
-        FROM information_schema.STATISTICS
+    -- El indice anterior no permite multiples borradores con numero cero.
+    -- No se elimina automaticamente: requiere inspeccion manual si existiera.
+    SELECT COUNT(*) INTO v_legacy
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'facturas'
+      AND INDEX_NAME = 'uq_facturas_empresa_secuencia_numero';
+    IF v_legacy > 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'IZZY: existe indice anterior incompatible con borradores; revisar';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = 'facturas'
-          AND INDEX_NAME = 'uq_facturas_empresa_secuencia_numero';
+          AND TABLE_NAME = 'secuencia_facturacion'
+          AND ENGINE <> 'InnoDB'
+    ) THEN
+        ALTER TABLE `secuencia_facturacion` ENGINE=InnoDB;
+    END IF;
 
-        IF v_indice = 0 THEN
-            ALTER TABLE `facturas`
-                ADD UNIQUE KEY `uq_facturas_empresa_secuencia_numero`
-                (`empresa_id`, `secuencia_facturacion_id`, `number`);
-        END IF;
-    ELSE
-        SELECT 'AVISO: faltan facturas o secuencia_facturacion; sin cambios fiscales' AS izzy_secuencias;
+    SELECT COUNT(*) INTO v_columna
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'facturas'
+      AND COLUMN_NAME = 'numero_fiscal_unico';
+    IF v_columna = 0 THEN
+        ALTER TABLE `facturas`
+          ADD COLUMN `numero_fiscal_unico` INT
+          GENERATED ALWAYS AS (CASE WHEN `number` > 0 THEN `number` ELSE NULL END) STORED;
+    END IF;
+
+    SELECT COUNT(*) INTO v_indice
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'facturas'
+      AND INDEX_NAME = 'uq_facturas_numero_fiscal_emitido';
+    IF v_indice = 0 THEN
+        ALTER TABLE `facturas`
+          ADD UNIQUE KEY `uq_facturas_numero_fiscal_emitido`
+          (`empresa_id`, `secuencia_facturacion_id`, `numero_fiscal_unico`);
     END IF;
 END$$
 DELIMITER ;
 
-CALL izzy_validar_secuencia_fiscal();
-DROP PROCEDURE IF EXISTS izzy_validar_secuencia_fiscal;
+CALL izzy_seguridad_facturas_borradores();
+DROP PROCEDURE IF EXISTS izzy_seguridad_facturas_borradores;
 
 SELECT TABLE_NAME, ENGINE
 FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME IN ('facturas', 'secuencia_facturacion');
-
 SELECT INDEX_NAME, NON_UNIQUE
 FROM information_schema.STATISTICS
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME = 'facturas'
-  AND INDEX_NAME = 'uq_facturas_empresa_secuencia_numero'
+  AND INDEX_NAME = 'uq_facturas_numero_fiscal_emitido'
 GROUP BY INDEX_NAME, NON_UNIQUE;
-
 
 -- Eliminar columnas que el histórico marcó como retiradas.
 CALL izzy_drop_column('productos','cantidad');

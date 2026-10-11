@@ -99,6 +99,14 @@ function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal
 // Protección: el cron normal usa --execute. Sin esa bandera, solo consulta.
 $ejecutar = in_array('--execute', $argv ?? [], true);
 $soloDb = null;
+// Las ejecuciones atrasadas requieren revisión: el generador heredado utiliza
+// conexiones independientes y no permite garantizar rollback integral.
+// Por seguridad se bloquea --execute hasta implementar idempotencia completa.
+if ($ejecutar) {
+    fwrite(STDERR, 'EJECUCION BLOQUEADA: falta verificar atomicidad de facturas, correlativos y reintentos antes de emitir documentos fiscales.'.PHP_EOL);
+    exit(3);
+}
+
 foreach (($argv ?? []) as $argumento) {
     if (str_starts_with($argumento, '--db=')) {
         $soloDb = substr($argumento, 5);
@@ -158,7 +166,10 @@ foreach ($baseDatos as $nombreDb) {
         $conexion = $mainModelCron->connection();
         $tablas = $conexion->query("SELECT COUNT(*) AS total FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('facturas_recurrentes','facturas_recurrentes_detalle','facturas_recurrentes_ejecuciones')");
         if (!$tablas || (int)$tablas->fetch_assoc()['total'] !== 3) {
-            throw new RuntimeException('Faltan tablas de facturación recurrente.');
+            // Una base recién creada puede no tener todavía el esquema importado.
+            izzyFacturaRecurrenteLog('Base '.$nombreDb.': esquema de recurrencias incompleto; omitida.');
+            $conexion->close();
+            continue;
         }
         $pendientes = $conexion->query(
             "SELECT rec_id FROM facturas_recurrentes

@@ -175,7 +175,7 @@ foreach ($baseDatos as $nombreDb) {
             "SELECT rec_id FROM facturas_recurrentes
              WHERE estado = 1 AND next_run_at <= NOW()
                AND (until_at IS NULL OR DATE(next_run_at) <= until_at)
-             ORDER BY next_run_at ASC LIMIT 25"
+             ORDER BY next_run_at ASC"
         );
         if ($pendientes === false) {
             throw new RuntimeException('Consulta de recurrencias: '.$conexion->error);

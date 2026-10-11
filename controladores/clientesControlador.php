@@ -176,7 +176,7 @@ class clientesControlador extends clientesModelo {
             'correo' => mainModel::cleanStringStrtolower($_POST['email'] ?? ''),
             'password' => mainModel::cleanString(empty($_POST['user_pass']) ? mainModel::generar_password_complejo() : $_POST['user_pass']),
             'sistema_id' => (int)mainModel::cleanString($_POST['sistema_id'] ?? 1),
-            'planes_id' => (int)mainModel::cleanString($_POST['planes_id'] ?? 1),
+            'planes_id' => 6, // Registro público: Plan Gratis obligatorio; ignorar valor enviado por navegador
             'eslogan' => mainModel::cleanString($_POST['eslogan'] ?? ''),
             'otra_informacion' => mainModel::cleanString($_POST['otra_informacion'] ?? ''),
             'ubicacion' => mainModel::cleanString($_POST['ubicacion'] ?? ''),
@@ -212,7 +212,7 @@ class clientesControlador extends clientesModelo {
         }
 
         if ($datos['planes_id'] <= 0) {
-            $datos['planes_id'] = 1;
+            $datos['planes_id'] = 6;
         }
 
         if ($datos['sistema_id'] <= 0) {

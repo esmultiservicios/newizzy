@@ -486,7 +486,7 @@ $("#registrarse").click(function(e) {
     const pass2 = $('#user-repeatpass').val();
     const clientes_id = 0;
     const sistema_id = 1;
-    const planes_id = 1;
+    const planes_id = 6; // Plan Gratis para nuevos registros
     const eslogan = '';
     const otra_informacion = '';
     const celular = '';

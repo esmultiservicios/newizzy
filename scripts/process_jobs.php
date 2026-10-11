@@ -191,6 +191,17 @@ class JobProcessor {
             throw new Exception('No existe el archivo SQL de plantilla: ' . $sqlFile);
         }
 
+        // Validación preventiva: la plantilla histórica carece de columnas esenciales
+        // actuales. No modificar ni importar una base si la estructura es incompatible.
+        $sqlSchema = file_get_contents($sqlFile);
+        if ($sqlSchema === false ||
+            !preg_match('/CREATE\s+TABLE\s+`?server_customers`?\s*\((.*?)\)\s*ENGINE/is', $sqlSchema, $schemaMatch) ||
+            !preg_match('/`db_imported`\s+/', $schemaMatch[1]) ||
+            !preg_match('/CREATE\s+TABLE\s+`?planes`?\s*\((.*?)\)\s*ENGINE/is', $sqlSchema, $planesMatch) ||
+            !preg_match('/`configuraciones`\s+/', $planesMatch[1])) {
+            throw new Exception('La plantilla SQL está desactualizada. Regenerar estructura antes de aprovisionar.');
+        }
+
         $imported = $this->dbSetup->importDatabase(
             $dbName,
             $job['db_user'],

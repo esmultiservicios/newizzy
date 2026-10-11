@@ -263,7 +263,12 @@ foreach ($baseDatos as $nombreDb) {
                     $detalle[] = $fila;
                 }
                 $stmt->close();
-                $rec['fecha_dolar'] = $hoy->format('Y-m-d');
+                // Fecha única de emisión: la del momento real de generar el documento.
+                // La fecha programada permanece en scheduled_at para auditoría.
+                $instanteEmision = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
+                $rec['fecha_emision'] = $instanteEmision->format('Y-m-d');
+                $rec['fecha_registro_emision'] = $instanteEmision->format('Y-m-d H:i:s');
+                $rec['fecha_dolar'] = $rec['fecha_emision'];
                 $factura = $servicio->generar($rec, $detalle, $cn);
                 $facturasId = (int)$factura['facturas_id'];
                 if ($facturasId <= 0) {

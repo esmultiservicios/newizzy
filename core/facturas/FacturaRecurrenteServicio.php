@@ -16,9 +16,18 @@ class FacturaRecurrenteServicio extends facturasControlador
         $usuarioId = (int)$recurrente['usuario_crea'];
         $esProforma = ((int)$recurrente['tipo_documento'] === 1);
         $documentoId = $esProforma ? 4 : 1;
-        $fecha = date('Y-m-d');
+        // Una misma fecha real de emisión para encabezado, detalle, CxC y tasa.
+        // No utilizar next_run_at como fecha fiscal del documento.
+        $zona = new DateTimeZone('America/Tegucigalpa');
+        $instanteEmision = new DateTimeImmutable('now', $zona);
+        $fecha = (string)($recurrente['fecha_emision'] ?? $instanteEmision->format('Y-m-d'));
+        $fechaRegistro = (string)($recurrente['fecha_registro_emision'] ?? $instanteEmision->format('Y-m-d H:i:s'));
+        if (!DateTimeImmutable::createFromFormat('!Y-m-d', $fecha, $zona)
+            || !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $fechaRegistro)
+            || substr($fechaRegistro, 0, 10) !== $fecha) {
+            throw new InvalidArgumentException('Fecha de emisión inconsistente.');
+        }
         // El marcador de trazabilidad se guarda en el encabezado fiscal.
-        $fechaRegistro = date('Y-m-d H:i:s');
 
         if ($empresaId <= 0 || $clienteId <= 0 || $colaboradorId <= 0 || empty($detalle)) {
             throw new Exception('La plantilla recurrente no tiene encabezado o detalle válido.');
@@ -98,7 +107,7 @@ class FacturaRecurrenteServicio extends facturasControlador
                 'usuario' => $usuarioId,
                 'fecha_registro' => $fechaRegistro,
                 'empresa' => $empresaId,
-                'fecha_dolar' => (string)$recurrente['fecha_dolar'],
+                'fecha_dolar' => $fecha,
                 'exoneracion_orden' => $recurrente['exoneracion_orden'],
                 'exoneracion_constancia' => $recurrente['exoneracion_constancia'],
                 'exoneracion_sag' => $recurrente['exoneracion_sag'],

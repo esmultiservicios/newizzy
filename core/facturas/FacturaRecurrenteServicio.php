@@ -8,13 +8,6 @@ class FacturaRecurrenteServicio extends facturasControlador
      * inventario, proforma y CxC del controlador normal.
      * La transacción la controla procesarFacturasRecurrentes.php.
      */
-    private function notasConMarcaRecurrente(string $notas, int $recId, string $programada): string
-    {
-        $marca = '[IZZY-REC:'.$recId.':'.date('YmdHis', strtotime($programada)).']';
-        $disponible = 255 - strlen($marca) - 1;
-        return rtrim(mb_strcut(trim($notas), 0, max(0, $disponible), 'UTF-8')).' '.$marca;
-    }
-
     public function generar(array $recurrente, array $detalle, $conexion)
     {
         $empresaId = (int)$recurrente['empresa_id'];
@@ -34,7 +27,6 @@ class FacturaRecurrenteServicio extends facturasControlador
             || substr($fechaRegistro, 0, 10) !== $fecha) {
             throw new InvalidArgumentException('Fecha de emisión inconsistente.');
         }
-        // El marcador de trazabilidad se guarda en el encabezado fiscal.
 
         if ($empresaId <= 0 || $clienteId <= 0 || $colaboradorId <= 0 || empty($detalle)) {
             throw new Exception('La plantilla recurrente no tiene encabezado o detalle válido.');
@@ -108,7 +100,7 @@ class FacturaRecurrenteServicio extends facturasControlador
                 'numero' => (int)$numeroFactura['data']['numero'],
                 'colaboradores_id' => $colaboradorId,
                 'importe' => 0,
-                'notas' => $this->notasConMarcaRecurrente((string)$recurrente['notas'], (int)$recurrente['rec_id'], (string)$recurrente['next_run_at']),
+                'notas' => (string)($recurrente['notas'] ?? ''),
                 'fecha' => $fecha,
                 'estado' => 3,
                 'usuario' => $usuarioId,

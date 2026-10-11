@@ -271,21 +271,10 @@ foreach ($baseDatos as $nombreDb) {
                     $resumen['revision']++;
                     continue;
                 }
-                // Evitar duplicación de documentos emitidos por una ejecución
-                // previa cuyo historial se perdió, usando la marca persistente.
-                $marca = '[IZZY-REC:'.$recId.':'.$fechaProgramada->format('YmdHis').']';
-                $stmt = $cn->prepare('SELECT facturas_id FROM facturas WHERE notas LIKE ? LIMIT 1');
-                $busqueda = '%'.$marca.'%';
-                $stmt->bind_param('s', $busqueda);
-                $stmt->execute();
-                $encontrada = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-                if ($encontrada) {
-                    $cn->rollback();
-                    $contadores['revision']++;
-                    $resumen['revision']++;
-                    continue;
-                }
+                // La idempotencia se controla mediante la reserva persistente y la
+                // clave única (rec_id, scheduled_at) de facturas_recurrentes_ejecuciones.
+                // No insertar marcas técnicas en las notas visibles de las facturas.
+                // Si se pierde el historial, conciliar manualmente antes de reintentar.
                 $stmt = $cn->prepare('INSERT INTO facturas_recurrentes_ejecuciones (rec_id, empresa_id, scheduled_at, estado, correo_estado, mensaje, fecha_inicio) VALUES (?, ?, ?, 0, 0, ?, NOW())');
                 $mensajeReserva = 'Reservada; emisión en curso. No reintentar automáticamente sin conciliación.';
                 $stmt->bind_param('iiss', $recId, $empresaId, $programada, $mensajeReserva);

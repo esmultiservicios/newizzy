@@ -96,34 +96,85 @@ function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal
         ->format('Y-m-d H:i:s');
 }
 
+// Protección: el cron normal usa --execute. Sin esa bandera, solo consulta.
+$ejecutar = in_array('--execute', $argv ?? [], true);
+$soloDb = null;
+foreach (($argv ?? []) as $argumento) {
+    if (str_starts_with($argumento, '--db=')) {
+        $soloDb = substr($argumento, 5);
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $soloDb)) {
+            fwrite(STDERR, "Nombre de base de datos inválido.\n");
+            exit(1);
+        }
+    }
+}
+
+$lock = fopen($logDir.'/facturas_recurrentes.lock', 'c');
+if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
+    fwrite(STDERR, "Otro procesamiento de facturas recurrentes está activo.\n");
+    exit(1);
+}
+
 $mainModelCron = new mainModel();
-$conexion = $mainModelCron->connection();
-if (!$conexion) {
-    fwrite(STDERR, "No se pudo establecer la conexión con la base de datos.\n");
+$GLOBALS['db'] = DB_MAIN;
+$conexionPrincipal = $mainModelCron->connection();
+$baseDatos = [DB_MAIN];
+$clientes = $conexionPrincipal->query("SELECT db FROM server_customers WHERE estado = 1 AND db IS NOT NULL AND db <> ''");
+if ($clientes === false) {
+    fwrite(STDERR, 'No se pudieron enumerar las bases de clientes: '.$conexionPrincipal->error.PHP_EOL);
     exit(1);
 }
+while ($cliente = $clientes->fetch_assoc()) {
+    $nombre = (string)$cliente['db'];
+    if (preg_match('/^[a-zA-Z0-9_]+$/', $nombre)) {
+        $baseDatos[] = $nombre;
+    }
+}
+$baseDatos = array_values(array_unique($baseDatos));
+if ($soloDb !== null) {
+    if (!in_array($soloDb, $baseDatos, true)) {
+        fwrite(STDERR, "La base solicitada no pertenece a las bases activas registradas.\n");
+        exit(1);
+    }
+    $baseDatos = [$soloDb];
+}
+$conexionPrincipal->close();
 $servicio = new FacturaRecurrenteServicio();
-$resumen = ['generadas' => 0, 'errores' => 0, 'correos' => 0, 'detalle' => []];
+$resumen = ['modo' => $ejecutar ? 'EJECUCION' : 'SIMULACION', 'generadas' => 0, 'errores' => 0, 'correos' => 0, 'bases' => []];
 
-$pendientes = $conexion->query(
-    "SELECT rec_id
-     FROM facturas_recurrentes
-     WHERE estado = 1
-       AND next_run_at <= NOW()
-       AND (until_at IS NULL OR DATE(next_run_at) <= until_at)
-     ORDER BY next_run_at ASC
-     LIMIT 25"
-);
-
-if ($pendientes === false) {
-    fwrite(STDERR, 'No se pudieron consultar recurrencias: '.$conexion->error.PHP_EOL);
-    exit(1);
-}
-
-$ids = [];
-while ($fila = $pendientes->fetch_assoc()) {
-    $ids[] = (int)$fila['rec_id'];
-}
+foreach ($baseDatos as $nombreDb) {
+    $GLOBALS['db'] = $nombreDb;
+    $resumen['bases'][$nombreDb] = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0];
+    try {
+        $conexion = $mainModelCron->connection();
+        $tablas = $conexion->query("SELECT COUNT(*) AS total FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('facturas_recurrentes','facturas_recurrentes_detalle','facturas_recurrentes_ejecuciones')");
+        if (!$tablas || (int)$tablas->fetch_assoc()['total'] !== 3) {
+            throw new RuntimeException('Faltan tablas de facturación recurrente.');
+        }
+        $pendientes = $conexion->query(
+            "SELECT rec_id FROM facturas_recurrentes
+             WHERE estado = 1 AND next_run_at <= NOW()
+               AND (until_at IS NULL OR DATE(next_run_at) <= until_at)
+             ORDER BY next_run_at ASC LIMIT 25"
+        );
+        if ($pendientes === false) {
+            throw new RuntimeException('Consulta de recurrencias: '.$conexion->error);
+        }
+        $ids = [];
+        while ($fila = $pendientes->fetch_assoc()) {
+            $ids[] = (int)$fila['rec_id'];
+        }
+        $resumen['bases'][$nombreDb]['pendientes'] = count($ids);
+        if (!$ejecutar) {
+            $conexion->close();
+            continue;
+        }
+    } catch (Throwable $errorDb) {
+        $resumen['errores']++;
+        $resumen['bases'][$nombreDb]['errores']++;
+        izzyFacturaRecurrenteLog('Base '.$nombreDb.': '.$errorDb->getMessage());
+        continue;
+    }
 
 foreach ($ids as $recId) {
     $ejecucionId = 0;
@@ -263,6 +314,7 @@ foreach ($ids as $recId) {
 
         $conexion->commit();
         $resumen['generadas']++;
+        $resumen['bases'][$nombreDb]['generadas']++;
 
         if ($enviarCorreo) {
             try {
@@ -304,10 +356,11 @@ foreach ($ids as $recId) {
             }
         }
 
-        $resumen['detalle'][] = ['rec_id' => $recId, 'facturas_id' => $facturasId, 'ok' => true];
+        // Se omiten identificadores sensibles del resumen de consola.
     } catch (Throwable $e) {
         $conexion->rollback();
         $resumen['errores']++;
+        $resumen['bases'][$nombreDb]['errores']++;
         $error = mb_substr($e->getMessage(), 0, 2000);
 
         $stmtErrorRec = $conexion->prepare('UPDATE facturas_recurrentes SET ultimo_error = ? WHERE rec_id = ?');
@@ -335,10 +388,15 @@ foreach ($ids as $recId) {
             }
         }
 
-        $resumen['detalle'][] = ['rec_id' => $recId, 'ok' => false, 'error' => $error];
-        izzyFacturaRecurrenteLog($recId.': '.$error);
+        // El error detallado queda en el registro privado.
+        izzyFacturaRecurrenteLog('Base '.$nombreDb.', recurrencia '.$recId.': '.$error);
     }
 }
 
+    $conexion->close();
+}
+$GLOBALS['db'] = DB_MAIN;
+flock($lock, LOCK_UN);
+fclose($lock);
 echo json_encode($resumen, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES).PHP_EOL;
 exit($resumen['errores'] > 0 ? 2 : 0);

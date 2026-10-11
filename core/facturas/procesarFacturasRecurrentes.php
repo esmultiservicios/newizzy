@@ -178,7 +178,7 @@ $hoy = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
  */
 foreach ($baseDatos as $nombreDb) {
     $GLOBALS['db'] = $nombreDb;
-    $contadores = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'recuperadas' => 0];
+    $contadores = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'recuperadas' => 0, 'bloqueadas_secuencia' => 0];
     $resumen['bases'][$nombreDb] = $contadores;
     $cn = null;
     try {
@@ -237,9 +237,40 @@ foreach ($baseDatos as $nombreDb) {
                 $fechaProgramada = new DateTimeImmutable($programada, new DateTimeZone('America/Tegucigalpa'));
                 // Ventana definida: fecha programada y día siguiente. Las más antiguas
                 // requieren autorización y conciliación manual, sin saltar ciclos.
-                if ($recuperarMes === null && $fechaProgramada->format('Y-m-d') < $hoy->modify('-1 day')->format('Y-m-d')) {
+                // Las recurrencias retenidas por falta de autorización fiscal
+                // siguen pendientes y se reintentan al día siguiente tras renovar.
+                $consultaRetenida = $cn->prepare('SELECT ultimo_error FROM facturas_recurrentes WHERE rec_id = ?');
+                $consultaRetenida->bind_param('i', $recId);
+                $consultaRetenida->execute();
+                $datoRetenido = $consultaRetenida->get_result()->fetch_assoc();
+                $consultaRetenida->close();
+                $esRetenida = str_starts_with((string)($datoRetenido['ultimo_error'] ?? ''), '[SECUENCIA_PENDIENTE]');
+                if ($recuperarMes === null && !$esRetenida && $fechaProgramada->format('Y-m-d') < $hoy->modify('-1 day')->format('Y-m-d')) {
                     $contadores['revision']++;
                     $resumen['revision']++;
+                    continue;
+                }
+                // No crear historial de ejecución ni reservar correlativo
+                // mientras falte numeración fiscal vigente.
+                $datosPrevia = $cn->prepare('SELECT empresa_id, tipo_documento, ultimo_error FROM facturas_recurrentes WHERE rec_id = ? AND estado = 1');
+                $datosPrevia->bind_param('i', $recId);
+                $datosPrevia->execute();
+                $pre = $datosPrevia->get_result()->fetch_assoc();
+                $datosPrevia->close();
+                if (!$pre) { continue; }
+                $fechaHoyFiscal = (new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa')))->format('Y-m-d');
+                $disponible = $servicio->verificarSecuenciaRecurrente($cn, (int)$pre['empresa_id'], (int)$pre['tipo_documento'] === 1 ? 4 : 1, $fechaHoyFiscal);
+                if (!$disponible['disponible']) {
+                    $marcaAnterior = (string)($pre['ultimo_error'] ?? '');
+                    $marcaNueva = '[SECUENCIA_PENDIENTE] '.$fechaHoyFiscal.' | '.$disponible['motivo'];
+                    // Un único aviso por día y recurrencia, no uno cada cinco minutos.
+                    if ($marcaAnterior !== $marcaNueva) {
+                        $marcaStmt = $cn->prepare('UPDATE facturas_recurrentes SET ultimo_error = ? WHERE rec_id = ? AND next_run_at = ?');
+                        $marcaStmt->bind_param('sis', $marcaNueva, $recId, $programadaOriginal);
+                        $marcaStmt->execute();
+                        $marcaStmt->close();
+                        $contadores['bloqueadas_secuencia']++;
+                    }
                     continue;
                 }
                 $cn->begin_transaction();
@@ -360,6 +391,14 @@ foreach ($baseDatos as $nombreDb) {
                 $contadores['errores']++;
                 $resumen['errores']++;
                 $detalleError = mb_substr($error->getMessage(), 0, 1200);
+                // Si la secuencia cambió entre prevalidación y emisión, conservar
+                // pendiente; una reserva ambigua exige revisión antes de reintentar.
+                if ($error instanceof SecuenciaFiscalNoDisponibleException && !$reservaConfirmada) {
+                    $contadores['errores']--;
+                    $resumen['errores']--;
+                    $contadores['bloqueadas_secuencia']++;
+                    continue;
+                }
                 izzyFacturaRecurrenteLog('Base '.$nombreDb.', rec '.$recId.': '.$detalleError);
                 if ($reservaConfirmada && $ejecucionId > 0) {
                     try {
@@ -378,7 +417,7 @@ foreach ($baseDatos as $nombreDb) {
             }
         }
         // Resumen consolidado por empresa, sin correo por cada documento.
-        if (($contadores['generadas'] + $contadores['errores']) > 0) {
+        if (($contadores['generadas'] + $contadores['errores'] + $contadores['bloqueadas_secuencia']) > 0) {
             $empresas = $cn->query('SELECT empresa_id FROM empresa');
             if ($empresas) {
                 while ($empresa = $empresas->fetch_assoc()) {

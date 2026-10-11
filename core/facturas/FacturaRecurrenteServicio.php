@@ -1,8 +1,41 @@
 <?php
 // Ubicación: core/facturas/FacturaRecurrenteServicio.php
 
+class SecuenciaFiscalNoDisponibleException extends RuntimeException {}
+
 class FacturaRecurrenteServicio extends facturasControlador
 {
+    public function verificarSecuenciaRecurrente($cn, int $empresaId, int $documentoId, string $fecha): array
+    {
+        $stmt = $cn->prepare('SELECT secuencia_facturacion_id, siguiente, rango_inicial, rango_final, fecha_activacion, fecha_limite FROM secuencia_facturacion WHERE empresa_id = ? AND documento_id = ? AND activo = 1 ORDER BY secuencia_facturacion_id DESC LIMIT 1');
+        if (!$stmt) { throw new RuntimeException('No se pudo consultar la autorización fiscal: '.$cn->error); }
+        $stmt->bind_param('ii', $empresaId, $documentoId);
+        $stmt->execute();
+        $sec = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$sec) { return ['disponible'=>false, 'motivo'=>'No existe secuencia fiscal activa.']; }
+        if ($fecha < $sec['fecha_activacion'] || $fecha > $sec['fecha_limite']) {
+            return ['disponible'=>false, 'motivo'=>'La secuencia fiscal no está vigente (fecha de activación o vencimiento).'];
+        }
+        $inicio = (int)$sec['rango_inicial'];
+        $fin = (int)$sec['rango_final'];
+        if ($inicio <= 0 || $fin < $inicio) {
+            return ['disponible'=>false, 'motivo'=>'La secuencia fiscal tiene un rango inválido.'];
+        }
+        if (max($inicio, (int)$sec['siguiente']) <= $fin) {
+            return ['disponible'=>true, 'motivo'=>''];
+        }
+        // La facturación normal puede reutilizar números fallidos válidos.
+        $stmt = $cn->prepare('SELECT 1 FROM secuencia_factura_fallida AS sf WHERE sf.empresa_id = ? AND sf.documento_id = ? AND sf.numero BETWEEN ? AND ? AND NOT EXISTS (SELECT 1 FROM facturas AS f WHERE f.empresa_id = sf.empresa_id AND f.secuencia_facturacion_id = ? AND f.number = sf.numero) LIMIT 1');
+        if (!$stmt) { throw new RuntimeException('No se pudo consultar la numeración recuperable.'); }
+        $seqId = (int)$sec['secuencia_facturacion_id'];
+        $stmt->bind_param('iiiii', $empresaId, $documentoId, $inicio, $fin, $seqId);
+        $stmt->execute();
+        $hay = (bool)$stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return ['disponible'=>$hay, 'motivo'=>$hay ? '' : 'La secuencia fiscal alcanzó el límite de numeración autorizada.'];
+    }
+
     /**
      * Genera una factura al crédito usando la misma secuencia, impuestos,
      * inventario, proforma y CxC del controlador normal.
@@ -45,6 +78,13 @@ class FacturaRecurrenteServicio extends facturasControlador
         $stmtCliente->close();
         if (!$clienteExiste || $clienteExiste->num_rows === 0) {
             throw new Exception('El cliente de la recurrencia ya no está disponible en esta base de datos.');
+        }
+
+        // Comprobación anticipada: nunca consumir número si la autorización
+        // fiscal venció o ya no hay números disponibles.
+        $disponibilidad = $this->verificarSecuenciaRecurrente($conexion, $empresaId, $documentoId, $fecha);
+        if (!$disponibilidad['disponible']) {
+            throw new SecuenciaFiscalNoDisponibleException($disponibilidad['motivo']);
         }
 
         // Utiliza el mismo correlativo interno que la facturación normal.

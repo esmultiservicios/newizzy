@@ -34,7 +34,7 @@ class facturasControlador extends facturasModelo {
             }
 
             // Bloquear secuencia activa del documento
-            $sqlSec = "SELECT secuencia_facturacion_id, prefijo, siguiente, rango_final, incremento, relleno
+            $sqlSec = "SELECT secuencia_facturacion_id, prefijo, siguiente, rango_inicial, rango_final, incremento, relleno, fecha_activacion, fecha_limite
                        FROM secuencia_facturacion
                        WHERE empresa_id = ? AND documento_id = ? AND activo = 1
                        LIMIT 1 FOR UPDATE";
@@ -57,6 +57,16 @@ class facturasControlador extends facturasModelo {
             $sec = $resSec->fetch_assoc();
             $stmtSec->close();
 
+            // Regla fiscal compartida por facturas manuales y recurrentes.
+            $hoyFiscal = (new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa')))->format('Y-m-d');
+            if ($hoyFiscal < $sec['fecha_activacion'] || $hoyFiscal > $sec['fecha_limite']) {
+                if ($conexionLocal) $conexion->rollback();
+                return ['error'=>true, 'mensaje'=>'Secuencia fiscal fuera de su período autorizado (activación/vencimiento).'];
+            }
+            if ((int)$sec['rango_inicial'] <= 0 || (int)$sec['rango_final'] < (int)$sec['rango_inicial']) {
+                if ($conexionLocal) $conexion->rollback();
+                return ['error'=>true, 'mensaje'=>'Rango fiscal inválido.'];
+            }
             $secuenciaId = (int)$sec['secuencia_facturacion_id'];
 
             // Helper local: verifica si el número ya existe en facturas para esta empresa/secuencia.
@@ -123,7 +133,7 @@ class facturasControlador extends facturasModelo {
                     $stmtDel->close();
                 }
 
-                if($numeroFallido <= 0){
+                if($numeroFallido < (int)$sec['rango_inicial'] || $numeroFallido > (int)$sec['rango_final']){
                     continue;
                 }
 
@@ -146,7 +156,7 @@ class facturasControlador extends facturasModelo {
             }
 
             // 2) Secuencia normal: saltar cualquier número que ya exista en facturas.
-            $siguiente = (int)$sec['siguiente'];
+            $siguiente = max((int)$sec['siguiente'], (int)$sec['rango_inicial']);
             $rangoFinal = (int)$sec['rango_final'];
             $incremento = (int)$sec['incremento'];
 

@@ -282,7 +282,7 @@ function enviarResumenRecurrente(int $empresaId, array $estadisticas): bool
         }
         $esc = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
         $filas = '';
-        foreach (['generadas' => 'Generadas', 'errores' => 'Errores', 'revision' => 'Requieren revisión', 'recuperadas' => 'Recuperadas'] as $clave => $etiqueta) {
+        foreach (['generadas' => 'Generadas', 'errores' => 'Errores', 'revision' => 'Requieren revisión', 'recuperadas' => 'Recuperadas', 'bloqueadas_secuencia' => 'Pendientes por secuencia fiscal'] as $clave => $etiqueta) {
             $filas .= '<tr><td style="padding:12px;border-bottom:1px solid #e5eaf3">'.$esc($etiqueta).'</td>'
                 .'<td style="padding:12px;text-align:right;border-bottom:1px solid #e5eaf3"><b>'.(int)($estadisticas[$clave] ?? 0).'</b></td></tr>';
         }
@@ -291,7 +291,7 @@ function enviarResumenRecurrente(int $empresaId, array $estadisticas): bool
             .'<div style="background:#0b1f52;padding:22px;color:white;font-size:21px;font-weight:bold">IZZY · Facturación recurrente</div>'
             .'<div style="padding:24px"><p>Resumen de la ejecución automática del '.date('d/m/Y H:i').'.</p>'
             .'<table style="width:100%;border-collapse:collapse">'.$filas.'</table>'
-            .'<p style="font-size:13px;color:#52617c">Las recurrencias que requieren revisión no se emitirán automáticamente fuera de plazo. Revise el historial de ejecuciones o contacte a soporte.</p>'
+            .'<p style="font-size:13px;color:#52617c">Las facturas pendientes por secuencia fiscal NO se han emitido. Actualice la autorización fiscal para que el sistema las reintente automáticamente con la fecha real de emisión. Los demás errores requieren revisión manual.</p>'
             .'</div></div></div>';
         ob_start();
         try {

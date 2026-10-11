@@ -99,13 +99,6 @@ function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal
 // Protección: el cron normal usa --execute. Sin esa bandera, solo consulta.
 $ejecutar = in_array('--execute', $argv ?? [], true);
 $soloDb = null;
-// Las ejecuciones atrasadas requieren revisión: el generador heredado utiliza
-// conexiones independientes y no permite garantizar rollback integral.
-// Por seguridad se bloquea --execute hasta implementar idempotencia completa.
-if ($ejecutar) {
-    fwrite(STDERR, 'EJECUCION BLOQUEADA: falta verificar atomicidad de facturas, correlativos y reintentos antes de emitir documentos fiscales.'.PHP_EOL);
-    exit(3);
-}
 
 foreach (($argv ?? []) as $argumento) {
     if (str_starts_with($argumento, '--db=')) {
@@ -157,263 +150,215 @@ if ($soloDb !== null) {
 }
 $conexionPrincipal->close();
 $servicio = new FacturaRecurrenteServicio();
-$resumen = ['modo' => $ejecutar ? 'EJECUCION' : 'SIMULACION', 'generadas' => 0, 'errores' => 0, 'correos' => 0, 'bases' => []];
+$resumen = ['modo' => $ejecutar ? 'EJECUCION' : 'SIMULACION', 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'correos' => 0, 'bases' => []];
+$hoy = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
 
+/**
+ * El generador heredado usa otras conexiones. Se confirma una reserva durable
+ * ANTES de invocarlo. Un fallo ambiguo no se reintenta automáticamente.
+ */
 foreach ($baseDatos as $nombreDb) {
     $GLOBALS['db'] = $nombreDb;
-    $resumen['bases'][$nombreDb] = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0];
+    $contadores = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'recuperadas' => 0];
+    $resumen['bases'][$nombreDb] = &$contadores;
+    $cn = null;
     try {
-        $conexion = $mainModelCron->connection();
-        $tablas = $conexion->query("SELECT COUNT(*) AS total FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('facturas_recurrentes','facturas_recurrentes_detalle','facturas_recurrentes_ejecuciones')");
+        $cn = $mainModelCron->connection();
+        if (!$cn) {
+            throw new RuntimeException('Conexión de empresa no disponible.');
+        }
+        $tablas = $cn->query("SELECT COUNT(*) AS total FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('facturas_recurrentes','facturas_recurrentes_detalle','facturas_recurrentes_ejecuciones')");
         if (!$tablas || (int)$tablas->fetch_assoc()['total'] !== 3) {
-            // Una base recién creada puede no tener todavía el esquema importado.
-            izzyFacturaRecurrenteLog('Base '.$nombreDb.': esquema de recurrencias incompleto; omitida.');
-            $conexion->close();
+            izzyFacturaRecurrenteLog('Base '.$nombreDb.': tablas de recurrencias incompletas.');
+            $contadores['revision']++;
+            $resumen['revision']++;
             continue;
         }
-        $pendientes = $conexion->query(
-            "SELECT rec_id FROM facturas_recurrentes
-             WHERE estado = 1 AND next_run_at <= NOW()
-               AND (until_at IS NULL OR DATE(next_run_at) <= until_at)
-             ORDER BY next_run_at ASC"
-        );
-        if ($pendientes === false) {
-            throw new RuntimeException('Consulta de recurrencias: '.$conexion->error);
+        $consulta = $cn->query("SELECT rec_id, next_run_at FROM facturas_recurrentes WHERE estado = 1 AND next_run_at <= NOW() AND (until_at IS NULL OR DATE(next_run_at) <= until_at) ORDER BY next_run_at ASC, rec_id ASC");
+        if (!$consulta) {
+            throw new RuntimeException('No se pudieron consultar recurrencias: '.$cn->error);
         }
-        $ids = [];
-        while ($fila = $pendientes->fetch_assoc()) {
-            $ids[] = (int)$fila['rec_id'];
+        $pendientes = [];
+        while ($fila = $consulta->fetch_assoc()) {
+            $pendientes[] = $fila;
         }
-        $resumen['bases'][$nombreDb]['pendientes'] = count($ids);
+        $consulta->free();
+        $contadores['pendientes'] = count($pendientes);
         if (!$ejecutar) {
-            $conexion->close();
             continue;
         }
-    } catch (Throwable $errorDb) {
-        $resumen['errores']++;
-        $resumen['bases'][$nombreDb]['errores']++;
-        izzyFacturaRecurrenteLog('Base '.$nombreDb.': '.$errorDb->getMessage());
-        continue;
-    }
-
-foreach ($ids as $recId) {
-    $ejecucionId = 0;
-    $facturasId = 0;
-    $empresaId = 0;
-    $enviarCorreo = false;
-    $programada = null;
-    $correoInicial = 3;
-
-    try {
-        $conexion->begin_transaction();
-
-        $stmtRec = $conexion->prepare(
-            'SELECT * FROM facturas_recurrentes WHERE rec_id = ? AND estado = 1 LIMIT 1 FOR UPDATE'
-        );
-        $stmtRec->bind_param('i', $recId);
-        $stmtRec->execute();
-        $resRec = $stmtRec->get_result();
-        $recurrente = $resRec ? $resRec->fetch_assoc() : null;
-        $stmtRec->close();
-
-        if (!$recurrente || strtotime($recurrente['next_run_at']) > time()) {
-            $conexion->rollback();
-            continue;
-        }
-
-        $empresaId = (int)$recurrente['empresa_id'];
-        $programada = $recurrente['next_run_at'];
-        $enviarCorreo = ((int)$recurrente['enviar_correo'] === 1);
-
-        $correoInicial = $enviarCorreo ? 0 : 3;
-
-        $stmtBuscarEjecucion = $conexion->prepare(
-            'SELECT ejecucion_id, estado
-             FROM facturas_recurrentes_ejecuciones
-             WHERE rec_id = ? AND scheduled_at = ?
-             LIMIT 1 FOR UPDATE'
-        );
-        $stmtBuscarEjecucion->bind_param('is', $recId, $programada);
-        $stmtBuscarEjecucion->execute();
-        $ejecucionAnterior = $stmtBuscarEjecucion->get_result()->fetch_assoc();
-        $stmtBuscarEjecucion->close();
-
-        if ($ejecucionAnterior) {
-            // Generada o actualmente procesándose: no duplicar.
-            if (in_array((int)$ejecucionAnterior['estado'], [0, 1], true)) {
-                $conexion->rollback();
-                continue;
-            }
-
-            // Estado 2: el intento anterior falló y se permite reintentarlo.
-            $ejecucionId = (int)$ejecucionAnterior['ejecucion_id'];
-            $stmtReintento = $conexion->prepare(
-                'UPDATE facturas_recurrentes_ejecuciones
-                 SET estado = 0, correo_estado = ?, facturas_id = NULL,
-                     mensaje = NULL, fecha_inicio = NOW(), fecha_fin = NULL
-                 WHERE ejecucion_id = ?'
-            );
-            $stmtReintento->bind_param('ii', $correoInicial, $ejecucionId);
-            if (!$stmtReintento->execute()) {
-                throw new Exception('No se pudo iniciar nuevamente la ejecución: '.$stmtReintento->error);
-            }
-            $stmtReintento->close();
-        } else {
-            $stmtEjecucion = $conexion->prepare(
-                "INSERT INTO facturas_recurrentes_ejecuciones
-                    (rec_id, empresa_id, scheduled_at, estado, correo_estado, fecha_inicio)
-                 VALUES (?, ?, ?, 0, ?, NOW())"
-            );
-            $stmtEjecucion->bind_param('iisi', $recId, $empresaId, $programada, $correoInicial);
-            if (!$stmtEjecucion->execute()) {
-                throw new Exception('No se pudo registrar la ejecución: '.$stmtEjecucion->error);
-            }
-            $ejecucionId = (int)$stmtEjecucion->insert_id;
-            $stmtEjecucion->close();
-        }
-
-        $stmtDetalle = $conexion->prepare(
-            'SELECT * FROM facturas_recurrentes_detalle WHERE rec_id = ? ORDER BY rec_detalle_id ASC'
-        );
-        $stmtDetalle->bind_param('i', $recId);
-        $stmtDetalle->execute();
-        $resDetalle = $stmtDetalle->get_result();
-        $detalle = [];
-        while ($filaDetalle = $resDetalle->fetch_assoc()) {
-            $detalle[] = $filaDetalle;
-        }
-        $stmtDetalle->close();
-
-        // La fecha del dólar debe corresponder al día real en que se genera
-        // la factura recurrente, no a la fecha en que se creó la recurrencia.
-        $fechaDolarGeneracion = (new DateTimeImmutable(
-            'now',
-            new DateTimeZone('America/Tegucigalpa')
-        ))->format('Y-m-d');
-
-        $recurrente['fecha_dolar'] = $fechaDolarGeneracion;
-
-        $factura = $servicio->generar($recurrente, $detalle, $conexion);
-        $facturasId = (int)$factura['facturas_id'];
-        $proxima = proximaFechaRecurrente($programada, $recurrente['periodicidad'], $recurrente['dia_mes'] ?? null);
-        $estadoNuevo = 1;
-
-        if ($proxima === null || (!empty($recurrente['until_at']) && substr($proxima, 0, 10) > $recurrente['until_at'])) {
-            $estadoNuevo = 3;
-            $proxima = $programada;
-        }
-
-        $stmtActualizar = $conexion->prepare(
-            "UPDATE facturas_recurrentes
-             SET next_run_at = ?, estado = ?, ultimo_facturas_id = ?,
-                 fecha_dolar = ?, last_run_at = NOW(), ultimo_error = NULL
-             WHERE rec_id = ?"
-        );
-        $stmtActualizar->bind_param(
-            'siisi',
-            $proxima,
-            $estadoNuevo,
-            $facturasId,
-            $fechaDolarGeneracion,
-            $recId
-        );
-        if (!$stmtActualizar->execute()) {
-            throw new Exception('No se pudo avanzar la recurrencia: '.$stmtActualizar->error);
-        }
-        $stmtActualizar->close();
-
-        $mensaje = ($factura['es_proforma'] ? 'Proforma ' : 'Factura ')
-            .$factura['prefijo'].str_pad((string)$factura['numero'], max(1, $factura['relleno']), '0', STR_PAD_LEFT)
-            .' generada correctamente.';
-        $stmtOk = $conexion->prepare(
-            'UPDATE facturas_recurrentes_ejecuciones SET facturas_id = ?, estado = 1, mensaje = ?, fecha_fin = NOW() WHERE ejecucion_id = ?'
-        );
-        $stmtOk->bind_param('isi', $facturasId, $mensaje, $ejecucionId);
-        $stmtOk->execute();
-        $stmtOk->close();
-
-        $conexion->commit();
-        $resumen['generadas']++;
-        $resumen['bases'][$nombreDb]['generadas']++;
-
-        if ($enviarCorreo) {
+        foreach ($pendientes as $pendiente) {
+            $recId = (int)$pendiente['rec_id'];
+            $programada = (string)$pendiente['next_run_at'];
+            $empresaId = 0;
+            $reservaConfirmada = false;
+            $ejecucionId = 0;
             try {
-                $resultadoCorreo = enviarCorreoFacturaRecurrente($facturasId, $empresaId);
-                $cantidadInternos = is_array($resultadoCorreo)
-                    ? (int)($resultadoCorreo['destinatarios_internos'] ?? 0)
-                    : 0;
-                $clienteEnviado = is_array($resultadoCorreo)
-                    ? !empty($resultadoCorreo['cliente_enviado'])
-                    : false;
-                $clienteEstado = is_array($resultadoCorreo)
-                    ? (string)($resultadoCorreo['cliente_estado'] ?? '')
-                    : '';
-
-                if ($clienteEnviado) {
-                    $textoCorreoOk = ' Correo enviado al cliente.';
-                } elseif ($clienteEstado === 'sin_correo') {
-                    $textoCorreoOk = ' Cliente sin correo válido; envío al cliente omitido.';
-                } else {
-                    $textoCorreoOk = ' No se confirmó el envío al cliente.';
+                $fechaProgramada = new DateTimeImmutable($programada, new DateTimeZone('America/Tegucigalpa'));
+                // Ventana definida: fecha programada y día siguiente. Las más antiguas
+                // requieren autorización y conciliación manual, sin saltar ciclos.
+                if ($fechaProgramada->format('Y-m-d') < $hoy->modify('-1 day')->format('Y-m-d')) {
+                    $contadores['revision']++;
+                    $resumen['revision']++;
+                    continue;
                 }
+                $cn->begin_transaction();
+                $stmt = $cn->prepare('SELECT * FROM facturas_recurrentes WHERE rec_id = ? AND estado = 1 FOR UPDATE');
+                $stmt->bind_param('i', $recId);
+                $stmt->execute();
+                $rec = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if (!$rec || (string)$rec['next_run_at'] !== $programada) {
+                    $cn->rollback();
+                    continue;
+                }
+                $empresaId = (int)$rec['empresa_id'];
+                $stmt = $cn->prepare('SELECT ejecucion_id, estado, facturas_id FROM facturas_recurrentes_ejecuciones WHERE rec_id = ? AND scheduled_at = ? FOR UPDATE');
+                $stmt->bind_param('is', $recId, $programada);
+                $stmt->execute();
+                $anterior = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($anterior) {
+                    // Una ejecución anterior (incluso fallida) puede haber creado
+                    // un documento en otra conexión. Nunca repetir a ciegas.
+                    $cn->rollback();
+                    $contadores['revision']++;
+                    $resumen['revision']++;
+                    continue;
+                }
+                // Evitar duplicación de documentos emitidos por una ejecución
+                // previa cuyo historial se perdió, usando la marca persistente.
+                $marca = '[IZZY-REC:'.$recId.':'.$fechaProgramada->format('YmdHis').']';
+                $stmt = $cn->prepare('SELECT facturas_id FROM facturas WHERE notas LIKE ? LIMIT 1');
+                $busqueda = '%'.$marca.'%';
+                $stmt->bind_param('s', $busqueda);
+                $stmt->execute();
+                $encontrada = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($encontrada) {
+                    $cn->rollback();
+                    $contadores['revision']++;
+                    $resumen['revision']++;
+                    continue;
+                }
+                $stmt = $cn->prepare('INSERT INTO facturas_recurrentes_ejecuciones (rec_id, empresa_id, scheduled_at, estado, correo_estado, mensaje, fecha_inicio) VALUES (?, ?, ?, 0, 0, ?, NOW())');
+                $mensajeReserva = 'Reservada; emisión en curso. No reintentar automáticamente sin conciliación.';
+                $stmt->bind_param('iiss', $recId, $empresaId, $programada, $mensajeReserva);
+                if (!$stmt->execute()) {
+                    throw new RuntimeException('No se pudo registrar la reserva: '.$stmt->error);
+                }
+                $ejecucionId = (int)$stmt->insert_id;
+                $stmt->close();
+                if (!$cn->commit()) {
+                    throw new RuntimeException('No se pudo confirmar la reserva.');
+                }
+                $reservaConfirmada = true;
 
-                $textoCorreoOk .= ' Resumen interno enviado a '.$cantidadInternos.' destinatario(s).';
-                $stmtCorreoOk = $conexion->prepare(
-                    'UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 1, mensaje = CONCAT(IFNULL(mensaje,\'\'), ?) WHERE ejecucion_id = ?'
-                );
-                $stmtCorreoOk->bind_param('si', $textoCorreoOk, $ejecucionId);
-                $stmtCorreoOk->execute();
-                $stmtCorreoOk->close();
-                $resumen['correos']++;
-            } catch (Throwable $correoError) {
-                $stmtCorreo = $conexion->prepare(
-                    'UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 2, mensaje = CONCAT(IFNULL(mensaje,\'\'), ?) WHERE ejecucion_id = ?'
-                );
-                $textoCorreo = ' Correo: '.$correoError->getMessage();
-                $stmtCorreo->bind_param('si', $textoCorreo, $ejecucionId);
-                $stmtCorreo->execute();
-                $stmtCorreo->close();
+                $stmt = $cn->prepare('SELECT * FROM facturas_recurrentes_detalle WHERE rec_id = ? ORDER BY rec_detalle_id ASC');
+                $stmt->bind_param('i', $recId);
+                $stmt->execute();
+                $rs = $stmt->get_result();
+                $detalle = [];
+                while ($fila = $rs->fetch_assoc()) {
+                    $detalle[] = $fila;
+                }
+                $stmt->close();
+                $rec['fecha_dolar'] = $hoy->format('Y-m-d');
+                $factura = $servicio->generar($rec, $detalle, $cn);
+                $facturasId = (int)$factura['facturas_id'];
+                if ($facturasId <= 0) {
+                    throw new RuntimeException('Generador sin identificador de documento.');
+                }
+                $proxima = proximaFechaRecurrente($programada, $rec['periodicidad'], $rec['dia_mes'] ?? null);
+                $estado = 1;
+                if ($proxima === null || (!empty($rec['until_at']) && substr($proxima, 0, 10) > $rec['until_at'])) {
+                    $estado = 3;
+                    $proxima = $programada;
+                }
+                $cn->begin_transaction();
+                $stmt = $cn->prepare('UPDATE facturas_recurrentes SET next_run_at = ?, estado = ?, ultimo_facturas_id = ?, fecha_dolar = ?, last_run_at = NOW(), ultimo_error = NULL WHERE rec_id = ? AND next_run_at = ?');
+                $stmt->bind_param('siisis', $proxima, $estado, $facturasId, $rec['fecha_dolar'], $recId, $programada);
+                if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+                    throw new RuntimeException('No se pudo avanzar la recurrencia.');
+                }
+                $stmt->close();
+                $mensaje = 'Documento generado correctamente: ID '.$facturasId;
+                $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET estado = 1, facturas_id = ?, mensaje = ?, fecha_fin = NOW() WHERE ejecucion_id = ?');
+                $stmt->bind_param('isi', $facturasId, $mensaje, $ejecucionId);
+                if (!$stmt->execute()) {
+                    throw new RuntimeException('No se pudo cerrar el historial de emisión.');
+                }
+                $stmt->close();
+                if (!$cn->commit()) {
+                    throw new RuntimeException('No se pudo confirmar el historial.');
+                }
+                $contadores['generadas']++;
+                $resumen['generadas']++;
+                if ((int)$rec['enviar_correo'] === 1) {
+                    try {
+                        $correo = enviarCorreoFacturaRecurrente($facturasId, $empresaId, false);
+                        $estadoCorreo = !empty($correo['cliente_enviado']) ? 1 : 2;
+                        $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET correo_estado = ? WHERE ejecucion_id = ?');
+                        $stmt->bind_param('ii', $estadoCorreo, $ejecucionId);
+                        $stmt->execute();
+                        $stmt->close();
+                        if ($estadoCorreo === 1) {
+                            $resumen['correos']++;
+                        }
+                    } catch (Throwable $correoError) {
+                        izzyFacturaRecurrenteLog('Correo base '.$nombreDb.', rec '.$recId.': '.$correoError->getMessage());
+                        $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 2 WHERE ejecucion_id = ?');
+                        $stmt->bind_param('i', $ejecucionId);
+                        $stmt->execute();
+                        $stmt->close();
+                    }
+                }
+            } catch (Throwable $error) {
+                try { $cn->rollback(); } catch (Throwable $ignorado) {}
+                $contadores['errores']++;
+                $resumen['errores']++;
+                $detalleError = mb_substr($error->getMessage(), 0, 1200);
+                izzyFacturaRecurrenteLog('Base '.$nombreDb.', rec '.$recId.': '.$detalleError);
+                if ($reservaConfirmada && $ejecucionId > 0) {
+                    try {
+                        $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET estado = 2, mensaje = ?, fecha_fin = NOW() WHERE ejecucion_id = ?');
+                        $stmt->bind_param('si', $detalleError, $ejecucionId);
+                        $stmt->execute();
+                        $stmt->close();
+                        $stmt = $cn->prepare('UPDATE facturas_recurrentes SET ultimo_error = ? WHERE rec_id = ?');
+                        $stmt->bind_param('si', $detalleError, $recId);
+                        $stmt->execute();
+                        $stmt->close();
+                    } catch (Throwable $registroError) {
+                        izzyFacturaRecurrenteLog('No se pudo persistir el error: '.$registroError->getMessage());
+                    }
+                }
             }
         }
-
-        // Se omiten identificadores sensibles del resumen de consola.
-    } catch (Throwable $e) {
-        $conexion->rollback();
+        // Resumen consolidado por empresa, sin correo por cada documento.
+        if (($contadores['generadas'] + $contadores['errores']) > 0) {
+            $empresas = $cn->query('SELECT empresa_id FROM empresa');
+            if ($empresas) {
+                while ($empresa = $empresas->fetch_assoc()) {
+                    try {
+                        enviarResumenRecurrente((int)$empresa['empresa_id'], $contadores);
+                    } catch (Throwable $errorAviso) {
+                        izzyFacturaRecurrenteLog('Aviso base '.$nombreDb.': '.$errorAviso->getMessage());
+                    }
+                }
+                $empresas->free();
+            }
+        }
+    } catch (Throwable $errorBase) {
+        $contadores['errores']++;
         $resumen['errores']++;
-        $resumen['bases'][$nombreDb]['errores']++;
-        $error = mb_substr($e->getMessage(), 0, 2000);
-
-        $stmtErrorRec = $conexion->prepare('UPDATE facturas_recurrentes SET ultimo_error = ? WHERE rec_id = ?');
-        if ($stmtErrorRec) {
-            $stmtErrorRec->bind_param('si', $error, $recId);
-            $stmtErrorRec->execute();
-            $stmtErrorRec->close();
-        }
-
-        // El intento debe permanecer visible aunque la transacción principal
-        // haya sido revertida. El mismo registro podrá reintentarse después.
-        if ($empresaId > 0 && $programada !== null) {
-            $stmtErrorEjecucion = $conexion->prepare(
-                "INSERT INTO facturas_recurrentes_ejecuciones
-                    (rec_id, empresa_id, scheduled_at, estado, correo_estado, mensaje, fecha_inicio, fecha_fin)
-                 VALUES (?, ?, ?, 2, ?, ?, NOW(), NOW())
-                 ON DUPLICATE KEY UPDATE
-                    estado = 2, correo_estado = VALUES(correo_estado),
-                    mensaje = VALUES(mensaje), fecha_fin = NOW()"
-            );
-            if ($stmtErrorEjecucion) {
-                $stmtErrorEjecucion->bind_param('iisis', $recId, $empresaId, $programada, $correoInicial, $error);
-                $stmtErrorEjecucion->execute();
-                $stmtErrorEjecucion->close();
-            }
-        }
-
-        // El error detallado queda en el registro privado.
-        izzyFacturaRecurrenteLog('Base '.$nombreDb.', recurrencia '.$recId.': '.$error);
+        izzyFacturaRecurrenteLog('Base '.$nombreDb.': '.$errorBase->getMessage());
+    } finally {
+        if ($cn) { $cn->close(); }
+        unset($resumen['bases'][$nombreDb]);
+        $resumen['bases'][$nombreDb] = $contadores;
+        unset($contadores);
     }
-}
-
-    $conexion->close();
 }
 $GLOBALS['db'] = DB_MAIN;
 flock($lock, LOCK_UN);

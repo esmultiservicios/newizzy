@@ -4,7 +4,7 @@
 require_once dirname(__DIR__).'/mainModel.php';
 require_once dirname(__DIR__).'/correo/sendEmail.php';
 
-function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
+function enviarCorreoFacturaRecurrente($facturasId, $empresaId, bool $enviarInterno = true)
 {
     $facturasId = (int)$facturasId;
     $empresaId = (int)$empresaId;
@@ -127,6 +127,16 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
         }
     }
 
+    if (!$enviarInterno) {
+        return [
+            'cliente_enviado' => $clienteEnviado,
+            'cliente_estado' => $clienteEstado,
+            'cliente_detalle' => $clienteDetalle,
+            'destinatarios_internos' => 0,
+            'interno_enviado' => false
+        ];
+    }
+
     /* =========================================================
        2. DESTINATARIOS INTERNOS
        Esta notificación es OBLIGATORIA e independiente del
@@ -242,4 +252,55 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId)
         'destinatarios_internos' => $cantidadInternos,
         'interno_enviado' => true
     ];
+}
+
+/** Aviso consolidado por empresa; no contiene detalles técnicos ni datos sensibles. */
+function enviarResumenRecurrente(int $empresaId, array $estadisticas): bool
+{
+    if ($empresaId <= 0 || array_sum($estadisticas) <= 0) {
+        return false;
+    }
+    $cn = (new mainModel())->connection();
+    if (!$cn) {
+        throw new RuntimeException('No se pudo conectar para el resumen recurrente.');
+    }
+    try {
+        $destinatarios = [];
+        $consulta = $cn->query('SELECT nombre, correo FROM notificaciones WHERE activo = 1');
+        if (!$consulta) {
+            throw new RuntimeException('No se pudieron consultar los destinatarios de avisos.');
+        }
+        while ($fila = $consulta->fetch_assoc()) {
+            $correo = strtolower(trim((string)$fila['correo']));
+            if (filter_var($correo, FILTER_VALIDATE_EMAIL)) {
+                $destinatarios[$correo] = trim((string)$fila['nombre']) ?: $correo;
+            }
+        }
+        $consulta->free();
+        if (!$destinatarios) {
+            throw new RuntimeException('No hay destinatarios de notificaciones activos.');
+        }
+        $esc = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+        $filas = '';
+        foreach (['generadas' => 'Generadas', 'errores' => 'Errores', 'revision' => 'Requieren revisión', 'recuperadas' => 'Recuperadas'] as $clave => $etiqueta) {
+            $filas .= '<tr><td style="padding:12px;border-bottom:1px solid #e5eaf3">'.$esc($etiqueta).'</td>'
+                .'<td style="padding:12px;text-align:right;border-bottom:1px solid #e5eaf3"><b>'.(int)($estadisticas[$clave] ?? 0).'</b></td></tr>';
+        }
+        $html = '<div style="background:#f3f6fb;padding:28px;font-family:Arial,sans-serif;color:#0b1f52">'
+            .'<div style="max-width:560px;margin:auto;background:white;border-radius:12px;overflow:hidden">'
+            .'<div style="background:#0b1f52;padding:22px;color:white;font-size:21px;font-weight:bold">IZZY · Facturación recurrente</div>'
+            .'<div style="padding:24px"><p>Resumen de la ejecución automática del '.date('d/m/Y H:i').'.</p>'
+            .'<table style="width:100%;border-collapse:collapse">'.$filas.'</table>'
+            .'<p style="font-size:13px;color:#52617c">Las recurrencias que requieren revisión no se emitirán automáticamente fuera de plazo. Revise el historial de ejecuciones o contacte a soporte.</p>'
+            .'</div></div></div>';
+        ob_start();
+        try {
+            $respuesta = (new sendEmail())->enviarCorreo($destinatarios, [], 'IZZY | Resumen de facturación recurrente', $html, 3, $empresaId, [], 'billing');
+        } finally {
+            ob_end_clean();
+        }
+        return (int)$respuesta === 1;
+    } finally {
+        $cn->close();
+    }
 }

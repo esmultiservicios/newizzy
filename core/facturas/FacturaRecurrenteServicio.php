@@ -17,6 +17,7 @@ class FacturaRecurrenteServicio extends facturasControlador
         $esProforma = ((int)$recurrente['tipo_documento'] === 1);
         $documentoId = $esProforma ? 4 : 1;
         $fecha = date('Y-m-d');
+        // El marcador de trazabilidad se guarda en el encabezado fiscal.
         $fechaRegistro = date('Y-m-d H:i:s');
 
         if ($empresaId <= 0 || $clienteId <= 0 || $colaboradorId <= 0 || empty($detalle)) {
@@ -91,7 +92,7 @@ class FacturaRecurrenteServicio extends facturasControlador
                 'numero' => (int)$numeroFactura['data']['numero'],
                 'colaboradores_id' => $colaboradorId,
                 'importe' => 0,
-                'notas' => (string)$recurrente['notas'],
+                'notas' => rtrim((string)$recurrente['notas']).' [IZZY-REC:'.(int)$recurrente['rec_id'].':'.date('YmdHis', strtotime((string)$recurrente['next_run_at'])).']',
                 'fecha' => $fecha,
                 'estado' => 3,
                 'usuario' => $usuarioId,

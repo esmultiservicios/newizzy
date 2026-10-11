@@ -118,10 +118,18 @@ if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
 $mainModelCron = new mainModel();
 $GLOBALS['db'] = DB_MAIN;
 $conexionPrincipal = $mainModelCron->connection();
+// Solo IZZY (sistema_id=1) y clientes activos (estado=1).
+// CAMI, registros inactivos y bases no existentes nunca se procesan.
 $baseDatos = [DB_MAIN];
-$clientes = $conexionPrincipal->query("SELECT db FROM server_customers WHERE estado = 1 AND db IS NOT NULL AND db <> ''");
+$clientes = $conexionPrincipal->query(
+    "SELECT DISTINCT sc.db
+     FROM server_customers AS sc
+     INNER JOIN information_schema.SCHEMATA AS sch ON sch.SCHEMA_NAME = sc.db
+     WHERE sc.estado = 1 AND sc.sistema_id = 1
+       AND sc.db IS NOT NULL AND sc.db <> ''"
+);
 if ($clientes === false) {
-    fwrite(STDERR, 'No se pudieron enumerar las bases de clientes: '.$conexionPrincipal->error.PHP_EOL);
+    fwrite(STDERR, 'No se pudieron enumerar las bases IZZY activas: '.$conexionPrincipal->error.PHP_EOL);
     exit(1);
 }
 while ($cliente = $clientes->fetch_assoc()) {
@@ -130,6 +138,7 @@ while ($cliente = $clientes->fetch_assoc()) {
         $baseDatos[] = $nombre;
     }
 }
+$clientes->free();
 $baseDatos = array_values(array_unique($baseDatos));
 if ($soloDb !== null) {
     if (!in_array($soloDb, $baseDatos, true)) {

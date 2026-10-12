@@ -2095,3 +2095,15 @@
 .destinatarios-actions-cell .btn-acciones span,
 .destinatarios-mini-footer .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
 /* IZZY ACTION CELL CONTAINMENT END */
+
+/* IZZY | Correos: ampliar únicamente la columna Acciones en escritorio.
+   Mantiene tamaños, iconos, caret y separación originales de los botones. */
+@media (min-width: 1400px) {
+    .correo-config-page .correo-config-detail-header,
+    .correo-config-page .correo-config-detail-row {
+        grid-template-columns: 196px minmax(150px,.9fr) 120px minmax(160px,1fr) minmax(220px,1.25fr) 90px 120px minmax(180px,1fr) !important;
+    }
+}
+.correo-config-page .correo-config-actions-cell {
+    padding-inline: 14px !important;
+}

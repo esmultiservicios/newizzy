@@ -4002,3 +4002,76 @@ body,
 #loginform .auth-remember-copy{
     align-items:flex-start!important;
 }
+
+/* IZZY registro: mismos labels que inicio de sesión, obligatorio visible. */
+#loginform .auth-control-label,
+#form_registro .auth-control-label {
+    font-size:clamp(.74rem,.70rem + .12vw,.82rem)!important;
+    line-height:1.25!important;
+    font-weight:900!important;
+}
+#form_registro .auth-required-mark {
+    color:#d92d43;
+    display:inline;
+    font-size:1.1em;
+    margin-left:4px;
+    font-weight:900;
+}
+#form_registro .auth-input:has(input.is-invalid) {
+    border-color:#d92d43!important;
+    box-shadow:0 0 0 3px rgba(217,45,67,.12)!important;
+}
+#form_registro .auth-input input.is-invalid {
+    background:#fff!important;
+}
+@media(max-width:1050px) {
+    #loginform .auth-control-label,
+    #form_registro .auth-control-label {font-size:.75rem!important}
+}
+@media(max-width:760px) {
+    #loginform .auth-control-label,
+    #form_registro .auth-control-label {font-size:.72rem!important}
+}
+@media(max-width:420px) {
+    #loginform .auth-control-label,
+    #form_registro .auth-control-label {font-size:.69rem!important}
+}
+
+
+/* IZZY · estados unificados: inicio, recuperación y registro. */
+#logreg-forms .auth-required-mark {
+    display:inline;
+    margin-left:4px;
+    color:#d92d43;
+    font-weight:900;
+}
+#logreg-forms .auth-control.izzy-field-invalid > .auth-input {
+    border-color:#dc3545!important;
+    box-shadow:0 0 0 3px rgba(220,53,69,.12)!important;
+}
+#logreg-forms .auth-control.izzy-field-valid > .auth-input {
+    border-color:#159666!important;
+    box-shadow:0 0 0 2px rgba(21,150,102,.08)!important;
+}
+#logreg-forms .auth-control.izzy-field-invalid:focus-within > .auth-input {
+    box-shadow:0 0 0 3px rgba(220,53,69,.16)!important;
+}
+#logreg-forms .auth-control.izzy-field-valid:focus-within > .auth-input {
+    box-shadow:0 0 0 3px rgba(21,150,102,.14)!important;
+}
+#logreg-forms .izzy-field-message {
+    display:block;
+    color:#bc263c;
+    font-size:.72rem;
+    font-weight:750;
+    line-height:1.3;
+    margin-top:1px;
+}
+
+/* v6.18 - Estados de validación que no alteran el layout */
+#logreg-forms .izzy-field-message { display:none!important; }
+#logreg-forms .auth-control { min-height:0; }
+#loginform .auth-password-row { align-items:end!important; }
+#loginform .auth-client-option { align-self:end!important; }
+#logreg-forms .auth-control.izzy-field-invalid > .auth-input,
+#logreg-forms .auth-control.izzy-field-valid > .auth-input { box-sizing:border-box; }

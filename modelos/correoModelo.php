@@ -13,6 +13,29 @@ class correoModelo extends mainModel{
         return strpos((string)$valor, '****') !== false;
     }
 
+    /**
+     * Convierte credenciales antiguas en texto plano al formato cifrado actual.
+     * Las credenciales ya cifradas se conservan sin cifrarlas dos veces.
+     */
+    private function protegerCredencialCorreo($valor) {
+        $valor = (string)$valor;
+        if ($valor === '') return '';
+        if (strpos($valor, '****') !== false) {
+            throw new RuntimeException('No se puede guardar una credencial enmascarada.');
+        }
+
+        $decoded = base64_decode($valor, true);
+        if ($decoded !== false && $decoded !== '') {
+            $key = hash('sha256', SECRET_KEY);
+            $iv = substr(hash('sha256', SECRET_IV), 0, 16);
+            $texto = openssl_decrypt($decoded, METHOD, $key, 0, $iv);
+            if ($texto !== false && $texto !== '' && mainModel::encryption($texto) === $valor) {
+                return $valor;
+            }
+        }
+        return mainModel::encryption($valor);
+    }
+
     protected function edit_correo_modelo($datos) {
         $conexion = mainModel::connection();
 
@@ -51,12 +74,20 @@ class correoModelo extends mainModel{
             $clientIdFinal = $rowActual['client_id'];
             $clientSecretFinal = $rowActual['client_secret'];
 
+            // Migra los secretos antiguos incluso cuando el usuario no los modifica.
+            $passwordFinal = $this->protegerCredencialCorreo($passwordFinal);
+            $tenantIdFinal = $this->protegerCredencialCorreo($tenantIdFinal);
+            $clientIdFinal = $this->protegerCredencialCorreo($clientIdFinal);
+            $clientSecretFinal = $this->protegerCredencialCorreo($clientSecretFinal);
+
             /*
                 Password SMTP:
                 Si viene vacío, conserva el actual.
             */
             if (isset($datos['password']) && trim($datos['password']) !== "") {
-                $passwordFinal = $datos['password'];
+                if (!$this->contieneValorEnmascaradoModelo($datos['password'])) {
+                    $passwordFinal = $this->protegerCredencialCorreo($datos['password']);
+                }
             }
 
             /*
@@ -69,7 +100,7 @@ class correoModelo extends mainModel{
                 trim($datos['tenant_id']) !== "" &&
                 !$this->contieneValorEnmascaradoModelo($datos['tenant_id'])
             ) {
-                $tenantIdFinal = trim($datos['tenant_id']);
+                $tenantIdFinal = $this->protegerCredencialCorreo(trim($datos['tenant_id']));
             }
 
             /*
@@ -82,7 +113,7 @@ class correoModelo extends mainModel{
                 trim($datos['client_id']) !== "" &&
                 !$this->contieneValorEnmascaradoModelo($datos['client_id'])
             ) {
-                $clientIdFinal = trim($datos['client_id']);
+                $clientIdFinal = $this->protegerCredencialCorreo(trim($datos['client_id']));
             }
 
             /*
@@ -92,7 +123,9 @@ class correoModelo extends mainModel{
                 Si viene nuevo, actualiza.
             */
             if (isset($datos['client_secret']) && trim($datos['client_secret']) !== "") {
-                $clientSecretFinal = $datos['client_secret'];
+                if (!$this->contieneValorEnmascaradoModelo($datos['client_secret'])) {
+                    $clientSecretFinal = $this->protegerCredencialCorreo($datos['client_secret']);
+                }
             }
 
             $stmt = $conexion->prepare("
@@ -139,8 +172,9 @@ class correoModelo extends mainModel{
             $conexion->commit();
             return true;
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $conexion->rollback();
+            error_log('Correo - actualización segura: ' . $e->getMessage());
             return false;
         } finally {
             $conexion->autocommit(true);

@@ -2346,6 +2346,32 @@ var toggle_detalle_correos_configuracion_dataTable = function(tbody, table) {
     });
 }
 
+/* Edición: resolver los catálogos antes de seleccionar valores guardados. */
+var correoConfigEdicionActual = null;
+var correoConfigCatalogoTipo = null;
+var correoConfigCatalogoSecure = null;
+
+function correoConfigSeleccionar(campo, valor) {
+    var $select = $('#formConfEmails #' + campo);
+    if (!$select.length) return false;
+    var esperado = String(valor == null ? '' : valor).trim();
+    if (!esperado) return false;
+    var existe = $select.find('option').filter(function() {
+        return String(this.value).trim().toUpperCase() === esperado.toUpperCase();
+    }).first();
+    if (!existe.length) return false;
+    $select.val(existe.val()).trigger('change');
+    return String($select.val()) === String(existe.val());
+}
+
+function correoConfigAplicarValoresEdicion(valores) {
+    correoConfigSeleccionar('tipo_correo_confEmail', valores.correo_tipo_id);
+    correoConfigSeleccionar('metodoEnvioConfEmail', valores.metodo_envio);
+    correoConfigSeleccionar('smtpSecureConfEmail', valores.smtp_secure);
+    correoConfigSeleccionar('saveToSentItemsConfEmail', valores.save_to_sent_items == null ? '1' : valores.save_to_sent_items);
+    aplicarVistaMetodoCorreo();
+}
+
 /* =========================================================
    EDITAR CORREO
    ========================================================= */
@@ -2376,36 +2402,42 @@ var edit_correos_configuracion_dataTable = function(tbody, table) {
                     'action': '<?php echo SERVERURL;?>ajax/modificarCorreoAjax.php'
                 });
 
+                correoConfigEdicionActual = valores;
                 $('#formConfEmails')[0].reset();
 
                 $('#formConfEmails #correo_id').val(valores.correo_id);
 
-                $('#formConfEmails #tipo_correo_confEmail').val(valores.correo_tipo_id);
-                $('#formConfEmails #tipo_correo_confEmail').trigger('change.select2');
-
-                $('#formConfEmails #metodoEnvioConfEmail').val(valores.metodo_envio || 'SMTP');
-                $('#formConfEmails #metodoEnvioConfEmail').trigger('change.select2');
+                // Los selects se cargan y asignan de manera coordinada al abrir el modal.
 
                 $('#formConfEmails #serverConfEmail').val(valores.server || '');
                 $('#formConfEmails #correoConfEmail').val(valores.correo || '');
                 $('#formConfEmails #passConfEmail').val('');
                 $('#formConfEmails #puertoConfEmail').val(valores.port || '');
 
-                $('#formConfEmails #smtpSecureConfEmail').val(valores.smtp_secure || '');
-                $('#formConfEmails #smtpSecureConfEmail').trigger('change.select2');
+
 
                 $('#formConfEmails #tenantIdConfEmail').val(valores.tenant_id || '');
                 $('#formConfEmails #clientIdConfEmail').val(valores.client_id || '');
                 $('#formConfEmails #clientSecretConfEmail').val('');
                 $('#formConfEmails #graphUserConfEmail').val(valores.graph_user || '');
 
-                $('#formConfEmails #saveToSentItemsConfEmail').val(valores.save_to_sent_items || '1');
-                $('#formConfEmails #saveToSentItemsConfEmail').trigger('change.select2');
-
-                aplicarVistaMetodoCorreo();
                 aplicarPermisosFormularioCorreo(valores.puede_editar);
 
-                $('#modalConfEmails').modal({
+                // Esperar a los catálogos (incluidas respuestas AJAX simultáneas).
+                // La selección final se hace cuando Bootstrap terminó de mostrar el modal,
+                // después de cualquier inicialización global de Select2.
+                var $modalCorreo = $('#modalConfEmails');
+                $modalCorreo.off('shown.bs.modal.correoValoresEdicion')
+                    .one('shown.bs.modal.correoValoresEdicion', function() {
+                        $.when(getTipoCorreo(), getSMTPSecure()).done(function() {
+                            if (correoConfigEdicionActual !== valores) return;
+                            correoConfigAplicarValoresEdicion(valores);
+                        }).fail(function() {
+                            showNotify('error', 'Error', 'No se pudieron cargar los catálogos de configuración.');
+                        });
+                    });
+
+                $modalCorreo.modal({
                     show: true,
                     keyboard: false,
                     backdrop: 'static'
@@ -2476,36 +2508,31 @@ function testEmail() {
    CARGAR SMTP SECURE
    ========================================================= */
 function getSMTPSecure() {
-    var url = '<?php echo SERVERURL;?>core/getSMTPSecure.php';
-
-    $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formConfEmails #smtpSecureConfEmail').html("");
-            $('#formConfEmails #smtpSecureConfEmail').html(data);
-            $('#formConfEmails #smtpSecureConfEmail').trigger('change.select2');
-        }
+    if (correoConfigCatalogoSecure) return correoConfigCatalogoSecure;
+    correoConfigCatalogoSecure = $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/getSMTPSecure.php',
+        dataType: 'html'
+    }).done(function(data) {
+        $('#formConfEmails #smtpSecureConfEmail').html(data).trigger('change.select2');
+    }).fail(function() {
+        correoConfigCatalogoSecure = null;
     });
+    return correoConfigCatalogoSecure;
 }
 
-/* =========================================================
-   CARGAR TIPO DE CORREO
-   ========================================================= */
 function getTipoCorreo() {
-    var url = '<?php echo SERVERURL;?>core/getTipoCorreo.php';
-
-    $.ajax({
-        type: "POST",
-        url: url,
-        async: true,
-        success: function(data) {
-            $('#formConfEmails #tipo_correo_confEmail').html("");
-            $('#formConfEmails #tipo_correo_confEmail').html(data);
-            $('#formConfEmails #tipo_correo_confEmail').trigger('change.select2');
-        }
+    if (correoConfigCatalogoTipo) return correoConfigCatalogoTipo;
+    correoConfigCatalogoTipo = $.ajax({
+        type: 'POST',
+        url: '<?php echo SERVERURL;?>core/getTipoCorreo.php',
+        dataType: 'html'
+    }).done(function(data) {
+        $('#formConfEmails #tipo_correo_confEmail').html(data).trigger('change.select2');
+    }).fail(function() {
+        correoConfigCatalogoTipo = null;
     });
+    return correoConfigCatalogoTipo;
 }
 
 /* =========================================================

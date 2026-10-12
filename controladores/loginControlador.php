@@ -3,11 +3,11 @@
 
 if($peticionAjax){		
     require_once "../modelos/loginModel.php";	
-    require_once "../core/Database.php";
+    require_once "../core/registro/Database.php";
     require_once "../core/correo/sendEmail.php";
 }else{		
     require_once "./modelos/loginModel.php";
-    require_once "./core/Database.php";
+    require_once "./core/registro/Database.php";
     require_once "./core/correo/sendEmail.php";
 }
 

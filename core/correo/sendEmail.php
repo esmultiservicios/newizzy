@@ -988,8 +988,10 @@ class sendEmail {
     }
 
     private function enviarCorreoGraph($configCorreo, $destinatarios, $bccDestinatarios, $asunto, $htmlMensaje, $archivos_adjuntos = []) {
-        $tenant_id = trim($configCorreo["tenant_id"]);
-        $client_id = trim($configCorreo["client_id"]);
+        $tenant_id = $this->decryptionEmail(trim($configCorreo["tenant_id"]));
+        $client_id = $this->decryptionEmail(trim($configCorreo["client_id"]));
+        if ($tenant_id === '') $tenant_id = trim($configCorreo["tenant_id"]);
+        if ($client_id === '') $client_id = trim($configCorreo["client_id"]);
         $client_secret = $this->obtenerClientSecret($configCorreo["client_secret"]);
 
         $graph_user = trim($configCorreo["graph_user"]);

@@ -1,11 +1,8 @@
 <?php
 // DatabaseSetup.php - Versión optimizada para estructura de proyecto
 
-// Determinar rutas base
-$basePath = (isset($peticionAjax) && $peticionAjax) ? dirname(__DIR__) . '/core/' : __DIR__ . '/';
-
-// Incluir dependencias
-require_once $basePath . 'mainModel.php';
+// Dependencia compartida localizada en core/.
+require_once dirname(__DIR__) . "/mainModel.php";
 
 class DatabaseSetup {
     private $dbHost;
@@ -30,15 +27,26 @@ class DatabaseSetup {
                 throw new Exception("Archivo SQL no encontrado: $sqlFile");
             }
 
-            // Comando para importar la base de datos
-            $command = "mysql -h {$this->dbHost} -u {$dbUser} -p{$dbPassword} {$dbName} < {$sqlFile} 2>&1";
-            
-            // Ejecutar el comando
-            exec($command, $output, $returnVar);
-
-            if ($returnVar !== 0) {
-                throw new Exception("Error al importar: " . implode("\n", $output));
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $dbName) || !preg_match('/^[a-zA-Z0-9_]+$/', $dbUser)) {
+                throw new Exception('Nombre de base o usuario MySQL no válido.');
             }
+            $credentials = tempnam(sys_get_temp_dir(), 'izzy_mysql_');
+            if ($credentials === false) throw new Exception('No se pudo crear archivo temporal de autenticación.');
+            chmod($credentials, 0600);
+            $escape = static function ($value) {
+                return str_replace(["\\", "\n", "\r"], ["\\\\", "\\n", "\\r"], (string)$value);
+            };
+            $contents = "[client]\nuser=".$escape($dbUser)."\npassword=".$escape($dbPassword)."\nhost=".$escape($this->dbHost)."\n";
+            if (file_put_contents($credentials, $contents) === false) {
+                @unlink($credentials);
+                throw new Exception('No se pudieron escribir las credenciales temporales MySQL.');
+            }
+            try {
+                $command = 'mysql --defaults-extra-file='.escapeshellarg($credentials).' '.escapeshellarg($dbName).' < '.escapeshellarg($sqlFile).' 2>&1';
+                $output = [];$returnVar = 1;
+                exec($command, $output, $returnVar);
+                if ($returnVar !== 0) throw new Exception('Importación SQL fallida (código '.$returnVar.').');
+            } finally { @unlink($credentials); }
 
             return true;
         } catch (Exception $e) {

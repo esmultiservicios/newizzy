@@ -1,9 +1,5 @@
 <?php
-if ($peticionAjax) {
-    require_once '../core/configAPP.php';
-} else {
-    require_once './core/configAPP.php';
-}
+require_once dirname(__DIR__) . '/configAPP.php';
 
 class Database
 {

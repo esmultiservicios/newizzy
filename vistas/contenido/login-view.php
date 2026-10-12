@@ -118,7 +118,7 @@
             <div id="logreg-forms">
 
                 <!-- LOGIN -->
-                <form class="form-signin auth-view<?php echo $isDemoLogin ? ' is-demo-login' : ''; ?>" id="loginform" action="" method="POST" autocomplete="off" data-demo="<?php echo $isDemoLogin ? '1' : '0'; ?>">
+                <form class="form-signin auth-view<?php echo $isDemoLogin ? ' is-demo-login' : ''; ?>" id="loginform" novalidate action="" method="POST" autocomplete="off" data-demo="<?php echo $isDemoLogin ? '1' : '0'; ?>">
                     <div class="auth-heading">
                         <span class="auth-kicker"><?php echo $isDemoLogin ? 'DEMO IZZY' : 'BIENVENIDO'; ?></span>
                         <h1>Iniciar sesión</h1>
@@ -133,7 +133,7 @@
 
                     <div class="auth-form-stack">
                         <label class="auth-control">
-                            <span class="auth-control-label">Correo electrónico</span>
+                            <span class="auth-control-label">Correo electrónico<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input">
                                 <span class="auth-input-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
                                 <input type="email" id="inputEmail" name="inputEmail"
@@ -146,7 +146,7 @@
 
                         <div class="auth-password-row">
                             <label class="auth-control auth-password-control">
-                                <span class="auth-control-label">Contraseña</span>
+                                <span class="auth-control-label">Contraseña<span class="auth-required-mark" aria-hidden="true">*</span></span>
                                 <span class="auth-input has-action">
                                     <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
                                     <input type="password" id="inputPassword" name="inputPassword"
@@ -324,7 +324,7 @@
                 </form>
 
                 <!-- RECUPERACIÓN -->
-                <form class="form-reset auth-view" id="forgot_form" autocomplete="off">
+                <form class="form-reset auth-view" id="forgot_form" novalidate autocomplete="off">
                     <div class="auth-view-symbol" aria-hidden="true">
                         <span><i class="fas fa-unlock-alt"></i></span>
                         <div><strong>Recupera tu acceso</strong><small>Proceso seguro de recuperación IZZY</small></div>
@@ -337,7 +337,7 @@
 
                     <div class="auth-form-stack">
                         <label class="auth-control">
-                            <span class="auth-control-label">Correo electrónico</span>
+                            <span class="auth-control-label">Correo electrónico<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input">
                                 <span class="auth-input-icon"><i class="fas fa-envelope" aria-hidden="true"></i></span>
                                 <input type="email" id="usu_forgot" name="usu_forgot"
@@ -382,7 +382,7 @@
                 </form>
 
                 <!-- REGISTRO -->
-                <form class="form-signup auth-view" id="form_registro" autocomplete="off">
+                <form class="form-signup auth-view" id="form_registro" autocomplete="off" novalidate>
                     <div class="auth-heading auth-heading-register">
                         <span class="auth-kicker">CREA TU CUENTA</span>
                         <h1>Comienza con IZZY</h1>
@@ -391,7 +391,7 @@
 
                     <div class="registration-grid">
                         <label class="auth-control span-2">
-                            <span class="auth-control-label">Empresa o nombre personal</span>
+                            <span class="auth-control-label">Empresa o nombre personal<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input">
                                 <span class="auth-input-icon"><i class="fas fa-building" aria-hidden="true"></i></span>
                                 <input type="text" id="user_empresa" name="user_empresa"
@@ -401,7 +401,7 @@
                         </label>
 
                         <label class="auth-control auth-register-name span-2">
-                            <span class="auth-control-label">Nombre completo</span>
+                            <span class="auth-control-label">Nombre completo<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input">
                                 <span class="auth-input-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
                                 <input type="text" id="user_name" name="user_name"
@@ -411,7 +411,7 @@
                         </label>
 
                         <label class="auth-control auth-register-phone span-2">
-                            <span class="auth-control-label">Teléfono</span>
+                            <span class="auth-control-label">Teléfono<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input">
                                 <span class="auth-input-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
                                 <input type="tel" id="user_telefono" name="user_telefono"
@@ -421,7 +421,7 @@
                         </label>
 
                         <label class="auth-control span-2">
-                            <span class="auth-control-label">Correo electrónico</span>
+                            <span class="auth-control-label">Correo electrónico<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input">
                                 <span class="auth-input-icon"><i class="fas fa-at" aria-hidden="true"></i></span>
                                 <input type="email" id="mail" name="email"
@@ -431,7 +431,7 @@
                         </label>
 
                         <label class="auth-control auth-register-password">
-                            <span class="auth-control-label">Contraseña</span>
+                            <span class="auth-control-label">Contraseña<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input has-action">
                                 <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
                                 <input type="password" id="user-pass" name="user-pass"
@@ -444,7 +444,7 @@
                         </label>
 
                         <label class="auth-control auth-register-password-confirm">
-                            <span class="auth-control-label">Confirmar contraseña</span>
+                            <span class="auth-control-label">Confirmar contraseña<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input has-action">
                                 <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
                                 <input type="password" id="user-repeatpass"

@@ -1,11 +1,6 @@
 <?php
-if($peticionAjax){
-    require_once "../core/configAPP.php";
-    require_once "../core/mainModel.php";
-}else{
-    require_once "./core/configAPP.php";
-    require_once "./core/mainModel.php";    
-}
+require_once dirname(__DIR__) . "/configAPP.php";
+require_once dirname(__DIR__) . "/mainModel.php";
 
 /**
  * Clase para interactuar con la API de cPanel

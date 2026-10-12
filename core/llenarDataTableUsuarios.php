@@ -5,7 +5,7 @@ $peticionAjax = true;
 
 require_once "configGenerales.php";
 require_once "mainModel.php";
-require_once "Database.php";
+require_once __DIR__ . "/registro/Database.php";
 
 $insMainModel = new mainModel();
 

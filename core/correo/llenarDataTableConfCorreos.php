@@ -23,6 +23,18 @@ if (method_exists($insMainModel, 'validarSesion')) {
 
 function enmascararValorCorreoTabla($valor) {
     $valor = trim((string)$valor);
+    // La base puede contener valores antiguos en claro o valores cifrados.
+    if ($valor !== '') {
+        $key = hash('sha256', SECRET_KEY);
+        $iv = substr(hash('sha256', SECRET_IV), 0, 16);
+        $bytes = base64_decode($valor, true);
+        if ($bytes !== false) {
+            $texto = openssl_decrypt($bytes, METHOD, $key, 0, $iv);
+            if (is_string($texto) && $texto !== '') {
+                $valor = $texto;
+            }
+        }
+    }
 
     if ($valor === '') {
         return '';

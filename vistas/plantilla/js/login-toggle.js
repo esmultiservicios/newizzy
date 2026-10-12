@@ -24,6 +24,13 @@ jQuery(function($) {
             e.stopImmediatePropagation();
         }
         
+        // Una sola transición centralizada: limpia los tres formularios antes de
+        // cambiar de vista. El manejador usa stopImmediatePropagation(), por eso
+        // la limpieza NO puede depender de otro listener de click.
+        if (typeof window.izzyResetAuthValidation === 'function') {
+            window.izzyResetAuthValidation();
+        }
+
         // Oculta todos los formularios
         $forms.signin.hide();
         $forms.reset.hide();

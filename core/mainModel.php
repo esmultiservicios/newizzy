@@ -2398,25 +2398,41 @@ class mainModel
 	}
 
 	/* FIN CONVERTIR COTIZACION A FACTURA */
+	/** Alcance entre empresas: acceso global solo desde empresa principal (ID 1)
+	 * con privilegio de Administrador o Super Administrador. */
+	private function izzyPuedeConsultarTodasLasEmpresas(): bool
+	{
+		$empresaSesion = (int)($_SESSION['empresa_id_sd'] ?? 0);
+		$privilegioSesion = (int)($_SESSION['privilegio_sd'] ?? 0);
+		if ($empresaSesion !== 1 || $privilegioSesion <= 0) return false;
+		$conexion = self::connection();
+		$stmt = $conexion->prepare('SELECT nombre FROM privilegio WHERE privilegio_id = ? LIMIT 1');
+		if (!$stmt) return false;
+		$stmt->bind_param('i', $privilegioSesion);
+		$stmt->execute();
+		$fila = $stmt->get_result()->fetch_assoc();
+		$stmt->close();
+		$conexion->close();
+		return in_array(trim((string)($fila['nombre'] ?? '')), ['Administrador', 'Super Administrador'], true);
+	}
+
+	private function izzyEmpresaPermitida(): int
+	{
+		return max(0, (int)($_SESSION['empresa_id_sd'] ?? 0));
+	}
+
 	public function getEmpresa($datos)
 	{
 		$privilegio = $datos['privilegio_colaborador'];
 		$estado = self::cleanStringConverterCase($datos['estado']);
 	
-		if (
-			$privilegio === 'Super Administrador' ||
-			$privilegio === 'Administrador' ||
-			$privilegio === 'Emprendedor' ||
-			$privilegio === 'Basico' ||
-			$privilegio === 'Regular' ||
-			$privilegio === 'Estandar' ||
-			$privilegio === 'Premium'
-		) {
-			$where = "WHERE estado = '$estado'";
-		} else {
-			$where = "WHERE estado = '$estado'";
+		$empresaId = $this->izzyEmpresaPermitida();
+		$estado = (int)$estado;
+		$where = "WHERE estado = $estado";
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$where .= " AND empresa_id = $empresaId";
 		}
-	
+
 		$query = "SELECT 
 					empresa_id,
 					razon_social,
@@ -2448,20 +2464,12 @@ class mainModel
 
 	public function getEmpresaSelect($datos)
 	{
-		if ($datos['privilegio_colaborador'] === 'Super Administrador' && $datos['privilegio_colaborador'] === 'Administrador') {
-			$where = 'WHERE estado = 1';
-		} else {
-			$where = "WHERE estado = 1 AND empresa_id = '" . $datos['empresa_id'] . "'";
+		$empresaId = $this->izzyEmpresaPermitida();
+		$where = 'WHERE estado = 1';
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$where .= " AND empresa_id = $empresaId";
 		}
-
-		$query = 'SELECT *
-				FROM empresa
-				WHERE estado = 1
-				ORDER BY nombre';
-
-		$result = self::connection()->query($query);
-
-		return $result;
+		return self::connection()->query("SELECT * FROM empresa $where ORDER BY nombre");
 	}
 
 	public function getEmpresaConsulta($empresa_id)
@@ -2580,6 +2588,11 @@ class mainModel
 			$where = "WHERE c.estado = 1 AND c.colaboradores_id NOT IN(1) AND p.nombre NOT IN($valores)";
 		}
 
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$empresaId = $this->izzyEmpresaPermitida();
+			$where .= " AND c.empresa_id = $empresaId";
+		}
+
 		$query = "SELECT c.colaboradores_id, c.nombre AS 'nombre', c.identidad
 			FROM colaboradores AS c
 			INNER JOIN puestos AS p ON c.puestos_id = p.puestos_id
@@ -2596,6 +2609,11 @@ class mainModel
 		$valores = "'Reseller', 'Clientes'";
 		$where = "WHERE c.estado = 1 AND c.colaboradores_id NOT IN(1) AND p.nombre NOT IN($valores)";
 		
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$empresaId = $this->izzyEmpresaPermitida();
+			$where .= " AND c.empresa_id = $empresaId";
+		}
+
 		$query = "SELECT c.colaboradores_id, c.nombre AS 'nombre', c.identidad
 			FROM colaboradores AS c
 			INNER JOIN puestos AS p ON c.puestos_id = p.puestos_id
@@ -3494,6 +3512,11 @@ class mainModel
 			$where = "WHERE c.estado = 1 AND c.colaboradores_id NOT IN(1) AND p.nombre NOT IN('Reseller', 'Clientes')";
 		}
 
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$empresaId = $this->izzyEmpresaPermitida();
+			$where .= " AND c.empresa_id = $empresaId";
+		}
+
 		$query = "SELECT c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', c.identidad AS 'identidad',
 				CASE WHEN c.estado = 1 THEN 'Activo' ELSE 'Inactivo' END AS 'estado', c.telefono AS 'telefono', e.nombre AS 'empresa', p.nombre AS 'puesto'
 				FROM colaboradores AS c
@@ -3526,6 +3549,13 @@ class mainModel
 			}
 		}
 	
+		if ($this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$where = str_replace(" AND e.empresa_id = '" . $datos['empresa_id'] . "'", '', $where);
+		} else {
+			$empresaId = $this->izzyEmpresaPermitida();
+			if ($GLOBALS['db'] === DB_MAIN) $where .= " AND c.empresa_id = $empresaId";
+		}
+
 		$query = "SELECT c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', c.identidad AS 'identidad', c.estado, c.telefono AS 'telefono', e.nombre AS 'empresa', p.nombre AS 'puesto'
 				FROM colaboradores AS c
 				INNER JOIN empresa AS e
@@ -3541,6 +3571,9 @@ class mainModel
 
 	public function getColaboradoresFactura()
 	{
+		$empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas()
+			? ''
+			: ' AND c.empresa_id = ' . $this->izzyEmpresaPermitida();
 		$query = "SELECT c.colaboradores_id AS 'colaborador_id', c.nombre AS 'colaborador', c.identidad AS 'identidad',
 				CASE WHEN c.estado = 1 THEN 'Activo' ELSE 'Inactivo' END AS 'estado', c.telefono AS 'telefono', e.nombre AS 'empresa', p.nombre AS 'puesto'
 				FROM colaboradores AS c
@@ -3548,7 +3581,7 @@ class mainModel
 				ON c.empresa_id = e.empresa_id
 				INNER JOIN puestos AS p
 				ON c.puestos_id = p.puestos_id
-				WHERE c.estado = 1 AND p.nombre = 'Vendedores'
+				WHERE c.estado = 1 AND p.nombre = 'Vendedores'{$empresaFiltro}
 				ORDER BY c.nombre";
 
 		$result = self::connection()->query($query);
@@ -4102,19 +4135,18 @@ class mainModel
 			$privilegio_colaborador = $row['nombre'];
 		}
 	
-		// Construir la consulta principal de usuarios
-		if ($datos['db_cliente'] === $GLOBALS['DB_MAIN']) {
-			$where = 'WHERE u.estado = 1';
-		} else {
-			if ($privilegio_colaborador === 'Super Administrador' ) {
-				$where = "WHERE u.estado = '$estado'";
-			} else if ($privilegio_colaborador === 'Administrador') {
-				$where = "WHERE u.estado = '$estado' AND u.privilegio_id NOT IN(1)";
-			} else {
-				$where = "WHERE u.estado = '$estado' AND u.privilegio_id NOT IN(1) AND u.empresa_id = '" . $datos['empresa_id'] . "'";
-			}
+		// La jerarquía es por empresa y privilegio de sesión, no solamente por nombre.
+		// Empresa principal (ID 1) con Admin o Super Admin: consulta todas.
+		// Empresas secundarias: solo sus usuarios, incluso si tienen esos privilegios.
+		$estadoSeguro = (int)$estado;
+		$where = ($datos['db_cliente'] === $GLOBALS['DB_MAIN'])
+			? "WHERE u.estado = 1"
+			: "WHERE u.estado = $estadoSeguro";
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$empresaId = $this->izzyEmpresaPermitida();
+			$where .= " AND u.empresa_id = $empresaId";
 		}
-	
+
 		// Consulta principal sin la lógica de empresa dinámica
 		$query = "SELECT u.users_id AS 'users_id', 
 						 c.nombre AS 'colaborador', 
@@ -4122,7 +4154,8 @@ class mainModel
 						 tp.nombre AS 'tipo_usuario',
 						 e.nombre AS 'empresa',						 
 						 CASE WHEN u.estado = 1 THEN 'Activo' ELSE 'Inactivo' END AS 'estado',
-						 u.server_customers_id, 
+						 u.server_customers_id,
+						 u.empresa_id, 
 						 p.nombre AS 'privilegio',
 						 u.estado
 				  FROM users AS u
@@ -4196,10 +4229,11 @@ class mainModel
 			INNER JOIN documento AS d ON sf.documento_id = d.documento_id
 			WHERE sf.activo = '$estado'";
 	
-		if ($privilegio !== 'Administrador' && $privilegio !== 'Super Administrador') {
-			$query .= " AND e.empresa_id = '$empresaId'";
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$empresaId = $this->izzyEmpresaPermitida();
+			$query .= " AND sf.empresa_id = $empresaId";
 		}
-	
+
 		$query .= " ORDER BY sf.activo DESC, sf.fecha_limite ASC, sf.secuencia_facturacion_id DESC";
 	
 		$result = self::connection()->query($query);

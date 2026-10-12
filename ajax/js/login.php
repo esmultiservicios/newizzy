@@ -41,15 +41,32 @@ $(document).ready(function() {
         try {
             if ($('#rememberEmail').is(':checked')) {
                 window.localStorage.setItem(rememberEmailKey, $.trim($('#inputEmail').val()));
+                selectedRememberEmail = $.trim($('#inputEmail').val()).toLowerCase();
             } else {
                 window.localStorage.removeItem(rememberEmailKey);
             }
         } catch (storageError) {}
     }
 
+    // El check pertenece al correo seleccionado, no a cualquier correo escrito después.
+    // La referencia se actualiza cuando el usuario marca el check manualmente.
+    var selectedRememberEmail = $.trim($('#inputEmail').val()).toLowerCase();
+
     $('#rememberEmail').on('change.izzyRemember', function() {
-        if (!$(this).is(':checked')) {
+        if ($(this).is(':checked')) {
+            selectedRememberEmail = $.trim($('#inputEmail').val()).toLowerCase();
+        } else {
+            selectedRememberEmail = '';
             try { window.localStorage.removeItem(rememberEmailKey); } catch (storageError) {}
+        }
+    });
+
+    $('#inputEmail').on('input.izzyRemember change.izzyRemember', function() {
+        if (isDemoLogin || !$('#rememberEmail').is(':checked')) return;
+
+        var currentEmail = $.trim($(this).val()).toLowerCase();
+        if (currentEmail !== selectedRememberEmail) {
+            $('#rememberEmail').prop('checked', false).trigger('change.izzyRemember');
         }
     });
 
@@ -127,6 +144,8 @@ $(document).ready(function() {
 
     $("#loginform").submit(function(e) {
         e.preventDefault();
+
+        if (!izzyValidateForm($('#loginform'), true)) return false;
 
         var url = '<?php echo SERVERURL; ?>ajax/iniciarSesionAjax.php';
 
@@ -284,8 +303,10 @@ $(document).ready(function() {
                             case "register":
                                 // El usuario eligió registrarse, muestra el formulario de registro.
                                 setTimeout(function() {
+                                    izzyResetAuthValidation();
                                     $("#form_registro").show();
                                     $("#loginform").hide();
+                                    izzyResetAuthValidation();
                                     swal.close();
                                 }, 1000);
                                 break;
@@ -360,6 +381,7 @@ $(document).ready(function() {
     // Reset password
     $("#forgot_form").submit(function(e) {
         e.preventDefault();
+        if (!izzyValidateForm($('#forgot_form'), true)) return false;
         $.ajax({
             type: 'POST',
             url: '<?php echo SERVERURL; ?>ajax/resetearContrasenaLoginAjax.php',
@@ -383,34 +405,120 @@ $(document).ready(function() {
 
 });
 
-// Validación de contraseñas en tiempo real
-$('#user-pass, #user-repeatpass').on('blur', function() {
-    const pass1 = $('#user-pass').val();
-    const pass2 = $('#user-repeatpass').val();
-    
-    if (pass1 && pass2) {
-        if (pass1 !== pass2) {
-            $('#user-pass, #user-repeatpass').addClass('is-invalid');
-            showNotify('error', 'Error', 'Las contraseñas no coinciden');
-        } else {
-            $('#user-pass, #user-repeatpass').removeClass('is-invalid');
-            if(pass1.length < 8) {
-                showNotify('warning', 'Advertencia', 'La contraseña debe tener al menos 8 caracteres');
-            }
+// Validación consistente entre inicio de sesión, recuperación y registro.
+// La validación visual no envía solicitudes ni muestra notificaciones.
+function izzyFieldResult($input) {
+    const value = String($input.val() || '').trim();
+    const id = $input.attr('id');
+    if (!value) return {valid: false, message: 'Este campo es obligatorio.'};
+    if (id === 'inputEmail' || id === 'usu_forgot' || id === 'mail') {
+        return {valid: isValidEmail(value), message: 'Ingresa un correo electrónico válido.'};
+    }
+    if (id === 'user_telefono') {
+        return {valid: isValidPhone(value), message: 'Ingresa un teléfono de 8 a 12 dígitos.'};
+    }
+    if (id === 'user-pass' && value.length < 8) {
+        return {valid: false, message: 'Usa al menos 8 caracteres.'};
+    }
+    if (id === 'user-repeatpass') {
+        if (value.length < 8) return {valid: false, message: 'Usa al menos 8 caracteres.'};
+        if (value !== String($('#user-pass').val() || '')) {
+            return {valid: false, message: 'Las contraseñas no coinciden.'};
         }
     }
-});
-    
-// Validación de email en tiempo real
-$('#mail').on('blur', function() {
-    const email = $(this).val();
-    if(email && !isValidEmail(email)) {
-        $(this).addClass('is-invalid');
-        showNotify('error', 'Error', 'Ingrese un correo electrónico válido');
-    } else {
-        $(this).removeClass('is-invalid');
+    return {valid: true, message: ''};
+}
+
+function izzyMarkField($input, valid, message) {
+    // Estado visual únicamente: nunca insertar mensajes que alteren el alto del formulario.
+    const $control = $input.closest('.auth-control');
+    if (!$control.length) return;
+    $control.removeClass('izzy-field-invalid izzy-field-valid')
+        .addClass(valid ? 'izzy-field-valid' : 'izzy-field-invalid');
+    $input.attr('aria-invalid', valid ? 'false' : 'true');
+    // Limpiar mensajes que pudieran existir de versiones anteriores.
+    $control.children('.izzy-field-message').remove();
+}
+
+function izzyClearFormState($form) {
+    $form.find('.auth-control').removeClass('izzy-field-invalid izzy-field-valid');
+    $form.find('input').removeAttr('aria-invalid');
+    $form.find('.izzy-field-message').remove();
+}
+
+function isDemoAuthForm() {
+    return $('#loginform').attr('data-demo') === '1';
+}
+
+// Cada transición comienza con formularios nuevos, sin datos ni validaciones anteriores.
+function izzyResetAuthValidation() {
+    const $remember = $('#rememberEmail');
+    const shouldRemember = !isDemoAuthForm() && $remember.length && $remember.is(':checked');
+    let savedEmail = '';
+    if (shouldRemember) {
+        try { savedEmail = window.localStorage.getItem('izzy_login_email') || ''; } catch (ignored) {}
     }
-});
+
+    ['#loginform', '#form_registro', '#forgot_form'].forEach(function(selector) {
+        const $form = $(selector);
+        const form = $form.get(0);
+        if (!form) return;
+        form.reset();
+        $form.find('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])').val('');
+        izzyClearFormState($form);
+        $form.find('input').removeClass('is-invalid is-valid');
+        $form.find('.RespuestaAjax').empty().hide();
+    });
+    if ($remember.length) $remember.prop('checked', !!shouldRemember);
+    if (shouldRemember) $('#inputEmail').val(savedEmail);
+    $('#inputCliente, #inputPin').val('');
+    $('#clientPinModal input').removeClass('is-invalid is-valid').removeAttr('aria-invalid');
+    $('#clientPinModal .auth-control').removeClass('izzy-field-invalid izzy-field-valid');
+    $('#user-pass, #user-repeatpass, #inputPassword, #inputPin').attr('type', 'password');
+    $('#show_password #icon, #show_client_pin #icon_client_pin').removeClass('fa-eye').addClass('fa-eye-slash');
+}
+
+// Limpiar antes del cambio de vista, preservando únicamente el correo recordado.
+// El resto de las transiciones están gestionadas por los controladores existentes.
+$(document).on('click.izzyFreshAuthView',
+    '#btn-signup, #forgot_pswd, #cancel_signup, #cancel_reset',
+    function() {
+        izzyResetAuthValidation();
+    }
+);
+
+function izzyValidateForm($form, focusInvalid) {
+    let first = null;
+    $form.find('input[required]').each(function() {
+        const $input = $(this);
+        const result = izzyFieldResult($input);
+        izzyMarkField($input, result.valid, result.message);
+        if (!result.valid && !first) first = $input;
+    });
+    if (first && focusInvalid) first.trigger('focus');
+    return !first;
+}
+
+$(document).on('input.izzyField change.izzyField',
+    '#loginform input[required], #forgot_form input[required], #form_registro input[required]',
+    function() {
+        const $input = $(this);
+        if (!$input.closest('form').is(':visible')) return;
+        const $control = $input.closest('.auth-control');
+        const value = String($input.val() || '').trim();
+        if (!value && !$control.hasClass('izzy-field-invalid')) return;
+        const result = izzyFieldResult($input);
+        izzyMarkField($input, result.valid, result.message);
+        if (this.id === 'user-pass' && $('#user-repeatpass').val()) {
+            const $confirm = $('#user-repeatpass');
+            const confirmation = izzyFieldResult($confirm);
+            izzyMarkField($confirm, confirmation.valid, confirmation.message);
+        }
+    }
+);
+// No validar por blur: al cambiar de vista el navegador dispara blur
+// sobre el campo anterior y puede restaurar un estado rojo ya limpiado.
+// Los errores aparecen al enviar y se actualizan mientras se escribe.
 
 // Función para validar email
 function isValidEmail(email) {
@@ -424,58 +532,18 @@ function isValidPhone(phone) {
     return re.test(phone);
 }
 
-$('.form-control').on('input change', function () {
-    if ($(this).val().trim() !== '') {
-        $(this).removeClass('is-invalid');
-    }
-});
-
-// Empresa
-$('#user_empresa').on('input', function () {
-    if ($(this).val().trim() !== '') {
-        $(this).removeClass('is-invalid');
-    }
-});
-
-// Nombre
-$('#user_name').on('input', function () {
-    if ($(this).val().trim() !== '') {
-        $(this).removeClass('is-invalid');
-    }
-});
-
-// Teléfono
-$('#user_telefono').on('input', function () {
-    if (isValidPhone($(this).val())) {
-        $(this).removeClass('is-invalid');
-    }
-});
-
-// Correo
-$('#mail').on('input', function () {
-    if (isValidEmail($(this).val())) {
-        $(this).removeClass('is-invalid');
-    }
-});
-
-// Contraseña
-$('#user-pass, #user-repeatpass').on('input', function () {
-    const pass1 = $('#user-pass').val();
-    const pass2 = $('#user-repeatpass').val();
-
-    if (pass1.length >= 8) {
-        $('#user-pass').removeClass('is-invalid');
-    }
-
-    if (pass1 === pass2 && pass2.length >= 8) {
-        $('#user-pass, #user-repeatpass').removeClass('is-invalid');
-    }
-});
-
-
 // Proceso de registro
-$("#registrarse").click(function(e) {
+$(document).on("click.izzyRegistro", "#registrarse", function(e) {
     e.preventDefault();
+    procesarRegistroIzzy();
+});
+
+$(document).on("submit.izzyRegistro", "#form_registro", function(e) {
+    e.preventDefault();
+    procesarRegistroIzzy();
+});
+
+function procesarRegistroIzzy() {
     
     // Validar campos
     const empresa = $('#user_empresa').val().trim();
@@ -494,47 +562,29 @@ $("#registrarse").click(function(e) {
     const validar = 0;
     const rtn = '';
     
-    // Resetear clases de error
-    $('.form-control').removeClass('is-invalid');
-    
-    // Validaciones básicas
-    if (!empresa) {
-        $('#user_empresa').addClass('is-invalid').focus();
-        showNotify('error', 'Error', 'El nombre de la empresa es obligatorio');
-        return;
+    // Validar todo el formulario antes de realizar cualquier solicitud AJAX.
+    const campos = [
+        { selector: '#user_empresa', valido: empresa.length > 0, mensaje: 'El nombre de la empresa es obligatorio' },
+        { selector: '#user_name', valido: nombre.length > 0, mensaje: 'El nombre es obligatorio' },
+        { selector: '#user_telefono', valido: isValidPhone(telefono), mensaje: 'Ingrese un teléfono válido (8-12 dígitos)' },
+        { selector: '#mail', valido: isValidEmail(email), mensaje: 'Ingrese un correo electrónico válido' },
+        { selector: '#user-pass', valido: pass1.length >= 8, mensaje: 'La contraseña debe tener al menos 8 caracteres' },
+        { selector: '#user-repeatpass', valido: pass2.length >= 8 && pass1 === pass2, mensaje: 'Las contraseñas no coinciden o la confirmación está vacía' }
+    ];
+
+    let primerError = null;
+    campos.forEach(function(campo) {
+        const $input = $(campo.selector);
+        const value = String($input.val() || '').trim();
+        const message = value ? campo.mensaje : 'Este campo es obligatorio.';
+        izzyMarkField($input, campo.valido, campo.valido ? '' : message);
+        if (!campo.valido && !primerError) primerError = $input;
+    });
+    if (primerError) {
+        primerError.trigger('focus');
+        return false;
     }
 
-    if (!nombre) {
-        $('#user_name').addClass('is-invalid').focus();
-        showNotify('error', 'Error', 'El nombre es obligatorio');
-        return;
-    }
-    
-    if (!telefono || !isValidPhone(telefono)) {
-        $('#user_telefono').addClass('is-invalid').focus();
-        showNotify('error', 'Error', 'Ingrese un teléfono válido (8-12 dígitos)');
-        return;
-    }
-    
-    if (!email || !isValidEmail(email)) {
-        $('#mail').addClass('is-invalid').focus();
-        showNotify('error', 'Error', 'Ingrese un correo electrónico válido');
-        return;
-    }
-    
-    if (!pass1 || pass1.length < 8) {
-        $('#user-pass').addClass('is-invalid').focus();
-        showNotify('error', 'Error', 'La contraseña debe tener al menos 8 caracteres');
-        return;
-    }
-    
-    if (pass1 !== pass2) {
-        $('#user-pass, #user-repeatpass').addClass('is-invalid');
-        $('#user-repeatpass').focus();
-        showNotify('error', 'Error', 'Las contraseñas no coinciden');
-        return;
-    }
-    
     // Enviar datos al servidor
     $.ajax({
         type: 'POST',
@@ -565,6 +615,7 @@ $("#registrarse").click(function(e) {
                 
                 // Limpiar formulario
                 $('#form_registro')[0].reset();
+                izzyClearFormState($('#form_registro'));
                 
                 // Redirigir al login después de 2 segundos
                 setTimeout(function() {
@@ -587,13 +638,14 @@ $("#registrarse").click(function(e) {
             
         }
     });
-});
+}
 
 // ==========================================================
 // IZZY AUTH PREMIUM · comportamiento visual y accesible
 // ==========================================================
 (function () {
     function showLoginView() {
+        izzyResetAuthValidation();
         $('#forgot_form, #form_registro').hide();
         $('#loginform').show();
         window.setTimeout(function () {

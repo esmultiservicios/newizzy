@@ -1,7 +1,7 @@
 <?php	
 	$peticionAjax = true;
 	require_once "configGenerales.php";
-	require_once "Database.php";
+	require_once __DIR__ . "/registro/Database.php";
 	
 	$database = new Database();
 

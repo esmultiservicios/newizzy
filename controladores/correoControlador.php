@@ -199,11 +199,11 @@ class correoControlador extends correoModelo{
         $passwordFinal = "";
         $clientSecretFinal = "";
 
-        if ($passConfEmail !== "") {
+        if ($passConfEmail !== "" && !$this->contieneValorEnmascarado($passConfEmail)) {
             $passwordFinal = mainModel::encryption($passConfEmail);
         }
 
-        if ($clientSecretConfEmail !== "") {
+        if ($clientSecretConfEmail !== "" && !$this->contieneValorEnmascarado($clientSecretConfEmail)) {
             $clientSecretFinal = mainModel::encryption($clientSecretConfEmail);
         }
 
@@ -251,10 +251,10 @@ class correoControlador extends correoModelo{
             }
         }
 
-        if ($passConfEmail !== '') {
+        if ($passConfEmail !== '' && !$this->contieneValorEnmascarado($passConfEmail)) {
             $cambios['Contraseña SMTP'] = ['anterior' => 'Conservada / protegida', 'nuevo' => 'Actualizada'];
         }
-        if ($clientSecretConfEmail !== '') {
+        if ($clientSecretConfEmail !== '' && !$this->contieneValorEnmascarado($clientSecretConfEmail)) {
             $cambios['Client Secret'] = ['anterior' => 'Conservado / protegido', 'nuevo' => 'Actualizado'];
         }
 

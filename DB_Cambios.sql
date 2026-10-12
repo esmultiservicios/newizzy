@@ -701,11 +701,25 @@ CALL izzy_add_column('jobs_queue','error_message','TEXT NULL AFTER `max_attempts
 -- ============================================================================
 
 CALL izzy_add_column('correo','metodo_envio',"ENUM('SMTP','GRAPH') NOT NULL DEFAULT 'SMTP' AFTER `correo_tipo_id`");
-CALL izzy_add_column('correo','tenant_id','VARCHAR(100) NULL AFTER `smtp_secure`');
-CALL izzy_add_column('correo','client_id','VARCHAR(100) NULL AFTER `tenant_id`');
+CALL izzy_add_column('correo','tenant_id','VARCHAR(512) NULL AFTER `smtp_secure`');
+CALL izzy_add_column('correo','client_id','VARCHAR(512) NULL AFTER `tenant_id`');
 CALL izzy_add_column('correo','client_secret','TEXT NULL AFTER `client_id`');
 CALL izzy_add_column('correo','graph_user','VARCHAR(150) NULL AFTER `client_secret`');
 CALL izzy_add_column('correo','save_to_sent_items','TINYINT(1) NOT NULL DEFAULT 1 AFTER `graph_user`');
+
+-- ============================================================================
+-- 2026-10-11 / 2026-10-12 | CORREO: ALMACENAMIENTO DE CREDENCIALES CIFRADAS
+-- ============================================================================
+-- El cifrado/descifrado y la migración de valores anteriores se hacen en PHP.
+-- Ampliamos los campos para que los datos cifrados (Base64) no se trunquen.
+-- No se borran ni modifican los valores existentes: solo cambia su capacidad.
+-- Mantener password NOT NULL según el esquema previo; client_secret permite NULL.
+-- Las llamadas se omiten automáticamente si la tabla correo no existe.
+CALL izzy_exec_if_table(
+    'correo',
+    'ALTER TABLE `correo` MODIFY COLUMN `password` TEXT NOT NULL, MODIFY COLUMN `tenant_id` VARCHAR(512) NULL, MODIFY COLUMN `client_id` VARCHAR(512) NULL, MODIFY COLUMN `client_secret` TEXT NULL'
+);
+
 
 -- ============================================================================
 -- 2026-05-27 | RETIROS DE CAJA

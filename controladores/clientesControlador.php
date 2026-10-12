@@ -5,14 +5,14 @@ if($peticionAjax){
     require_once "../modelos/clientesModelo.php";
     require_once "../core/correo/sendEmail.php";
     require_once "../core/correo/emailTemplates.php";
-    require_once "../core/cPanelAPI.php";
-    require_once "../core/DatabaseSetup.php";    
+    require_once "../core/registro/cPanelAPI.php";
+    require_once "../core/registro/DatabaseSetup.php";    
 }else{
     require_once "./modelos/clientesModelo.php";
     require_once "./core/correo/sendEmail.php";
     require_once "./core/correo/emailTemplates.php";
-    require_once "./core/cPanelAPI.php";
-    require_once "./core/DatabaseSetup.php";    
+    require_once "./core/registro/cPanelAPI.php";
+    require_once "./core/registro/DatabaseSetup.php";    
 }
 
 class clientesControlador extends clientesModelo {
@@ -215,8 +215,8 @@ class clientesControlador extends clientesModelo {
             $datos['planes_id'] = 6;
         }
 
-        if ($datos['sistema_id'] <= 0) {
-            $datos['sistema_id'] = 1;
+        if (!in_array($datos['sistema_id'], [1,2], true)) {
+            $this->responderError('Sistema inválido', 'Solo se permite registrar IZZY o CAMI.', 400);
         }
 
         if ($datos['validar'] !== 1 && $datos['validar'] !== 2) {
@@ -323,6 +323,16 @@ class clientesControlador extends clientesModelo {
             if (!$jobCreado) {
                 $this->responderError('Error en cola de procesos', 'La base fue creada, pero no se pudo registrar el proceso de importación.', 500);
             }
+
+            // Registrar correos pendientes en la misma cola; envío asíncrono y reintentos.
+            $this->encolarCorreoRegistro('registro_user_'.$server_customers_id,
+                [$datos['correo'] => $datos['nombre']],
+                'IZZY | Registro recibido',
+                '<p>Recibimos tu registro en IZZY. Estamos preparando tu sistema. Te enviaremos otro correo cuando puedas acceder.</p>');
+            $this->encolarCorreoRegistro('registro_admin_'.$server_customers_id,
+                $this->destinatariosRegistro(),
+                'IZZY | Nuevo cliente registrado',
+                '<p>Se registró un nuevo cliente: '.htmlspecialchars($datos['empresa'], ENT_QUOTES, 'UTF-8').'</p><p>Cuenta ID: '.$server_customers_id.'. Pendiente de habilitación.</p>');
 
             $this->responderExito([
                 'estado' => true,
@@ -763,7 +773,7 @@ class clientesControlador extends clientesModelo {
                     estado,
                     db_imported
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0)
             ");
 
             if (!$stmt) {
@@ -810,6 +820,34 @@ class clientesControlador extends clientesModelo {
             $conexion->query("UNLOCK TABLES");
             $conexion->autocommit(true);
         }
+    }
+
+    private function destinatariosRegistro(): array {
+        $cn = mainModel::connection();
+        $result = $cn->query('SELECT nombre,correo FROM notificaciones WHERE activo=1');
+        if (!$result) throw new Exception('No se pudo consultar la tabla notificaciones.');
+        $out=[];
+        while ($row=$result->fetch_assoc()) {
+            $mail=trim((string)$row['correo']);
+            if (filter_var($mail,FILTER_VALIDATE_EMAIL)) $out[$mail]=trim((string)$row['nombre']) ?: $mail;
+        }
+        return $out;
+    }
+
+    private function encolarCorreoRegistro(string $key,array $recipients,string $subject,string $html): void {
+        if (!$recipients) return;
+        $cn=mainModel::connection();
+        $like='%"notification_key":"'.$key.'"%';
+        $type='registration_email';
+        $stmt=$cn->prepare('SELECT id FROM jobs_queue WHERE job_type=? AND data LIKE ? LIMIT 1');
+        $stmt->bind_param('ss',$type,$like);$stmt->execute();$exists=$stmt->get_result()->num_rows;$stmt->close();
+        if ($exists) return;
+        $json=json_encode(['notification_key'=>$key,'recipients'=>$recipients,'subject'=>$subject,'html'=>$html],JSON_UNESCAPED_UNICODE);
+        $stmt=$cn->prepare("INSERT INTO jobs_queue(job_type,data,status,attempts,max_attempts) VALUES('registration_email',?,'pending',0,10)");
+        if (!$stmt) throw new Exception('No se pudo preparar notificación de registro.');
+        $stmt->bind_param('s',$json);
+        if (!$stmt->execute()) throw new Exception('No se pudo encolar la notificación de registro: '.$stmt->error);
+        $stmt->close();
     }
 
     private function registrarJobImportacion($server_customers_id, $clientes_id, $colaboradores_id, $users_id, $nombre_db, $password_temporal, $empresa_nombre, $correo, $telefono, $rtn) {
@@ -1043,9 +1081,10 @@ class clientesControlador extends clientesModelo {
             $clientes_id = (int)$clientes_id;
             $server_customers_id = (int)$server_customers_id;
             $colaboradores_id = (int)$colaboradores_id;
+            $empresa_id_principal = 1;
 
             $stmt->bind_param(
-                "iiisssiiiii",
+                "iiisssiisii",
                 $users_id,
                 $colaboradores_id,
                 $privilegio_id,
@@ -1055,7 +1094,7 @@ class clientesControlador extends clientesModelo {
                 $tipo_user_id,
                 $estado,
                 $fecha_registro,
-                $clientes_id,
+                $empresa_id_principal,
                 $server_customers_id
             );
 

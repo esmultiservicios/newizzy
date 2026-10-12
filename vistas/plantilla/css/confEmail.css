@@ -989,7 +989,7 @@
    ========================================================= */
 .correo-config-detail-header,
 .correo-config-detail-row {
-    grid-template-columns: 152px minmax(150px,.9fr) 120px minmax(160px,1fr) minmax(220px,1.25fr) 90px 120px minmax(180px,1fr) !important;
+    grid-template-columns: 200px minmax(150px,.9fr) 120px minmax(160px,1fr) minmax(220px,1.25fr) 90px 120px minmax(180px,1fr) !important;
 }
 
 .correo-config-detail-header {
@@ -2020,11 +2020,11 @@
    IZZY | CORREOS - ALINEACIÓN LIMPIA EN VISTA DETALLE
    Icono + contenido en una sola línea, sin duplicar iconos.
    ========================================================= */
-@media (min-width: 1200px) {
+@media (min-width: 1400px) {
     .correo-config-detail-header,
     .correo-config-detail-row {
         grid-template-columns:
-            152px
+            200px
             minmax(145px, .82fr)
             112px
             minmax(175px, 1fr)
@@ -2079,31 +2079,62 @@
 }
 
 
-/* IZZY ACTION CELL CONTAINMENT START */
-.correo-config-actions-cell,
-.destinatarios-actions-cell { padding-left: 6px !important; padding-right: 6px !important; overflow: visible !important; }
-.correo-config-actions-cell .acciones-dropdown,
-.correo-config-mini-footer .acciones-dropdown,
-.destinatarios-actions-cell .acciones-dropdown,
-.destinatarios-mini-footer .acciones-dropdown { width: auto !important; max-width: 100% !important; }
-.correo-config-actions-cell .btn-acciones,
-.correo-config-mini-footer .btn-acciones,
-.destinatarios-actions-cell .btn-acciones,
-.destinatarios-mini-footer .btn-acciones { width: auto !important; min-width: 88px !important; max-width: 100% !important; padding: 7px 8px !important; white-space: nowrap !important; }
-.correo-config-actions-cell .btn-acciones span,
-.correo-config-mini-footer .btn-acciones span,
-.destinatarios-actions-cell .btn-acciones span,
-.destinatarios-mini-footer .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
-/* IZZY ACTION CELL CONTAINMENT END */
-
-/* IZZY | Correos: ampliar únicamente la columna Acciones en escritorio.
-   Mantiene tamaños, iconos, caret y separación originales de los botones. */
+/* Acciones: se conserva el boton original y se da espacio al conjunto (+ y Acciones). */
 @media (min-width: 1400px) {
-    .correo-config-page .correo-config-detail-header,
-    .correo-config-page .correo-config-detail-row {
-        grid-template-columns: 196px minmax(150px,.9fr) 120px minmax(160px,1fr) minmax(220px,1.25fr) 90px 120px minmax(180px,1fr) !important;
+    .correo-config-actions-cell {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+        justify-content: center !important;
+    }
+    .correo-config-row-actions {
+        flex-wrap: nowrap;
+        gap: 7px;
     }
 }
-.correo-config-page .correo-config-actions-cell {
-    padding-inline: 14px !important;
+
+
+/* =========================================================
+   IZZY | CORREO EMISOR - INPUT E ICONO INTEGRADOS
+   Solo afecta el campo de correo emisor del modal.
+   ========================================================= */
+#formConfEmails .correo-emisor-group {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    min-width: 0;
+}
+
+#formConfEmails .correo-emisor-group > .correo-emisor-input {
+    flex: 1 1 0% !important;
+    width: 1% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin-right: 0 !important;
+    border-radius: 8px 0 0 8px !important;
+}
+
+#formConfEmails .correo-emisor-group > .input-group-append {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    margin-left: -1px !important;
+}
+
+#formConfEmails .correo-emisor-group > .input-group-append > .input-group-text {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 46px;
+    height: 100%;
+    min-height: 44px;
+    margin: 0 !important;
+    border: 1px solid #ced9e5;
+    border-radius: 0 8px 8px 0 !important;
+    background: #eef6fc;
+    color: #173b59;
+}
+
+#formConfEmails .correo-emisor-group:focus-within > .input-group-append > .input-group-text {
+    border-color: #2f9ddd;
 }

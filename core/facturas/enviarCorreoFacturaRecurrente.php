@@ -71,7 +71,20 @@ function enviarCorreoFacturaRecurrente($facturasId, $empresaId, bool $enviarInte
     $numeroHtml = htmlspecialchars($numeroDocumento, ENT_QUOTES, 'UTF-8');
     $urlHtml = htmlspecialchars($urlFactura, ENT_QUOTES, 'UTF-8');
 
-    $sendEmail = new sendEmail();
+    // La facturación usa exclusivamente la configuración de correo tipo 3.
+    // El cliente debe tenerla activa en su propia base; no usar credenciales de otra base.
+    $configuracion = $cn->prepare('SELECT correo_id FROM correo WHERE correo_tipo_id = 3 AND estado = 1 LIMIT 1');
+    if (!$configuracion) {
+        throw new RuntimeException('No se pudo verificar la configuración de correo de Facturas (tipo 3): '.$cn->error);
+    }
+    $configuracion->execute();
+    $configuracionValida = $configuracion->get_result()->fetch_assoc();
+    $configuracion->close();
+    if (!$configuracionValida) {
+        throw new RuntimeException('La base '.$dbActual.' no tiene configuración activa de correo para Facturas (tipo 3).');
+    }
+
+    $sendEmail = new sendEmail($dbActual);
 
     /* =========================================================
        1. ENVÍO AL CLIENTE

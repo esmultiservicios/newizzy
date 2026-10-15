@@ -6545,8 +6545,8 @@
                                 <div class="col-12 col-md-6 col-xl-4 mb-3">
                                     <label for="documento_secuencia"><i class="fas fa-file-alt mr-1"></i>Documento <span class="priority">*</span></label>
 
-                                    <div class="secuencia-documento-control">
-                                        <div class="secuencia-documento-select">
+                                    <div class="secuencia-documento-control" style="display:flex;align-items:stretch;gap:10px;flex-wrap:nowrap;width:100%;">
+                                        <div class="secuencia-documento-select" style="flex:1 1 auto;min-width:0;">
                                             <select id="documento_secuencia" name="documento_secuencia" class="izzy-select2" data-width="100%" title="Seleccione un documento" required data-placeholder="Seleccione un documento">
                                                 <option value="">Seleccione</option>
                                             </select>
@@ -6554,6 +6554,7 @@
 
                                         <button type="button"
                                                 class="btn btn-primary secuencia-btn-administrar-documentos"
+                                                style="display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;min-width:132px;min-height:38px;padding:8px 14px;font-size:13px;font-weight:700;white-space:nowrap;align-self:flex-start;"
                                                 id="btn_administrar_documentos_desde_modal"
                                                 title="Administrar documentos"
                                                 aria-label="Administrar documentos">

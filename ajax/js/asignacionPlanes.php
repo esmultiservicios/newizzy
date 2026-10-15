@@ -4564,7 +4564,12 @@ $(window).on("load", function() {
 
     function apFillSelect($select, rows, placeholder, selected) {
         let html = '<option value="">' + limpiarHtml(placeholder) + '</option>';
-        (rows || []).forEach(function(r) { html += '<option value="' + limpiarHtml(r.id || r.empresa_id) + '">' + limpiarHtml(r.nombre || r.razon_social || "Sin nombre") + '</option>'; });
+        (rows || []).forEach(function(r) {
+            // Los catálogos no utilizan una clave uniforme: puestos_id, empresa_id, etc.
+            const id = apCatalogId(r, $select.attr("id") === "ap_colab_puesto" ? "puestos_id" : "empresa_id");
+            if (!id) return;
+            html += '<option value="' + limpiarHtml(id) + '">' + limpiarHtml(r.nombre || r.razon_social || "Sin nombre") + '</option>';
+        });
         $select.html(html);
         if (selected !== undefined && selected !== null) $select.val(String(selected));
     }
@@ -4834,25 +4839,118 @@ $(window).on("load", function() {
        FORMULARIOS PÚBLICOS: USUARIO + SECUENCIA + DOCUMENTOS
        Se reutilizan los modales globales de vistasModals.
        ========================================================= */
-    function apRefreshSelect2($el) {
-        if (!$el || !$el.length) {
-            return;
+    /*
+     * Los formularios públicos se reutilizan en Asignación de Planes.
+     * Cuando sus opciones se reemplazan con .html(), Select2 conserva una
+     * representación anterior. Reconstruir SOLO los controles de estos
+     * modales mantiene sincronizado el texto visible con el valor real.
+     */
+    /*
+     * Un selector únicamente puede mostrar un valor si existe una opción con
+     * el identificador exacto. Los catálogos de distintos endpoints usan
+     * id / privilegio_id / tipo_user_id / puestos_id. Normalizarlos ANTES
+     * de crear opciones evita que .val(id) termine silenciosamente en null.
+     */
+    function apCatalogId(row, key) {
+        if (!row || typeof row !== "object") return "";
+        const keys = [key, "id", "empresa_id", "privilegio_id", "tipo_user_id", "puestos_id", "colaboradores_id", "documento_id", "secuencia_facturacion_id"];
+        for (let i = 0; i < keys.length; i++) {
+            const value = row[keys[i]];
         }
+        return "";
+    }
 
-        window.izzySoloRefreshSelect2($el);
+    // Sincronización de selección real para Select2 en los formularios públicos.
+    // Los valores deben aplicarse DESPUÉS de reconstruir el catálogo y de mostrar
+    // el modal, porque los inicializadores globales también actúan al abrirlo.
+    function apCatalogId(row, key) {
+        if (!row || typeof row !== "object") return "";
+        const keys = [key, "id", "empresa_id", "privilegio_id", "tipo_user_id", "puestos_id", "colaboradores_id", "documento_id", "secuencia_facturacion_id"];
+        for (let i = 0; i < keys.length; i++) {
+            if (row[keys[i]] !== null && row[keys[i]] !== undefined && String(row[keys[i]]).trim() !== "") {
+                return String(row[keys[i]]);
+            }
+        }
+        return "";
+    }
+
+    function apRefreshSelect2($el) {
+        if (!$el || !$el.length || typeof $.fn.select2 !== "function") return;
+        $el.each(function() {
+            const $select = $(this);
+            if (!$select.is("select")) return;
+            const $modal = $select.closest(".modal");
+            if (!$select.hasClass("select2-hidden-accessible")) {
+                window.izzySoloSelect2($select, {
+                    dropdownParent: $modal.length ? $modal : $(document.body),
+                    width: "100%",
+                    minimumResultsForSearch: 0,
+                    placeholder: $select.attr("data-placeholder") || $select.attr("title") || "Seleccione una opción",
+                    allowClear: false
+                });
+            }
+            $select.trigger("change.select2");
+        });
+    }
+
+    function apSelectRealValue($select, id, collection, key, labelKey) {
+        if (!$select.length) return;
+        const value = id === undefined || id === null ? "" : String(id);
+        if (value) {
+            let $option = $select.find("option").filter(function() { return this.value === value; }).first();
+            if (!$option.length && Array.isArray(collection)) {
+                const item = collection.find(function(row) { return apCatalogId(row, key) === value; });
+                if (item) {
+                    const text = String(item[labelKey] || item.nombre || item.razon_social || "").trim();
+                    if (text) {
+                        $select.append(new Option(text, value, false, false));
+                        $option = $select.find("option").filter(function() { return this.value === value; }).first();
+                    }
+                }
+            }
+            if (!$option.length) {
+                console.warn("Asignación de Planes: valor fuera del catálogo", $select.attr("id"), value);
+                return;
+            }
+        }
+        $select.val(value);
+        // Evento ordinario: Select2 y cualquier observador externo sincronizan su estado.
+        $select.trigger("change");
+        apRefreshSelect2($select);
+    }
+
+    function apRefreshExternalModalSelects($modal) {
+        if (!$modal || !$modal.length || !$modal.hasClass("ap-from-assignment")) return;
+        const selected = $modal.data("ap-selected-values") || {};
+        $modal.find("select").each(function() {
+            const $select = $(this);
+            const id = this.id;
+            if (Object.prototype.hasOwnProperty.call(selected, id)) {
+                apSelectRealValue($select, selected[id]);
+            } else {
+                apRefreshSelect2($select);
+            }
+        });
     }
 
     function apFillPublicSelect($select, rows, valueKey, textKey, placeholder, disabledFn) {
         if (!$select.length) return;
-        let html = '<option value="">' + limpiarHtml(placeholder || "Seleccione") + '</option>';
+        const selectedValue = String($select.val() || "");
+        const options = [new Option(placeholder || "Seleccione", "", false, false)];
         (rows || []).forEach(function(row) {
-            const value = row[valueKey] !== undefined ? row[valueKey] : (row.id !== undefined ? row.id : "");
-            const text = row[textKey] !== undefined ? row[textKey] : (row.nombre || row.razon_social || "Sin nombre");
-            const disabled = typeof disabledFn === "function" && disabledFn(row) ? ' disabled' : '';
-            html += '<option value="' + limpiarHtml(value) + '"' + disabled + '>' + limpiarHtml(text) + '</option>';
+            const value = apCatalogId(row, valueKey);
+            if (!value) return;
+            const label = row[textKey] !== undefined && row[textKey] !== null ? row[textKey] : (row.nombre || row.razon_social || "Sin nombre");
+            const option = new Option(String(label), value, false, false);
+            option.disabled = typeof disabledFn === "function" && !!disabledFn(row);
+            options.push(option);
         });
-        $select.html(html);
-        apRefreshSelect2($select);
+        $select.empty().append(options);
+        apSelectRealValue($select, selectedValue);
+    }
+
+    function apSetCatalogSelection($select, id, collection, key, labelKey) {
+        apSelectRealValue($select, id, collection, key, labelKey);
     }
 
     function apPrepareExternalModal(selector) {
@@ -4912,10 +5010,10 @@ $(window).on("load", function() {
         $modal.find("#btnNuevoPuesto").hide();
 
         apFillPublicSelect($modal.find("#colaboradores_id"), apAdminState.rows, "colaboradores_id", "nombre", "Seleccione un colaborador", function(c){ return (c.usuarios || []).length > 0; });
-        apFillPublicSelect($modal.find("#puesto_colaborador"), cat.puestos || [], "id", "nombre", "Seleccione un puesto");
+        apFillPublicSelect($modal.find("#puesto_colaborador"), cat.puestos || [], "puestos_id", "nombre", "Seleccione un puesto");
         apFillPublicSelect($modal.find("#empresa_usuario"), empresas, "empresa_id", "nombre", "Seleccione una empresa");
-        apFillPublicSelect($modal.find("#privilegio_id"), cat.privilegios || [], "id", "nombre", "Seleccione un privilegio");
-        apFillPublicSelect($modal.find("#tipo_user"), cat.tipos_usuario || [], "id", "nombre", "Seleccione permisos");
+        apFillPublicSelect($modal.find("#privilegio_id"), cat.privilegios || [], "privilegio_id", "nombre", "Seleccione un privilegio");
+        apFillPublicSelect($modal.find("#tipo_user"), cat.tipos_usuario || [], "tipo_user_id", "nombre", "Seleccione permisos");
 
         $modal.find("#fecha_ingreso_colaborador").val(new Date().toISOString().slice(0, 10));
         if (preselectedCollaborator) {
@@ -4964,12 +5062,10 @@ $(window).on("load", function() {
             apRefreshSelect2($modal.find("#colaboradores_id"));
             apShowPublicCollaboratorInfo(preselectedCollaborator);
             $modal.find("#correo_usuario").val(editUser.email || "");
-            $modal.find("#empresa_usuario").val(String(editUser.empresa_id || preselectedCollaborator.empresa_id || ""));
-            $modal.find("#privilegio_id").val(String(editUser.privilegio_id || ""));
-            $modal.find("#tipo_user").val(String(editUser.tipo_user_id || ""));
-            apRefreshSelect2($modal.find("#empresa_usuario"));
-            apRefreshSelect2($modal.find("#privilegio_id"));
-            apRefreshSelect2($modal.find("#tipo_user"));
+            const catalogs = (apAdminState.data || {}).catalogos || {};
+            apSetCatalogSelection($modal.find("#empresa_usuario"), editUser.empresa_id || preselectedCollaborator.empresa_id || "", (apAdminState.data || {}).empresas || [], "empresa_id", "nombre");
+            apSetCatalogSelection($modal.find("#privilegio_id"), editUser.privilegio_id || "", catalogs.privilegios || [], "privilegio_id", "nombre");
+            apSetCatalogSelection($modal.find("#tipo_user"), editUser.tipo_user_id || "", catalogs.tipos_usuario || [], "tipo_user_id", "nombre");
             $modal.find("#estado_usuario").prop("checked", parseInt(editUser.estado, 10) === 1);
             $modal.find("#label_usuarios_activo").text(parseInt(editUser.estado, 10) === 1 ? "Activo" : "Inactivo");
             $modal.find("#reg_usuario").hide();
@@ -4981,8 +5077,18 @@ $(window).on("load", function() {
             apRefreshSelect2($modal.find("#colaboradores_id"));
         }
 
+        $modal.data("ap-selected-values", editing ? {
+            colaboradores_id: String(preselectedCollaborator.colaboradores_id),
+            empresa_usuario: String(editUser.empresa_id || preselectedCollaborator.empresa_id || ""),
+            privilegio_id: String(editUser.privilegio_id || ""),
+            tipo_user: String(editUser.tipo_user_id || "")
+        } : (preselectedCollaborator ? {
+            colaboradores_id: String(preselectedCollaborator.colaboradores_id),
+            empresa_usuario: String(preselectedCollaborator.empresa_id || "")
+        } : {}));
         $modal.modal("show");
         setTimeout(function(){
+            apRefreshExternalModalSelects($modal);
             $modal.find(editing ? "#correo_usuario" : "#colaboradores_id").trigger("focus");
         }, 80);
     }
@@ -5516,6 +5622,7 @@ $(window).on("load", function() {
         apPopulateSequenceDocumentsSelect();
 
         if (!row) {
+            $modal.data("ap-selected-values", {});
             $modal.find("#secuencia_facturacion_id").val("");
             $modal.find("#reg_secuencia").show().prop("disabled",false);
             $modal.find("#edi_secuencia").hide();
@@ -5525,10 +5632,17 @@ $(window).on("load", function() {
         }
 
         $modal.find("#secuencia_facturacion_id").val(row.secuencia_facturacion_id);
-        $modal.find("#empresa_secuencia").val(String(row.empresa_id || "")).prop("disabled", true);
-        $modal.find("#documento_secuencia").val(String(row.documento_id || "")).prop("disabled", true);
-        apRefreshSelect2($modal.find("#empresa_secuencia"));
-        apRefreshSelect2($modal.find("#documento_secuencia"));
+        // La empresa y el documento son de solo lectura en edición, pero
+        // deben seguir seleccionados y visibles en Select2.
+        apSelectRealValue($modal.find("#empresa_secuencia"), row.empresa_id,
+            apBillingState.empresas, "empresa_id", "nombre");
+        apSelectRealValue($modal.find("#documento_secuencia"), row.documento_id,
+            apBillingState.documentos, "documento_id", "nombre");
+        $modal.find("#empresa_secuencia,#documento_secuencia").prop("disabled", true);
+        $modal.data("ap-selected-values", {
+            empresa_secuencia: String(row.empresa_id || ""),
+            documento_secuencia: String(row.documento_id || "")
+        });
         $modal.find("#cai_secuencia").val(row.cai || "");
         $modal.find("#prefijo_secuencia").val(row.prefijo || "");
         $modal.find("#relleno_secuencia").val(row.relleno || "");
@@ -5842,13 +5956,22 @@ $(window).on("load", function() {
         $("#ap_collab_modal_title").text(c ? "Editar colaborador" : "Nuevo colaborador");
         if (c) {
             $("#ap_colab_nombre").val(c.nombre); $("#ap_colab_identidad").val(c.identidad); $("#ap_colab_telefono").val(c.telefono);
-            $("#ap_colab_fecha").val(c.fecha_ingreso); $("#ap_colab_puesto").val(String(c.puestos_id)).trigger("change.select2"); $("#ap_colab_empresa").val(String(c.empresa_id)).trigger("change.select2");
+            $("#ap_colab_fecha").val(c.fecha_ingreso);
+            // Seleccionar contra las opciones reales del catálogo, no sólo cambiar el valor nativo.
+            apSelectRealValue($("#ap_colab_puesto"), c.puestos_id, (apAdminState.data.catalogos || {}).puestos || [], "puestos_id", "nombre");
+            apSelectRealValue($("#ap_colab_empresa"), c.empresa_id, apAdminState.data.empresas || [], "empresa_id", "nombre");
             apSetStatus("ap_colab_estado", parseInt(c.estado,10) === 1, "Activo", "Inactivo", "1", "2");
         } else {
             $("#ap_colab_fecha").val(new Date().toISOString().slice(0,10));
             $("#ap_colab_puesto,#ap_colab_empresa").val(null).trigger("change.select2");
             apSetStatus("ap_colab_estado", true, "Activo", "Inactivo", "1", "2");
         }
+        // La librería global puede reajustar Select2 durante shown.bs.modal.
+        // Guardamos los identificadores para aplicarlos después del ciclo de apertura.
+        $("#modalApColaborador").data("ap-collaborator-selection", c ? {
+            puesto: String(c.puestos_id || ""),
+            empresa: String(c.empresa_id || "")
+        } : { puesto: "", empresa: "" });
         apOpenStaticModal("#modalApColaborador");
         setTimeout(function(){ $("#ap_colab_nombre").trigger("focus"); },180);
     }
@@ -6139,6 +6262,7 @@ $(window).on("load", function() {
         .on("hidden.bs.modal.apExternal", "#modal_registrar_usuarios,#modal_registrar_empresa,#modal_registrar_secuencias,#modal_documentos_secuencia,#modal_registrar_privilegios,#modal_registrar_menuaccesos,#modal_registrar_submenuaccesos,#modal_registrar_submenu1accesos,#modal_registrar_tipoUsuario,#modal_permisos", function(){
             const $modal = $(this);
             $modal.removeClass("ap-from-assignment").addClass("fade").removeAttr("data-ap-context");
+            $modal.removeData("ap-selected-values");
             $modal.find("#formUsers,#formEmpresa,#formSecuencia").addClass("FormularioAjax").removeAttr("data-ap-context");
             $modal.find("#formDocumentoSecuencia").removeAttr("data-ap-context");
             if ($modal.attr("id") === "modal_registrar_usuarios") {
@@ -6147,6 +6271,16 @@ $(window).on("load", function() {
                 apRefreshSelect2($modal.find("#colaboradores_id"));
             }
             if ($("#modalAdministrarCliente").hasClass("show")) $(document.body).addClass("modal-open");
+        });
+
+    // Bootstrap y el inicializador global pueden refrescar los Select2 al mostrar
+    // el modal; ejecutar después evita que quede un texto previo o vacío.
+    $(document)
+        .off("shown.bs.modal.apSelectedValues", "#modal_registrar_usuarios,#modal_registrar_empresa,#modal_registrar_secuencias")
+        .on("shown.bs.modal.apSelectedValues", "#modal_registrar_usuarios,#modal_registrar_empresa,#modal_registrar_secuencias", function() {
+            const $modal = $(this);
+            apRefreshExternalModalSelects($modal);
+            setTimeout(function() { apRefreshExternalModalSelects($modal); }, 60);
         });
 
     // Intercepta los formularios públicos únicamente cuando fueron abiertos desde Asignación de Planes.
@@ -6212,6 +6346,9 @@ $(window).on("load", function() {
         .off("shown.bs.modal.apFocus")
         .on("shown.bs.modal.apFocus", function(){
             const $modal = $(this);
+            const selected = $modal.data("ap-collaborator-selection") || {};
+            apSelectRealValue($modal.find("#ap_colab_puesto"), selected.puesto || "", (apAdminState.data.catalogos || {}).puestos || [], "puestos_id", "nombre");
+            apSelectRealValue($modal.find("#ap_colab_empresa"), selected.empresa || "", apAdminState.data.empresas || [], "empresa_id", "nombre");
             $modal.find(".modal-body").scrollTop(0);
             setTimeout(function(){
                 $modal

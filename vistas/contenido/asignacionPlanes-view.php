@@ -646,16 +646,19 @@
                                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <i class="fas fa-cog mr-1"></i> Acciones
                                     </button>
-                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="ap_sequence_main_actions">
-                                        <button type="button" class="dropdown-item" id="ap_btn_nueva_secuencia">
-                                            <i class="fas fa-plus-circle mr-2"></i>Nueva secuencia
+                                    <div class="dropdown-menu dropdown-menu-right ap-rich-actions-menu" aria-labelledby="ap_sequence_main_actions">
+                                        <button type="button" class="dropdown-item ap-rich-action-item" id="ap_btn_nueva_secuencia">
+                                            <span class="ap-item-icon ap-item-icon-add"><i class="fas fa-plus-circle"></i></span>
+                                            <span class="ap-item-copy"><strong>Nueva secuencia</strong><small>Registrar una numeración fiscal</small></span>
                                         </button>
-                                        <button type="button" class="dropdown-item" id="ap_btn_documentos_secuencia">
-                                            <i class="fas fa-folder-open mr-2"></i>Documentos
+                                        <button type="button" class="dropdown-item ap-rich-action-item" id="ap_btn_documentos_secuencia">
+                                            <span class="ap-item-icon ap-item-icon-sequence"><i class="fas fa-folder-open"></i></span>
+                                            <span class="ap-item-copy"><strong>Documentos</strong><small>Administrar tipos de documento</small></span>
                                         </button>
                                         <div class="dropdown-divider"></div>
-                                        <button type="button" class="dropdown-item" id="ap_btn_actualizar_secuencias">
-                                            <i class="fas fa-sync-alt mr-2"></i>Actualizar
+                                        <button type="button" class="dropdown-item ap-rich-action-item" id="ap_btn_actualizar_secuencias">
+                                            <span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-sync-alt"></i></span>
+                                            <span class="ap-item-copy"><strong>Actualizar</strong><small>Recargar secuencias y documentos</small></span>
                                         </button>
                                     </div>
                                 </div>

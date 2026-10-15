@@ -102,6 +102,7 @@ $soloDb = null;
 $recuperarMes = null;
 $aceptarCiclosAnteriores = in_array('--confirmar-ciclos-previos', $argv ?? [], true);
 $maxPorBase = 0; // Sin límite artificial de facturas.
+$reintentarCorreos = in_array('--retry-emails', $argv ?? [], true);
 
 
 foreach (($argv ?? []) as $argumento) {
@@ -120,6 +121,11 @@ foreach (($argv ?? []) as $argumento) {
             exit(1);
         }
     }
+}
+
+if ($reintentarCorreos && ($soloDb === null || $recuperarMes !== null)) {
+    fwrite(STDERR, "El reenvío exige --db=BASE y no permite --recuperar-mes.\n");
+    exit(1);
 }
 
 if ($recuperarMes !== null && (!$aceptarCiclosAnteriores || $soloDb === null)) {
@@ -169,7 +175,7 @@ if ($soloDb !== null) {
 }
 $conexionPrincipal->close();
 $servicio = new FacturaRecurrenteServicio();
-$resumen = ['modo' => $ejecutar ? 'EJECUCION' : 'SIMULACION', 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'correos' => 0, 'bases' => []];
+$resumen = ['modo' => $reintentarCorreos ? ($ejecutar ? 'REENVIO_CORREOS' : 'SIMULACION_REENVIO') : ($ejecutar ? 'EJECUCION' : 'SIMULACION'), 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'correos' => 0, 'bases' => []];
 $hoy = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
 
 /**
@@ -193,6 +199,62 @@ foreach ($baseDatos as $nombreDb) {
             $resumen['revision']++;
             continue;
         }
+        // Modo exclusivo: reintentar solamente correos de facturas ya generadas.
+        // No toca tablas facturas, detalles, correlativos ni el cron de emisión.
+        if ($reintentarCorreos) {
+            $sqlReenvio = "SELECT e.ejecucion_id, e.rec_id, e.empresa_id, e.facturas_id
+                           FROM facturas_recurrentes_ejecuciones e
+                           INNER JOIN facturas_recurrentes r ON r.rec_id = e.rec_id AND r.empresa_id = e.empresa_id
+                           INNER JOIN facturas f ON f.facturas_id = e.facturas_id AND f.empresa_id = e.empresa_id AND f.clientes_id = r.clientes_id
+                           WHERE e.estado = 1 AND e.correo_estado = 2 AND r.enviar_correo = 1
+                           ORDER BY e.ejecucion_id ASC";
+            $rsReenvio = $cn->query($sqlReenvio);
+            if (!$rsReenvio) {
+                throw new RuntimeException('No se pudieron consultar correos fallidos: '.$cn->error);
+            }
+            $pendientesCorreo = [];
+            while ($filaCorreo = $rsReenvio->fetch_assoc()) $pendientesCorreo[] = $filaCorreo;
+            $rsReenvio->free();
+            $contadores['pendientes'] = count($pendientesCorreo);
+            if (!$ejecutar) {
+                $resumen['bases'][$nombreDb] = $contadores;
+                continue;
+            }
+            foreach ($pendientesCorreo as $filaCorreo) {
+                $ejecucionCorreoId = (int)$filaCorreo['ejecucion_id'];
+                $facturaCorreoId = (int)$filaCorreo['facturas_id'];
+                $empresaCorreoId = (int)$filaCorreo['empresa_id'];
+                // Reservar intento: si se interrumpe el proceso, estado 0 exige
+                // conciliación manual y nunca se reenvía automáticamente.
+                $reservarCorreo = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 0 WHERE ejecucion_id = ? AND estado = 1 AND correo_estado = 2 AND facturas_id = ?');
+                $reservarCorreo->bind_param('ii', $ejecucionCorreoId, $facturaCorreoId);
+                if (!$reservarCorreo->execute()) throw new RuntimeException('No se pudo reservar el intento de envío: '.$reservarCorreo->error);
+                $reservadoCorreo = $reservarCorreo->affected_rows === 1;
+                $reservarCorreo->close();
+                if (!$reservadoCorreo) continue;
+                try {
+                    $resultadoCorreo = enviarCorreoFacturaRecurrente($facturaCorreoId, $empresaCorreoId, false);
+                    $okCorreo = !empty($resultadoCorreo['cliente_enviado']);
+                    $estadoCorreoNuevo = $okCorreo ? 1 : 2;
+                    $detalleCorreo = $okCorreo ? 'Correo enviado al cliente.' : (string)($resultadoCorreo['cliente_detalle'] ?? 'El proveedor no confirmó el envío.');
+                    $detalleCorreo = mb_substr(preg_replace('/[\r\n]+/', ' ', $detalleCorreo), 0, 450);
+                    $actualizaCorreo = $cn->prepare("UPDATE facturas_recurrentes_ejecuciones SET correo_estado = ?, mensaje = CONCAT(LEFT(COALESCE(mensaje,''), 500), ' | Correo: ', ?) WHERE ejecucion_id = ? AND correo_estado = 0");
+                    $actualizaCorreo->bind_param('isi', $estadoCorreoNuevo, $detalleCorreo, $ejecucionCorreoId);
+                    if (!$actualizaCorreo->execute() || $actualizaCorreo->affected_rows !== 1) throw new RuntimeException('No se pudo confirmar el estado del correo; revisar antes de reintentar.');
+                    $actualizaCorreo->close();
+                    if ($okCorreo) { $resumen['correos']++; $contadores['recuperadas']++; }
+                    else { $contadores['errores']++; $resumen['errores']++; izzyFacturaRecurrenteLog('Reenvío fallido base '.$nombreDb.', ejecución '.$ejecucionCorreoId.': '.$detalleCorreo); }
+                } catch (Throwable $exCorreo) {
+                    // Se conserva en estado 0, porque el proveedor podría haber aceptado el correo.
+                    // Reconciliar manualmente para evitar envíos duplicados.
+                    $contadores['revision']++; $resumen['revision']++;
+                    izzyFacturaRecurrenteLog('Reenvío ambiguo base '.$nombreDb.', ejecución '.$ejecucionCorreoId.': '.$exCorreo->getMessage());
+                }
+            }
+            $resumen['bases'][$nombreDb] = $contadores;
+            continue;
+        }
+
         $consulta = $cn->query("SELECT rec_id, next_run_at FROM facturas_recurrentes WHERE estado = 1 AND next_run_at <= NOW() AND (until_at IS NULL OR DATE(next_run_at) <= until_at) ORDER BY next_run_at ASC, rec_id ASC");
         if (!$consulta) {
             throw new RuntimeException('No se pudieron consultar recurrencias: '.$cn->error);
@@ -371,8 +433,10 @@ foreach ($baseDatos as $nombreDb) {
                     try {
                         $correo = enviarCorreoFacturaRecurrente($facturasId, $empresaId, false);
                         $estadoCorreo = !empty($correo['cliente_enviado']) ? 1 : 2;
-                        $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET correo_estado = ? WHERE ejecucion_id = ?');
-                        $stmt->bind_param('ii', $estadoCorreo, $ejecucionId);
+                        $detalleCorreo = $estadoCorreo === 1 ? 'Correo enviado al cliente.' : (string)($correo['cliente_detalle'] ?? 'El proveedor no confirmó el envío.');
+                        $detalleCorreo = mb_substr(preg_replace('/[\r\n]+/', ' ', $detalleCorreo), 0, 450);
+                        $stmt = $cn->prepare("UPDATE facturas_recurrentes_ejecuciones SET correo_estado = ?, mensaje = CONCAT(LEFT(COALESCE(mensaje,''), 500), ' | Correo: ', ?) WHERE ejecucion_id = ?");
+                        $stmt->bind_param('isi', $estadoCorreo, $detalleCorreo, $ejecucionId);
                         $stmt->execute();
                         $stmt->close();
                         if ($estadoCorreo === 1) {
@@ -380,8 +444,9 @@ foreach ($baseDatos as $nombreDb) {
                         }
                     } catch (Throwable $correoError) {
                         izzyFacturaRecurrenteLog('Correo base '.$nombreDb.', rec '.$recId.': '.$correoError->getMessage());
-                        $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 2 WHERE ejecucion_id = ?');
-                        $stmt->bind_param('i', $ejecucionId);
+                        $detalleCorreo = mb_substr(preg_replace('/[\r\n]+/', ' ', $correoError->getMessage()), 0, 450);
+                        $stmt = $cn->prepare("UPDATE facturas_recurrentes_ejecuciones SET correo_estado = 2, mensaje = CONCAT(LEFT(COALESCE(mensaje,''), 500), ' | Correo: ', ?) WHERE ejecucion_id = ?");
+                        $stmt->bind_param('si', $detalleCorreo, $ejecucionId);
                         $stmt->execute();
                         $stmt->close();
                     }

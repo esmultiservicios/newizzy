@@ -36,7 +36,10 @@ if ($fechaf == "") {
     $fechaf = $fechai;
 }
 
-$where = "a.empresa_id = '$empresa_id'";
+$where = "1=1";
+if (!$insMainModel->izzyPuedeConsultarTodasLasEmpresasPublico()) {
+    $where .= " AND a.empresa_id = '$empresa_id'";
+}
 
 if ($solo_mi_caja === 1 && $origen === 'facturacion') {
     $where .= " AND a.colaboradores_id = '$colaboradores_id'";
@@ -56,6 +59,7 @@ if ($estado === 0) {
 $sql = "
     SELECT
         a.apertura_id,
+        a.empresa_id,
         a.fecha,
         a.factura_inicial,
         a.factura_final,
@@ -103,7 +107,7 @@ if ($result) {
             SELECT COALESCE(SUM(monto), 0) AS total_retiros
             FROM caja_retiros
             WHERE apertura_id = '$apertura_id'
-              AND empresa_id = '$empresa_id'
+              AND empresa_id = '{$row['empresa_id']}'
               AND estado = 1
         ";
 

@@ -2416,6 +2416,12 @@ class mainModel
 		return in_array(trim((string)($fila['nombre'] ?? '')), ['Administrador', 'Super Administrador'], true);
 	}
 
+    /** Acceso multiempresa para consultas externas al modelo (DataTables). */
+    public function izzyPuedeConsultarTodasLasEmpresasPublico(): bool
+    {
+        return $this->izzyPuedeConsultarTodasLasEmpresas();
+    }
+
 	private function izzyEmpresaPermitida(): int
 	{
 		return max(0, (int)($_SESSION['empresa_id_sd'] ?? 0));
@@ -3135,7 +3141,7 @@ class mainModel
 	{
 		$estado = $datos['estado'] ?? 1;
 
-		if ($datos['db_cliente'] === $GLOBALS['DB_MAIN']) {
+		if ($this->izzyEmpresaPermitida() === 1 && $datos['db_cliente'] === $GLOBALS['DB_MAIN']) {
 			$where = "WHERE estado = '$estado'";
 		} else {
 			$where = "WHERE estado = '$estado' AND tipo_user_id NOT IN(1,3)";
@@ -3339,13 +3345,16 @@ class mainModel
 
 	public function getBitacora($fechai, $fechaf)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+		$empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? "" : " AND c.empresa_id = $empresaId";
 		$query = "SELECT b.bitacoraCodigo AS 'bitacoraCodigo', DATE_FORMAT(b.bitacoraFecha, '%d/%m/%Y') AS 'bitacoraFecha', b.bitacoraHoraInicio As 'bitacoraHoraInicio', b.bitacoraHoraFinal AS 'bitacoraHoraFinal', tu.nombre AS 'bitacoraTipo', b.bitacoraYear AS 'bitacoraYear',c.nombre AS 'colaborador'
 				FROM bitacora AS b
 				INNER JOIN tipo_user AS tu
 				ON b.bitacoraTipo = tu.tipo_user_id
 				INNER JOIN colaboradores AS c
 				ON b.colaboradores_id = c.colaboradores_id
-				WHERE b.bitacoraFecha BETWEEN '$fechai' AND '$fechaf'";
+				WHERE b.bitacoraFecha BETWEEN '$fechai' AND '$fechaf'
+				$empresaFiltro";
 
 		$result = self::connection()->query($query);
 
@@ -3354,11 +3363,14 @@ class mainModel
 
 	public function getHistorialAccesos($fechai, $fechaf)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresaHistorial = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : "AND c.empresa_id = $empresaId";
 		$query = "SELECT ha.historial_acceso_id AS 'historial_acceso_id', DATE_FORMAT(ha.fecha, '%d/%m/%Y %H:%i:%s') AS 'fecha',c.nombre As 'colaborador', ha.ip AS 'ip', ha.acceso AS 'acceso'
 				FROM historial_acceso AS ha
 				INNER JOIN colaboradores AS c
 				ON ha.colaboradores_id = c.colaboradores_id
 				WHERE CAST(ha.fecha AS DATE) BETWEEN '$fechai' AND '$fechaf'
+				{$filtroEmpresaHistorial}
 				ORDER BY ha.fecha DESC";
 		$result = self::connection()->query($query);
 
@@ -3488,13 +3500,15 @@ class mainModel
 
 	public function getProveedores($estado)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+        $empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND (EXISTS (SELECT 1 FROM compras pc WHERE pc.proveedores_id = p.proveedores_id AND pc.empresa_id = $empresaId) OR EXISTS (SELECT 1 FROM colaboradores cr WHERE cr.colaboradores_id = p.colaboradores_id AND cr.empresa_id = $empresaId))";
 		$query = "SELECT p.proveedores_id AS 'proveedores_id', p.nombre AS 'proveedor', p.rtn AS 'rtn' , p.localidad AS 'localidad', p.telefono AS 'telefono', p.correo AS 'correo', d.nombre AS 'departamento', m.nombre AS 'municipio', p.estado
 				FROM proveedores AS p
 				LEFT JOIN departamentos AS d
 				ON p.departamentos_id = d.departamentos_id
 				LEFT JOIN municipios AS m
 				ON p.municipios_id = m.municipios_id
-				WHERE p.estado = '$estado'
+				WHERE p.estado = '$estado' {$empresaFiltro}
 				ORDER BY p.nombre";
 
 		$result = self::connection()->query($query);
@@ -3916,6 +3930,10 @@ class mainModel
 			$filtro .= " AND c.tipo_empleado_id = '" . $datos['tipo_empleado'] . "'";
 		}
 
+		$empresaId = $this->izzyEmpresaPermitida();
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$filtro .= " AND co.empresa_id = $empresaId";
+		}
 		$query = "SELECT c.contrato_id AS contrato_id,co.nombre AS 'empleado', tc.nombre AS 'tipo_contrato', pp.nombre AS 'pago_planificado', te.nombre AS 'tipo_empleado', c.fecha_inicio AS 'fecha_inicio', c.estado AS 'estado', (CASE WHEN c.estado = '1' THEN 'Activo' ELSE 'Inactivo' END) AS 'estado_nombre', c.salario AS 'salario', c.tipo_contrato_id AS 'tipo_contrato_id', c.pago_planificado_id AS 'pago_planificado_id', c.tipo_empleado_id AS 'tipo_empleado_id', (CASE WHEN c.fecha_fin = '' THEN 'Sin Registro' ELSE c.fecha_fin END) AS 'fecha_fin', c.notas AS 'notas'
 			FROM contrato AS c
 			INNER JOIN colaboradores AS co ON c.colaborador_id = co.colaboradores_id
@@ -3939,6 +3957,8 @@ class mainModel
 			$tipo_contrato_condicion = "AND c.tipo_contrato_id = '" . $datos['tipo_contrato_id'] . "'";
 		}
 	
+		$empresaId = $this->izzyEmpresaPermitida();
+        $empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND n.empresa_id = $empresaId";
 		$query = "SELECT n.nomina_id AS 'nomina_id', 
 						 e.nombre AS 'empresa', 
 						 n.fecha_inicio AS 'fecha_inicio', 
@@ -3955,7 +3975,7 @@ class mainModel
 				  LEFT JOIN nomina_detalles AS nd ON n.nomina_id = nd.nomina_id
 				  LEFT JOIN contrato AS c ON nd.colaboradores_id = c.colaborador_id
 				  WHERE n.estado = '" . $datos['estado'] . "'
-				  $tipo_contrato_condicion
+				  $tipo_contrato_condicion $empresaFiltro
 				  ORDER BY n.fecha_registro DESC";
 	
 		$result = self::connection()->query($query);
@@ -3988,6 +4008,8 @@ class mainModel
 
 	public function getNominaDetalles($datos)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+        $empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND n.empresa_id = $empresaId";
 		$empleado = '';
 
 		if ($datos['empleado'] != '' && $datos['empleado'] != 0) {
@@ -4001,7 +4023,7 @@ class mainModel
 				INNER JOIN contrato AS co ON nd.colaboradores_id = co.colaborador_id
 				INNER JOIN tipo_contrato AS tp ON co.tipo_contrato_id = tp.tipo_contrato_id
 				INNER JOIN empresa AS e ON n.empresa_id = e.empresa_id
-				WHERE nd.estado = '" . $datos['estado'] . "' AND nd.nomina_id = '" . $datos['nomina_id'] . "' AND co.estado = 1
+				WHERE nd.estado = '" . $datos['estado'] . "' AND nd.nomina_id = '" . $datos['nomina_id'] . "' AND co.estado = 1 $empresaFiltro
 				$empleado
 				ORDER BY nd.fecha_registro DESC";
 
@@ -4139,9 +4161,7 @@ class mainModel
 		// Empresa principal (ID 1) con Admin o Super Admin: consulta todas.
 		// Empresas secundarias: solo sus usuarios, incluso si tienen esos privilegios.
 		$estadoSeguro = (int)$estado;
-		$where = ($datos['db_cliente'] === $GLOBALS['DB_MAIN'])
-			? "WHERE u.estado = 1"
-			: "WHERE u.estado = $estadoSeguro";
+		$where = "WHERE u.estado = $estadoSeguro";
 		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
 			$empresaId = $this->izzyEmpresaPermitida();
 			$where .= " AND u.empresa_id = $empresaId";
@@ -5317,12 +5337,11 @@ class mainModel
 
 	public function getAlmacen($datos)
 	{
-		$estado = $datos["estado"] ?? 1;
-
-		if ($datos['privilegio_colaborador'] === 'Super Administrador' && $datos['privilegio_colaborador'] === 'Administrador') {
-			$where = "WHERE a.estado = '$estado'";
-		} else {
-			$where = "WHERE a.estado = '$estado'  AND a.empresa_id = '" . $datos['empresa_id'] . "'";
+		$estado = (int)($datos['estado'] ?? 1);
+		$empresaId = $this->izzyEmpresaPermitida();
+		$where = "WHERE a.estado = $estado";
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$where .= " AND a.empresa_id = $empresaId";
 		}
 
 		$query = "SELECT a.almacen_id AS 'almacen_id', a.nombre AS 'almacen', u.nombre AS 'ubicacion', e.nombre AS 'empresa', a.estado,
@@ -5355,12 +5374,11 @@ class mainModel
 
 	public function getUbicacion($datos)
 	{
-		$estado = $datos['estado'] ?? 1;
-
-		if ($datos['privilegio_colaborador'] === 'Super Administrador' && $datos['privilegio_colaborador'] === 'Administrador') {
-			$where = "WHERE u.estado = '$estado'";
-		} else {
-			$where = "WHERE u.estado = '$estado' AND u.empresa_id = '" . $datos['empresa_id'] . "'";
+		$estado = (int)($datos['estado'] ?? 1);
+		$empresaId = $this->izzyEmpresaPermitida();
+		$where = "WHERE u.estado = $estado";
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$where .= " AND u.empresa_id = $empresaId";
 		}
 
 		$query = "SELECT u.ubicacion_id AS 'ubicacion_id', u.nombre AS 'ubicacion', e.nombre AS 'empresa', u.estado
@@ -5377,10 +5395,11 @@ class mainModel
 
 	public function getUbicacionSelect($datos)
 	{
-		if ($datos['privilegio_colaborador'] === 'Super Administrador' && $datos['privilegio_colaborador'] === 'Administrador') {
-			$where = 'WHERE u.estado = 1';
-		} else {
-			$where = "WHERE u.estado = 1 AND u.empresa_id = '" . $datos['empresa_id'] . "'";
+		$estado = 1;
+		$empresaId = $this->izzyEmpresaPermitida();
+		$where = "WHERE u.estado = $estado";
+		if (!$this->izzyPuedeConsultarTodasLasEmpresas()) {
+			$where .= " AND u.empresa_id = $empresaId";
 		}
 
 		$query = "SELECT u.ubicacion_id AS 'ubicacion_id', u.nombre AS 'ubicacion', e.nombre AS 'empresa'
@@ -5430,9 +5449,12 @@ class mainModel
 
 	public function getCuentasContabilidad($estado)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND EXISTS (SELECT 1 FROM movimientos_cuentas mc WHERE mc.cuentas_id = cuentas.cuentas_id AND mc.empresa_id = $empresaId)";
+
 		$query = "SELECT *
 				FROM cuentas
-				WHERE estado = '$estado'";
+				WHERE estado = '$estado' $filtroEmpresa";
 
 		$result = self::connection()->query($query);
 
@@ -5474,7 +5496,10 @@ class mainModel
 		$monto_desde = isset($datos['monto_desde']) ? trim($datos['monto_desde']) : "";
 		$monto_hasta = isset($datos['monto_hasta']) ? trim($datos['monto_hasta']) : "";
 
+		$empresaId = $this->izzyEmpresaPermitida();
+		$globalEmpresas = $this->izzyPuedeConsultarTodasLasEmpresas();
 		$where = [];
+		if (!$globalEmpresas) $where[] = "mc.empresa_id = $empresaId";
 		$where[] = "DATE(mc.fecha_registro) BETWEEN '{$fechai}' AND '{$fechaf}'";
 
 		if ($cuenta_busqueda !== "") {
@@ -5591,6 +5616,9 @@ class mainModel
 		$fechaf = $this->cleanString($datos['fechaf']);
 		$estado = (int)$datos['estado'];
 	
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND i.empresa_id = $empresaId";
+
 		$query = "
 			SELECT
 				i.ingresos_id,
@@ -5622,6 +5650,7 @@ class mainModel
 				ON i.clientes_id = cli.clientes_id
 			WHERE DATE(i.fecha_registro) BETWEEN '$fechai' AND '$fechaf'
 			AND i.estado = $estado
+            $filtroEmpresa
 			ORDER BY i.fecha_registro DESC
 		";
 	
@@ -5669,6 +5698,9 @@ class mainModel
 		$fechaf = self::cleanString($datos['fechaf']);
 		$estado = (int)$datos['estado'];
 
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND e.empresa_id = $empresaId";
+
 		$query = "
 			SELECT
 			e.egresos_id            AS egresos_id,
@@ -5696,6 +5728,7 @@ class mainModel
 			LEFT JOIN categoria_gastos AS cg ON e.categoria_gastos_id = cg.categoria_gastos_id
 			WHERE CAST(e.fecha_registro AS DATE) BETWEEN '$fechai' AND '$fechaf'
 			AND e.estado = '$estado'
+            $filtroEmpresa
 			ORDER BY e.fecha_registro DESC
 		";
 
@@ -5778,6 +5811,8 @@ class mainModel
 
 	public function getChequesContables($datos)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+		$empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? "" : " AND ck.empresa_id = $empresaId";
 		$query = "SELECT ck.fecha AS 'fecha', ck.factura AS 'factura', ck.importe AS 'importe', c.codigo AS 'codigo', c.nombre AS 'nombre', ck.observacion AS 'observacion', p.nombre AS 'proveedor'
 
 				FROM cheque AS ck
@@ -5792,6 +5827,7 @@ class mainModel
 
 				WHERE ck.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "'
 
+				$empresaFiltro
 				ORDER BY ck.fecha_registro DESC";
 
 		$result = self::connection()->query($query);
@@ -6455,7 +6491,8 @@ class mainModel
 			? "AND c.estado IN (1,3)"
 			: "AND c.estado = 2";
 	
-		$empresaId = (int)$datos['empresa_id_sd'];
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND c.empresa_id = {$empresaId}";
 		$conn      = self::connection();
 	
 		$fechai = $conn->real_escape_string($datos['fechai']);
@@ -6485,8 +6522,8 @@ class mainModel
 				FROM cotizacion_detalles cd
 				GROUP BY cd.cotizacion_id
 			) d ON d.cotizacion_id = c.cotizacion_id
-			WHERE c.empresa_id = {$empresaId}
-			  AND c.fecha BETWEEN '{$fechai}' AND '{$fechaf}'
+			WHERE c.fecha BETWEEN '{$fechai}' AND '{$fechaf}'
+			  {$filtroEmpresa}
 			  {$whereEstado}
 			ORDER BY c.number DESC, c.fecha DESC
 		";
@@ -7040,7 +7077,9 @@ class mainModel
 			$tipo = "AND p.tipo_producto_id = '" . self::cleanString($datos['tipo_producto_id']) . "'";
 		}
 	
-		$empresa = self::cleanString($datos['empresa_id_sd']);
+		$empresa = $this->izzyEmpresaPermitida();
+		$globalEmpresas = $this->izzyPuedeConsultarTodasLasEmpresas();
+		$filtroMovimientoEmpresa = $globalEmpresas ? '' : "AND m.empresa_id = $empresa";
 	
 		$query = "
 			SELECT 
@@ -7068,7 +7107,7 @@ class mainModel
 						WHERE mm.productos_id = m.productos_id
 						AND mm.almacen_id = m.almacen_id
 						AND mm.fecha_registro < m.fecha_registro
-						AND mm.empresa_id = '$empresa'
+						AND mm.empresa_id = m.empresa_id
 					),
 				0) AS saldo_anterior,
 				COALESCE(a.nombre, 'Sin bodega') AS 'bodega',
@@ -7083,7 +7122,7 @@ class mainModel
 			LEFT JOIN medida    md ON p.medida_id   = md.medida_id
 			LEFT JOIN lotes     l  ON m.lote_id     = l.lote_id
 			WHERE p.estado = 1
-			AND m.empresa_id = '$empresa'
+			$filtroMovimientoEmpresa
 			$fecha
 			$bodega
 			$producto
@@ -7107,7 +7146,8 @@ class mainModel
 		$categoria = '';
 		$id_producto = '';
 	
-		$empresa = self::cleanString($datos['empresa_id_sd']);
+		$empresa = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND m.empresa_id = {$empresa}";
 	
 		if (!empty($datos['bodega']) && $datos['bodega'] != '0') {
 			$bodega = "AND bo.almacen_id = '" . self::cleanString($datos['bodega']) . "'";
@@ -7167,7 +7207,7 @@ class mainModel
 					SUM(m.cantidad_salida) AS salida,
 					m.empresa_id
 				FROM movimientos m
-				WHERE m.empresa_id = '$empresa'
+				WHERE 1 = 1 {$filtroEmpresa}
 				GROUP BY m.productos_id, m.almacen_id, COALESCE(m.lote_id,0), m.empresa_id
 			) t
 			INNER JOIN productos p ON p.productos_id = t.productos_id
@@ -7649,7 +7689,8 @@ class mainModel
 			}
 		}
 	
-		$empresa = (int)$datos['empresa_id_sd'];
+		$empresa = $this->izzyEmpresaPermitida();
+		$empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? "" : "cc.empresa_id = {$empresa} AND ";
 		$estado  = (int)$datos['estado'];
 	
 		$query = "
@@ -7674,7 +7715,7 @@ class mainModel
 			INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
 			INNER JOIN colaboradores co         ON f.colaboradores_id = co.colaboradores_id
 			INNER JOIN documento d              ON sf.documento_id = d.documento_id
-			WHERE cc.empresa_id = {$empresa} AND cc.estado = {$estado}
+			WHERE {$empresaFiltro}cc.estado = {$estado}
 			  {$fecha}
 			  {$clientes_id}
 			ORDER BY f.number DESC, cc.fecha DESC
@@ -7733,10 +7774,12 @@ class mainModel
 
 	public function consultaComprasCompleta($datos)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+        $empresaCondicion = $this->izzyPuedeConsultarTodasLasEmpresas() ? '1=1' : "c.empresa_id = $empresaId";
 		if ($datos['tipo_compra_reporte'] == 1) {
-			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado IN(2,3)";
+			$where = "WHERE " . $empresaCondicion . " AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado IN(2,3)";
 		} else {
-			$where = "WHERE c.empresa_id = '" . $datos['empresa_id_sd'] . "' AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 4";
+			$where = "WHERE " . $empresaCondicion . " AND c.fecha BETWEEN '" . $datos['fechai'] . "' AND '" . $datos['fechaf'] . "' AND c.estado = 4";
 		}
 
 		$query = "SELECT 
@@ -7772,6 +7815,8 @@ class mainModel
 
 	public function consultaCuentasPorPagarCompleta($datos)
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+        $empresaFiltro = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND compras.empresa_id = $empresaId";
 		$proveedores_id = '';
 		$fecha_actual = date('Y-m-d');
 		$fecha = '';
@@ -7808,6 +7853,7 @@ class mainModel
 				WHERE 
 					pagar_proveedores.estado = '" . $datos['estado'] . "'
 					$fecha
+                    $empresaFiltro
 					$proveedores_id
 				ORDER BY 
 					compras.number DESC";
@@ -7916,9 +7962,12 @@ class mainModel
 		$fecha_inicial = date('Y-m-d', strtotime($año . '-' . $mes . '-' . $dia1));
 		$fecha_final = date('Y-m-d', strtotime($año . '-' . $mes . '-' . $dia2));
 
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND empresa_id = $empresaId";
+
 		$query = "SELECT SUM(importe) AS 'total'
 				FROM facturas
-				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final' AND estado IN(2,3)";
+				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final' AND estado IN(2,3) $filtroEmpresa";
 
 		$result = self::connection()->query($query);
 
@@ -7953,9 +8002,12 @@ class mainModel
 		$fecha_inicial = date('Y-m-d', strtotime($año . '-' . $mes . '-' . $dia1));
 		$fecha_final = date('Y-m-d', strtotime($año . '-' . $mes . '-' . $dia2));
 
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND empresa_id = $empresaId";
+
 		$query = "SELECT sum(importe) AS 'total'
 				FROM compras
-				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final' AND estado IN(2,3)";
+				WHERE fecha BETWEEN '$fecha_inicial' AND '$fecha_final' AND estado IN(2,3) $filtroEmpresa";
 
 		$result = self::connection()->query($query);
 
@@ -7964,9 +8016,12 @@ class mainModel
 
 	public function getTotalCustomers()
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND EXISTS (SELECT 1 FROM colaboradores co WHERE co.colaboradores_id = clientes.colaboradores_id AND co.empresa_id = $empresaId)";
+
 		$query = "SELECT COUNT(clientes_id) AS 'total'
 				FROM clientes
-				WHERE estado = 1";
+				WHERE estado = 1 $filtroEmpresa";
 
 		$result = self::connection()->query($query);
 
@@ -7997,9 +8052,12 @@ class mainModel
 
 	public function getTotalSuppliers()
 	{
+		$empresaId = $this->izzyEmpresaPermitida();
+		$filtroEmpresa = $this->izzyPuedeConsultarTodasLasEmpresas() ? '' : " AND EXISTS (SELECT 1 FROM colaboradores co WHERE co.colaboradores_id = proveedores.colaboradores_id AND co.empresa_id = $empresaId)";
+
 		$query = "SELECT COUNT(proveedores_id) AS 'total'
 				FROM proveedores
-				WHERE estado = 1";
+				WHERE estado = 1 $filtroEmpresa";
 
 		$result = self::connection()->query($query);
 

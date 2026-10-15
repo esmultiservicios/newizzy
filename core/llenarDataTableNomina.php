@@ -23,7 +23,17 @@ $pagoPlanificadoId = isset($_POST['pago_planificado_id']) ? (int)$_POST['pago_pl
 $fechaInicio = nomina_fecha_valida($_POST['fecha_inicio'] ?? '');
 $fechaFin = nomina_fecha_valida($_POST['fecha_fin'] ?? '');
 
+$validacion = $insMainModel->validarSesion();
+if (!empty($validacion['error'])) {
+    http_response_code(401);
+    echo json_encode(['data' => [], 'error' => true, 'mensaje' => $validacion['mensaje'] ?? 'Sesión inválida']);
+    exit;
+}
+$empresaIdSesion = (int)($_SESSION['empresa_id_sd'] ?? 0);
 $condiciones = ["n.estado = {$estado}"];
+if (!$insMainModel->izzyPuedeConsultarTodasLasEmpresasPublico()) {
+    $condiciones[] = "n.empresa_id = {$empresaIdSesion}";
+}
 
 if ($pagoPlanificadoId > 0) {
     $condiciones[] = "n.pago_planificado_id = {$pagoPlanificadoId}";

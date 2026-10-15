@@ -253,23 +253,45 @@
 }
 
 .asignacion-page-size {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: .45rem;
+    justify-content: flex-start;
+    column-gap: 10px;
+    row-gap: 8px;
+    flex-wrap: nowrap;
+    width: max-content;
+    max-width: 100%;
     color: var(--ap-muted);
     font-size: .84rem;
     white-space: nowrap;
 }
 
 .asignacion-page-size label {
+    flex: 0 0 auto;
     margin: 0;
+    padding: 0;
     color: var(--ap-text);
     font-weight: 700;
 }
 
-.asignacion-page-size select {
-    width: 72px;
-    min-width: 72px;
+.asignacion-page-size select,
+.asignacion-planes-page .asignacion-page-size > .select2-container {
+    flex: 0 0 96px !important;
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    margin: 0;
+}
+
+.asignacion-planes-page .asignacion-page-size > .select2-container .select2-selection--single {
+    width: 100%;
+    min-width: 0;
+}
+
+.asignacion-page-size > span {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
 }
 
 /* Estados */
@@ -4045,6 +4067,48 @@ body > .modal-backdrop.ap-pdf-backdrop {
     border-radius: 10px;
     font-size: .86rem;
     transition: none !important;
+}
+
+/* Alineación definitiva del componente de opciones de Empresa y Secuencia.
+   Los dos menús comparten .ap-rich-actions-menu; no dependen del modal
+   ni de estilos de menús de usuarios que usan otro componente. */
+.ap-rich-actions-menu .ap-rich-action-item > .ap-item-icon {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    flex: 0 0 34px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.ap-rich-actions-menu .ap-rich-action-item > .ap-item-icon > i {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    display: inline-block !important;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 16px !important;
+    font-size: 14px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    transform: translate(-50%, -50%) !important;
 }
 
 .ap-rich-actions-menu .ap-item-icon-edit { background: #fff2cf !important; color: #d79518 !important; }

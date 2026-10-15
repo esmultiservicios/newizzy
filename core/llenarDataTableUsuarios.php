@@ -51,11 +51,8 @@ foreach ($result as $row) {
         "tipo_usuario" => $row['tipo_usuario'],
         "privilegio" => $row['privilegio'],
         "empresa" => isset($row['empresa']) ? $row['empresa'] : '',
-        // getUsuarios() en algunos entornos no devuelve empresa_id. En ese caso
-        // todos los usuarios de la DB actual pertenecen a la empresa de sesión.
-        "empresa_id" => isset($row['empresa_id']) && (int)$row['empresa_id'] > 0
-            ? (int)$row['empresa_id']
-            : (int)$_SESSION['empresa_id_sd'],
+        // El modelo devuelve la empresa real del usuario; no inventar la empresa de sesión.
+        "empresa_id" => (int)($row['empresa_id'] ?? 0),
         "server_customers_id" => $row['server_customers_id'],
         "estado" => $row['estado']
     ];

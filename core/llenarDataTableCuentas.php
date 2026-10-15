@@ -6,6 +6,14 @@ require_once 'configGenerales.php';
 require_once 'mainModel.php';
 
 $insMainModel = new mainModel();
+$validacion = $insMainModel->validarSesion();
+if ($validacion['error']) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['data' => [], 'error' => true, 'mensaje' => $validacion['mensaje']]);
+    exit;
+}
+$empresaId = (int)($_SESSION['empresa_id_sd'] ?? 0);
+$globalEmpresas = $insMainModel->izzyPuedeConsultarTodasLasEmpresasPublico();
 
 $estado = isset($_POST['estado']) ? trim($_POST['estado']) : '';
 $fechai = isset($_POST['fechai']) && $_POST['fechai'] !== '' ? $_POST['fechai'] : date('Y-m-01');
@@ -64,6 +72,7 @@ if ($estado === '0' || $estado === '1') {
             fecha_registro,
             es_inversion
         FROM cuentas
+        WHERE " . ($globalEmpresas ? "1=1" : "EXISTS (SELECT 1 FROM movimientos_cuentas m WHERE m.cuentas_id = cuentas.cuentas_id AND m.empresa_id = $empresaId)") . "
         ORDER BY nombre ASC
     ";
 
@@ -105,6 +114,7 @@ $stmtPeriodo = $conexion->prepare("
         COALESCE(SUM(egreso), 0) AS egresos
     FROM movimientos_cuentas
     WHERE cuentas_id = ?
+      AND ( ? = 1 OR empresa_id = ? )
       AND fecha >= ?
       AND fecha <= ?
 ");
@@ -120,6 +130,7 @@ $stmtSaldoActual = $conexion->prepare("
         fecha
     FROM movimientos_cuentas
     WHERE cuentas_id = ?
+      AND ( ? = 1 OR empresa_id = ? )
     ORDER BY movimientos_cuentas_id DESC
     LIMIT 1
 ");
@@ -134,6 +145,7 @@ $stmtPosteriorPeriodo = $conexion->prepare("
         COALESCE(SUM(egreso), 0) AS egresos_posteriores
     FROM movimientos_cuentas
     WHERE cuentas_id = ?
+      AND ( ? = 1 OR empresa_id = ? )
       AND fecha > ?
 ");
 
@@ -149,7 +161,8 @@ while ($row = $result->fetch_assoc()) {
     | MOVIMIENTO DEL PERÍODO
     |--------------------------------------------------------------------------
     */
-    $stmtPeriodo->bind_param('iss', $cuentas_id, $fechai, $fechaf);
+    $global = $globalEmpresas ? 1 : 0;
+    $stmtPeriodo->bind_param('iiiss', $cuentas_id, $global, $empresaId, $fechai, $fechaf);
     $stmtPeriodo->execute();
 
     $resultPeriodo = $stmtPeriodo->get_result();
@@ -167,7 +180,7 @@ while ($row = $result->fetch_assoc()) {
     | movimientos_cuentas.
     |--------------------------------------------------------------------------
     */
-    $stmtSaldoActual->bind_param('i', $cuentas_id);
+    $stmtSaldoActual->bind_param('iii', $cuentas_id, $global, $empresaId);
     $stmtSaldoActual->execute();
 
     $resultSaldoActual = $stmtSaldoActual->get_result();
@@ -182,7 +195,7 @@ while ($row = $result->fetch_assoc()) {
     | RECONSTRUIR SALDO AL CIERRE DEL PERÍODO
     |--------------------------------------------------------------------------
     */
-    $stmtPosteriorPeriodo->bind_param('is', $cuentas_id, $fechaf);
+    $stmtPosteriorPeriodo->bind_param('iiis', $cuentas_id, $global, $empresaId, $fechaf);
     $stmtPosteriorPeriodo->execute();
 
     $resultPosterior = $stmtPosteriorPeriodo->get_result();

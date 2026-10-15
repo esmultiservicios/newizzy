@@ -4856,6 +4856,7 @@ $(window).on("load", function() {
         const keys = [key, "id", "empresa_id", "privilegio_id", "tipo_user_id", "puestos_id", "colaboradores_id", "documento_id", "secuencia_facturacion_id"];
         for (let i = 0; i < keys.length; i++) {
             const value = row[keys[i]];
+            if (value !== null && value !== undefined && String(value).trim() !== "") return String(value);
         }
         return "";
     }

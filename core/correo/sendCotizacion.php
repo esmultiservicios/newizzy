@@ -100,21 +100,20 @@ if (method_exists($insMainModel, 'getCotizacionCorreo')) {
     }
 }
 
-if ($numero_documento == "" || $para == "") {
+/* Un documento sin correo del cliente no genera avisos de envío. */
+if ($numero_documento === "") {
     echo $insMainModel->showNotification([
-        "title" => "Datos incompletos",
-        "text" => "No se encontró el correo del cliente o los datos de la cotización.",
+        "title" => "Cotización no encontrada",
+        "text" => "No se encontraron los datos de la cotización para enviar el correo.",
         "type" => "error"
     ]);
     exit;
 }
 
-if (!filter_var($para, FILTER_VALIDATE_EMAIL)) {
-    echo $insMainModel->showNotification([
-        "title" => "Correo inválido",
-        "text" => "El cliente no tiene un correo válido registrado.",
-        "type" => "error"
-    ]);
+$para = trim((string)$para);
+if ($para === '' || !filter_var($para, FILTER_VALIDATE_EMAIL)) {
+    // No se realiza ningún envío ni se presenta notificación al usuario.
+    http_response_code(204);
     exit;
 }
 
@@ -272,14 +271,54 @@ $mensaje = '
 
 $archivos_adjuntos = [];
 
-$resultadoEnvio = $sendEmail->enviarCorreo(
-    $destinatarios,
-    $bccDestinatarios,
-    $asunto,
-    $mensaje,
-    $correo_tipo_id,
-    $empresa_id,
-    $archivos_adjuntos
-);
+/*
+ * Única respuesta para el AJAX: el servicio de correo puede escribir mensajes
+ * técnicos en su salida. Se capturan para impedir avisos duplicados y mostrar
+ * únicamente el resultado final del envío.
+ */
+$nivelBuffer = ob_get_level();
+$salidaServicio = '';
+$resultadoEnvio = 0;
 
-echo $resultadoEnvio;
+try {
+    ob_start();
+    try {
+        $resultadoEnvio = $sendEmail->enviarCorreo(
+            $destinatarios,
+            $bccDestinatarios,
+            $asunto,
+            $mensaje,
+            $correo_tipo_id,
+            $empresa_id,
+            $archivos_adjuntos
+        );
+    } finally {
+        $salidaServicio = trim((string)ob_get_clean());
+    }
+} catch (\Throwable $errorEnvio) {
+    while (ob_get_level() > $nivelBuffer) {
+        ob_end_clean();
+    }
+    error_log('IZZY correo cotización: ' . $errorEnvio->getMessage());
+    $salidaServicio = 'Ocurrió un problema al procesar el envío. Revise la configuración del correo.';
+}
+
+if ((int)$resultadoEnvio === 1) {
+    echo $insMainModel->showNotification([
+        "title" => "Correo enviado",
+        "text" => "La cotización " . $numero_documento . " se envió correctamente al cliente.",
+        "type" => "success"
+    ]);
+    exit;
+}
+
+// Los detalles técnicos se registran en el servidor, no se imprimen dos veces.
+if ($salidaServicio !== '') {
+    error_log('IZZY correo cotización ' . $numero_documento . ': ' . $salidaServicio);
+}
+
+echo $insMainModel->showNotification([
+    "title" => "No se pudo enviar",
+    "text" => "No fue posible enviar la cotización por correo. Revise la configuración y vuelva a intentarlo.",
+    "type" => "error"
+]);

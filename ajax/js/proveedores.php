@@ -542,7 +542,7 @@
                 $('#formProveedores #correo_proveedores').attr('readonly', false);
                 $('#formProveedores #proveedores_activo').attr('disabled', false);
                 $('#formProveedores #estado_proveedores').show();
-                $('#formProveedores #grupo_editar_rtn').show();
+                $('#formProveedores #grupo_editar_rtn_proveedores').show();
                 $('#formProveedores #rtn_proveedores').attr('readonly', true);
                 $('#formProveedores #proceso_proveedores').val('Editar');
 
@@ -1550,6 +1550,9 @@
         $('#btnNuevoProveedor')
             .off('click.proveedores')
             .on('click.proveedores', function () {
+                // El RTN se puede editar por separado solo en proveedores registrados.
+                $('#formProveedores #grupo_editar_rtn_proveedores').hide();
+
                 if (typeof modal_proveedores === 'function') {
                     modal_proveedores();
                 } else {
@@ -1649,13 +1652,14 @@
 
 //INICIO EDITAR RTN PROVEEDORES
 //SE LLAMA AL MODAL CUANDO PRESIONAMOS EN EDITAR RTN EN CLIENTES
-$('#formProveedores #grupo_editar_rtn').on('click', function(e) {
+$('#formProveedores #grupo_editar_rtn_proveedores').on('click', function(e) {
     e.preventDefault();
 
     $('#formEditarRTNProveedores')[0].reset();
     $('#formEditarRTNProveedores #pro_proveedores').val("Editar");
     $('#formEditarRTNProveedores #proveedores_id').val($('#formProveedores #proveedores_id').val());
     $('#formEditarRTNProveedores #proveedor').val($('#formProveedores #nombre_proveedores').val());
+    $('#formEditarRTNProveedores #rtn_proveedor').val($('#formProveedores #rtn_proveedores').val());
     $('#modalEditarRTNProveedores').modal({
         show: true,
         keyboard: false,
@@ -1717,6 +1721,7 @@ function editRTNProveedor(proveedores_id, rtn) {
                 showNotify('success', 'Success', 'El RTN ha sido actualizado satisfactoriamente');
                 listar_proveedores();
                 $('#formProveedores #rtn_proveedores').val(rtn);
+                $('#modalEditarRTNProveedores').modal('hide');
             } else if (data == 2) {
                 showNotify('error', 'Error', 'Error el RTN no se puede actualizar');
             } else if (data == 3) {
@@ -1735,16 +1740,44 @@ function getNombreProveedor(proveedores_id) {
         data: 'proveedores_id=' + proveedores_id,
         timeout: 30000
     }).then(function(data) {
-        var datos = proveedoresParseJsonSeguro(data, []);
-        return datos[0] || '';
+        var datos = data;
+
+        if (typeof datos === 'string') {
+            try {
+                datos = JSON.parse(datos);
+            } catch (error) {
+                datos = [];
+            }
+        }
+
+        return Array.isArray(datos) ? (datos[0] || '') : '';
     });
 }
 //FIN EDITAR RTN PROVEEDORES
 //FIN ACCIONES FROMULARIO PROVEEDORES
 /*FIN FORMULARIO PROVEEDORES*/
-$(document).ready(function() {
-    $("#modal_registrar_proveedores").on('shown.bs.modal', function() {
-        $(this).find('#formProveedores #nombre_proveedores').focus();
+$(document).ready(function () {
+    var $modalProveedor = $('#modal_registrar_proveedores');
+    var $formProveedor = $('#formProveedores');
+    var $botonEditarRtn = $formProveedor.find('#grupo_editar_rtn_proveedores');
+
+    // Oculto por defecto: registrar un proveedor no requiere editar su RTN.
+    $botonEditarRtn.hide();
+
+    $modalProveedor.on('show.bs.modal', function () {
+        var editando = $formProveedor.attr('data-form') === 'update';
+        var proveedorId = parseInt($formProveedor.find('#proveedores_id').val(), 10);
+
+        // La edición debe corresponder a un registro existente.
+        $botonEditarRtn.toggle(editando && Number.isFinite(proveedorId) && proveedorId > 0);
+    });
+
+    $modalProveedor.on('shown.bs.modal', function () {
+        $formProveedor.find('#nombre_proveedores').trigger('focus');
+    });
+
+    $modalProveedor.on('hidden.bs.modal', function () {
+        $botonEditarRtn.hide();
     });
 });
 

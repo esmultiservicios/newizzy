@@ -2509,6 +2509,21 @@ function modal_puestos(){
 
 //INICIO CLIENTES
 /*INICIO FORMULARIO CLIENTES*/
+// El cambio de RTN se permite únicamente para clientes registrados.
+// Al cerrar el modal se restablece la visibilidad para el próximo registro.
+$(function () {
+    var $modalClientes = $('#modal_registrar_clientes');
+    var $editarRtnClientes = $('#formClientes #grupo_editar_rtn_clientes');
+
+    $editarRtnClientes.hide();
+
+    $modalClientes
+        .off('hidden.bs.modal.izzyEditarRtnClientes')
+        .on('hidden.bs.modal.izzyEditarRtnClientes', function () {
+            $editarRtnClientes.hide();
+        });
+});
+
 function modal_clientes() {
     getDepartamentoClientes();
     $('#formClientes').attr({
@@ -2534,7 +2549,7 @@ function modal_clientes() {
     $('#formClientes #correo_clientes').attr("readonly", false);
     $('#formClientes #clientes_activo').attr("disabled", false);
     $('#formClientes #estado_clientes').hide();
-    $('#formClientes #grupo_editar_rtn').hide();
+    $('#formClientes #grupo_editar_rtn_clientes').hide();
 
     $('#formClientes #proceso_clientes').val("Registro");
     getMunicipiosClientes(0);
@@ -7657,7 +7672,7 @@ function clientesUIEditar(row) {
       $('#formClientes #nombre_clientes').attr('readonly',false);
       $('#formClientes #departamento_cliente, #formClientes #municipio_cliente, #formClientes #dirección_clientes').attr('disabled',false);
       $('#formClientes #telefono_clientes, #formClientes #correo_clientes').attr('readonly',false);$('#formClientes #clientes_activo').attr('disabled',false);
-      $('#formClientes #grupo_editar_rtn').show();$('#formClientes #identidad_clientes').attr('readonly',true);$('#formClientes #fecha_clientes').attr('readonly',true);
+      $('#formClientes #grupo_editar_rtn_clientes').show();$('#formClientes #identidad_clientes').attr('readonly',true);$('#formClientes #fecha_clientes').attr('readonly',true);
       $('#formClientes #proceso_clientes').val('Editar');$('#modal_registrar_clientes').modal({show:true,keyboard:false,backdrop:'static'});
     }).fail(function(){showNotify('error','Error','No se pudieron cargar los datos del cliente');$('#modal_registrar_clientes').modal('hide');});
 }

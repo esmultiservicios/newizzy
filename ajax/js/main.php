@@ -15310,7 +15310,7 @@ function izzyZoomPreparar(url, esPost) {
     });
   }
   $barra.show();
-  $('#izzy-zoom-pdf-valor').text(esPost ? 'Zoom nativo' : 'Ajustar página');
+  $('#izzy-zoom-pdf-valor').text(esPost ? 'Zoom nativo' : '100%');
   $barra.find('button').prop('disabled', !!esPost).css('opacity', esPost ? .4 : 1);
 }
 

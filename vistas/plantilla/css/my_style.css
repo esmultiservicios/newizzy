@@ -15912,3 +15912,96 @@ button[class*="-acciones-toggle"][aria-expanded="true"] {
 .swal-button--libro:hover,.swal-button--libro:active{background:#218838!important}
 .swal-button.btn-primary,.swal-button.btn-primary:hover,.swal-button.btn-primary:focus{color:#fff!important}
 .swal-button.btn-secondary,.swal-button.btn-secondary:hover,.swal-button.btn-secondary:focus{color:#fff!important}
+
+
+/* =============================================================
+   IZZY | Footer global compacto y sin saltos de línea
+   Se limita al footer nuevo para no afectar otros componentes.
+   ============================================================= */
+.footer.izzy-footer-global {
+  padding: 8px 10px;
+  background: #10263b;
+}
+
+.izzy-footer-global .izzy-footer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-height: 30px;
+  gap: 12px;
+}
+
+.izzy-footer-global .izzy-footer-copyright,
+.izzy-footer-global .izzy-footer-brand,
+.izzy-footer-global .izzy-footer-version {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+
+.izzy-footer-global .izzy-footer-copyright {
+  justify-content: center;
+}
+
+.izzy-footer-global .izzy-footer-brand {
+  justify-content: center;
+  padding: 0 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.35);
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.izzy-footer-global .izzy-footer-brand img {
+  display: block;
+  width: auto;
+  max-width: 38px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.izzy-footer-global .izzy-footer-version {
+  justify-content: center;
+  gap: 6px;
+}
+
+.izzy-footer-global .version {
+  display: inline;
+  width: auto;
+  font-size: inherit;
+  text-align: inherit;
+  white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+  .footer.izzy-footer-global {
+    padding: 7px 5px;
+  }
+
+  .izzy-footer-global .izzy-footer-inner {
+    gap: 3px;
+    font-size: 10px;
+    min-height: 25px;
+  }
+
+  .izzy-footer-global .izzy-footer-copyright,
+  .izzy-footer-global .izzy-footer-version {
+    gap: 3px;
+  }
+
+  .izzy-footer-global .izzy-footer-brand {
+    padding: 0 5px;
+  }
+
+  .izzy-footer-global .izzy-footer-brand img {
+    max-width: 23px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .izzy-footer-global .izzy-footer-inner {
+    font-size: 9px;
+  }
+}

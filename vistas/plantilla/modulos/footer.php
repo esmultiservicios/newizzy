@@ -1,46 +1,25 @@
-<br /><br />
-<div class="footer">
-    <div class="form-row">
-        <div class="col-6" style="border-right: 0.5mm ridge rgb(255, 255, 255);">
-            <div class="row">
-                <div class="col-1 text-right" style="max-width: 100%;max-height: 100%;">
-
-                </div>
-                <div class="col-11 text-left">
-                    <center>
-                        <small>
-                            Copyright <i class="fas fa-copyright"></i> 2020 - <?php echo date("Y");?>
-                        </small>
-                    </center>
-                </div>
-            </div>
+<?php
+/**
+ * Footer global de IZZY.
+ * La misma estructura se utiliza en escritorio, tablet y móvil.
+ */
+?>
+<div class="footer izzy-footer-global">
+    <div class="izzy-footer-inner">
+        <div class="izzy-footer-copyright">
+            <span>Copyright <i class="fas fa-copyright" aria-hidden="true"></i> 2020 - <?php echo date('Y'); ?></span>
         </div>
-        <div class="col-3" style="border-right: 0.5mm ridge rgb(255, 255, 255);">
-            <div class="form-row">
-                <div class="col-11 text-right" style="max-width: 100%;max-height: 100%;">
 
-                </div>
-                <div class="col-11 text-left">
-                    <center>
-                        <img src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/icono.png"
-                            style="max-width: 100%; max-height: 100%;">
-                    </center>
-                </div>
-            </div>
+        <div class="izzy-footer-brand">
+            <img
+                src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/img/icono.png"
+                alt="IZZY"
+            >
         </div>
-        <div class="col-3">
-            <div class="form-row">
-                <div class="col-1 text-right">
-                </div>
-                <div class="col-11 text-left">
-                    <center>
-                        <small>
-                            <i class="fas fa-code-branch"></i>
-                            <span class="version" id="version"></span>
-                        </small>
-                    </center>
-                </div>
-            </div>
+
+        <div class="izzy-footer-version">
+            <i class="fas fa-code-branch" aria-hidden="true"></i>
+            <span class="version" id="version"></span>
         </div>
     </div>
 </div>

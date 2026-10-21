@@ -1,0 +1,212 @@
+/* IZZY | Campanita, cuenta y centro de ayuda. No altera el sidebar. */
+.sb-topnav .izzy-nav-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 43px; height: 43px; background: #0b2355; border-radius: 10px; color: #fff !important; }
+.sb-topnav .izzy-nav-bell:hover { background: #123e80; }
+#notification-count.izzy-notification-badge { position: absolute !important; top: -6px; right: -6px; color: #fff; background: #db2549; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 20px; min-width: 20px; text-align: center; }
+.sb-topnav .izzy-user-avatar { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; color: #fff; background: #103b79; }
+.sb-topnav .izzy-user-avatar i { font-size: 17px; }
+.sb-topnav .izzy-user-name { font-weight: 700; color: #142847; }
+.sb-topnav #userDropdown { gap: 8px; background: #fff; border: 1px solid #e4eaf3; border-radius: 12px; padding: 5px 10px; }
+.sb-topnav #userDropdown::after { color: #142847; }
+.sb-topnav .izzy-notification-panel, .sb-topnav .izzy-user-panel {
+    border: 1px solid #e8edf5; border-radius: 14px; padding: 12px; background: #fff;
+    box-shadow: 0 18px 48px rgba(10, 32, 66, .19); color: #1a304b;
+    margin-top: 10px; font-family: Manrope, 'Segoe UI', sans-serif;
+}
+.sb-topnav .izzy-notification-panel { width: min(430px, calc(100vw - 18px)); max-height: min(72vh, 610px); overflow-y: auto; }
+.sb-topnav .izzy-user-panel { width: min(305px, calc(100vw - 18px)); }
+.izzy-panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 7px 8px 12px; gap: 8px; }
+.izzy-panel-heading strong { color: #142b48; font-size: 16px; }
+.izzy-panel-link { border: 0; color: #17467b !important; background: none; font-size: 12px; font-weight: 700; cursor: pointer; }
+.izzy-panel-link:hover { color: #0876d8 !important; }
+.izzy-notification-card { display: flex; gap: 12px; padding: 14px 11px; margin: 6px 0; border-radius: 10px; border-left: 3px solid #0876d8; background: #f1f7ff; }
+.izzy-notification-card.is-warning { border-color: #efad24; background: #fff9ed; }
+.izzy-notification-card.is-error { border-color: #d7284b; background: #fff0f3; }
+.izzy-notification-card.is-success { border-color: #0a9f67; background: #ecfaf3; }
+.izzy-notification-card .izzy-icon { width: 36px; height: 36px; border-radius: 50%; flex: 0 0 36px; display: flex; align-items: center; justify-content: center; background: #fff; color: #0876d8; }
+.izzy-notification-card.is-warning .izzy-icon { color: #d28b00; }
+.izzy-notification-card.is-error .izzy-icon { color: #cf2145; }
+.izzy-notification-card.is-success .izzy-icon { color: #0a9f67; }
+.izzy-notification-card .izzy-copy { flex: 1; min-width: 0; }
+.izzy-notification-card strong { display: block; font-size: 13px; color: #152944; }
+.izzy-notification-card p { font-size: 12px; color: #456079; line-height: 1.5; margin: 5px 0 8px; overflow-wrap: anywhere; }
+.izzy-notification-card a { color: #0c64bd !important; font-weight: 800; font-size: 12px; }
+.izzy-all-notifications { display: block; width: 100%; text-align: center; border: 0; border-radius: 8px; background: #0765d6; color: white !important; padding: 12px; font-weight: 700; cursor: pointer; }
+.izzy-all-notifications:hover { background: #094ba2; color: #fff !important; }
+.izzy-user-panel .dropdown-item { border-radius: 8px; display: flex; align-items: center; gap: 9px; padding: 11px; color: #223b59 !important; font-size: 13px; white-space: normal; }
+.izzy-user-panel .dropdown-item:hover { background: #f0f5fc; color: #123e80 !important; }
+.izzy-user-panel .dropdown-item i { width: 19px; text-align: center; color: #294f81; }
+.izzy-user-panel .btn-exit-system, .izzy-user-panel .btn-exit-system i { color: #d21d45 !important; }
+.izzy-help-dialog .modal-content, .izzy-history-dialog .modal-content { border-radius: 16px; overflow: hidden; border: 0; }
+.izzy-help-dialog .modal-header, .izzy-history-dialog .modal-header { background: #122c4d; color: white; }
+.izzy-help-dialog .modal-title, .izzy-history-dialog .modal-title { font-weight: 800; font-size: 17px; }
+.izzy-help-search { border: 1px solid #cad8e9; border-radius: 9px; padding: 11px 14px; width: 100%; margin-bottom: 14px; }
+.izzy-help-topic { border: 1px solid #e4ebf4; border-radius: 10px; padding: 15px; margin-bottom: 10px; background: #fff; }
+.izzy-help-topic strong { display: block; color: #153b70; margin-bottom: 6px; }
+.izzy-help-topic p { margin: 0; color: #52657b; font-size: 13px; }
+@media(max-width:576px) { .sb-topnav .izzy-notification-panel { position: fixed !important; top: 66px !important; right: 9px !important; left: 9px !important; width: auto !important; transform: none !important; } .sb-topnav .izzy-user-panel { right: 8px; left: auto; } .sb-topnav .izzy-user-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+
+
+/* IZZY | Ajustes aprobados: identidad completa y menú corporativo premium. */
+.sb-topnav .navbar-nav-user {
+    flex: 0 0 auto;
+    min-width: 0;
+    align-items: center;
+}
+.sb-topnav .navbar-nav-user > .nav-item:last-child {
+    position: relative;
+}
+.sb-topnav #userDropdown {
+    max-width: none !important;
+    min-width: 0;
+    color: #142847 !important;
+}
+.sb-topnav #userDropdown .izzy-user-name {
+    display: inline-block !important;
+    max-width: none !important;
+    width: auto !important;
+    min-width: 0;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: nowrap !important;
+    font-size: 12px;
+}
+.sb-topnav .izzy-user-avatar,
+.sb-topnav .izzy-user-panel-avatar {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    font-size: 14px;
+}
+.sb-topnav .izzy-user-avatar i,
+.sb-topnav .izzy-user-panel-avatar i {
+    font-size: 14px;
+}
+.sb-topnav .izzy-user-panel {
+    width: min(310px, calc(100vw - 18px));
+    padding: 12px !important;
+    background: #fff !important;
+    border: 1px solid #e4eaf3 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 18px 48px rgba(11, 31, 82, .17) !important;
+}
+.sb-topnav .izzy-user-panel-heading {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 8px 8px 14px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e7ebf3;
+}
+.sb-topnav .izzy-user-panel-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #103b79;
+    color: #fff;
+}
+.sb-topnav .izzy-user-panel-identity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.sb-topnav .izzy-user-panel-identity strong {
+    font-size: 13px;
+    color: #132d50;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+.sb-topnav .izzy-user-panel-identity small {
+    color: #687c92;
+    font-size: 11px;
+}
+.sb-topnav .izzy-user-panel a.dropdown-item,
+.sb-topnav .izzy-user-panel a.dropdown-item:link,
+.sb-topnav .izzy-user-panel a.dropdown-item:visited {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 41px;
+    color: #263f5f !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 9px;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+.sb-topnav .izzy-user-panel a.dropdown-item:hover,
+.sb-topnav .izzy-user-panel a.dropdown-item:focus,
+.sb-topnav .izzy-user-panel a.dropdown-item:active {
+    color: #0b3a77 !important;
+    background: #eaf3ff !important;
+    border-color: #dae9fa !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+}
+.sb-topnav .izzy-user-panel a.dropdown-item i {
+    width: 17px;
+    font-size: 13px;
+    color: #61758d !important;
+    -webkit-text-fill-color: currentColor !important;
+}
+.sb-topnav .izzy-user-panel a.dropdown-item:hover i,
+.sb-topnav .izzy-user-panel a.dropdown-item:focus i {
+    color: #0b3a77 !important;
+}
+.sb-topnav .izzy-user-panel a.btn-exit-system,
+.sb-topnav .izzy-user-panel a.btn-exit-system i {
+    color: #d21d45 !important;
+}
+.sb-topnav .izzy-user-panel a.btn-exit-system:hover,
+.sb-topnav .izzy-user-panel a.btn-exit-system:focus {
+    background: #fff0f3 !important;
+    border-color: #f9dde4 !important;
+    color: #c41c40 !important;
+}
+.sb-topnav .izzy-user-panel a.btn-exit-system:hover i,
+.sb-topnav .izzy-user-panel a.btn-exit-system:focus i {
+    color: #c41c40 !important;
+}
+@media (max-width: 767.98px) {
+    .sb-topnav #userDropdown {
+        padding: 5px !important;
+        width: 44px;
+        min-width: 44px;
+        justify-content: center;
+    }
+    .sb-topnav #userDropdown .izzy-user-name,
+    .sb-topnav #userDropdown::after {
+        display: none !important;
+    }
+    /* Se oculta el texto únicamente en la barra; el desplegable mantiene
+       etiquetas accesibles para que el cliente pueda navegar. */
+    .sb-topnav .izzy-user-panel {
+        right: 0 !important;
+        left: auto !important;
+    }
+}
+
+/* Centrado exacto de la campana y del avatar, sin depender de estilos globales. */
+.sb-topnav .izzy-nav-bell,
+.sb-topnav .izzy-user-avatar,
+.sb-topnav .izzy-user-panel-avatar {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    vertical-align: middle;
+    line-height: 1 !important;
+}
+.sb-topnav .izzy-nav-bell > i,
+.sb-topnav .izzy-user-avatar > i,
+.sb-topnav .izzy-user-panel-avatar > i {
+    position: static !important;
+    display: block;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+    transform: none !important;
+}
+.sb-topnav #userDropdown { align-items: center !important; }

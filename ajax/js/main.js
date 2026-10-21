@@ -350,139 +350,36 @@ $(document)
     });
   });
 
+/* Notyf sigue siendo el motor; el diseño lo centraliza izzy_notify_premium.js. */
 const notyf = new Notyf({
-  position: {
-    x: "right",
-    y: "top",
-  },
-  dismissible: true, // Permite cerrar manualmente
-  closeOnClick: true, // Cierra al hacer clic
+  position: { x: "right", y: "top" },
+  dismissible: true,
+  duration: 6500,
+  ripple: false,
   types: [
-    {
-      type: "warning",
-      background: "orange",
-      duration: 5000, // 5 segundos
-      icon: {
-        className: "fas fa-exclamation-triangle fa-lg",
-        tagName: "i",
-        color: "white",
-      },
-      closeIcon: {
-        className: "fas fa-times",
-        color: "white",
-        tagName: "span",
-        position: "right",
-        style: "margin-right: 15px;",
-      },
-    },
-    {
-      type: "error",
-      background: "indianred",
-      duration: 10000, // 10 segundos (más tiempo para errores)
-      dismissible: true,
-      icon: {
-        className: "fas fa-times-circle fa-lg",
-        tagName: "i",
-        color: "white",
-      },
-      closeIcon: {
-        className: "fas fa-times",
-        color: "white",
-        tagName: "span",
-        position: "right",
-      },
-    },
-    {
-      type: "info",
-      background: "#1e88e5",
-      duration: 5000, // 5 segundos
-      dismissible: true,
-      icon: {
-        className: "fas fa-info-circle fa-lg",
-        tagName: "i",
-        color: "white",
-      },
-      closeIcon: {
-        className: "fas fa-times",
-        color: "white",
-        tagName: "span",
-        position: "right",
-      },
-    },
-    {
-      type: "success",
-      background: "#4caf50",
-      duration: 5000, // 5 segundos
-      dismissible: true,
-      icon: {
-        className: "fas fa-check-circle fa-lg",
-        tagName: "i",
-        color: "white",
-      },
-      closeIcon: {
-        className: "fas fa-times",
-        color: "white",
-        tagName: "span",
-        position: "right",
-      },
-    },
-    {
-      type: "loading",
-      background: "#3498db", // Azul profesional
-      duration: 5000, //5 segundos
-      icon: {
-        className: "fas fa-circle-notch fa-spin", // Icono giratorio
-        tagName: "i",
-        color: "white",
-      },
-      dismissible: false, // No se puede cerrar manualmente
-      closeIcon: false, // Sin botón de cerrar
-    },
-  ],
+    { type: "success", background: "#ffffff", icon: false },
+    { type: "error", background: "#ffffff", icon: false },
+    { type: "warning", background: "#ffffff", icon: false },
+    { type: "info", background: "#ffffff", icon: false },
+    { type: "loading", background: "#ffffff", icon: false, duration: 0, dismissible: false }
+  ]
 });
 
-// Variable global para controlar la notificación de carga
 let loadingNotification = null;
 
-/**
- * Muestra una notificación de carga
- * @param {string} message - Mensaje a mostrar durante la carga
- */
 function showLoading(message = "Procesando, por favor espere...") {
-  // Mostrar nueva notificación
-  loadingNotification = notyf.open({
-    type: "loading",
-    message: message,
-  });
+  if (loadingNotification) {
+    if (window.izzyNotifyPremium) {
+      window.izzyNotifyPremium.dismissLoading();
+    }
+  }
+  loadingNotification = window.izzyNotifyPremium.show("loading", "Procesando", message);
+  return loadingNotification;
 }
 
-/**
- * Muestra una notificación estilizada al usuario.
- * @param {string} title - El título de la notificación (ej: 'Éxito', 'Error', 'Advertencia')
- * @param {string} message - El mensaje detallado a mostrar (ej: 'Los datos se guardaron correctamente')
- * @param {'success'|'error'|'warning'|'info'} type - Tipo de notificación (valores válidos: 'success', 'error', 'warning', 'info')
- * @example
- * // Muestra una notificación de éxito
- * showNotify('Éxito', 'Los datos se guardaron correctamente', 'success');
- * @example
- * // Muestra una notificación de error
- * showNotify('Error', 'No se pudo conectar al servidor', 'error');
- */
-function showNotify(type, title, message) {
-  const validTypes = ["success", "error", "warning", "info", "loading"];
-
-  if (validTypes.includes(type)) {
-    notyf.open({
-      type: type,
-      message: `<strong>${title}</strong><br>${message}`,
-      settings: {
-        ripple: true,
-        allowHtml: true,
-      },
-    });
-  } else {
-    console.error("Tipo de notificación no válido");
-  }
+/** API compatible: showNotify(tipo, título, mensaje[, opciones]). */
+function showNotify(type, title, message, options) {
+  return window.izzyNotifyPremium.show(type, title, message, options);
 }
 
 //INICIO BUSCAR DATOS EN TABLA

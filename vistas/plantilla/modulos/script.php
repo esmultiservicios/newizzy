@@ -47,6 +47,7 @@
 
 <!-- ========== SCRIPTS PERSONALIZADOS (con defer si usan jQuery/DOM) ========== -->
 <!-- 12. main.js y scripts.js (dependen de jQuery?) -->
+<script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/js/izzy_notify_premium.js"></script>
 <script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>ajax/js/main.js" crossorigin="anonymous"></script>
 <script defer src="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>vistas/plantilla/js/scripts.js" crossorigin="anonymous"></script>
 

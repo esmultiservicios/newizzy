@@ -153,6 +153,11 @@ $(document).ready(function() {
             type: 'POST',
             url: url,
             data: $('#loginform').serialize(),
+            complete: function() {
+                if (window.izzyNotifyPremium) {
+                    window.izzyNotifyPremium.dismissLoading();
+                }
+            },
             beforeSend: function() {
                 showLoading("Por favor espere...");
                 $("#loginform #acceso").show();
@@ -386,6 +391,11 @@ $(document).ready(function() {
             type: 'POST',
             url: '<?php echo SERVERURL; ?>ajax/resetearContrasenaLoginAjax.php',
             data: $(this).serialize(),
+            complete: function() {
+                if (window.izzyNotifyPremium) {
+                    window.izzyNotifyPremium.dismissLoading();
+                }
+            },
             beforeSend: function() {
                 showLoading("Registrando usuario...");
             },
@@ -635,7 +645,9 @@ function procesarRegistroIzzy() {
             }
         },
         complete: function() {
-            
+            if (window.izzyNotifyPremium) {
+                window.izzyNotifyPremium.dismissLoading();
+            }
         }
     });
 }

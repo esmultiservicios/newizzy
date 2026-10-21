@@ -30,6 +30,7 @@
 <link href="<?php echo $serverUrlSafe; ?>ajax/bootstrap/css/bootstrap-select.min.css" rel="stylesheet" crossorigin="anonymous" />
 <link href="<?php echo $serverUrlSafe; ?>ajax/sweetalert/sweetalert.css" rel="stylesheet" crossorigin="anonymous" />
 <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf.min.css" rel="stylesheet" />
+<link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/notyf-premium.css" rel="stylesheet" />
 <link href="<?php echo $serverUrlSafe; ?>vistas/plantilla/css/style_login.css?v=<?php echo rawurlencode($styleLoginVersion); ?>" rel="stylesheet" crossorigin="anonymous" data-izzy-login-style-version="<?php echo htmlspecialchars($styleLoginVersion, ENT_QUOTES, 'UTF-8'); ?>" />
 
 <div class="izzy-login-page">
@@ -512,67 +513,35 @@
 <script src="<?php echo $serverUrlSafe; ?>ajax/librerias/notyf.min.js" crossorigin="anonymous"></script>
 <script src="<?php echo $serverUrlSafe; ?>vistas/plantilla/js/login-toggle.js" crossorigin="anonymous"></script>
 
+<script src="<?php echo $serverUrlSafe; ?>ajax/js/izzy_notify_premium.js"></script>
+
 <script>
 const notyf = new Notyf({
     position: { x: 'right', y: 'top' },
     dismissible: true,
-    closeOnClick: true,
-    duration: 5000,
+    duration: 6500,
+    ripple: false,
     types: [
-        {
-            type: 'warning',
-            background: '#c78300',
-            duration: 5500,
-            icon: { className: 'fas fa-exclamation-triangle', tagName: 'i', color: 'white' }
-        },
-        {
-            type: 'error',
-            background: '#c93f4c',
-            duration: 8000,
-            icon: { className: 'fas fa-times-circle', tagName: 'i', color: 'white' }
-        },
-        {
-            type: 'info',
-            background: '#087fae',
-            duration: 5000,
-            icon: { className: 'fas fa-info-circle', tagName: 'i', color: 'white' }
-        },
-        {
-            type: 'success',
-            background: '#169b62',
-            duration: 5000,
-            icon: { className: 'fas fa-check-circle', tagName: 'i', color: 'white' }
-        },
-        {
-            type: 'loading',
-            background: '#0b3b70',
-            duration: 5000,
-            dismissible: false,
-            icon: { className: 'fas fa-circle-notch fa-spin', tagName: 'i', color: 'white' }
-        }
+        { type: 'success', background: '#ffffff', icon: false },
+        { type: 'error', background: '#ffffff', icon: false },
+        { type: 'warning', background: '#ffffff', icon: false },
+        { type: 'info', background: '#ffffff', icon: false },
+        { type: 'loading', background: '#ffffff', icon: false, dismissible: false, duration: 0 }
     ]
 });
 
 let loadingNotification = null;
 
-function showLoading(message = "Procesando, por favor espere...") {
-    loadingNotification = notyf.open({
-        type: 'loading',
-        message: message
-    });
+function showLoading(message = 'Procesando, por favor espere...') {
+    if (loadingNotification) if (window.izzyNotifyPremium) {
+      window.izzyNotifyPremium.dismissLoading();
+    }
+    loadingNotification = window.izzyNotifyPremium.show('loading', 'Procesando', message);
+    return loadingNotification;
 }
 
-function showNotify(type, title, message) {
-    const validTypes = ['success', 'error', 'warning', 'info', 'loading'];
-    const normalizedType = validTypes.includes(type) ? type : 'info';
-    const safeTitle = $('<div>').text(title || '').html();
-    const safeMessage = $('<div>').text(message || '').html();
-
-    notyf.open({
-        type: normalizedType,
-        message: `<strong>${safeTitle}</strong>${safeMessage ? `<br>${safeMessage}` : ''}`,
-        settings: { ripple: false, allowHtml: true }
-    });
+function showNotify(type, title, message, options) {
+    return window.izzyNotifyPremium.show(type, title, message, options);
 }
 
 $(function () {

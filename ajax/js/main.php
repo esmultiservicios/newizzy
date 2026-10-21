@@ -1720,6 +1720,11 @@ function getUserSessionStart() {
         async: true,
         success: function(data) {
             $('#user_session').html(data);
+            // El menú premium utiliza el mismo dato existente de sesión.
+            var nombreVisible = $('<div>').html(data).text().trim();
+            if (nombreVisible) {
+                $('#izzy-user-menu-display-name').text(nombreVisible);
+            }
         }
     });
 }
@@ -14461,13 +14466,53 @@ function formatNumber(number) {
    Solo lectura: no modifica deudas, pagos ni vencimientos.
    Una notificación emergente por etapa y mes en cada navegador.
    ========================================================= */
+/* Los avisos son calculados desde facturación, no inventados ni persistidos. */
+var izzyAvisoFacturacionActual = null;
+
+function izzyPintarNotificacionesFacturacion() {
+    var aviso = izzyAvisoFacturacionActual;
+    var $lista = $('#izzy-notification-items');
+    if (!$lista.length) return;
+
+    if (!aviso) {
+        $lista.empty().append(
+            $('<div class="izzy-notification-card"></div>')
+                .append('<span class="izzy-icon"><i class="fas fa-check-circle"></i></span>')
+                .append($('<div class="izzy-copy"></div>').append(
+                    $('<strong></strong>').text('Sin avisos pendientes'),
+                    $('<p></p>').text('Su facturación no tiene recordatorios activos.')
+                ))
+        );
+        return;
+    }
+
+    var categoria = aviso.tipo === 'vencido' ? 'error' :
+        aviso.tipo === 'recordatorio' ? 'warning' : 'info';
+    var icono = categoria === 'error' ? 'fa-exclamation-triangle' :
+        categoria === 'warning' ? 'fa-bell' : 'fa-file-invoice';
+    var $tarjeta = $('<div class="izzy-notification-card is-' + categoria + '"></div>');
+    var $contenido = $('<div class="izzy-copy"></div>');
+    $contenido.append($('<strong></strong>').text(aviso.titulo || 'Aviso de facturación'));
+    $contenido.append($('<p></p>').text(aviso.mensaje || 'Revise su facturación.'));
+    $contenido.append($('<a></a>')
+        .attr('href', '<?php echo SERVERURL; ?>DetallesFacturacion/')
+        .attr('data-izzy-payment-readonly-allowed', '1')
+        .text(aviso.tipo === 'factura' ? 'Ver factura' : 'Ver detalles'));
+    $tarjeta.append('<span class="izzy-icon"><i class="fas ' + icono + '"></i></span>');
+    $tarjeta.append($contenido);
+    $lista.empty().append($tarjeta);
+}
+
 function izzyActualizarAvisosFacturacion(response) {
     var aviso = response.aviso_facturacion || null;
     var $texto = $('#izzy-aviso-facturacion-texto');
     var $contenedor = $('#izzy-aviso-facturacion');
     var $estado = $('#izzy-estado-cuenta-facturacion');
 
-    if (!aviso || !aviso.tipo) {
+    izzyAvisoFacturacionActual = aviso && aviso.tipo ? aviso : null;
+    izzyPintarNotificacionesFacturacion();
+
+    if (!izzyAvisoFacturacionActual) {
         $contenedor.hide();
         $estado.hide();
         return;
@@ -14477,27 +14522,53 @@ function izzyActualizarAvisosFacturacion(response) {
     $contenedor.show();
     $estado.text(aviso.titulo || 'Aviso de facturación').show();
 
-    // Se repite únicamente al comenzar una nueva etapa (1, 5, 10, 15, 16).
-    // SessionStorage impide que la consulta cada cinco minutos sature al usuario.
     var clave = 'izzy.aviso.facturacion.' + String(response.cuenta_codigo || '') +
         '.' + String(aviso.periodo || '') + '.' + String(aviso.etapa || '');
     var mostrarEmergente = false;
-
     try {
         mostrarEmergente = sessionStorage.getItem(clave) !== '1';
-        if (mostrarEmergente) sessionStorage.setItem(clave, '1');
     } catch (error) {
-        // La campana sigue activa aunque el navegador prohíba sessionStorage.
+        mostrarEmergente = true;
     }
 
     if (mostrarEmergente && typeof window.showNotify === 'function') {
-        window.showNotify(
-            aviso.tipo === 'vencido' ? 'warning' : 'info',
-            aviso.titulo,
-            aviso.mensaje
-        );
+        var tipo = aviso.tipo === 'vencido' ? 'error' :
+            aviso.tipo === 'recordatorio' ? 'warning' : 'info';
+        var notificacion = window.showNotify(tipo, aviso.titulo, aviso.mensaje, {
+            buttonText: aviso.tipo === 'factura' ? 'Ver factura' : 'Ver detalles',
+            buttonUrl: '<?php echo SERVERURL; ?>DetallesFacturacion/'
+        });
+        if (notificacion) {
+            try { sessionStorage.setItem(clave, '1'); } catch (error) {}
+        }
     }
 }
+
+$(document).on('click', '#izzy-mark-notifications-read', function(event) {
+    event.preventDefault();
+    // "Leída" es solo preferencia visual; la deuda sigue estando pendiente.
+    $('#izzy-notification-items .izzy-notification-card').addClass('izzy-read');
+});
+
+$(document).on('click', '#izzy-view-all-notifications', function(event) {
+    event.preventDefault();
+    $('#izzy-all-notification-items').empty().append(
+        $('#izzy-notification-items').children().clone()
+    );
+    $('#izzy-notifications-modal').modal('show');
+});
+
+$(document).on('click', '#izzy-open-help-center', function(event) {
+    event.preventDefault();
+    $('#izzy-help-center-modal').modal('show');
+});
+
+$(document).on('input', '#izzy-help-search', function() {
+    var texto = String($(this).val() || '').toLowerCase().trim();
+    $('#izzy-help-articles .izzy-help-topic').each(function() {
+        $(this).toggle($(this).text().toLowerCase().indexOf(texto) >= 0);
+    });
+});
 
 function cargarContadorFacturasPendientes() {
     $.ajax({
@@ -14535,7 +14606,6 @@ function cargarContadorFacturasPendientes() {
 
                 } else {
                     // Ocultar campana y contadores
-                    $campana.hide();
                     $contadorCampana.hide();
                     $badgeUsuario.hide();
 

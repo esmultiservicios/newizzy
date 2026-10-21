@@ -28,6 +28,8 @@ $('.btn-exit-system').on('click', (e) => {
         return;
     }
 
+    // Permite confirmar o cancelar el cierre aun en modo consulta por pago.
+    window.IZZY_LOGOUT_CONFIRMACION_ACTIVA = true;
     swal({
         content: {
             element: "div",
@@ -44,9 +46,12 @@ $('.btn-exit-system').on('click', (e) => {
         closeOnClickOutside: false,
         closeOnEsc: false
     }).then((willExit) => {
+        window.IZZY_LOGOUT_CONFIRMACION_ACTIVA = false;
         if (willExit) {
             salir(token);
         }
+    }, () => {
+        window.IZZY_LOGOUT_CONFIRMACION_ACTIVA = false;
     });
 });
 

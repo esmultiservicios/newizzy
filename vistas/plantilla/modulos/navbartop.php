@@ -55,8 +55,12 @@
       </a>
       <div class="dropdown-menu dropdown-menu-right notification-dropdown" aria-labelledby="notification-bell">
         <h6 class="dropdown-header d-flex justify-content-between align-items-center">Notificaciones</h6>
+        <div id="izzy-aviso-facturacion" style="display:none;" class="px-3 py-2 small" role="status">
+          <i class="fas fa-info-circle mr-1" aria-hidden="true"></i>
+          <span id="izzy-aviso-facturacion-texto"></span>
+        </div>
         <a class="dropdown-item d-flex align-items-center" href="<?php echo SERVERURL; ?>DetallesFacturacion/">
-          <i class="fas fa-file-invoice mr-2"></i><span class="flex-grow-1 ml-2">Facturas pendientes</span>
+          <i class="fas fa-file-invoice mr-2"></i><span class="flex-grow-1 ml-2">Detalles de Facturación</span>
           <span id="notification-dropdown-count" class="badge">0</span>
         </a>
       </div>
@@ -70,7 +74,7 @@
         <a class="dropdown-item" href="#" id="modificar_perfil_usuario_sistema"><i class="fas fa-id-card"></i> Mi Perfil<span id="badge-codigo-cliente" class="badge bg-primary ml-2"></span></a>
         <a class="dropdown-item" href="#" id="ver-pin-usuario" data-toggle="popover"><i class="fas fa-lock"></i> Ver mi PIN<span id="badge-pin-cliente" class="badge bg-info ml-2"></span></a>
         <div class="dropdown-divider"></div>
-        <a class="dropdown-item d-flex align-items-center" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>DetallesFacturacion/"><i class="fas fa-file-invoice"></i><span class="flex-grow-1 ml-2">Detalles de Facturación</span><span id="badge-facturas-pendientes-dropdown" class="badge bg-danger" style="display:none;">0</span></a>
+        <a class="dropdown-item d-flex align-items-center" href="<?php echo htmlspecialchars(SERVERURL, ENT_QUOTES, 'UTF-8'); ?>DetallesFacturacion/"><i class="fas fa-file-invoice"></i><span class="flex-grow-1 ml-2">Detalles de Facturación</span><span id="izzy-estado-cuenta-facturacion" class="badge badge-warning ml-2" style="display:none;"></span><span id="badge-facturas-pendientes-dropdown" class="badge bg-danger" style="display:none;">0</span></a>
         <div class="dropdown-divider"></div>
         <a class="dropdown-item btn-exit-system" href="<?php echo $lc->encryption($_SESSION['token_sd']);?>"><i class="fas fa-sign-out-alt"></i> Salir</a>
       </div>

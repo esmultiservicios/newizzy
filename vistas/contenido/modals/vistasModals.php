@@ -6414,6 +6414,34 @@
     </div>
   </div>
 </div>
+<!-- Administrar omisiones para un ciclo completo: mensual por mes, o por día -->
+<div class="modal fade" id="modalOmisionesRecurrentes" tabindex="-1" role="dialog" aria-labelledby="tituloOmisionesRecurrentes" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="tituloOmisionesRecurrentes"><i class="fas fa-calendar-times mr-2"></i>Excluir períodos de facturación</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="omision_rec_id">
+        <input type="hidden" id="omision_periodicidad">
+        <p class="text-muted small">Los ciclos excluidos no generan facturas ni correos. La programación continúa en el siguiente período.</p>
+        <label id="omision_fecha_label" for="omision_fecha" class="font-weight-bold">Fecha que no se facturará</label>
+        <div class="d-flex align-items-center" style="gap:10px;">
+          <input type="date" id="omision_fecha" class="form-control" aria-describedby="omision_ayuda">
+          <button type="button" class="btn btn-primary" id="omision_agregar"><i class="fas fa-plus mr-1"></i>Excluir</button>
+        </div>
+        <small class="text-muted d-block mt-2" id="omision_ayuda">Seleccione un período futuro de la programación.</small>
+        <hr>
+        <strong class="d-block mb-2">Períodos excluidos</strong>
+        <div id="omision_listado" aria-live="polite" class="d-flex flex-column" style="gap:8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-check mr-1"></i>Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- =========================================================
      FIN MODAL FACTURAS RECURRENTES
 ========================================================= -->

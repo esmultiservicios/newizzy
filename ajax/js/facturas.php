@@ -8585,6 +8585,7 @@ function listarFacturasRecurrentes(opciones) {
         + '<div class="rec-dato"><small>Total estimado</small><strong>'+escaparTextoRecurrente(formatearMontoRecurrente(item.total_estimado))+'</strong></div></div>'
         + '<div class="rec-card-actions">'
         + '<button type="button" class="btn btn-outline-primary btn-sm ver-detalle-recurrente" data-id="'+recId+'"><i class="fas fa-eye mr-1"></i>Ver detalle</button>'
+        + (estado === 1 ? '<button type="button" class="btn btn-outline-primary btn-sm administrar-omisiones-recurrente" data-id="'+recId+'" data-periodicidad="'+escaparTextoRecurrente(item.periodicidad)+'"><i class="far fa-calendar-times mr-1"></i>Excluir períodos</button>' : '')
         + (estado === 1 ? '<button type="button" class="btn btn-outline-danger btn-sm cancelar-recurrente" data-id="'+recId+'"><i class="fas fa-ban mr-1"></i>Cancelar</button>' : '')
         + '</div></div><div class="rec-detalle" id="rec-detalle-'+recId+'"></div></div>';
     });
@@ -12400,3 +12401,77 @@ $('#modalConfigFactura')
     FM.exportPdf=fmExportPdf;
 })();
 </script>
+/* ============================================================
+   IZZY | OMISIONES DE CICLOS (independiente de cancelar recurrencia)
+   Las fechas se validan nuevamente en servidor contra la periodicidad.
+   ============================================================ */
+(function () {
+    'use strict';
+    var urlOmisiones = '<?php echo SERVERURL; ?>core/facturas/administrarOmisionesRecurrentes.php';
+
+    function cargarOmisiones() {
+        var id = parseInt($('#omision_rec_id').val(), 10);
+        if (!id) return;
+        $('#omision_listado').text('Consultando exclusiones...');
+        $.ajax({url: urlOmisiones, type:'POST', dataType:'json', data:{rec_id:id,accion:'listar'}})
+            .done(function (res) {
+                if (!res || !res.ok) {
+                    $('#omision_listado').text(res && res.msg ? res.msg : 'No se pudo consultar.');
+                    return;
+                }
+                var $lista = $('#omision_listado').empty();
+                if (!res.data.length) {
+                    $lista.append($('<span class="text-muted small"></span>').text('No hay períodos excluidos.'));
+                    return;
+                }
+                res.data.forEach(function (registro) {
+                    var $row = $('<div class="d-flex align-items-center justify-content-between border rounded p-2"></div>');
+                    $row.append($('<span class="small"></span>').text(registro.scheduled_at));
+                    var $btn = $('<button type="button" class="btn btn-outline-danger btn-sm"><i class="fas fa-undo mr-1"></i>Restaurar</button>');
+                    $btn.on('click', function () {
+                        guardarOmision('quitar', {scheduled_at: registro.scheduled_at});
+                    });
+                    $row.append($btn);
+                    $lista.append($row);
+                });
+            })
+            .fail(function () { $('#omision_listado').text('No se pudo consultar el servidor.'); });
+    }
+    function guardarOmision(accion, datos) {
+        var payload = $.extend({rec_id:$('#omision_rec_id').val(), accion:accion}, datos);
+        $.ajax({url:urlOmisiones,type:'POST',dataType:'json',data:payload})
+            .done(function (res) {
+                if (!res || !res.ok) {
+                    showNotify('error','Exclusiones',res && res.msg ? res.msg : 'No se pudo actualizar.');
+                    return;
+                }
+                showNotify('success','Exclusiones',accion === 'agregar' ? 'Período excluido correctamente.' : 'Período restaurado correctamente.');
+                cargarOmisiones();
+                if (typeof listarFacturasRecurrentes === 'function') listarFacturasRecurrentes({silencioso:true});
+            })
+            .fail(function (xhr) {
+                var resp = xhr.responseJSON;
+                showNotify('error','Exclusiones', resp && resp.msg ? resp.msg : 'Error al guardar la exclusión.');
+            });
+    }
+    $(document).on('click', '.administrar-omisiones-recurrente', function () {
+        var id = parseInt($(this).attr('data-id'), 10);
+        var frecuencia = $(this).attr('data-periodicidad') || 'monthly';
+        $('#omision_rec_id').val(id);
+        $('#omision_periodicidad').val(frecuencia);
+        var mensual = frecuencia === 'monthly';
+        $('#omision_fecha').attr('type', mensual ? 'month' : 'date').val('');
+        $('#omision_fecha_label').text(mensual ? 'Mes que NO se facturará' : 'Día programado que NO se facturará');
+        $('#omision_ayuda').text(mensual ? 'El sistema excluirá la ejecución programada de ese mes.' : 'Seleccione exactamente una fecha programada según la frecuencia.');
+        $('#modalOmisionesRecurrentes').modal({show:true,backdrop:'static',keyboard:false});
+        cargarOmisiones();
+    });
+    $(document).on('click', '#omision_agregar', function () {
+        var periodo = String($('#omision_fecha').val() || '');
+        if (!periodo) {
+            showNotify('warning','Fecha requerida','Seleccione el período que no se debe facturar.');
+            return;
+        }
+        guardarOmision('agregar',{periodo:periodo});
+    });
+})();

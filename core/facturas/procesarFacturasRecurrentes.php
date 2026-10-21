@@ -66,6 +66,7 @@ require_once $raiz.'/core/configGenerales.php';
 require_once $raiz.'/controladores/facturasControlador.php';
 require_once __DIR__.'/FacturaRecurrenteServicio.php';
 require_once __DIR__.'/enviarCorreoFacturaRecurrente.php';
+require_once __DIR__.'/RecurrenciasOmisiones.php';
 
 function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal = null)
 {
@@ -94,6 +95,51 @@ function proximaFechaRecurrente($fechaProgramada, $periodicidad, $diaMesOriginal
             $diaDestino
         )
         ->format('Y-m-d H:i:s');
+}
+
+
+/**
+ * Consumir un ciclo omitido de forma transaccional SIN emitir documento,
+ * correo ni reservar numeración fiscal. Queda auditable en omisiones.
+ */
+function izzyRecurrenteOmitirCiclo(mysqli $cn, int $recId, string $fechaOriginal, string $fechaCiclo, string $motivo): bool
+{
+    $cn->begin_transaction();
+    try {
+        $st = $cn->prepare('SELECT periodicidad, dia_mes, until_at, next_run_at, estado FROM facturas_recurrentes WHERE rec_id = ? FOR UPDATE');
+        $st->bind_param('i', $recId);
+        $st->execute();
+        $row = $st->get_result()->fetch_assoc();
+        $st->close();
+        if (!$row || (int)$row['estado'] !== 1 || $row['next_run_at'] !== $fechaOriginal) {
+            $cn->rollback();
+            return false;
+        }
+        // Jamás omitir retroactivamente un documento ya generado/reservado.
+        $st = $cn->prepare('SELECT ejecucion_id FROM facturas_recurrentes_ejecuciones WHERE rec_id = ? AND scheduled_at = ? LIMIT 1');
+        $st->bind_param('is', $recId, $fechaCiclo);
+        $st->execute();
+        $ejecucion = $st->get_result()->fetch_assoc();
+        $st->close();
+        if ($ejecucion) { $cn->rollback(); return false; }
+        $st = $cn->prepare('INSERT INTO facturas_recurrentes_omisiones (rec_id, scheduled_at, motivo, observacion) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE motivo = motivo');
+        $descripcion = $motivo === 'morosidad' ? 'Cuenta IZZY con pago vencido en DB_MAIN' : 'Período excluido por el administrador';
+        $st->bind_param('isss', $recId, $fechaCiclo, $motivo, $descripcion);
+        if (!$st->execute()) throw new RuntimeException($st->error);
+        $st->close();
+        $siguiente = izzyRecurrenciasProximaFecha($fechaCiclo, $row['periodicidad'], (int)$row['dia_mes']);
+        $estado = ($siguiente === null || (!empty($row['until_at']) && substr($siguiente,0,10) > $row['until_at'])) ? 3 : 1;
+        $nuevaFecha = $siguiente ?? $fechaCiclo;
+        $st = $cn->prepare('UPDATE facturas_recurrentes SET next_run_at = ?, estado = ?, ultimo_error = NULL WHERE rec_id = ? AND next_run_at = ?');
+        $st->bind_param('siis', $nuevaFecha, $estado, $recId, $fechaOriginal);
+        if (!$st->execute() || $st->affected_rows !== 1) throw new RuntimeException('No se pudo avanzar el ciclo omitido.');
+        $st->close();
+        $cn->commit();
+        return true;
+    } catch (Throwable $e) {
+        $cn->rollback();
+        throw $e;
+    }
 }
 
 // Protección: el cron normal usa --execute. Sin esa bandera, solo consulta.
@@ -165,6 +211,23 @@ while ($cliente = $clientes->fetch_assoc()) {
     }
 }
 $clientes->free();
+// Igual que el login: deuda del ABONO DEL CLIENTE IZZY en DB_MAIN.
+// No corresponde a cuentas por cobrar generadas dentro de cada negocio.
+// Excepción validar=2 y la propia DB_MAIN, conforme a loginControlador.
+$basesMorosas = [];
+$sqlMorosos = "SELECT DISTINCT sc.db
+    FROM server_customers sc
+    JOIN cobrar_clientes cc ON cc.clientes_id = sc.clientes_id AND cc.estado = 1
+    WHERE sc.estado = 1 AND sc.sistema_id = 1 AND COALESCE(sc.validar,1) <> 2
+      AND (cc.fecha < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+           OR (DAY(CURDATE()) >= 16 AND YEAR(cc.fecha) = YEAR(CURDATE()) AND MONTH(cc.fecha) = MONTH(CURDATE())))";
+$resultadoMorosos = $conexionPrincipal->query($sqlMorosos);
+if (!$resultadoMorosos) {
+    fwrite(STDERR, 'No se pudo verificar la morosidad de clientes IZZY: '.$conexionPrincipal->error.PHP_EOL);
+    exit(1); // Falla segura: NO emitir facturas si la validación está indisponible.
+}
+while ($moroso = $resultadoMorosos->fetch_assoc()) $basesMorosas[(string)$moroso['db']] = true;
+$resultadoMorosos->free();
 $baseDatos = array_values(array_unique($baseDatos));
 if ($soloDb !== null) {
     if (!in_array($soloDb, $baseDatos, true)) {
@@ -184,7 +247,7 @@ $hoy = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
  */
 foreach ($baseDatos as $nombreDb) {
     $GLOBALS['db'] = $nombreDb;
-    $contadores = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'recuperadas' => 0, 'bloqueadas_secuencia' => 0];
+    $contadores = ['pendientes' => 0, 'generadas' => 0, 'errores' => 0, 'revision' => 0, 'recuperadas' => 0, 'retenidas_morosidad' => 0, 'bloqueadas_secuencia' => 0];
     $resumen['bases'][$nombreDb] = $contadores;
     $cn = null;
     try {
@@ -199,9 +262,15 @@ foreach ($baseDatos as $nombreDb) {
             $resumen['revision']++;
             continue;
         }
+        izzyRecurrenciasAsegurarOmisiones($cn);
         // Modo exclusivo: reintentar solamente correos de facturas ya generadas.
         // No toca tablas facturas, detalles, correlativos ni el cron de emisión.
         if ($reintentarCorreos) {
+            // En cuentas morosas, no entregar documentos por correo ni en reintentos.
+            if (!empty($basesMorosas[$nombreDb])) {
+                $resumen['bases'][$nombreDb] = $contadores;
+                continue;
+            }
             $sqlReenvio = "SELECT e.ejecucion_id, e.rec_id, e.empresa_id, e.facturas_id
                            FROM facturas_recurrentes_ejecuciones e
                            INNER JOIN facturas_recurrentes r ON r.rec_id = e.rec_id AND r.empresa_id = e.empresa_id
@@ -264,14 +333,47 @@ foreach ($baseDatos as $nombreDb) {
             $pendientes[] = $fila;
         }
         $consulta->free();
+        // Compatibilidad: recuperar ciclos que versiones anteriores marcaron
+        // como "morosidad" y cuyo next_run_at ya avanzó. Nunca recuperar
+        // exclusiones manuales, documentos existentes ni reservas ambiguas.
+        $historialMorosidad = $cn->query(
+            "SELECT o.rec_id, o.scheduled_at, r.next_run_at
+             FROM facturas_recurrentes_omisiones o
+             JOIN facturas_recurrentes r ON r.rec_id = o.rec_id
+             LEFT JOIN facturas_recurrentes_ejecuciones e
+               ON e.rec_id = o.rec_id AND e.scheduled_at = o.scheduled_at
+             WHERE o.motivo = 'morosidad' AND o.scheduled_at <= NOW()
+               AND r.estado IN (1, 3) AND e.ejecucion_id IS NULL
+             ORDER BY o.scheduled_at ASC, o.rec_id ASC LIMIT 24"
+        );
+        if (!$historialMorosidad) {
+            throw new RuntimeException('No se pudo consultar el historial retenido por morosidad: '.$cn->error);
+        }
+        while ($historica = $historialMorosidad->fetch_assoc()) {
+            if ($recuperarMes !== null) {
+                continue; // La recuperación histórica tiene su propio flujo seguro.
+            }
+            $historica['recuperacion_morosidad'] = true;
+            $pendientes[] = $historica;
+        }
+        $historialMorosidad->free();
+        usort($pendientes, function ($a, $b) {
+            return strcmp(
+                (string)($a['scheduled_at'] ?? $a['next_run_at']),
+                (string)($b['scheduled_at'] ?? $b['next_run_at'])
+            );
+        });
         $contadores['pendientes'] = count($pendientes);
         if (!$ejecutar) {
             continue;
         }
         foreach ($pendientes as $pendiente) {
+            $recuperacionMorosidad = !empty($pendiente['recuperacion_morosidad']);
             $recId = (int)$pendiente['rec_id'];
             $programadaOriginal = (string)$pendiente['next_run_at'];
-            $programada = $programadaOriginal;
+            $programada = $recuperacionMorosidad
+                ? (string)$pendiente['scheduled_at']
+                : $programadaOriginal;
             if ($recuperarMes !== null) {
                 // Proyectar el ciclo solicitado sin facturar automáticamente meses previos.
                 $info = $cn->prepare('SELECT periodicidad, dia_mes, until_at FROM facturas_recurrentes WHERE rec_id = ?');
@@ -292,6 +394,35 @@ foreach ($baseDatos as $nombreDb) {
                     continue;
                 }
             }
+            // La deuda no elimina ni consume un período: lo conserva.
+            // Las omisiones manuales SÍ son definitivas para su ciclo.
+            if (!empty($basesMorosas[$nombreDb])) {
+                $contadores['retenidas_morosidad']++;
+                if (!$recuperacionMorosidad) {
+                    $marca = '[MOROSIDAD_PENDIENTE] Cuenta IZZY con pago vencido. Ciclo retenido: '.$programada;
+                    $marcar = $cn->prepare('UPDATE facturas_recurrentes SET ultimo_error = ? WHERE rec_id = ? AND next_run_at = ? AND (ultimo_error IS NULL OR ultimo_error NOT LIKE ?)');
+                    $patron = '[MOROSIDAD_PENDIENTE]%';
+                    $marcar->bind_param('siss', $marca, $recId, $programadaOriginal, $patron);
+                    $marcar->execute();
+                    $marcar->close();
+                }
+                continue;
+            }
+            $stOmitida = $cn->prepare('SELECT motivo FROM facturas_recurrentes_omisiones WHERE rec_id = ? AND scheduled_at = ? LIMIT 1');
+            $stOmitida->bind_param('is', $recId, $programada);
+            $stOmitida->execute();
+            $omisionEncontrada = $stOmitida->get_result()->fetch_assoc();
+            $stOmitida->close();
+            $motivoOmitido = (string)($omisionEncontrada['motivo'] ?? '');
+            if ($motivoOmitido === 'manual' && !$recuperacionMorosidad) {
+                if (izzyRecurrenteOmitirCiclo($cn, $recId, $programadaOriginal, $programada, 'manual')) {
+                    izzyFacturaRecurrenteLog('Ciclo excluido manualmente en '.$nombreDb.' rec '.$recId.' fecha '.$programada);
+                }
+                continue;
+            }
+            if ($recuperacionMorosidad && $motivoOmitido !== 'morosidad') {
+                continue;
+            }
             $empresaId = 0;
             $reservaConfirmada = false;
             $ejecucionId = 0;
@@ -306,7 +437,9 @@ foreach ($baseDatos as $nombreDb) {
                 $consultaRetenida->execute();
                 $datoRetenido = $consultaRetenida->get_result()->fetch_assoc();
                 $consultaRetenida->close();
-                $esRetenida = str_starts_with((string)($datoRetenido['ultimo_error'] ?? ''), '[SECUENCIA_PENDIENTE]');
+                $esRetenida = str_starts_with((string)($datoRetenido['ultimo_error'] ?? ''), '[SECUENCIA_PENDIENTE]')
+                    || str_starts_with((string)($datoRetenido['ultimo_error'] ?? ''), '[MOROSIDAD_PENDIENTE]')
+                    || $recuperacionMorosidad;
                 if ($recuperarMes === null && !$esRetenida && $fechaProgramada->format('Y-m-d') < $hoy->modify('-1 day')->format('Y-m-d')) {
                     $contadores['revision']++;
                     $resumen['revision']++;
@@ -314,7 +447,7 @@ foreach ($baseDatos as $nombreDb) {
                 }
                 // No crear historial de ejecución ni reservar correlativo
                 // mientras falte numeración fiscal vigente.
-                $datosPrevia = $cn->prepare('SELECT empresa_id, tipo_documento, ultimo_error FROM facturas_recurrentes WHERE rec_id = ? AND estado = 1');
+                $datosPrevia = $cn->prepare('SELECT empresa_id, tipo_documento, ultimo_error FROM facturas_recurrentes WHERE rec_id = ? AND estado IN (1, 3)');
                 $datosPrevia->bind_param('i', $recId);
                 $datosPrevia->execute();
                 $pre = $datosPrevia->get_result()->fetch_assoc();
@@ -336,7 +469,7 @@ foreach ($baseDatos as $nombreDb) {
                     continue;
                 }
                 $cn->begin_transaction();
-                $stmt = $cn->prepare('SELECT * FROM facturas_recurrentes WHERE rec_id = ? AND estado = 1 FOR UPDATE');
+                $stmt = $cn->prepare('SELECT * FROM facturas_recurrentes WHERE rec_id = ? AND estado IN (1, 3) FOR UPDATE');
                 $stmt->bind_param('i', $recId);
                 $stmt->execute();
                 $rec = $stmt->get_result()->fetch_assoc();
@@ -408,12 +541,35 @@ foreach ($baseDatos as $nombreDb) {
                     $proxima = $programada;
                 }
                 $cn->begin_transaction();
-                $stmt = $cn->prepare('UPDATE facturas_recurrentes SET next_run_at = ?, estado = ?, ultimo_facturas_id = ?, fecha_dolar = ?, last_run_at = NOW(), ultimo_error = NULL WHERE rec_id = ? AND next_run_at = ?');
-                $stmt->bind_param('siisis', $proxima, $estado, $facturasId, $rec['fecha_dolar'], $recId, $programadaOriginal);
+                if ($recuperacionMorosidad) {
+                    // El cursor ya avanzó en la versión previa. No retrocederlo
+                    // ni omitir/duplicar ciclos emitidos después.
+                    $stmt = $cn->prepare('UPDATE facturas_recurrentes SET ultimo_facturas_id = ?, fecha_dolar = ?, last_run_at = NOW() WHERE rec_id = ? AND next_run_at = ?');
+                    $stmt->bind_param('isis', $facturasId, $rec['fecha_dolar'], $recId, $programadaOriginal);
+                } else {
+                    // Cuando hay varios meses retenidos, conservar la marca
+                    // hasta alcanzar el calendario normal; así los ciclos
+                    // siguientes se recuperan aunque hayan pasado varios días.
+                    $marcaSiguiente = ($esRetenida && $estado === 1 && $proxima <= date('Y-m-d H:i:s'))
+                        ? '[MOROSIDAD_PENDIENTE] Recuperando ciclos anteriores. Próximo: '.$proxima
+                        : null;
+                    $stmt = $cn->prepare('UPDATE facturas_recurrentes SET next_run_at = ?, estado = ?, ultimo_facturas_id = ?, fecha_dolar = ?, last_run_at = NOW(), ultimo_error = ? WHERE rec_id = ? AND next_run_at = ?');
+                    $stmt->bind_param('siissis', $proxima, $estado, $facturasId, $rec['fecha_dolar'], $marcaSiguiente, $recId, $programadaOriginal);
+                }
                 if (!$stmt->execute() || $stmt->affected_rows !== 1) {
-                    throw new RuntimeException('No se pudo avanzar la recurrencia.');
+                    throw new RuntimeException('No se pudo actualizar la recurrencia.');
                 }
                 $stmt->close();
+                if ($recuperacionMorosidad) {
+                    // La omisión histórica solo desaparece cuando el documento
+                    // quedó emitido y su ejecución confirmada en esta transacción.
+                    $limpiar = $cn->prepare("DELETE FROM facturas_recurrentes_omisiones WHERE rec_id = ? AND scheduled_at = ? AND motivo = 'morosidad'");
+                    $limpiar->bind_param('is', $recId, $programada);
+                    if (!$limpiar->execute() || $limpiar->affected_rows !== 1) {
+                        throw new RuntimeException('No se pudo cerrar la retención histórica.');
+                    }
+                    $limpiar->close();
+                }
                 $mensaje = 'Documento generado correctamente: ID '.$facturasId;
                 $stmt = $cn->prepare('UPDATE facturas_recurrentes_ejecuciones SET estado = 1, facturas_id = ?, mensaje = ?, fecha_fin = NOW() WHERE ejecucion_id = ?');
                 $stmt->bind_param('isi', $facturasId, $mensaje, $ejecucionId);
@@ -426,7 +582,7 @@ foreach ($baseDatos as $nombreDb) {
                 }
                 $contadores['generadas']++;
                 $resumen['generadas']++;
-                if ($recuperarMes !== null) {
+                if ($recuperarMes !== null || $recuperacionMorosidad || $esRetenida) {
                     $contadores['recuperadas']++;
                 }
                 if ((int)$rec['enviar_correo'] === 1) {

@@ -121,6 +121,9 @@ window.IZZY_RUTA_ACTUAL_PAGO = "<?php echo $IZZY_RUTA_ACTUAL_PAGO_JS; ?>";
 
     function controlEsMutacion(el) {
         if (!el || rutaFacturacionHabilitada) return false;
+        // Las opciones de la confirmación de cierre de sesión NO modifican
+        // datos del negocio. No deshabilitar Aceptar ni Cancelar.
+        if (window.IZZY_LOGOUT_CONFIRMACION_ACTIVA && el.closest && el.closest('.swal-modal')) return false;
         if (el.closest && el.closest('[data-izzy-payment-readonly-allowed="1"]')) return false;
         if (controlEsSoloConsulta(el)) return false;
 
@@ -4951,7 +4954,10 @@ function ejecutarAccionCXC(action, data) {
         REFRESCAR_CXC_AL_CERRAR_PAGO = true;
         window.REFRESCAR_CXC_AL_CERRAR_PAGO = true;
 
-        pago(data.facturas_id, 2, 'cxc');
+        // La fila de CxC ya contiene el cliente y su saldo pendiente.
+        // Se envían como respaldo para mantener los datos del encabezado
+        // aunque el endpoint responda con un arreglo indexado en JSON.
+        pago(data.facturas_id, 2, 'cxc', data.saldo, data.cliente);
     }
 }
 
@@ -11273,6 +11279,20 @@ function extractPagoDataRobusto(datos, totalManual, clienteManual) {
 
   row = row || {};
 
+  // editarPagoFacturas.php devuelve [0..6] y, además, credito_nc.
+  // PHP serializa esa mezcla como objeto JSON con claves "0", "1", ...,
+  // no como arreglo. Rescatamos el nombre y el saldo antes de consultar
+  // las propiedades con nombre, sin alterar el contrato existente.
+  if (row && typeof row === 'object' && !Array.isArray(row)) {
+    if (!cliente && row[0] !== undefined && row[0] !== null) {
+      cliente = String(row[0]).trim();
+    }
+
+    if (total <= 0 && row[6] !== undefined && row[6] !== null) {
+      total = parseMonto(row[6]);
+    }
+  }
+
   if (!cliente) {
     cliente =
       row.cliente ||
@@ -14436,9 +14456,52 @@ function formatNumber(number) {
     return $.fn.dataTable.render.number(',', '.', 2, '').display(number);
 }
 
+/* =========================================================
+   IZZY | Recordatorios de facturación de la propia cuenta
+   Solo lectura: no modifica deudas, pagos ni vencimientos.
+   Una notificación emergente por etapa y mes en cada navegador.
+   ========================================================= */
+function izzyActualizarAvisosFacturacion(response) {
+    var aviso = response.aviso_facturacion || null;
+    var $texto = $('#izzy-aviso-facturacion-texto');
+    var $contenedor = $('#izzy-aviso-facturacion');
+    var $estado = $('#izzy-estado-cuenta-facturacion');
+
+    if (!aviso || !aviso.tipo) {
+        $contenedor.hide();
+        $estado.hide();
+        return;
+    }
+
+    $texto.text(aviso.mensaje || 'Consulte sus documentos de facturación.');
+    $contenedor.show();
+    $estado.text(aviso.titulo || 'Aviso de facturación').show();
+
+    // Se repite únicamente al comenzar una nueva etapa (1, 5, 10, 15, 16).
+    // SessionStorage impide que la consulta cada cinco minutos sature al usuario.
+    var clave = 'izzy.aviso.facturacion.' + String(response.cuenta_codigo || '') +
+        '.' + String(aviso.periodo || '') + '.' + String(aviso.etapa || '');
+    var mostrarEmergente = false;
+
+    try {
+        mostrarEmergente = sessionStorage.getItem(clave) !== '1';
+        if (mostrarEmergente) sessionStorage.setItem(clave, '1');
+    } catch (error) {
+        // La campana sigue activa aunque el navegador prohíba sessionStorage.
+    }
+
+    if (mostrarEmergente && typeof window.showNotify === 'function') {
+        window.showNotify(
+            aviso.tipo === 'vencido' ? 'warning' : 'info',
+            aviso.titulo,
+            aviso.mensaje
+        );
+    }
+}
+
 function cargarContadorFacturasPendientes() {
     $.ajax({
-        url: '<?php echo SERVERURL; ?>core/contarFacturasPendientesClientes.php',
+        url: '<?php echo SERVERURL; ?>core/facturas/contarFacturasPendientesClientes.php',
         type: 'POST',
         dataType: 'json',
         success: function(response) {
@@ -14448,14 +14511,16 @@ function cargarContadorFacturasPendientes() {
                 const $contadorDropdown = $('#notification-dropdown-count');
                 const $badgeUsuario = $('#badge-facturas-pendientes-dropdown');
 
-                if (response.total_pendientes > 0) {
+                izzyActualizarAvisosFacturacion(response);
+
+                if (response.total_pendientes > 0 || (response.aviso_facturacion && response.aviso_facturacion.tipo)) {
                     // Mostrar campana
                     $campana.show();
 
                     // Mostrar y actualizar contadores
-                    $contadorCampana.text(response.total_pendientes).show();
+                    $contadorCampana.text(Math.max(1, Number(response.total_pendientes) || 0)).show();
                     $contadorDropdown.text(response.total_pendientes);
-                    $badgeUsuario.text(response.total_pendientes).show();
+                    $badgeUsuario.text(response.total_pendientes).toggle(Number(response.total_pendientes) > 0);
 
                     // Efecto visual
                     $campana.addClass('new-notification');
@@ -15294,41 +15359,6 @@ function prepararUrlDocumentoPreview(urlDocumento) {
   return url + '#toolbar=1&navpanes=0&scrollbar=1&view=Fit';
 }
 
-/* Indicador y controles de zoom propios: el visor PDF nativo no permite
-   insertar el porcentaje dentro de su barra ni leer sus botones internos. */
-var izzyZoomPdf = 100;
-var izzyZoomUrl = '';
-var izzyZoomEsPost = false;
-function izzyZoomPreparar(url, esPost) {
-  izzyZoomPdf = 100;
-  izzyZoomUrl = String(url || '').split('#')[0];
-  izzyZoomEsPost = !!esPost;
-  var $modal = $('#modalPreviewDocumento');
-  if (!$modal.length) return;
-  var $barra = $('#izzy-zoom-pdf-global');
-  if (!$barra.length) {
-    $barra = $('<div id="izzy-zoom-pdf-global" role="group" aria-label="Zoom del documento">' +
-      '<button type="button" data-izzy-zoom="-" aria-label="Reducir zoom">−</button>' +
-      '<span id="izzy-zoom-pdf-valor" aria-live="polite">100%</span>' +
-      '<button type="button" data-izzy-zoom="+" aria-label="Aumentar zoom">+</button></div>');
-    $barra.css({display:'inline-flex',alignItems:'center',gap:'9px',padding:'4px 10px',
-      background:'#fff',color:'#172b4d',border:'1px solid #cbd5e1',borderRadius:'7px',
-      fontSize:'13px',fontWeight:'600',marginLeft:'14px',verticalAlign:'middle'});
-    $barra.find('button').css({border:'0',background:'transparent',color:'#172b4d',
-      fontSize:'19px',cursor:'pointer',padding:'0 4px'});
-    $modal.find('#modalPreviewDocumentoLabel').after($barra);
-    $barra.on('click', 'button', function() {
-      if (izzyZoomEsPost) return;
-      izzyZoomPdf = Math.max(25, Math.min(300, izzyZoomPdf + ($(this).attr('data-izzy-zoom') === '+' ? 10 : -10)));
-      $('#izzy-zoom-pdf-valor').text(izzyZoomPdf + '%');
-      $('#iframePreviewDocumento').attr('src', izzyZoomUrl + '#toolbar=1&navpanes=0&scrollbar=1&zoom=' + izzyZoomPdf);
-    });
-  }
-  $barra.show();
-  $('#izzy-zoom-pdf-valor').text(esPost ? 'Zoom nativo' : '100%');
-  $barra.find('button').prop('disabled', !!esPost).css('opacity', esPost ? .4 : 1);
-}
-
 /* =========================================================
    Abrir documentos PDF normales del sistema en el modal
    Esta función la usan printGastos, printIngresos, facturas, etc.
@@ -15344,7 +15374,6 @@ function abrirDocumentoEnModal(urlDocumento, tituloDocumento = "Vista previa del
   }
 
   var urlPreview = prepararUrlDocumentoPreview(urlDocumento);
-  izzyZoomPreparar(urlPreview, false);
   var iframe = $("#iframePreviewDocumento");
 
   tipoPreviewDocumentoActual = "documento";
@@ -15415,7 +15444,6 @@ function abrirReporteIISDentroDelModal(urlReporte, tituloReporte = "Vista previa
   var iframe = $("#iframePreviewDocumento");
 
   tipoPreviewDocumentoActual = "iis";
-  izzyZoomPreparar(urlReporte, false);
 
   $("#modalPreviewDocumentoLabel").text(tituloReporte);
   $("#btnAbrirDocumentoNuevaVentana").attr("href", urlReporte);
@@ -15670,7 +15698,6 @@ $(document).on("hidden.bs.modal", "#modalPreviewDocumento", function () {
   $("#btnAbrirDocumentoNuevaVentana").attr("href", "#");
 
   tipoPreviewDocumentoActual = "documento";
-  $("#izzy-zoom-pdf-global").hide();
 
   /*
     Dejamos el botón imprimir visible por defecto para los documentos normales.

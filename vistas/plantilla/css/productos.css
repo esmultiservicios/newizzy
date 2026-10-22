@@ -2124,3 +2124,74 @@
 .productos-actions-cell .btn-acciones span,
 .productos-detail-row .btn-acciones span { white-space: nowrap !important; word-break: keep-all !important; overflow-wrap: normal !important; }
 /* IZZY ACTION CELL CONTAINMENT END */
+
+/* ==========================================================
+   IZZY | IMPRESIÓN DE ETIQUETAS - MODAL Y RESUMEN
+   ========================================================== */
+.productos-etiquetas-modal .modal-header {
+  background: #163a70;
+  color: #fff;
+  border-bottom: 3px solid #23b7d5;
+}
+.productos-etiquetas-modal .modal-header .close {
+  color: #fff;
+  opacity: 1;
+  text-shadow: none;
+}
+.productos-etiquetas-modal .modal-body {
+  background: #fff;
+}
+.productos-etiquetas-resumen {
+  padding: 12px 15px;
+  border-left: 4px solid #247bb4;
+  border-radius: 8px;
+  background: #eff6fc;
+  color: #17324d;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+@media (max-width: 575.98px) {
+  #modalEtiquetasProductos .modal-footer {
+    display: flex;
+    gap: 8px;
+  }
+  #modalEtiquetasProductos .modal-footer .btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* ============================================================
+   IZZY | Configuración adaptable de impresión de etiquetas
+   ============================================================ */
+.productos-etiquetas-config {
+    padding: 16px;
+    margin: 12px 0 16px;
+    border: 1px solid #d8e3f0;
+    border-radius: 12px;
+    background: #f7faff;
+}
+
+.productos-etiquetas-config-titulo {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #163a70;
+    margin-bottom: 14px;
+}
+
+.productos-etiquetas-config label {
+    color: #28415c;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+.productos-etiquetas-config input[readonly] {
+    background: #eaf0f7;
+    cursor: not-allowed;
+}
+
+@media (max-width: 575.98px) {
+    .productos-etiquetas-config {
+        padding: 12px;
+        margin: 10px 0;
+    }
+}

@@ -1163,6 +1163,9 @@ function productosAccionesHtml(row) {
         '<i class="fas fa-cog"></i><span>Acciones</span>' +
       '</button>' +
       '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
+        '<button type="button" class="dropdown-item accion-item productos-etiqueta-action" data-id="' + productosEscape(row.productos_id) + '">' +
+          '<span class="accion-icon"><i class="fas fa-barcode"></i></span><span class="accion-label">Imprimir etiqueta</span>' +
+        '</button>' +
         '<button type="button" class="dropdown-item accion-item productos-ver-action" data-id="' + productosEscape(row.productos_id) + '">' +
           '<span class="accion-icon"><i class="fas fa-eye"></i></span><span class="accion-label">Ver detalles</span>' +
         '</button>' +
@@ -2656,4 +2659,305 @@ function getCategoriasProducto() {
 function getEmpresaProductos() {
   return Promise.resolve();
 }
+/* ==========================================================
+   IZZY | ETIQUETAS DE PRODUCTOS - FORMATOS CONFIGURABLES
+   Generación local Code 128-B. No altera precios ni inventario.
+   ========================================================== */
+(function () {
+    'use strict';
+    var patronesCode128 = ["212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213", "221312", "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132", "221231", "213212", "223112", "312131", "311222", "321122", "321221", "312212", "322112", "322211", "212123", "212321", "232121", "111323", "131123", "131321", "112313", "132113", "132311", "211313", "231113", "231311", "112133", "112331", "132131", "113123", "113321", "133121", "313121", "211331", "231131", "213113", "213311", "213131", "311123", "311321", "331121", "312113", "312311", "332111", "314111", "221411", "431111", "111224", "111422", "121124", "121421", "141122", "141221", "112214", "112412", "122114", "122411", "142112", "142211", "241211", "221114", "413111", "241112", "134111", "111242", "121142", "121241", "114212", "124112", "124211", "411212", "421112", "421211", "212141", "214121", "412121", "111143", "111341", "131141", "114113", "114311", "411113", "411311", "113141", "114131", "311141", "411131", "211412", "211214", "211232", "2331112"];
+    var MAX_ETIQUETAS = 250;
+
+    function codigoValido(codigo) {
+        return /^[\x20-\x7E]{1,45}$/.test(String(codigo || ''));
+    }
+
+    function escaparHtml(valor) {
+        return String(valor == null ? '' : valor)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function obtenerElegibles() {
+        return (productosUIState.rows || []).filter(function (producto) {
+            return producto && String(producto.estado) === '1';
+        });
+    }
+
+    function dibujarCodigo128(codigo) {
+        var indices = [104]; // START B
+        var checksum = 104;
+        for (var i = 0; i < codigo.length; i++) {
+            var valor = codigo.charCodeAt(i) - 32;
+            indices.push(valor);
+            checksum += valor * (i + 1);
+        }
+        indices.push(checksum % 103);
+        indices.push(106); // STOP
+
+        var rectangulos = [];
+        var x = 10;
+        indices.forEach(function (indice) {
+            var patron = patronesCode128[indice];
+            for (var n = 0; n < patron.length; n++) {
+                var ancho = Number(patron.charAt(n));
+                if (n % 2 === 0) {
+                    rectangulos.push('<rect x="' + x + '" y="0" width="' + ancho + '" height="46"/>');
+                }
+                x += ancho;
+            }
+        });
+        return '<svg class="codigo128" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (x + 10) + ' 46" preserveAspectRatio="none" role="img" aria-label="Código de barras ' + escaparHtml(codigo) + '">' + rectangulos.join('') + '</svg>';
+    }
+
+    function aviso(tipo, mensaje) {
+        if (typeof showNotify === 'function') {
+            showNotify(tipo, tipo === 'warning' ? 'Etiquetas' : 'Impresión de etiquetas', mensaje);
+        } else {
+            window.alert(mensaje);
+        }
+    }
+
+    function refrescarListas() {
+        var productos = obtenerElegibles();
+        var $productos = $('#etiquetasProductoId');
+        var anterior = $productos.val();
+        $productos.empty();
+        productos.forEach(function (row) {
+            $productos.append($('<option></option>').val(row.productos_id)
+                .text(String(row.nombre || 'Sin nombre') + ' · ' + String(row.barCode || 'Sin código')));
+        });
+        if (anterior && $productos.find('option').filter(function () { return this.value === String(anterior); }).length) {
+            $productos.val(anterior);
+        }
+        $productos.trigger('change.select2');
+
+        var categorias = {};
+        productos.forEach(function (row) {
+            var categoria = String(row.categoria || '').trim();
+            if (categoria) categorias[categoria] = true;
+        });
+        var $categorias = $('#etiquetasCategoriaNombre');
+        var seleccion = $categorias.val();
+        $categorias.empty();
+        Object.keys(categorias).sort().forEach(function (nombre) {
+            $categorias.append($('<option></option>').val(nombre).text(nombre));
+        });
+        if (seleccion && categorias[seleccion]) $categorias.val(seleccion);
+        $categorias.trigger('change.select2');
+    }
+
+    function seleccionActual() {
+        var modo = $('#etiquetasModoProductos').val();
+        var todos = obtenerElegibles();
+        if (modo === 'uno') {
+            return todos.filter(function (row) { return String(row.productos_id) === String($('#etiquetasProductoId').val()); });
+        }
+        if (modo === 'categoria') {
+            return todos.filter(function (row) { return String(row.categoria || '') === String($('#etiquetasCategoriaNombre').val()); });
+        }
+        if (modo === 'filtro') {
+            var ids = {};
+            (productosUIState.filtered || []).forEach(function (row) { ids[String(row.productos_id)] = true; });
+            return todos.filter(function (row) { return !!ids[String(row.productos_id)]; });
+        }
+        return todos;
+    }
+
+    var PREFS_KEY = 'izzy.productos.etiquetas.config.v2';
+
+    function dimension(id) {
+        return Number($(id).val());
+    }
+
+    function leerConfiguracion() {
+        var ancho = dimension('#etiquetasAncho');
+        var alto = dimension('#etiquetasAlto');
+        var margen = dimension('#etiquetasMargen');
+        var separacion = dimension('#etiquetasSeparacion');
+        if (!Number.isFinite(ancho) || ancho < 20 || ancho > 200 ||
+            !Number.isFinite(alto) || alto < 15 || alto > 150 ||
+            !Number.isFinite(margen) || margen < 1 || margen > 10 ||
+            !Number.isFinite(separacion) || separacion < 0 || separacion > 15 ||
+            margen * 2 >= Math.min(ancho, alto) - 5) {
+            aviso('warning', 'Revise ancho (20–200 mm), alto (15–150 mm), margen (1–10 mm) y separación (0–15 mm).');
+            return null;
+        }
+        return {
+            ancho: ancho,
+            alto: alto,
+            margen: margen,
+            separacion: separacion,
+            formato: $('#etiquetasFormato').val(),
+            papel: $('#etiquetasPapel').val() === 'a4' ? 'a4' : 'rollo'
+        };
+    }
+
+    function cambiarFormato() {
+        var formato = String($('#etiquetasFormato').val() || '50x30');
+        var personalizado = formato === 'personalizado';
+        $('#etiquetasAncho, #etiquetasAlto').prop('readonly', !personalizado);
+        if (!personalizado) {
+            var valores = formato.split('x');
+            $('#etiquetasAncho').val(valores[0]);
+            $('#etiquetasAlto').val(valores[1]);
+        }
+        actualizarResumen();
+    }
+
+    function cargarPreferencias() {
+        try {
+            var config = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null');
+            if (config && typeof config === 'object') {
+                $('#etiquetasFormato').val(config.formato || '50x30');
+                $('#etiquetasPapel').val(config.papel || 'rollo');
+                $('#etiquetasMargen').val(config.margen);
+                $('#etiquetasSeparacion').val(config.separacion);
+                if (config.formato === 'personalizado') {
+                    $('#etiquetasAncho').val(config.ancho);
+                    $('#etiquetasAlto').val(config.alto);
+                }
+            }
+        } catch (error) {
+            // El navegador puede tener almacenamiento deshabilitado.
+        }
+        cambiarFormato();
+        $('#etiquetasFormato, #etiquetasPapel').trigger('change.select2');
+    }
+
+    function actualizarResumen() {
+        var modo = $('#etiquetasModoProductos').val();
+        $('#etiquetasProductoGrupo').toggleClass('d-none', modo !== 'uno');
+        $('#etiquetasCategoriaGrupo').toggleClass('d-none', modo !== 'categoria');
+        var rows = seleccionActual();
+        var validos = rows.filter(function (row) { return codigoValido(row.barCode); });
+        var copias = Math.floor(Number($('#etiquetasCopiasProductos').val()) || 1);
+        $('#etiquetasResumenProductos').text(validos.length + ' productos imprimibles · ' + (validos.length * copias) + ' etiquetas · ' + (rows.length - validos.length) + ' omitidos sin código compatible');
+    }
+
+    function prepararVentana(rows, copias, configuracion) {
+        var etiquetas = [];
+        rows.forEach(function (row) {
+            var codigo = String(row.barCode || '').trim();
+            var precio = Number(row.precio_venta);
+            var importe = Number.isFinite(precio)
+                ? 'L ' + precio.toLocaleString('es-HN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : 'Consultar precio';
+            var nombre = escaparHtml(row.nombre || 'Producto');
+            var etiqueta = '<article class="etiqueta">' +
+                '<div class="nombre">' + nombre + '</div>' +
+                '<div class="precio">' + escaparHtml(importe) + '</div>' +
+                '<div class="barras">' + dibujarCodigo128(codigo) + '</div>' +
+                '<div class="numero">' + escaparHtml(codigo) + '</div>' +
+                '</article>';
+            for (var n = 0; n < copias; n++) {
+                etiquetas.push(etiqueta);
+            }
+        });
+
+        // Validación de anchura real: Code 128 B usa módulos de ancho fijo.
+        // Si la etiqueta resulta demasiado pequeña para el código, advertimos antes.
+        var maxCodigo = rows.reduce(function (max, row) {
+            return Math.max(max, String(row.barCode || '').trim().length);
+        }, 0);
+        var moduloEstimado = (configuracion.ancho - (configuracion.margen * 2)) / (maxCodigo * 11 + 55);
+        if (moduloEstimado < 0.19) {
+            aviso('warning', 'El código de barras puede ser difícil de leer en este ancho. Use una etiqueta más ancha o códigos más cortos.');
+        }
+
+        var ventana = window.open('', '_blank');
+        if (!ventana) {
+            aviso('warning', 'Permita las ventanas emergentes para abrir la impresión de etiquetas.');
+            return;
+        }
+        var a4 = configuracion.papel === 'a4';
+        var ancho = configuracion.ancho;
+        var alto = configuracion.alto;
+        var margen = configuracion.margen;
+        var separacion = configuracion.separacion;
+        var anchoUtil = a4 ? 200 : ancho;
+        var columnas = a4 ? Math.max(1, Math.floor((anchoUtil + separacion) / (ancho + separacion))) : 1;
+        var pageRule = a4 ? 'size:A4;margin:5mm' : 'size:' + ancho + 'mm ' + alto + 'mm;margin:0';
+        var css = [
+            '@page{' + pageRule + '}',
+            '*{box-sizing:border-box}',
+            'html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}',
+            '.hoja{display:grid;grid-template-columns:repeat(' + columnas + ',' + ancho + 'mm);column-gap:' + (a4 ? separacion : 0) + 'mm;row-gap:' + (a4 ? separacion : 0) + 'mm;align-content:start}',
+            '.etiqueta{width:' + ancho + 'mm;height:' + alto + 'mm;padding:' + margen + 'mm;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:' + Math.min(separacion, 3) / 2 + 'mm;break-inside:avoid;page-break-inside:avoid}',
+            '.nombre{width:100%;text-align:center;font-size:clamp(6pt,' + Math.min(11, alto * 0.26) + 'pt,11pt);font-weight:700;line-height:1.05;overflow:hidden;overflow-wrap:anywhere;flex:0 1 auto}',
+            '.precio{text-align:center;font-size:' + Math.max(8, Math.min(16, alto * 0.43)) + 'pt;font-weight:800;line-height:1.05;white-space:nowrap;flex-shrink:0}',
+            '.barras{width:100%;min-height:5mm;flex:1 1 auto;display:flex;justify-content:center;overflow:hidden}',
+            '.codigo128{display:block;width:100%;height:100%;fill:#000}',
+            '.numero{text-align:center;font-family:monospace;font-size:' + Math.max(6, Math.min(9, ancho * 0.12)) + 'pt;letter-spacing:0.2px;line-height:1;flex-shrink:0}',
+            a4 ? '.etiqueta{border:.1mm solid #eee}' : '.etiqueta{break-after:page;page-break-after:always}',
+            '@media screen{body{background:#e9edf3;padding:12px}.etiqueta{background:white;box-shadow:0 2px 8px #b7beca} .hoja{justify-content:center}}',
+            '@media print{.hoja{margin:0}.etiqueta{box-shadow:none!important}}'
+        ].join('');
+        ventana.document.open();
+        ventana.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Etiquetas IZZY · ' + ancho + ' × ' + alto + ' mm</title><style>' + css + '</style></head><body><main class="hoja">' + etiquetas.join('') + '</main></body></html>');
+        ventana.document.close();
+        ventana.focus();
+        try {
+            localStorage.setItem(PREFS_KEY, JSON.stringify(configuracion));
+        } catch (error) {
+            // La impresión sigue disponible aunque no se guarde la preferencia.
+        }
+    }
+
+    $(document)
+        .off('click.productosEtiquetas', '#btnEtiquetasProductos')
+        .on('click.productosEtiquetas', '#btnEtiquetasProductos', function () {
+            refrescarListas();
+            cargarPreferencias();
+            $('#etiquetasModoProductos').val('uno').trigger('change.select2');
+            actualizarResumen();
+            $('#modalEtiquetasProductos').modal('show');
+        })
+        .off('click.productosEtiquetaUno', '.productos-etiqueta-action')
+        .on('click.productosEtiquetaUno', '.productos-etiqueta-action', function () {
+            var id = String($(this).attr('data-id'));
+            refrescarListas();
+            cargarPreferencias();
+            $('#etiquetasModoProductos').val('uno').trigger('change.select2');
+            $('#etiquetasProductoId').val(id).trigger('change.select2');
+            actualizarResumen();
+            $('#modalEtiquetasProductos').modal('show');
+        })
+        .off('change.productosEtiquetas', '#etiquetasModoProductos, #etiquetasProductoId, #etiquetasCategoriaNombre')
+        .on('change.productosEtiquetas', '#etiquetasModoProductos, #etiquetasProductoId, #etiquetasCategoriaNombre', actualizarResumen)
+        .off('change.productosEtiquetasFormato', '#etiquetasFormato')
+        .on('change.productosEtiquetasFormato', '#etiquetasFormato', cambiarFormato)
+        .off('change.productosEtiquetasConfig', '#etiquetasPapel')
+        .on('change.productosEtiquetasConfig', '#etiquetasPapel', actualizarResumen)
+        .off('input.productosEtiquetas', '#etiquetasCopiasProductos')
+        .on('input.productosEtiquetas', '#etiquetasCopiasProductos', actualizarResumen)
+        .off('click.productosEtiquetasImprimir', '#btnImprimirEtiquetasProductos')
+        .on('click.productosEtiquetasImprimir', '#btnImprimirEtiquetasProductos', function () {
+            var rows = seleccionActual();
+            var validos = rows.filter(function (row) { return codigoValido(String(row.barCode || '').trim()); });
+            var copias = Number($('#etiquetasCopiasProductos').val());
+            if (!Number.isInteger(copias) || copias < 1 || copias > 100) {
+                aviso('warning', 'Ingrese entre 1 y 100 etiquetas por producto.');
+                return;
+            }
+            if (!validos.length) {
+                aviso('warning', 'No hay productos con códigos compatibles para imprimir.');
+                return;
+            }
+            if (validos.length * copias > MAX_ETIQUETAS) {
+                aviso('warning', 'Máximo 250 etiquetas por impresión. Reduzca el filtro o las copias.');
+                return;
+            }
+            var configuracion = leerConfiguracion();
+            if (!configuracion) return;
+            prepararVentana(validos, copias, configuracion);
+            if (validos.length < rows.length) {
+                aviso('warning', 'Se omitieron ' + (rows.length - validos.length) + ' productos sin código de barras válido.');
+            }
+        });
+})();
+
 </script>

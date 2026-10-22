@@ -168,6 +168,9 @@
         <div class="card-body productos-directory-body">
             <div class="productos-list-toolbar">
                 <div class="productos-toolbar-left">
+                    <button type="button" id="btnEtiquetasProductos" class="btn btn-primary" title="Preparar etiquetas de precios y códigos de barras">
+                        <i class="fas fa-barcode mr-1"></i> Etiquetas
+                    </button>
                     <button type="button" id="btnActualizarProductos"
                             class="btn btn-secondary table_actualizar ocultar">
                         <i class="fas fa-sync-alt mr-1"></i> Actualizar
@@ -226,6 +229,90 @@
                                 aria-label="Limpiar búsqueda">
                             <i class="fas fa-times"></i>
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal para etiquetas configurables: formatos de rollo y hoja A4 -->
+            <div class="modal fade" id="modalEtiquetasProductos" tabindex="-1" role="dialog" aria-labelledby="tituloEtiquetasProductos" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+                    <div class="modal-content productos-etiquetas-modal">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="tituloEtiquetasProductos"><i class="fas fa-barcode mr-2"></i>Imprimir etiquetas de productos</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="text-muted mb-3">Seleccione el alcance, tamaño y distribución. Las dimensiones se expresan en milímetros y se aplican a la vista previa y la impresión. Cada etiqueta incluye nombre, precio y código de barras Code 128.</p>
+                            <div class="form-row">
+                                <div class="form-group col-md-7">
+                                    <label for="etiquetasModoProductos">¿Qué productos desea imprimir?</label>
+                                    <select id="etiquetasModoProductos" class="form-control izzy-select2" data-placeholder="Seleccione alcance">
+                                        <option value="uno">Un producto</option>
+                                        <option value="filtro">Resultados filtrados en la vista</option>
+                                        <option value="categoria">Por categoría</option>
+                                        <option value="todos">Todos los productos cargados</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-5" id="etiquetasCopiasGrupo">
+                                    <label for="etiquetasCopiasProductos">Etiquetas por producto</label>
+                                    <input type="number" class="form-control" id="etiquetasCopiasProductos" min="1" max="100" value="1" step="1">
+                                </div>
+                            </div>
+                            <div class="form-group" id="etiquetasProductoGrupo">
+                                <label for="etiquetasProductoId">Producto</label>
+                                <select id="etiquetasProductoId" class="form-control izzy-select2" data-placeholder="Seleccione producto"></select>
+                            </div>
+                            <div class="form-group d-none" id="etiquetasCategoriaGrupo">
+                                <label for="etiquetasCategoriaNombre">Categoría</label>
+                                <select id="etiquetasCategoriaNombre" class="form-control izzy-select2" data-placeholder="Seleccione categoría"></select>
+                            </div>
+                            <div class="productos-etiquetas-config" aria-label="Configuración de tamaño de las etiquetas">
+                                <div class="productos-etiquetas-config-titulo"><i class="fas fa-ruler-combined mr-2"></i>Tamaño y distribución</div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="etiquetasFormato">Tamaño de etiqueta</label>
+                                        <select id="etiquetasFormato" class="form-control izzy-select2" data-placeholder="Seleccione tamaño">
+                                            <option value="40x25">Pequeña · 40 × 25 mm</option>
+                                            <option value="50x30" selected>Compacta · 50 × 30 mm</option>
+                                            <option value="60x40">Mediana · 60 × 40 mm</option>
+                                            <option value="85x35">Ancha · 85 × 35 mm</option>
+                                            <option value="100x50">Grande · 100 × 50 mm</option>
+                                            <option value="personalizado">Personalizado</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="etiquetasPapel">Distribución para imprimir</label>
+                                        <select id="etiquetasPapel" class="form-control izzy-select2">
+                                            <option value="rollo">Rollo térmico · Una etiqueta por página</option>
+                                            <option value="a4">Hoja A4 · Varias etiquetas por página</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-md-3 col-6">
+                                        <label for="etiquetasAncho">Ancho (mm)</label>
+                                        <input type="number" id="etiquetasAncho" class="form-control" min="20" max="200" step="0.5" value="50" readonly>
+                                    </div>
+                                    <div class="form-group col-md-3 col-6">
+                                        <label for="etiquetasAlto">Alto (mm)</label>
+                                        <input type="number" id="etiquetasAlto" class="form-control" min="15" max="150" step="0.5" value="30" readonly>
+                                    </div>
+                                    <div class="form-group col-md-3 col-6">
+                                        <label for="etiquetasMargen">Margen interno (mm)</label>
+                                        <input type="number" id="etiquetasMargen" class="form-control" min="1" max="10" step="0.5" value="2">
+                                    </div>
+                                    <div class="form-group col-md-3 col-6">
+                                        <label for="etiquetasSeparacion">Separación (mm)</label>
+                                        <input type="number" id="etiquetasSeparacion" class="form-control" min="0" max="15" step="0.5" value="2">
+                                    </div>
+                                </div>
+                                <small class="text-muted">En rollo, la separación corresponde al espacio entre nombre, precio y código dentro de cada etiqueta. En hoja A4 también establece la distancia uniforme entre etiquetas. El tamaño personalizado se conserva en este navegador.</small>
+                            </div>
+                            <div id="etiquetasResumenProductos" class="productos-etiquetas-resumen" role="status" aria-live="polite"></div>
+                            <small class="text-muted d-block mt-2">Se omiten productos sin código o con caracteres incompatibles. Al imprimir utilice escala 100 %, sin márgenes ni encabezados, y un tamaño de papel compatible con la impresora. Máximo 250 etiquetas por impresión.</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cerrar</button>
+                            <button type="button" class="btn btn-success" id="btnImprimirEtiquetasProductos"><i class="fas fa-print mr-1"></i>Vista previa / Imprimir</button>
+                        </div>
                     </div>
                 </div>
             </div>

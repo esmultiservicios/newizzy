@@ -2195,3 +2195,43 @@
         margin: 10px 0;
     }
 }
+
+
+/* ============================================================
+   IZZY | MODAL DE ETIQUETAS - ALTURA ESTABLE
+   ------------------------------------------------------------
+   Mantiene el tamaño del modal al cambiar producto, categoría,
+   formato o distribución. Solo el contenido central se desplaza.
+   Se adapta a pantallas pequeñas sin desbordar la ventana.
+   ============================================================ */
+#modalEtiquetasProductos .modal-dialog {
+    height: min(720px, calc(100vh - 3.5rem));
+    max-height: calc(100vh - 3.5rem);
+}
+
+#modalEtiquetasProductos .modal-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+#modalEtiquetasProductos .modal-header,
+#modalEtiquetasProductos .modal-footer {
+    flex: 0 0 auto;
+}
+
+#modalEtiquetasProductos .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@media (max-width: 575.98px) {
+    #modalEtiquetasProductos .modal-dialog {
+        height: min(720px, calc(100vh - 1rem));
+        max-height: calc(100vh - 1rem);
+    }
+}

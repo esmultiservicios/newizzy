@@ -44,11 +44,11 @@ $esEntornoLocal = (
 
 $urlWindows = $esEntornoLocal
     ? 'http://localhost:58197/esmultiservicios.aspx'
-    : 'https://wi.fastsolutionhn.com/Rpt/esmultiservicios.aspx';
+    : 'https://147.93.3.17/Rpt/esmultiservicios.aspx';
 
 define('SERVERURLWINDOWS', $urlWindows);
 
-$urlLogo = "https://wi.fastsolutionhn.com/files/";
+$urlLogo = "https://147.93.3.17/files/";
 define('SERVERURLLOGO', $urlLogo);
 
 // Otras constantes

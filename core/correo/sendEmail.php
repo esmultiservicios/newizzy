@@ -353,6 +353,13 @@ class sendEmail {
         $rechazados = [];
 
         foreach ($destinatarios as $email => $nombre) {
+            // Direcciones @izzycloud.app son internas/genéricas, no buzones reales.
+            // No enviarlas ni registrarlas como errores de DNS.
+            $emailNormalizado = $this->limpiarEmail((string)$email);
+            if (preg_match('/@izzycloud\.app$/i', $emailNormalizado)) {
+                continue;
+            }
+
             $validacion = $this->validarCorreoDestino($email);
 
             if (!empty($validacion['valido'])) {
@@ -641,6 +648,12 @@ class sendEmail {
         }
 
         if (!$destinatarios) {
+            // Si solo había destinatarios genéricos @izzycloud.app, salir
+            // silenciosamente sin generar un falso error de envío.
+            if (!$validacionDestinatarios['rechazados']) {
+                return 0;
+            }
+
             $detalle = $this->resumenDestinatariosRechazados(
                 $validacionDestinatarios['rechazados']
             );

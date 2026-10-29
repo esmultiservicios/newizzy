@@ -1,4 +1,3 @@
-
 <?php
 //configGenerales.php
 // Redirigir a HTTPS si no está en HTTPS
@@ -29,7 +28,7 @@ define('SERVERURL', $baseURL);
 // DEMO y PRODUCCIÓN usan el servicio publicado.
 $hostActual = strtolower(
     preg_replace(
-        '/:\d+$/',
+        '/:\\d+$/',
         '',
         (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '')
     )
@@ -45,11 +44,11 @@ $esEntornoLocal = (
 
 $urlWindows = $esEntornoLocal
     ? 'http://localhost:58197/esmultiservicios.aspx'
-    : 'https://web01.esmultiservicios.com/Rpt/esmultiservicios.aspx';
+    : 'https://wi.fastsolutionhn.com/Rpt/esmultiservicios.aspx';
 
 define('SERVERURLWINDOWS', $urlWindows);
 
-$urlLogo = "https://web01.esmultiservicios.com/files/";
+$urlLogo = "https://wi.fastsolutionhn.com/files/";
 define('SERVERURLLOGO', $urlLogo);
 
 // Otras constantes

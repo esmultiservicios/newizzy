@@ -1,5 +1,7 @@
+
 <?php
-//configGenerales.php
+// configGenerales.php
+
 // Redirigir a HTTPS si no está en HTTPS
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
     $redirectURL = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
@@ -8,13 +10,15 @@ if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
 }
 
 // Obtener el protocolo (http o https)
-$protocol = 'https://';  // Forzar siempre HTTPS
+$protocol = 'https://';
 
 // Obtener el nombre del servidor
 $serverName = $_SERVER['SERVER_NAME'];
 
 // Obtener el puerto si no es el puerto estándar
-$port = ($_SERVER['SERVER_PORT'] != '80' && $_SERVER['SERVER_PORT'] != '443') ? ':' . $_SERVER['SERVER_PORT'] : '';
+$port = ($_SERVER['SERVER_PORT'] != '80' && $_SERVER['SERVER_PORT'] != '443')
+    ? ':' . $_SERVER['SERVER_PORT']
+    : '';
 
 // Obtener la ruta base
 $basePath = $serverName == 'localhost' ? '/devizzy/' : '/';
@@ -28,7 +32,7 @@ define('SERVERURL', $baseURL);
 // DEMO y PRODUCCIÓN usan el servicio publicado.
 $hostActual = strtolower(
     preg_replace(
-        '/:\\d+$/',
+        '/:\d+$/',
         '',
         (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '')
     )
@@ -44,11 +48,12 @@ $esEntornoLocal = (
 
 $urlWindows = $esEntornoLocal
     ? 'http://localhost:58197/esmultiservicios.aspx'
-    : 'web01.esmultiservicios.com/Rpt/esmultiservicios.aspx';
+    : 'https://web01.esmultiservicios.com/Rpt/esmultiservicios.aspx';
 
 define('SERVERURLWINDOWS', $urlWindows);
 
-$urlLogo = "web01.esmultiservicios.com/files/";
+// URL para archivos y logos
+$urlLogo = 'https://web01.esmultiservicios.com/files/';
 define('SERVERURLLOGO', $urlLogo);
 
 // Otras constantes
@@ -78,7 +83,10 @@ function izzyDetectProjectVersion(): string
     $projectRoot = dirname(__DIR__);
 
     if (function_exists('shell_exec') && is_dir($projectRoot . '/.git')) {
-        $command = 'git -C ' . escapeshellarg($projectRoot) . ' describe --tags --always --dirty 2>&1';
+        $command = 'git -C '
+            . escapeshellarg($projectRoot)
+            . ' describe --tags --always --dirty 2>&1';
+
         $gitVersion = @shell_exec($command);
 
         if ($gitVersion !== null) {
@@ -97,7 +105,10 @@ function izzyDetectProjectVersion(): string
 }
 
 define('APP_VERSION', izzyDetectProjectVersion());
-define('APP_VERSION_LABEL', str_starts_with(APP_VERSION, 'v') ? APP_VERSION : 'v' . APP_VERSION);
+define(
+    'APP_VERSION_LABEL',
+    str_starts_with(APP_VERSION, 'v') ? APP_VERSION : 'v' . APP_VERSION
+);
 
 // Configurar la zona horaria
 date_default_timezone_set('America/Tegucigalpa');

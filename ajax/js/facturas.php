@@ -12400,7 +12400,7 @@ $('#modalConfigFactura')
     FM.exportExcel=fmExportExcel;
     FM.exportPdf=fmExportPdf;
 })();
-</script>
+
 /* ============================================================
    IZZY | OMISIONES DE CICLOS (independiente de cancelar recurrencia)
    Las fechas se validan nuevamente en servidor contra la periodicidad.
@@ -12475,3 +12475,5 @@ $('#modalConfigFactura')
         guardarOmision('agregar',{periodo:periodo});
     });
 })();
+
+</script>

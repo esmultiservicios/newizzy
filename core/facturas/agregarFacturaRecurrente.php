@@ -91,9 +91,19 @@ try {
         responderRecurrencia(false, 'La periodicidad no es válida.');
     }
 
-    $inicio = DateTime::createFromFormat('Y-m-d H:i', substr($inicioEntrada, 0, 16));
-    if (!$inicio) {
+    $zonaHn = new DateTimeZone('America/Tegucigalpa');
+    // Interpretar el datetime-local como hora local de Honduras, NO como UTC.
+    if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $inicioEntrada)) {
+        responderRecurrencia(false, 'Ingrese una fecha y hora válidas para Honduras.');
+    }
+    $inicio = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $inicioEntrada, $zonaHn);
+    $erroresFecha = DateTimeImmutable::getLastErrors();
+    if (!$inicio || ($erroresFecha !== false && ($erroresFecha['warning_count'] > 0 || $erroresFecha['error_count'] > 0)) ||
+        $inicio->format('Y-m-d H:i') !== $inicioEntrada) {
         responderRecurrencia(false, 'La fecha inicial no es válida.');
+    }
+    if ($inicio->getTimestamp() <= (new DateTimeImmutable('now', $zonaHn))->getTimestamp()) {
+        responderRecurrencia(false, 'La ejecución inicial debe programarse para una fecha y hora futura de Honduras.');
     }
     $inicioSql = $inicio->format('Y-m-d H:i:s');
     $diaMes = (int)$inicio->format('d');
@@ -112,6 +122,10 @@ try {
     }
 
     $cn = $mainModel->connection();
+    // NOW() y fecha_crea deben coincidir con el reloj local del cron.
+    if (!$cn->query("SET time_zone = '-06:00'")) {
+        throw new RuntimeException('No se pudo establecer la hora de Honduras para guardar la recurrencia.');
+    }
     $cn->begin_transaction();
 
     // En IZZY cada empresa utiliza su propia base de datos; clientes no posee empresa_id.

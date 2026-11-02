@@ -277,6 +277,7 @@
                                             <option value="60x40">Mediana · 60 × 40 mm</option>
                                             <option value="85x35">Ancha · 85 × 35 mm</option>
                                             <option value="100x50">Grande · 100 × 50 mm</option>
+                                            <option value="100x100">Etiqueta 10 × 10 cm · 100 × 100 mm</option>
                                             <option value="personalizado">Personalizado</option>
                                         </select>
                                     </div>
@@ -306,6 +307,7 @@
                                 </div>
                                 <small class="text-muted">En rollo, la separación corresponde al espacio entre nombre, precio y código dentro de cada etiqueta. En hoja A4 también establece la distancia uniforme entre etiquetas. El tamaño personalizado se conserva en este navegador.</small>
                             </div>
+                            <div class="d-flex align-items-center justify-content-between flex-wrap mb-2" style="gap:8px"><span class="text-muted small">Los productos existentes sin código pueden completarse sin cambiar los códigos ya registrados.</span><button type="button" id="btnGenerarBarrasFaltantes" class="btn btn-primary btn-sm"><i class="fas fa-barcode mr-1"></i>Generar códigos faltantes</button></div>
                             <div id="etiquetasResumenProductos" class="productos-etiquetas-resumen" role="status" aria-live="polite"></div>
                             <small class="text-muted d-block mt-2">Se omiten productos sin código o con caracteres incompatibles. Al imprimir utilice escala 100 %, sin márgenes ni encabezados, y un tamaño de papel compatible con la impresora. Máximo 250 etiquetas por impresión.</small>
                         </div>

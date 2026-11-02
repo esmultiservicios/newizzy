@@ -1501,7 +1501,7 @@ class sendEmail {
         $marcaIzzy = '<div style="font-family:Arial Black,Arial,Helvetica,sans-serif;font-size:42px;line-height:1;font-weight:900;letter-spacing:-3px;color:#1477EF;text-align:center;mso-line-height-rule:exactly;">IZZY.</div>';
 
         $htmlConIzzy = preg_replace(
-            '/(<td\s+class="izzy-logo-wrap"[^>]*>).*?(<\/td>)/si',
+            '/(<div\s+class="izzy-logo-wrap"[^>]*>).*?(<\/div>)/si',
             '$1'.$marcaIzzy.'$2',
             $html,
             1

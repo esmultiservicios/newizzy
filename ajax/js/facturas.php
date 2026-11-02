@@ -134,6 +134,23 @@ function cargarEstadoCajaUsuario(forzar) {
     return izzyCajaUsuarioCache.solicitud;
 }
 
+// La caja puede cerrarse desde otra pestaña. Al volver a Facturas,
+// y periódicamente en primer plano, renovar el estado sin recargar la vista.
+(function() {
+    if (window.__izzyCajaFacturasLive) return;
+    window.__izzyCajaFacturasLive = true;
+    function verificarCaja() {
+        if (document.hidden || !document.getElementById('invoice-form')) return;
+        if (izzyCajaUsuarioCache.solicitud) return;
+        cargarEstadoCajaUsuario(true);
+    }
+    window.addEventListener('focus', verificarCaja);
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) verificarCaja();
+    });
+    window.setInterval(verificarCaja, 15000);
+})();
+
 function getConsultarAperturaCaja() {
     if (!izzyCajaUsuarioCache.cargado) {
         cargarEstadoCajaUsuario(false);
@@ -3075,22 +3092,50 @@ $("#invoice-form #btn_apertura").on("click", function(e) {
 });
 
 function formAperturaBill() {
-    $('#formAperturaCaja #proceso_aperturaCaja').val("Aperturar Caja");
-    $('#open_caja').show();
-    $('#close_caja').hide();
-    $('#formAperturaCaja #monto_apertura_grupo').show();
+    // Consultar estado actual: otra pestaña o usuario pudo abrir/cerrar la caja.
+    cargarEstadoCajaUsuario(true).done(function () {
+        var abierta = izzyCajaUsuarioCache.cargado &&
+            parseInt(izzyCajaUsuarioCache.estado, 10) === 1 &&
+            parseInt(izzyCajaUsuarioCache.apertura_id, 10) > 0;
 
-    $('#formAperturaCaja').attr({
-        'data-form': 'save'
-    });
-    $('#formAperturaCaja').attr({
-        'action': '<?php echo SERVERURL; ?>ajax/addAperturaCajaAjax.php'
-    });
+        if (abierta) {
+            if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Caja abierta',
+                    text: 'Ya tiene una caja abierta. Puede consultarla desde aquí.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ver caja',
+                    cancelButtonText: 'Cerrar aviso',
+                    confirmButtonColor: '#163A70'
+                }).then(function (resultado) {
+                    if (resultado.isConfirmed) {
+                        $('#btn_ver_caja_factura').trigger('click');
+                    }
+                });
+            } else if (typeof showNotify === 'function') {
+                showNotify('info', 'Caja abierta', 'Ya tiene una caja abierta. Utilice el botón Ver Caja.');
+            }
+            return;
+        }
 
-    $('#modal_apertura_caja').modal({
-        show: true,
-        keyboard: false,
-        backdrop: 'static'
+        $('#formAperturaCaja #proceso_aperturaCaja').val('Aperturar Caja');
+        $('#open_caja').show();
+        $('#close_caja').hide();
+        $('#formAperturaCaja #monto_apertura_grupo').show();
+        $('#formAperturaCaja').attr({
+            'data-form': 'save',
+            'action': '<?php echo SERVERURL; ?>ajax/addAperturaCajaAjax.php'
+        });
+        $('#modal_apertura_caja').modal({
+            show: true,
+            keyboard: false,
+            backdrop: 'static'
+        });
+    }).fail(function () {
+        if (typeof showNotify === 'function') {
+            showNotify('error', 'Caja no disponible', 'No fue posible comprobar el estado de la caja. Intente nuevamente.');
+        }
     });
 }
 
@@ -5150,11 +5195,7 @@ $(() => {
 
         if (e.which === 121) { //TECLA F10 (APERTURAR CAJA)
             e.preventDefault();
-            if (getConsultarAperturaCaja() == 2) {
-                formAperturaBill();
-            } else {
-                showNotify('warning', 'Caja abierta', 'La caja se encuentra abierta');
-            }
+            formAperturaBill();
         }
 
         if (e.which === 122) { //TECLA F11 (CERRAR CAJA)			
@@ -8489,13 +8530,18 @@ function aplicarFiltroEstadoRecurrente() {
   var $listado = $('#listaFacturasRecurrentes');
   var $tarjetas = $listado.find('.rec-card');
   var visibles = 0;
+  var busqueda = String($('#rec_buscar_programacion').val() || '').toLocaleLowerCase('es').trim();
+  var palabras = busqueda.split(/\s+/).filter(Boolean);
 
   $tarjetas.each(function() {
-    var coincide = filtroEstadoRecurrente === 'todas' || String($(this).data('estado')) === filtroEstadoRecurrente;
+    var texto = String($(this).text() || '').toLocaleLowerCase('es');
+    var coincideBusqueda = palabras.every(function(palabra) { return texto.indexOf(palabra) !== -1; });
+    var coincide = coincideBusqueda && (filtroEstadoRecurrente === 'todas' || String($(this).data('estado')) === filtroEstadoRecurrente);
     $(this).toggle(coincide);
     if (coincide) visibles++;
   });
 
+  $('#rec_buscar_resultados').text(visibles + ' de ' + $tarjetas.length + ' programación(es) visibles');
   $listado.find('.rec-filtro-vacio').remove();
   if ($tarjetas.length && visibles === 0) {
     var nombres = { '1':'pendientes', '2':'canceladas', '3':'finalizadas' };
@@ -8585,7 +8631,7 @@ function listarFacturasRecurrentes(opciones) {
         + '<div class="rec-dato"><small>Total estimado</small><strong>'+escaparTextoRecurrente(formatearMontoRecurrente(item.total_estimado))+'</strong></div></div>'
         + '<div class="rec-card-actions">'
         + '<button type="button" class="btn btn-outline-primary btn-sm ver-detalle-recurrente" data-id="'+recId+'"><i class="fas fa-eye mr-1"></i>Ver detalle</button>'
-        + (estado === 1 ? '<button type="button" class="btn btn-outline-primary btn-sm administrar-omisiones-recurrente" data-id="'+recId+'" data-periodicidad="'+escaparTextoRecurrente(item.periodicidad)+'"><i class="far fa-calendar-times mr-1"></i>Excluir períodos</button>' : '')
+        + (estado === 1 ? '<button type="button" class="btn btn-outline-primary btn-sm administrar-omisiones-recurrente" data-id="'+recId+'" data-periodicidad="'+escaparTextoRecurrente(item.periodicidad)+'" data-proxima="'+escaparTextoRecurrente(item.next_run_at)+'"><i class="far fa-calendar-times mr-1"></i>Excluir períodos</button>' : '')
         + (estado === 1 ? '<button type="button" class="btn btn-outline-danger btn-sm cancelar-recurrente" data-id="'+recId+'"><i class="fas fa-ban mr-1"></i>Cancelar</button>' : '')
         + '</div></div><div class="rec-detalle" id="rec-detalle-'+recId+'"></div></div>';
     });
@@ -8605,6 +8651,10 @@ function listarFacturasRecurrentes(opciones) {
 
   return solicitudListadoRecurrentes;
 }
+
+$(document).on('input', '#rec_buscar_programacion', function() {
+  aplicarFiltroEstadoRecurrente();
+});
 
 $(document).on('click', '.rec-filtro-estado', function() {
   filtroEstadoRecurrente = String($(this).data('estado') || '1');
@@ -12400,80 +12450,4 @@ $('#modalConfigFactura')
     FM.exportExcel=fmExportExcel;
     FM.exportPdf=fmExportPdf;
 })();
-
-/* ============================================================
-   IZZY | OMISIONES DE CICLOS (independiente de cancelar recurrencia)
-   Las fechas se validan nuevamente en servidor contra la periodicidad.
-   ============================================================ */
-(function () {
-    'use strict';
-    var urlOmisiones = '<?php echo SERVERURL; ?>core/facturas/administrarOmisionesRecurrentes.php';
-
-    function cargarOmisiones() {
-        var id = parseInt($('#omision_rec_id').val(), 10);
-        if (!id) return;
-        $('#omision_listado').text('Consultando exclusiones...');
-        $.ajax({url: urlOmisiones, type:'POST', dataType:'json', data:{rec_id:id,accion:'listar'}})
-            .done(function (res) {
-                if (!res || !res.ok) {
-                    $('#omision_listado').text(res && res.msg ? res.msg : 'No se pudo consultar.');
-                    return;
-                }
-                var $lista = $('#omision_listado').empty();
-                if (!res.data.length) {
-                    $lista.append($('<span class="text-muted small"></span>').text('No hay períodos excluidos.'));
-                    return;
-                }
-                res.data.forEach(function (registro) {
-                    var $row = $('<div class="d-flex align-items-center justify-content-between border rounded p-2"></div>');
-                    $row.append($('<span class="small"></span>').text(registro.scheduled_at));
-                    var $btn = $('<button type="button" class="btn btn-outline-danger btn-sm"><i class="fas fa-undo mr-1"></i>Restaurar</button>');
-                    $btn.on('click', function () {
-                        guardarOmision('quitar', {scheduled_at: registro.scheduled_at});
-                    });
-                    $row.append($btn);
-                    $lista.append($row);
-                });
-            })
-            .fail(function () { $('#omision_listado').text('No se pudo consultar el servidor.'); });
-    }
-    function guardarOmision(accion, datos) {
-        var payload = $.extend({rec_id:$('#omision_rec_id').val(), accion:accion}, datos);
-        $.ajax({url:urlOmisiones,type:'POST',dataType:'json',data:payload})
-            .done(function (res) {
-                if (!res || !res.ok) {
-                    showNotify('error','Exclusiones',res && res.msg ? res.msg : 'No se pudo actualizar.');
-                    return;
-                }
-                showNotify('success','Exclusiones',accion === 'agregar' ? 'Período excluido correctamente.' : 'Período restaurado correctamente.');
-                cargarOmisiones();
-                if (typeof listarFacturasRecurrentes === 'function') listarFacturasRecurrentes({silencioso:true});
-            })
-            .fail(function (xhr) {
-                var resp = xhr.responseJSON;
-                showNotify('error','Exclusiones', resp && resp.msg ? resp.msg : 'Error al guardar la exclusión.');
-            });
-    }
-    $(document).on('click', '.administrar-omisiones-recurrente', function () {
-        var id = parseInt($(this).attr('data-id'), 10);
-        var frecuencia = $(this).attr('data-periodicidad') || 'monthly';
-        $('#omision_rec_id').val(id);
-        $('#omision_periodicidad').val(frecuencia);
-        var mensual = frecuencia === 'monthly';
-        $('#omision_fecha').attr('type', mensual ? 'month' : 'date').val('');
-        $('#omision_fecha_label').text(mensual ? 'Mes que NO se facturará' : 'Día programado que NO se facturará');
-        $('#omision_ayuda').text(mensual ? 'El sistema excluirá la ejecución programada de ese mes.' : 'Seleccione exactamente una fecha programada según la frecuencia.');
-        $('#modalOmisionesRecurrentes').modal({show:true,backdrop:'static',keyboard:false});
-        cargarOmisiones();
-    });
-    $(document).on('click', '#omision_agregar', function () {
-        var periodo = String($('#omision_fecha').val() || '');
-        if (!periodo) {
-            showNotify('warning','Fecha requerida','Seleccione el período que no se debe facturar.');
-            return;
-        }
-        guardarOmision('agregar',{periodo:periodo});
-    });
-})();
-
 </script>

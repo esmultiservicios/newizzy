@@ -190,6 +190,13 @@ if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) {
 $mainModelCron = new mainModel();
 $GLOBALS['db'] = DB_MAIN;
 $conexionPrincipal = $mainModelCron->connection();
+// Unificar reloj SQL/PHP en Honduras. Una instancia MySQL con otra zona
+// puede considerar vencida una recurrencia antes de su hora local.
+if (!$conexionPrincipal->query("SET time_zone = '-06:00'")) {
+    fwrite(STDERR, 'No se pudo establecer la zona horaria de la conexión principal.'.PHP_EOL);
+    exit(1);
+}
+
 // Solo IZZY (sistema_id=1) y clientes activos (estado=1).
 // CAMI, registros inactivos y bases no existentes nunca se procesan.
 $baseDatos = [DB_MAIN];
@@ -219,8 +226,20 @@ $sqlMorosos = "SELECT DISTINCT sc.db
     FROM server_customers sc
     JOIN cobrar_clientes cc ON cc.clientes_id = sc.clientes_id AND cc.estado = 1
     WHERE sc.estado = 1 AND sc.sistema_id = 1 AND COALESCE(sc.validar,1) <> 2
-      AND (cc.fecha < DATE_FORMAT(CURDATE(), '%Y-%m-01')
-           OR (DAY(CURDATE()) >= 16 AND YEAR(cc.fecha) = YEAR(CURDATE()) AND MONTH(cc.fecha) = MONTH(CURDATE())))";
+      AND ((CASE WHEN cc.fecha = LAST_DAY(cc.fecha)
+                  AND DATE(cc.fecha_registro) = cc.fecha
+                  AND TIME(cc.fecha_registro) >= '23:00:00'
+             THEN DATE_ADD(cc.fecha, INTERVAL 1 DAY)
+             ELSE cc.fecha END) < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+           OR (DAY(CURDATE()) >= 16 AND YEAR((CASE WHEN cc.fecha = LAST_DAY(cc.fecha)
+                  AND DATE(cc.fecha_registro) = cc.fecha
+                  AND TIME(cc.fecha_registro) >= '23:00:00'
+             THEN DATE_ADD(cc.fecha, INTERVAL 1 DAY)
+             ELSE cc.fecha END)) = YEAR(CURDATE()) AND MONTH((CASE WHEN cc.fecha = LAST_DAY(cc.fecha)
+                  AND DATE(cc.fecha_registro) = cc.fecha
+                  AND TIME(cc.fecha_registro) >= '23:00:00'
+             THEN DATE_ADD(cc.fecha, INTERVAL 1 DAY)
+             ELSE cc.fecha END)) = MONTH(CURDATE())))";
 $resultadoMorosos = $conexionPrincipal->query($sqlMorosos);
 if (!$resultadoMorosos) {
     fwrite(STDERR, 'No se pudo verificar la morosidad de clientes IZZY: '.$conexionPrincipal->error.PHP_EOL);
@@ -254,6 +273,10 @@ foreach ($baseDatos as $nombreDb) {
         $cn = $mainModelCron->connection();
         if (!$cn) {
             throw new RuntimeException('Conexión de empresa no disponible.');
+        }
+        // Fijar el reloj SQL de CADA conexión usada por el cron.
+        if (!$cn->query("SET time_zone = '-06:00'")) {
+            throw new RuntimeException('No se pudo establecer la zona horaria de esta empresa.');
         }
         $tablas = $cn->query("SELECT COUNT(*) AS total FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('facturas_recurrentes','facturas_recurrentes_detalle','facturas_recurrentes_ejecuciones')");
         if (!$tablas || (int)$tablas->fetch_assoc()['total'] !== 3) {
@@ -324,7 +347,14 @@ foreach ($baseDatos as $nombreDb) {
             continue;
         }
 
-        $consulta = $cn->query("SELECT rec_id, next_run_at FROM facturas_recurrentes WHERE estado = 1 AND next_run_at <= NOW() AND (until_at IS NULL OR DATE(next_run_at) <= until_at) ORDER BY next_run_at ASC, rec_id ASC");
+        $ahoraHonduras = (new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa')))->format('Y-m-d H:i:s');
+        $consultaStmt = $cn->prepare("SELECT rec_id, next_run_at FROM facturas_recurrentes WHERE estado = 1 AND next_run_at <= ? AND (until_at IS NULL OR DATE(next_run_at) <= until_at) ORDER BY next_run_at ASC, rec_id ASC");
+        if (!$consultaStmt) {
+            throw new RuntimeException('No se pudo preparar la consulta de recurrencias: '.$cn->error);
+        }
+        $consultaStmt->bind_param('s', $ahoraHonduras);
+        $consultaStmt->execute();
+        $consulta = $consultaStmt->get_result();
         if (!$consulta) {
             throw new RuntimeException('No se pudieron consultar recurrencias: '.$cn->error);
         }
@@ -333,6 +363,7 @@ foreach ($baseDatos as $nombreDb) {
             $pendientes[] = $fila;
         }
         $consulta->free();
+        $consultaStmt->close();
         // Compatibilidad: recuperar ciclos que versiones anteriores marcaron
         // como "morosidad" y cuyo next_run_at ya avanzó. Nunca recuperar
         // exclusiones manuales, documentos existentes ni reservas ambiguas.
@@ -374,6 +405,11 @@ foreach ($baseDatos as $nombreDb) {
             $programada = $recuperacionMorosidad
                 ? (string)$pendiente['scheduled_at']
                 : $programadaOriginal;
+            // Segunda protección antes de reservar ejecución o consumir numeración.
+            // Nunca emitir una ejecución futura en horario de Honduras.
+            if ($programada > $ahoraHonduras && $recuperarMes === null) {
+                continue;
+            }
             if ($recuperarMes !== null) {
                 // Proyectar el ciclo solicitado sin facturar automáticamente meses previos.
                 $info = $cn->prepare('SELECT periodicidad, dia_mes, until_at FROM facturas_recurrentes WHERE rec_id = ?');
@@ -468,6 +504,20 @@ foreach ($baseDatos as $nombreDb) {
                     }
                     continue;
                 }
+                // Preflight de relojes ANTES de reservar el ciclo. No se genera
+                // ningún historial ni se consume correlativo si aún no corresponde.
+                $relojPrevio = $cn->query("SELECT NOW() AS ahora_hn, @@session.time_zone AS zona_sql");
+                if (!$relojPrevio || !($horaPrevia = $relojPrevio->fetch_assoc()) ||
+                    (string)$horaPrevia['zona_sql'] !== '-06:00') {
+                    throw new RuntimeException('No se pudo verificar la zona horaria SQL antes de la reserva.');
+                }
+                $phpPrevio = (new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa')))->format('Y-m-d H:i:s');
+                if ((string)$horaPrevia['ahora_hn'] < $programada || $phpPrevio < $programada) {
+                    continue;
+                }
+                if (abs(strtotime((string)$horaPrevia['ahora_hn'] . ' UTC') - strtotime($phpPrevio . ' UTC')) > 120) {
+                    throw new RuntimeException('Desfase entre reloj PHP y MySQL. No se puede emitir con seguridad.');
+                }
                 $cn->begin_transaction();
                 $stmt = $cn->prepare('SELECT * FROM facturas_recurrentes WHERE rec_id = ? AND estado IN (1, 3) FOR UPDATE');
                 $stmt->bind_param('i', $recId);
@@ -525,7 +575,26 @@ foreach ($baseDatos as $nombreDb) {
                 $stmt->close();
                 // Fecha única de emisión: la del momento real de generar el documento.
                 // La fecha programada permanece en scheduled_at para auditoría.
-                $instanteEmision = new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa'));
+                // Comparación definitiva con el reloj de la misma conexión SQL,
+                // ajustada explícitamente a Honduras. Se valida en el último
+                // instante antes de invocar el generador fiscal.
+                $relojSql = $cn->query("SELECT NOW() AS ahora_hn, @@session.time_zone AS zona_sql");
+                if (!$relojSql || !($filaReloj = $relojSql->fetch_assoc()) ||
+                    (string)$filaReloj['zona_sql'] !== '-06:00') {
+                    throw new RuntimeException('No se pudo confirmar la hora de Honduras en MySQL. No se emitió la factura.');
+                }
+                $ahoraSqlHn = (string)$filaReloj['ahora_hn'];
+                $ahoraPhpHn = (new DateTimeImmutable('now', new DateTimeZone('America/Tegucigalpa')))->format('Y-m-d H:i:s');
+                if ($ahoraSqlHn < $programada || $ahoraPhpHn < $programada) {
+                    throw new RuntimeException('La fecha u hora programada todavía no ha llegado en Honduras. Se detuvo la emisión.');
+                }
+                // Si MySQL/PHP discrepan en más de 2 minutos, detener la emisión
+                // hasta corregir la configuración del servidor en vez de emitir
+                // con fecha fiscal equivocada.
+                if (abs(strtotime($ahoraSqlHn . ' UTC') - strtotime($ahoraPhpHn . ' UTC')) > 120) {
+                    throw new RuntimeException('Relojes PHP y MySQL desincronizados en Honduras. No se emitió la factura.');
+                }
+                $instanteEmision = new DateTimeImmutable($ahoraPhpHn, new DateTimeZone('America/Tegucigalpa'));
                 $rec['fecha_emision'] = $instanteEmision->format('Y-m-d');
                 $rec['fecha_registro_emision'] = $instanteEmision->format('Y-m-d H:i:s');
                 $rec['fecha_dolar'] = $rec['fecha_emision'];

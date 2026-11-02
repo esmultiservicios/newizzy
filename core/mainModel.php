@@ -4356,8 +4356,11 @@ class mainModel
 
 	public function generarCodigoBarra()
 	{
-		$codigo = date('YmdHis');  // Obtener la fecha y agregar "K"
-		return substr($codigo, 0, 12);  // Tomar solo los primeros 12 caracteres
+		// 12 dígitos numéricos, compatibles con la impresión Code 128.
+		// La versión basada en segundos podía repetir el mismo código en altas consecutivas
+		// y dejar el bucle de validación del controlador esperando hasta el siguiente minuto.
+		// El controlador conserva su verificación de unicidad por empresa.
+		return (string)random_int(100000000000, 999999999999);
 	}
 
 	public function getProductoHijo($producto_id)

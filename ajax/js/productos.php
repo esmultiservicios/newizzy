@@ -2960,4 +2960,62 @@ function getEmpresaProductos() {
         });
 })();
 
+/* CALCULADORA: solo modifica el campo del formulario al confirmar Aplicar. */
+(function(){
+'use strict';
+var $calc=function(id){return $('#modalCalculadoraPrecios #'+id);};
+var formato=function(n){return 'L '+(Number.isFinite(n)?n:0).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:5});};
+var numero=function(id){var n=Number($calc(id).val());return Number.isFinite(n)?n:0;};
+var estado={neto:null};
+function tasa(){
+ var f=$('#formProductos');if(!f.find('#producto_isv_factura').is(':checked'))return 0;
+ if(f.find('#producto_isv2').is(':checked'))return Number(fetchISVProductoSync(2))||0;
+ if(f.find('#producto_isv1').is(':checked'))return Number(fetchISVProductoSync(1))||0;
+ return 0;
+}
+function calcular(){
+ var costo=numero('calcCosto'),gastos=numero('calcGastos'),pct=numero('calcPorcentaje');
+ var t=tasa(),incluido=$calc('calcCostoIncluyeISV').val()==='con';
+ var base=incluido&&t>0?costo/(1+t/100):costo;
+ var total=base+gastos,metodo=$calc('calcMetodo').val();
+ var invalido=costo<0||gastos<0||pct<0||pct>100||(metodo==='margen'&&pct>=100&&total>0);
+ var neto=invalido?NaN:(metodo==='recargo'?total*(1+pct/100):(pct>=100?0:total/(1-pct/100)));
+ var redondeo=numero('calcRedondeo');if(redondeo>0&&Number.isFinite(neto))neto=Math.ceil((neto-1e-9)/redondeo)*redondeo;
+ if(!Number.isFinite(neto)||neto>999999999999)invalido=true;
+ estado.neto=invalido?null:Math.max(0,neto);
+ var ganancia=invalido?0:neto-total;
+ $calc('calcCostoTotal').text(formato(total));$calc('calcResultado').text(invalido?'No disponible':formato(neto));$calc('calcGanancia').text(invalido?'—':formato(ganancia));
+ $calc('calcRentabilidad').text('Rentabilidad sobre venta: '+(!invalido&&neto>0?(ganancia/neto*100).toFixed(2):'0.00')+' % · Recargo: '+(!invalido&&total>0?(ganancia/total*100).toFixed(2):'0.00')+' %');
+ $calc('calcPrecioFinal').text('Precio final estimado con ISV ('+t+' %): '+(invalido?'—':formato(neto*(1+t/100))));
+ $calc('calcAdvertencia').text(invalido?'Revise los importes. Un margen de 100 % con costo positivo no tiene precio finito.':'');
+ $calc('calcMetodoAyuda').text(metodo==='margen'?'Margen sobre venta: ganancia ÷ precio neto de venta.':'Recargo sobre costo: ganancia ÷ costo base con gastos.');
+ $calc('calcAplicar').prop('disabled',invalido);
+}
+$(document).off('click.calculadoraIzzy','#btnCalculadoraPrecios').on('click.calculadoraIzzy','#btnCalculadoraPrecios',function(){
+ var form=$('#formProductos');
+ if(form.find('#precio_venta').prop('readonly')||form.find('#precio_venta').prop('disabled')){showNotify('warning','Precio no editable','Este tipo de producto no permite editar el precio de venta.');return;}
+ $calc('calcCosto').val(form.find('#precio_compra').val()||'0');$calc('calcGastos').val(0);$calc('calcMetodo').val('margen');$calc('calcRedondeo').val('0');$calc('calcCostoIncluyeISV').val('sin');
+ $calc('calcPorcentaje').val(25);$calc('calcSlider').val(25);
+ var t=tasa();$calc('calcImpuesto').val(t+' %'+(t?' (aplicado por IZZY en venta)':' (exento)'));
+ calcular();$('#modalCalculadoraPrecios').modal({backdrop:false,keyboard:true,show:true});
+});
+$(document).off('show.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios').on('show.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios',function(){
+ $(this).css('z-index',1070);$('#modal_registrar_productos').css('z-index',1060);
+}).off('hidden.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios').on('hidden.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios',function(){
+ $('#modal_registrar_productos').css('z-index','');if($('#modal_registrar_productos').hasClass('show'))$('body').addClass('modal-open');
+}).off('shown.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios').on('shown.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios',function(){$calc('calcCosto').trigger('focus');});
+$(document).off('input.calculadoraIzzy','#calcSlider').on('input.calculadoraIzzy','#calcSlider',function(){$calc('calcPorcentaje').val(this.value);calcular();});
+$(document).off('input.calculadoraNum','#calcPorcentaje').on('input.calculadoraNum','#calcPorcentaje',function(){var n=Math.min(100,Math.max(0,Math.round(Number(this.value)||0)));$calc('calcSlider').val(n);calcular();});
+$(document).off('change.calculadoraNum','#calcPorcentaje').on('change.calculadoraNum','#calcPorcentaje',function(){var n=Math.min(100,Math.max(0,Math.round(Number(this.value)||0)));$(this).val(n);$calc('calcSlider').val(n);calcular();});
+$(document).off('input.calculadoraValores change.calculadoraValores','#calcCosto,#calcGastos,#calcMetodo,#calcRedondeo,#calcCostoIncluyeISV').on('input.calculadoraValores change.calculadoraValores','#calcCosto,#calcGastos,#calcMetodo,#calcRedondeo,#calcCostoIncluyeISV',calcular);
+$(document).off('click.calculadoraAplicar','#calcAplicar').on('click.calculadoraAplicar','#calcAplicar',function(){if(estado.neto===null)return;$('#formProductos #precio_venta').val(estado.neto.toFixed(5)).trigger('input').trigger('keyup').trigger('change');$('#modalCalculadoraPrecios').modal('hide');showNotify('success','Precio aplicado','El precio sugerido se colocó en el formulario. Guarde el producto cuando desee confirmar el cambio.');});
+})();
+
+/* Genera solo códigos faltantes mediante endpoint con control de empresa. */
+$(document).off('click.productosBarrasMasivo','#btnGenerarBarrasFaltantes').on('click.productosBarrasMasivo','#btnGenerarBarrasFaltantes',function(){
+ var ejecutar=function(){var b=$('#btnGenerarBarrasFaltantes');b.prop('disabled',true);$.ajax({type:'POST',url:'<?php echo SERVERURL;?>core/productos/generarBarrasFaltantes.php',dataType:'json'}).done(function(r){if(r&&r.success){showNotify('success','Códigos generados',r.message);if(typeof listar_productos==='function')listar_productos();}else showNotify('error','No se completó',r.message||'No fue posible generar los códigos.');}).fail(function(){showNotify('error','Error','No se pudo conectar con el servidor.');}).always(function(){b.prop('disabled',false);});};
+ if(typeof Swal!=='undefined'&&Swal.fire){Swal.fire({title:'Generar códigos faltantes',text:'Se asignará un código interno único solamente a los productos sin código. Los existentes permanecerán intactos.',icon:'question',showCancelButton:true,confirmButtonText:'Sí, generar',cancelButtonText:'Cancelar',allowOutsideClick:false}).then(function(r){if(r.isConfirmed)ejecutar();});}
+ else if(typeof swal==='function'){swal({title:'Generar códigos faltantes',text:'Se asignará un código interno único solo a productos sin código.',icon:'warning',buttons:{cancel:'Cancelar',confirm:'Generar'},closeOnClickOutside:false}).then(function(ok){if(ok)ejecutar();});}
+ else showNotify('warning','Confirmación necesaria','No se encontró el componente de confirmación.');
+});
 </script>

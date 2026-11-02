@@ -16979,4 +16979,183 @@ function esc(v) {
             izzyResetModalSearch($(this));
         });
 })();
+
+/* IZZY: omisiones recurrentes - manejo global reutilizable */
+
+/* ============================================================
+   IZZY | OMISIONES DE CICLOS (independiente de cancelar recurrencia)
+   Las fechas se validan nuevamente en servidor contra la periodicidad.
+   ============================================================ */
+(function () {
+    'use strict';
+    var urlOmisiones = '<?php echo SERVERURL; ?>core/facturas/administrarOmisionesRecurrentes.php';
+    var tokenOmisiones = <?php echo json_encode(hash_hmac('sha256', 'izzy-omisiones', (string)($_SESSION['token_sd'] ?? '')), JSON_UNESCAPED_SLASHES); ?>;
+
+    function cargarOmisiones() {
+        var id = parseInt($('#omision_rec_id').val(), 10);
+        if (!id) return;
+        $('#omision_listado').text('Consultando exclusiones...');
+        $.ajax({url: urlOmisiones, type:'POST', dataType:'json', data:{rec_id:id,accion:'listar',csrf_token:tokenOmisiones}})
+            .done(function (res) {
+                if (!res || !res.ok) {
+                    $('#omision_listado').text(res && res.msg ? res.msg : 'No se pudo consultar.');
+                    return;
+                }
+                var $lista = $('#omision_listado').empty();
+                if (!res.data.length) {
+                    $lista.append($('<span class="text-muted small"></span>').text('No hay períodos excluidos.'));
+                    return;
+                }
+                res.data.forEach(function (registro) {
+                    var $row = $('<div class="d-flex align-items-center justify-content-between border rounded p-2"></div>');
+                    $row.append($('<span class="small"></span>').text(registro.scheduled_at));
+                    var $btn = $('<button type="button" class="btn btn-outline-danger btn-sm"><i class="fas fa-undo mr-1"></i>Restaurar</button>');
+                    $btn.on('click', function () {
+                        guardarOmision('quitar', {scheduled_at: registro.scheduled_at});
+                    });
+                    $row.append($btn);
+                    $lista.append($row);
+                });
+            })
+            .fail(function () { $('#omision_listado').text('No se pudo consultar el servidor.'); });
+    }
+    function guardarOmision(accion, datos) {
+        var payload = $.extend({rec_id:$('#omision_rec_id').val(), accion:accion, csrf_token:tokenOmisiones}, datos);
+        $.ajax({url:urlOmisiones,type:'POST',dataType:'json',data:payload})
+            .done(function (res) {
+                if (!res || !res.ok) {
+                    showNotify('error','Exclusiones',res && res.msg ? res.msg : 'No se pudo actualizar.');
+                    return;
+                }
+                showNotify('success','Exclusiones',accion === 'agregar' ? 'Período excluido correctamente.' : 'Período restaurado correctamente.');
+                cargarOmisiones();
+                if (typeof listarFacturasRecurrentes === 'function') listarFacturasRecurrentes({silencioso:true});
+            })
+            .fail(function (xhr) {
+                var resp = xhr.responseJSON;
+                showNotify('error','Exclusiones', resp && resp.msg ? resp.msg : 'Error al guardar la exclusión.');
+            });
+    }
+    $(document).on('click', '.administrar-omisiones-recurrente', function () {
+        var id = parseInt($(this).attr('data-id'), 10);
+        var frecuencia = $(this).attr('data-periodicidad') || 'monthly';
+        $('#omision_rec_id').val(id);
+        $('#omision_periodicidad').val(frecuencia);
+        var siguiente = String($(this).attr('data-proxima') || '');
+        $('#omision_proxima_info').text(siguiente ? 'Programada: ' + siguiente : 'Sin fecha de próxima ejecución.');
+        $('#omision_siguiente').data('fecha', siguiente).prop('disabled', !siguiente);
+        var mensual = frecuencia === 'monthly';
+        $('#omision_fecha').attr('type', mensual ? 'month' : 'date').val('');
+        $('#omision_fecha_label').text(mensual ? 'Mes que NO se facturará' : 'Día programado que NO se facturará');
+        $('#omision_ayuda').text(mensual ? 'El sistema excluirá la ejecución programada de ese mes.' : 'Seleccione exactamente una fecha programada según la frecuencia.');
+        // Mantener el modal de programaciones abierto y montar exclusiones encima.
+        var $hijo = $('#modalOmisionesRecurrentes');
+        $hijo.modal({show:true,backdrop:'static',keyboard:false});
+        cargarOmisiones();
+    });
+    // Bootstrap 4 administra un solo modal por defecto. Conservar el padre y
+    // devolverle el foco al cerrar solamente el modal superior.
+    $(document).on('show.bs.modal.izzyOmisiones', '#modalOmisionesRecurrentes', function () {
+        var $padre = $('#recurringBillModal');
+        if ($padre.hasClass('show')) {
+            $(this).data('izzy-padre-apilado', true);
+            $padre.css('z-index', 1050);
+        }
+    }).on('shown.bs.modal.izzyOmisiones', '#modalOmisionesRecurrentes', function () {
+        if ($(this).data('izzy-padre-apilado')) {
+            $(this).css('z-index', 1070);
+            $('.modal-backdrop').last().css('z-index', 1060);
+            $('body').addClass('modal-open');
+        }
+    }).on('hidden.bs.modal.izzyOmisiones', '#modalOmisionesRecurrentes', function () {
+        $(this).css('z-index', '').removeData('izzy-padre-apilado');
+        if ($('#recurringBillModal').hasClass('show')) {
+            $('body').addClass('modal-open');
+            $('#recurringBillModal').css('z-index', '').trigger('focus');
+        }
+    });
+    $(document).on('click', '#omision_siguiente', function () {
+        var fecha = String($(this).data('fecha') || '');
+        var mensual = $('#omision_periodicidad').val() === 'monthly';
+        var periodo = mensual ? fecha.slice(0, 7) : fecha.slice(0, 10);
+        if (!periodo) { showNotify('warning','Fecha no disponible','Seleccione una fecha programada.'); return; }
+        guardarOmision('agregar', {periodo: periodo});
+    });
+    $(document).on('click', '#omision_agregar', function () {
+        var periodo = String($('#omision_fecha').val() || '');
+        if (!periodo) {
+            showNotify('warning','Fecha requerida','Seleccione el período que no se debe facturar.');
+            return;
+        }
+        guardarOmision('agregar',{periodo:periodo});
+    });
+})();
+
+
+
+/* IZZY | Enlace de caja: conserva intactos los estilos y estructura de showNotify. */
+(function () {
+    'use strict';
+    var cajaUrl = <?php echo json_encode(rtrim(SERVERURL, '/') . '/cajas/', JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+    var patron = /<a\s+[^>]*href\s*=\s*['"][^'"]*\/cajas\/['"][^>]*>\s*Ir\s+a\s+Ventas\s*&gt;\s*Caja\s*<\/a>|<a\s+[^>]*href\s*=\s*['"][^'"]*\/cajas\/['"][^>]*>\s*Ir\s+a\s+Ventas\s*>\s*Caja\s*<\/a>/i;
+
+    function convertirEnlace(mensaje) {
+        if (!mensaje || mensaje.nodeType !== 1) return;
+        // Modificamos únicamente el nodo de texto con la etiqueta HTML literal.
+        // Nunca sustituimos el contenido completo, título, iconos ni clases del aviso.
+        var recorrer = document.createTreeWalker(mensaje, NodeFilter.SHOW_TEXT);
+        var nodos = [];
+        while (recorrer.nextNode()) nodos.push(recorrer.currentNode);
+        nodos.forEach(function (nodo) {
+            if (!nodo.parentNode || nodo.parentNode.closest('a')) return;
+            var texto = nodo.nodeValue || '';
+            var coincidencia = patron.exec(texto);
+            if (!coincidencia) return;
+            var enlace = document.createElement('a');
+            enlace.href = cajaUrl;
+            enlace.className = 'alert-link';
+            enlace.textContent = 'Ir a Ventas > Caja';
+            enlace.target = '_blank';
+            enlace.rel = 'noopener noreferrer';
+            enlace.style.setProperty('color', '#163A70', 'important');
+            enlace.style.setProperty('font-weight', '700', 'important');
+            enlace.style.setProperty('text-decoration', 'underline', 'important');
+            enlace.style.setProperty('text-underline-offset', '2px');
+            enlace.addEventListener('click', function (evento) { evento.stopPropagation(); });
+            var fragmento = document.createDocumentFragment();
+            if (coincidencia.index) fragmento.appendChild(document.createTextNode(texto.slice(0, coincidencia.index)));
+            fragmento.appendChild(enlace);
+            var restante = texto.slice(coincidencia.index + coincidencia[0].length);
+            if (restante) fragmento.appendChild(document.createTextNode(restante));
+            nodo.parentNode.replaceChild(fragmento, nodo);
+        });
+    }
+
+    function revisar(raiz) {
+        if (!raiz || raiz.nodeType !== 1) return;
+        if (raiz.matches && raiz.matches('.notyf__message')) convertirEnlace(raiz);
+        if (raiz.querySelectorAll) raiz.querySelectorAll('.notyf__message').forEach(convertirEnlace);
+    }
+
+    function iniciar() {
+        if (!document.body) return;
+        revisar(document.body);
+        if (typeof MutationObserver !== 'function') return;
+        new MutationObserver(function (cambios) {
+            cambios.forEach(function (cambio) {
+                if (cambio.type === 'characterData') {
+                    var padre = cambio.target.parentElement;
+                    if (padre) revisar(padre.closest('.notyf__message') || padre);
+                }
+                cambio.addedNodes.forEach(function (nodo) {
+                    if (nodo.nodeType === 1) revisar(nodo);
+                    else if (nodo.nodeType === 3 && nodo.parentElement) revisar(nodo.parentElement.closest('.notyf__message') || nodo.parentElement);
+                });
+            });
+        }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar, { once: true });
+    else iniciar();
+})();
+
 </script>

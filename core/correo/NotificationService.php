@@ -148,10 +148,10 @@ class NotificationService {
         if (trim((string)$greeting) !== '') {
             $html .= '<p style="margin:0 0 14px;">Hola <strong>'.$this->esc($greeting).'</strong>,</p>';
         }
-        $html .= '<p style="margin:0 0 18px;">'.$this->esc($summary).'</p>';
+        $html .= '<p style="margin:0 0 12px;">'.$this->esc($summary).'</p>';
 
         if ($changes) {
-            $html .= '<div style="margin:0 0 18px;padding:16px;background:#F7F9FC;border:1px solid #DDE3EA;border-left:4px solid #0EA5A8;border-radius:8px;">';
+            $html .= '<div style="margin:0 0 14px;padding:12px;background:#F7F9FC;border:1px solid #DDE3EA;border-left:4px solid #0EA5A8;border-radius:8px;">';
             $html .= '<div style="margin-bottom:10px;font-weight:800;color:#17324D;">Cambios realizados</div>';
             foreach ($changes as $label => $pair) {
                 $old = is_array($pair) ? ($pair['anterior'] ?? $pair[0] ?? '') : '';
@@ -165,16 +165,18 @@ class NotificationService {
         }
 
         if ($details) {
-            $html .= '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border:1px solid #DDE3EA;border-collapse:collapse;background:#FFFFFF;margin:0 0 18px;">';
+            $html .= '<div style="width:100%;box-sizing:border-box;border:1px solid #DDE3EA;background:#FFFFFF;margin:0 0 12px;border-radius:8px;overflow:hidden;">';
             foreach ($details as $label => $value) {
-                $html .= '<tr><td style="width:38%;padding:10px 12px;background:#F7F9FC;border-bottom:1px solid #DDE3EA;color:#5E6C84;font-size:13px;font-weight:800;vertical-align:top;">'.$this->esc($label).'</td>'
-                    .'<td style="padding:10px 12px;border-bottom:1px solid #DDE3EA;color:#253858;font-size:14px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word;">'.$this->esc($value).'</td></tr>';
+                $html .= '<div style="padding:10px 12px;border-bottom:1px solid #DDE3EA;box-sizing:border-box;max-width:100%;">'
+                    .'<div style="font-size:12px;font-weight:800;color:#5E6C84;line-height:1.5;overflow-wrap:anywhere;">'.$this->esc($label).'</div>'
+                    .'<div style="font-size:14px;color:#253858;line-height:1.6;overflow-wrap:anywhere;word-wrap:break-word;">'.$this->esc($value).'</div>'
+                    .'</div>';
             }
-            $html .= '</table>';
+            $html .= '</div>';
         }
 
         if (trim((string)$note) !== '') {
-            $html .= '<div style="padding:13px 14px;background:#F7F9FC;border-left:4px solid #17324D;color:#44546A;font-size:13px;line-height:1.55;">'.$this->esc($note).'</div>';
+            $html .= '<div style="padding:11px 12px;background:#F7F9FC;border-left:4px solid #17324D;color:#44546A;font-size:13px;line-height:1.55;">'.$this->esc($note).'</div>';
         }
         return $html;
     }

@@ -204,7 +204,7 @@ $asunto = "Envío de Cotización " . $numero_documento;
 */
 
 $mensaje = '
-    <div style="padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #2d3748;">
+    <div style="padding:0;font-family:Arial,Helvetica,sans-serif;color:#2d3748;max-width:100%;">
         <p style="margin-bottom: 12px;">
             ¡Hola '.$nombre.'!
         </p>
@@ -218,13 +218,13 @@ $mensaje = '
             Puede visualizarla directamente desde el siguiente enlace:
         </p>
 
-        <div style="text-align: center; margin: 25px 0;">
+        <div style="text-align: center; margin: 16px 0;">
             <a href="'.$urlCotizacion.'" target="_blank"
                 style="
                     display: inline-block;
                     background: #0d6efd;
                     color: #ffffff;
-                    padding: 13px 24px;
+                    padding: 11px 15px;
                     text-decoration: none;
                     border-radius: 8px;
                     font-weight: bold;
@@ -242,7 +242,7 @@ $mensaje = '
             background: #f4f6f8;
             padding: 12px;
             border-radius: 8px;
-            word-break: break-all;
+            overflow-wrap:anywhere;word-break:break-word;
             font-size: 13px;
         ">
             <a href="'.$urlCotizacion.'" target="_blank" style="color: #0d6efd;">

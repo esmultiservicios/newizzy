@@ -186,7 +186,24 @@ class loginControlador extends loginModel{
                                 : "NO";
 
                         if (!$mantenimiento) {
-                            $this->enviarCorreoInicioSesion($row, $codigoCliente);
+                            /* El aviso por correo nunca debe contaminar el JSON del login
+                               ni impedir la autenticación por errores SMTP/Graph. */
+                            register_shutdown_function(function () use ($row, $codigoCliente) {
+                                if (function_exists('fastcgi_finish_request')) {
+                                    fastcgi_finish_request();
+                                }
+                                $nivelBuffer = ob_get_level();
+                                ob_start();
+                                try {
+                                    $this->enviarCorreoInicioSesion($row, $codigoCliente);
+                                } catch (Throwable $errorCorreoLogin) {
+                                    error_log('IZZY login: error notificando acceso: ' . $errorCorreoLogin->getMessage());
+                                } finally {
+                                    while (ob_get_level() > $nivelBuffer) {
+                                        ob_end_clean();
+                                    }
+                                }
+                            });
                         }
 
                         $result_consultaMenu = loginModel::getMenuAccesoLogin($row['privilegio_id']);
@@ -428,77 +445,56 @@ class loginControlador extends loginModel{
             $ip = $this->obtenerIpCliente();
             $navegador = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : "No identificado";
 
-            $codigoClienteTexto = "";
-
-            if ($codigoCliente != "") {
-                $codigoClienteTexto = '
-                    <li style="margin-bottom: 6px;">
-                        <strong>Código de cliente:</strong> '.$codigoCliente.'
-                    </li>
-                ';
+            // Resumen legible para móvil: conservamos la información de acceso sin
+            // imprimir el User-Agent completo, que puede ocupar más de diez líneas.
+            $navegadorResumen = 'No identificado';
+            if (preg_match('/Edg\/([0-9.]+)/i', $navegador, $coincide)) {
+                $navegadorResumen = 'Microsoft Edge ' . $coincide[1];
+            } elseif (preg_match('/OPR\/([0-9.]+)/i', $navegador, $coincide)) {
+                $navegadorResumen = 'Opera ' . $coincide[1];
+            } elseif (preg_match('/Firefox\/([0-9.]+)/i', $navegador, $coincide)) {
+                $navegadorResumen = 'Firefox ' . $coincide[1];
+            } elseif (preg_match('/Chrome\/([0-9.]+)/i', $navegador, $coincide)) {
+                $navegadorResumen = 'Google Chrome ' . $coincide[1];
+            } elseif (preg_match('/Version\/([0-9.]+).*Safari/i', $navegador, $coincide)) {
+                $navegadorResumen = 'Safari ' . $coincide[1];
             }
+            $dispositivo = 'Dispositivo no identificado';
+            if (stripos($navegador, 'Windows') !== false) $dispositivo = 'Windows';
+            elseif (stripos($navegador, 'Android') !== false) $dispositivo = 'Android';
+            elseif (stripos($navegador, 'iPhone') !== false || stripos($navegador, 'iPad') !== false) $dispositivo = 'iOS / iPadOS';
+            elseif (stripos($navegador, 'Mac OS') !== false) $dispositivo = 'macOS';
+            elseif (stripos($navegador, 'Linux') !== false) $dispositivo = 'Linux';
+
+            $escaparCorreo = static function ($valor) {
+                return htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
+            };
+            $detalleCorreo = static function ($etiqueta, $valor) use ($escaparCorreo) {
+                return '<div style="padding:8px 0;border-bottom:1px solid #e1e7f0;box-sizing:border-box;max-width:100%;">'
+                    .'<div style="font-size:12px;line-height:1.4;font-weight:700;color:#64748b;">'.$escaparCorreo($etiqueta).'</div>'
+                    .'<div style="font-size:14px;line-height:1.5;color:#20334e;overflow-wrap:anywhere;word-wrap:break-word;">'.$escaparCorreo($valor).'</div>'
+                    .'</div>';
+            };
+            $detalles = $detalleCorreo('Sistema', $sistemaNombre)
+                . $detalleCorreo('Empresa', $empresaNombre)
+                . $detalleCorreo('Usuario', $correoUsuario)
+                . $detalleCorreo('Fecha y hora', $fechaHora)
+                . $detalleCorreo('IP', $ip);
+            if (trim((string)$codigoCliente) !== '' && (int)$codigoCliente > 0) {
+                $detalles .= $detalleCorreo('Código de cliente', $codigoCliente);
+            }
+            $detalles .= $detalleCorreo('Dispositivo / Navegador', $dispositivo . ' · ' . $navegadorResumen);
 
             $asunto = "Nuevo inicio de sesión en " . $sistemaNombre;
-
-            $mensaje = '
-                <div style="padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #2d3748;">
-                    <p style="margin-bottom: 10px;">
-                        ¡Hola '.$nombreUsuario.'!
-                    </p>
-
-                    <p style="margin-bottom: 12px;">
-                        Se detectó un nuevo inicio de sesión en su cuenta de <b>'.$sistemaNombre.'</b>.
-                    </p>
-
-                    <div style="
-                        background: #f8fafc;
-                        border-left: 4px solid #0d6efd;
-                        padding: 14px 16px;
-                        border-radius: 8px;
-                        margin: 18px 0;
-                    ">
-                        <p style="margin-top: 0; margin-bottom: 10px;">
-                            <strong>Detalles del acceso:</strong>
-                        </p>
-
-                        <ul style="margin: 0; padding-left: 18px;">
-                            <li style="margin-bottom: 6px;">
-                                <strong>Sistema:</strong> '.$sistemaNombre.'
-                            </li>
-                            <li style="margin-bottom: 6px;">
-                                <strong>Empresa:</strong> '.$empresaNombre.'
-                            </li>
-                            <li style="margin-bottom: 6px;">
-                                <strong>Usuario:</strong> '.$correoUsuario.'
-                            </li>
-                            <li style="margin-bottom: 6px;">
-                                <strong>Fecha y hora:</strong> '.$fechaHora.'
-                            </li>
-                            <li style="margin-bottom: 6px;">
-                                <strong>IP:</strong> '.$ip.'
-                            </li>
-                            '.$codigoClienteTexto.'
-                            <li style="margin-bottom: 6px;">
-                                <strong>Dispositivo/Navegador:</strong> '.$navegador.'
-                            </li>
-                        </ul>
-                    </div>
-
-                    <p style="margin-bottom: 12px;">
-                        Si este inicio de sesión fue realizado por usted, puede ignorar este mensaje.
-                    </p>
-
-                    <p style="margin-bottom: 12px;">
-                        Si no reconoce esta actividad, le recomendamos cambiar su contraseña inmediatamente
-                        y comunicarse con soporte.
-                    </p>
-
-                    <p>
-                        Atentamente,<br>
-                        <b>El equipo de '.$empresaNombre.'</b>
-                    </p>
-                </div>
-            ';
+            $mensaje = '<div style="width:100%;max-width:100%;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#253858;">'
+                .'<p style="margin:0 0 12px;font-size:15px;line-height:1.5;">Hola <strong>'.$escaparCorreo($nombreUsuario).'</strong>,</p>'
+                .'<p style="margin:0 0 14px;font-size:15px;line-height:1.55;">Se detectó un nuevo inicio de sesión en su cuenta de <strong>'.$escaparCorreo($sistemaNombre).'</strong>.</p>'
+                .'<div style="padding:12px 14px;box-sizing:border-box;max-width:100%;background:#f7f9fc;border-left:4px solid #1477ef;border-radius:8px;">'
+                .'<div style="margin:0 0 4px;font-size:15px;font-weight:800;color:#17324d;">Detalles del acceso</div>'
+                .$detalles.'</div>'
+                .'<p style="margin:14px 0 8px;font-size:14px;line-height:1.55;">Si reconoce este acceso, no necesita realizar ninguna acción.</p>'
+                .'<p style="margin:0;font-size:14px;line-height:1.55;">Si no lo reconoce, cambie su contraseña y contacte a soporte.</p>'
+                .'</div>';
 
             $destinatarios = [
                 $correoUsuario => $nombreUsuario

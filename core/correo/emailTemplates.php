@@ -49,14 +49,14 @@ class emailTemplates {
         if ($urlLogo !== '') {
             $logoHtml = '<img src="'.$this->esc($urlLogo).'" alt="'.$nombreEmpresaHtml.'" width="142" style="display:block;width:142px;max-width:142px;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">';
         } else {
-            $logoHtml = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.2;font-weight:800;color:#17324D;text-align:center;">'.$nombreEmpresaHtml.'</div>';
+            $logoHtml = '<div style="font-family:Arial Black,Arial,Helvetica,sans-serif;font-size:38px;line-height:1.1;font-weight:900;letter-spacing:-2px;color:#1477EF;text-align:center;">IZZY.</div>';
         }
 
         $contactos = array();
         if ($telefonoHtml !== '') $contactos[] = 'Tel. '.$telefonoHtml;
         if ($celularHtml !== '') $contactos[] = 'Cel. '.$celularHtml;
         if ($correoHtml !== '') $contactos[] = $correoHtml;
-        $contactoHtml = implode(' &nbsp;•&nbsp; ', $contactos);
+        $contactoHtml = implode('<br>', $contactos);
 
         $webHtml = $sitioweb !== ''
             ? '<a href="'.$this->esc($sitioweb).'" style="color:#0EA5A8;text-decoration:none;font-weight:700;">'.$sitioHtml.'</a>'
@@ -75,36 +75,38 @@ class emailTemplates {
 <style>
 @media only screen and (max-width: 620px) {
   .izzy-shell { width:100% !important; max-width:100% !important; }
-  .izzy-pad { padding-left:18px !important; padding-right:18px !important; }
-  .izzy-title { font-size:24px !important; line-height:1.25 !important; }
-  .izzy-body { font-size:15px !important; }
-  .izzy-logo-wrap { padding-top:20px !important; padding-bottom:16px !important; }
-  .izzy-card { padding:16px !important; }
+  .izzy-pad { padding-left:14px !important; padding-right:14px !important; }
+  .izzy-title { font-size:21px !important; line-height:1.3 !important; }
+  .izzy-body { font-size:14px !important; line-height:1.55 !important; }
+  .izzy-logo-wrap { padding-top:14px !important; padding-bottom:12px !important; }
+  .izzy-card { padding:12px !important; }
+  .izzy-body img { max-width:100% !important; height:auto !important; }
+  .izzy-body a { overflow-wrap:anywhere !important; word-wrap:break-word !important; }
+  .izzy-numeric { white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; }
+  .izzy-detail-label, .izzy-detail-value { width:auto !important; display:block !important; }
 }
 </style>
 </head>
 <body style="margin:0;padding:0;background:#F7F9FC;font-family:Arial,Helvetica,sans-serif;color:#172B4D;-webkit-text-size-adjust:100%;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#F7F9FC;margin:0;padding:0;">
-<tr><td align="center" style="padding:20px 12px;">
-<table role="presentation" class="izzy-shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;background:#FFFFFF;border:1px solid #DDE3EA;border-collapse:separate;border-spacing:0;">
-<tr><td class="izzy-logo-wrap" align="center" style="padding:24px 24px 18px;border-bottom:1px solid #DDE3EA;">'.$logoHtml.'</td></tr>
-<tr><td style="height:4px;background:'.$accent.';font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td class="izzy-pad" style="padding:26px 30px 8px;">
-<span style="display:inline-block;padding:6px 10px;background:#F7F9FC;border:1px solid #DDE3EA;border-radius:999px;color:'.$accent.';font-size:11px;line-height:1;font-weight:800;letter-spacing:.7px;text-transform:uppercase;">'.$this->esc($badge).'</span>
-<h1 class="izzy-title" style="margin:14px 0 0;font-size:28px;line-height:1.25;color:#17324D;font-weight:800;">'.$tituloHtml.'</h1>
+<div style="width:100%;margin:0;padding:8px 5px;box-sizing:border-box;background:#F7F9FC;">
+<div class="izzy-shell" style="width:100%;max-width:600px;margin:0 auto;box-sizing:border-box;background:#FFFFFF;border:1px solid #DDE3EA;">
+<div class="izzy-logo-wrap" style="padding:16px 14px 14px;text-align:center;border-bottom:1px solid #DDE3EA;">'.$logoHtml.'</div>
+<div style="height:4px;background:'.$accent.';font-size:0;line-height:0;">&nbsp;</div>
+<div class="izzy-pad" style="padding:16px 16px 5px;box-sizing:border-box;">
+<span style="display:inline-block;padding:6px 10px;background:#F7F9FC;border:1px solid #DDE3EA;border-radius:999px;color:'.$accent.';font-size:11px;line-height:1.2;font-weight:800;letter-spacing:.7px;text-transform:uppercase;">'.$this->esc($badge).'</span>
+<h1 class="izzy-title" style="margin:9px 0 0;font-size:23px;line-height:1.28;color:#17324D;font-weight:800;overflow-wrap:break-word;">'.$tituloHtml.'</h1>
 '.($esloganHtml !== '' ? '<p style="margin:7px 0 0;font-size:13px;line-height:1.5;color:#5E6C84;">'.$esloganHtml.'</p>' : '').'
-</td></tr>
-<tr><td class="izzy-pad izzy-body" style="padding:12px 30px 30px;font-size:16px;line-height:1.6;color:#253858;overflow-wrap:anywhere;word-break:break-word;">'.$contenido.'</td></tr>
-<tr><td style="padding:0 30px;"><div style="height:1px;background:#DDE3EA;font-size:0;line-height:0;">&nbsp;</div></td></tr>
-<tr><td class="izzy-pad" align="center" style="padding:20px 30px 24px;background:#F7F9FC;color:#5E6C84;font-size:12px;line-height:1.6;">
+</div>
+<div class="izzy-pad izzy-body" style="padding:10px 16px 20px;box-sizing:border-box;max-width:100%;font-size:16px;line-height:1.6;color:#253858;overflow-wrap:anywhere;word-wrap:break-word;">'.$contenido.'</div>
+<div style="padding:0 16px;"><div style="height:1px;background:#DDE3EA;font-size:0;line-height:0;">&nbsp;</div></div>
+<div class="izzy-pad" style="padding:14px 16px 18px;box-sizing:border-box;background:#F7F9FC;color:#5E6C84;font-size:12px;line-height:1.6;text-align:center;overflow-wrap:anywhere;">
 <div style="font-weight:800;color:#17324D;">'.$nombreEmpresaHtml.'</div>
 '.($footerMetaHtml !== '' ? '<div style="margin-top:6px;">'.$footerMetaHtml.'</div>' : '').'
 <div style="margin-top:12px;color:#6B778C;">Este es un mensaje automático. Por favor, no responda directamente a este correo.</div>
 <div style="margin-top:8px;color:#6B778C;">© '.$year.' '.$nombreEmpresaHtml.' · Todos los derechos reservados</div>
-</td></tr>
-</table>
-</td></tr>
-</table>
+</div>
+</div>
+</div>
 </body>
 </html>';
     }

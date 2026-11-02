@@ -228,12 +228,23 @@
 				WHERE cc.estado = ? 
 				AND sc.db = ? 
 				AND (
-					cc.fecha < DATE_FORMAT(CURDATE(), '%Y-%m-01')
-					OR 
-					(
+					(CASE WHEN cc.fecha = LAST_DAY(cc.fecha)
+                  AND DATE(cc.fecha_registro) = cc.fecha
+                  AND TIME(cc.fecha_registro) >= '23:00:00'
+             THEN DATE_ADD(cc.fecha, INTERVAL 1 DAY)
+             ELSE cc.fecha END) < DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                    OR (
                         DAY(CURDATE()) >= 16
-                        AND MONTH(cc.fecha) = MONTH(CURDATE()) 
-                        AND YEAR(cc.fecha) = YEAR(CURDATE())
+                        AND YEAR((CASE WHEN cc.fecha = LAST_DAY(cc.fecha)
+                  AND DATE(cc.fecha_registro) = cc.fecha
+                  AND TIME(cc.fecha_registro) >= '23:00:00'
+             THEN DATE_ADD(cc.fecha, INTERVAL 1 DAY)
+             ELSE cc.fecha END)) = YEAR(CURDATE())
+                        AND MONTH((CASE WHEN cc.fecha = LAST_DAY(cc.fecha)
+                  AND DATE(cc.fecha_registro) = cc.fecha
+                  AND TIME(cc.fecha_registro) >= '23:00:00'
+             THEN DATE_ADD(cc.fecha, INTERVAL 1 DAY)
+             ELSE cc.fecha END)) = MONTH(CURDATE())
                     )
 				)";
 		

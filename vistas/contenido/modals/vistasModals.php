@@ -3842,7 +3842,6 @@
                                         <input type="number" class="form-control" id="precio_venta" name="precio_venta" placeholder="0.00" step="0.00001" required>
                                     </div>
                                     <small class="form-text text-muted">Precio de venta al público</small>
-                                    <button type="button" class="btn btn-primary btn-sm mt-2" id="btnCalculadoraPrecios" data-toggle="tooltip" title="Calcular precio sin guardar"><i class="fas fa-calculator mr-1"></i> Calcular precio de venta</button>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="porcentaje_venta"><i class="fas fa-percentage mr-1"></i>Ganancia</label>
@@ -6308,6 +6307,51 @@
     #recurringBillModal .rec-dashboard{grid-template-columns:repeat(2,minmax(0,1fr));}
   }
   @media (max-width:575.98px){#recurringBillModal .rec-dashboard{grid-template-columns:1fr;}}
+
+/* IZZY | Facturas recurrentes: controles premium sin botones blancos.
+   Exclusivamente presentación; conserva las clases/acciones de JS existentes. */
+#recurringBillModal .modal-header{background:#163A70;color:#fff;border-bottom:0;}
+#recurringBillModal .modal-header .modal-title{color:#fff;font-weight:750;}
+#recurringBillModal .modal-header .close{color:#fff;opacity:.9;text-shadow:none;}
+#recurringBillModal .modal-header .close:hover{opacity:1;}
+#recurringBillModal .modal-content,#modalOmisionesRecurrentes .modal-content{border:0;border-radius:13px;overflow:hidden;box-shadow:0 16px 45px rgba(15,40,70,.2);}
+#recurringBillModal .modal-footer,#modalOmisionesRecurrentes .modal-footer{background:#f5f8fc;border-top:1px solid #dce5ef;}
+#recurringBillModal .btn,#modalOmisionesRecurrentes .btn{font-weight:650;}
+#recurringBillModal .btn-primary,#modalOmisionesRecurrentes .btn-primary{background:#163A70;border-color:#163A70;color:#fff;}
+#recurringBillModal .btn-primary:hover,#modalOmisionesRecurrentes .btn-primary:hover{background:#23558f;border-color:#23558f;color:#fff;}
+#recurringBillModal .btn-secondary,#modalOmisionesRecurrentes .btn-secondary{background:#526781;border-color:#526781;color:#fff;}
+#recurringBillModal .btn-secondary:hover,#modalOmisionesRecurrentes .btn-secondary:hover{background:#40536a;border-color:#40536a;color:#fff;}
+#recurringBillModal .btn-danger,#modalOmisionesRecurrentes .btn-danger{background:#bf3948;border-color:#bf3948;color:#fff;}
+#recurringBillModal .btn-danger:hover,#modalOmisionesRecurrentes .btn-danger:hover{background:#a52c3a;border-color:#a52c3a;color:#fff;}
+/* Los JS actuales alternan clases outline: mantenerlas y darles un fondo sólido. */
+#recurringBillModal .btn-outline-primary{background:#dae7f8;border:1px solid #9bb8db;color:#163A70;}
+#recurringBillModal .btn-outline-primary:hover{background:#c5d9f1;color:#163A70;}
+#recurringBillModal .btn-outline-danger,#modalOmisionesRecurrentes .btn-outline-danger{background:#f9dfe3;border:1px solid #e3a6af;color:#982938;}
+#recurringBillModal .btn-outline-danger:hover,#modalOmisionesRecurrentes .btn-outline-danger:hover{background:#edc4cc;color:#82212e;}
+#recurringBillModal #recargarRecurrentes{min-width:35px;}
+#recurringBillModal .rec-frecuencia{background:#eaf0f7;border:1px solid #bdccde;color:#264664;transition:background .15s,border-color .15s,transform .15s;}
+#recurringBillModal .rec-frecuencia:hover{background:#d8e6f6;border-color:#6e96c3;color:#163A70;}
+#recurringBillModal .rec-frecuencia.active{background:#163A70;border-color:#163A70;color:#fff;box-shadow:0 3px 10px rgba(22,58,112,.19);}
+#recurringBillModal .rec-filtro-estado{background:#e7eef6;color:#284768;border:1px solid transparent;}
+#recurringBillModal .rec-filtro-estado:hover{background:#cddff1;color:#163A70;}
+#recurringBillModal .rec-filtro-estado.active{background:#163A70;color:#fff;box-shadow:0 2px 7px rgba(22,58,112,.2);}
+#recurringBillModal .rec-filtro-estado.active .rec-filtro-cantidad{background:#fff;color:#163A70;}
+#recurringBillModal .rec-card-actions{flex-wrap:wrap;}
+#modalOmisionesRecurrentes #omision_listado>div{gap:10px;background:#f8fafc;border-color:#dce5ef!important;min-width:0;}
+#modalOmisionesRecurrentes #omision_listado>div>span{min-width:0;overflow-wrap:anywhere;}
+#modalOmisionesRecurrentes #omision_fecha{min-width:0;flex:1 1 auto;}
+#modalOmisionesRecurrentes #omision_agregar{flex:0 0 auto;}
+@media(max-width:575.98px){
+ #recurringBillModal .modal-dialog{width:calc(100% - 12px);margin:6px auto;}
+ #recurringBillModal .modal-content{max-height:calc(100dvh - 12px);}
+ #recurringBillModal .modal-body{padding:12px;}
+ #recurringBillModal .rec-frecuencias{grid-template-columns:repeat(2,minmax(0,1fr));}
+ #recurringBillModal .rec-card-actions .btn{flex:1 1 auto;white-space:normal;}
+ #recurringBillModal .rec-filtros-estado{flex-wrap:wrap;overflow-x:visible;}
+ #modalOmisionesRecurrentes .modal-dialog{margin:8px;}
+ #modalOmisionesRecurrentes .modal-body{padding:13px;}
+ #modalOmisionesRecurrentes #omision_siguiente{white-space:normal;text-align:center;}
+}
 </style>
 <div class="modal fade" id="recurringBillModal" tabindex="-1" role="dialog" aria-labelledby="recurringBillModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="true">
   <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
@@ -6326,8 +6370,8 @@
         <div class="form-group">
           <label class="small mb-1 d-block">Tipo de documento</label>
           <div class="btn-group btn-group-sm" role="group" aria-label="Tipo de documento">
-            <button type="button" class="btn btn-primary" id="btn-rec-tipo-normal" data-tipo="0">Normal</button>
-            <button type="button" class="btn btn-outline-primary" id="btn-rec-tipo-proforma" data-tipo="1">Proforma</button>
+            <button type="button" class="btn btn-primary" id="btn-rec-tipo-normal" data-tipo="0"><i class="fas fa-file-invoice mr-1"></i> Normal</button>
+            <button type="button" class="btn btn-secondary" id="btn-rec-tipo-proforma" data-tipo="1"><i class="fas fa-file-alt mr-1"></i> Proforma</button>
           </div>
           <input type="hidden" id="rec_tipo_documento" value="0">
         </div>
@@ -6410,7 +6454,7 @@
         <div class="col-lg-7 rec-panel rec-panel-listado">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <strong><i class="fas fa-history mr-1"></i> Programaciones existentes</strong>
-          <button type="button" class="btn btn-light btn-sm" id="recargarRecurrentes" title="Actualizar">
+          <button type="button" class="btn btn-secondary btn-sm" id="recargarRecurrentes" title="Actualizar">
             <i class="fas fa-sync-alt"></i>
           </button>
         </div>
@@ -7745,50 +7789,4 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- CALCULADORA DE PRECIOS IZZY: los valores no se guardan hasta confirmar el formulario del producto -->
-<style>
-#modalCalculadoraPrecios .modal-content{border:0;border-radius:14px;overflow:hidden;box-shadow:0 14px 45px rgba(16,44,84,.22)}
-#modalCalculadoraPrecios .modal-header{background:#163a70;color:#fff;padding:17px 22px}
-#modalCalculadoraPrecios .modal-header .close{color:#fff;opacity:1}
-#modalCalculadoraPrecios .modal-body{background:#fff;padding:20px}
-#modalCalculadoraPrecios .calc-panel{background:#f8fafc;border:1px solid #dae4f0;border-radius:12px;padding:16px;margin-bottom:15px;min-width:0}
-#modalCalculadoraPrecios .calc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-#modalCalculadoraPrecios .calc-field{min-width:0}
-#modalCalculadoraPrecios label{font-size:.88rem;font-weight:700;color:#27405d;margin-bottom:6px}
-#modalCalculadoraPrecios .form-control,#modalCalculadoraPrecios .custom-select{min-width:0;max-width:100%;border-color:#cbd6e2;border-radius:7px}
-#modalCalculadoraPrecios .calc-range{width:100%;accent-color:#163a70;cursor:pointer;touch-action:pan-y}
-#modalCalculadoraPrecios .calc-marks{display:flex;justify-content:space-between;color:#62758b;font-size:.75rem}
-#modalCalculadoraPrecios .calc-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-#modalCalculadoraPrecios .calc-kpi{border:1px solid #d7e2ed;border-radius:10px;padding:13px;min-width:0;background:#fff}
-#modalCalculadoraPrecios .calc-kpi.primary{background:#163a70;color:#fff;border-color:#163a70}
-#modalCalculadoraPrecios .calc-kpi span{display:block;font-size:.78rem;opacity:.82}
-#modalCalculadoraPrecios .calc-kpi strong{display:block;font-size:1.3rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-#modalCalculadoraPrecios .calc-foot{font-size:.81rem;color:#5d7087;line-height:1.5;margin-top:12px}
-#modalCalculadoraPrecios .modal-footer{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #e3e9f0}
-@media(max-width:600px){#modalCalculadoraPrecios .modal-dialog{margin:8px}#modalCalculadoraPrecios .modal-body{padding:13px}#modalCalculadoraPrecios .calc-grid{grid-template-columns:minmax(0,1fr)}#modalCalculadoraPrecios .calc-summary{grid-template-columns:minmax(0,1fr)}#modalCalculadoraPrecios .calc-kpi{padding:10px}#modalCalculadoraPrecios .calc-kpi strong{font-size:1.15rem}}
-</style>
-<div class="modal fade" id="modalCalculadoraPrecios" tabindex="-1" role="dialog" aria-labelledby="tituloCalculadoraPrecios" aria-hidden="true" data-backdrop="static" data-keyboard="true">
- <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
-  <div class="modal-content">
-   <div class="modal-header"><h5 class="modal-title" id="tituloCalculadoraPrecios"><i class="fas fa-calculator mr-2"></i>Calculadora de precios y rentabilidad</h5><button class="close" type="button" data-dismiss="modal" aria-label="Cerrar">&times;</button></div>
-   <div class="modal-body">
-    <div class="calc-panel"><div class="calc-grid">
-     <div class="calc-field"><label for="calcCosto">Costo de compra (L)</label><input type="number" class="form-control" id="calcCosto" min="0" step="0.00001" inputmode="decimal"></div>
-     <div class="calc-field"><label for="calcGastos">Gastos adicionales por unidad (L)</label><input type="number" class="form-control" id="calcGastos" min="0" step="0.00001" value="0" inputmode="decimal"></div>
-     <div class="calc-field"><label for="calcMetodo">Método de cálculo</label><select class="custom-select" id="calcMetodo"><option value="margen">Margen sobre venta</option><option value="recargo">Recargo sobre costo</option></select></div>
-     <div class="calc-field"><label for="calcRedondeo">Redondear precio neto</label><select class="custom-select" id="calcRedondeo"><option value="0">Sin redondeo (5 decimales)</option><option value="0.01">Centésimo (L 0.01)</option><option value="0.05">L 0.05</option><option value="0.5">L 0.50</option><option value="1">L 1.00</option><option value="5">L 5.00</option><option value="10">L 10.00</option></select></div>
-    </div></div>
-    <div class="calc-panel"><div class="d-flex align-items-center justify-content-between flex-wrap mb-2"><label for="calcPorcentaje" class="mb-1">Porcentaje de ganancia deseado</label><div class="input-group" style="width:120px"><input type="number" class="form-control" id="calcPorcentaje" min="0" max="100" step="1" value="25" aria-label="Porcentaje de ganancia"><div class="input-group-append"><span class="input-group-text">%</span></div></div></div>
-     <input type="range" class="calc-range" id="calcSlider" min="0" max="100" step="1" value="25" aria-label="Deslizador del porcentaje de ganancia"><div class="calc-marks"><span>0 %</span><span>25 %</span><span>50 %</span><span>75 %</span><span>100 %</span></div>
-     <div class="calc-foot" id="calcMetodoAyuda">Margen sobre venta: ganancia ÷ precio neto de venta.</div>
-    </div>
-    <div class="calc-panel"><div class="calc-grid"><div class="calc-field"><label for="calcCostoIncluyeISV">Tratamiento del costo</label><select id="calcCostoIncluyeISV" class="custom-select"><option value="sin">Costo ingresado es base sin ISV</option><option value="con">Costo ingresado incluye ISV de compra</option></select></div><div class="calc-field"><label for="calcImpuesto">ISV aplicable en venta</label><input type="text" id="calcImpuesto" class="form-control" readonly></div></div><div class="calc-foot">El precio aplicado al producto es <strong>sin ISV de venta</strong>; IZZY calculará el impuesto al facturar. El precio final con ISV se muestra solo como referencia. Si el costo incluye ISV, indíquelo expresamente para evitar duplicarlo.</div></div>
-    <div class="calc-summary"><div class="calc-kpi"><span>Costo base + gastos</span><strong id="calcCostoTotal">L 0.00</strong></div><div class="calc-kpi primary"><span>Precio neto sugerido</span><strong id="calcResultado">L 0.00</strong></div><div class="calc-kpi"><span>Ganancia bruta</span><strong id="calcGanancia">L 0.00</strong></div></div>
-    <div class="calc-foot"><span id="calcRentabilidad">Rentabilidad: 0 %</span><span id="calcPrecioFinal" class="d-block">Precio final estimado con ISV: L 0.00</span><span id="calcAdvertencia" class="text-danger d-block font-weight-bold" aria-live="polite"></span></div>
-   </div>
-   <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-1"></i>Cancelar</button><button type="button" class="btn btn-primary" id="calcAplicar"><i class="fas fa-check-circle mr-1"></i>Aplicar precio</button></div>
-  </div>
- </div>
 </div>

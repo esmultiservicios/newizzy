@@ -1,0 +1,10 @@
+# API IZZY - reenviar Authorization a PHP bajo Apache/FastCGI.
+# Colocar exclusivamente en api/v1/auth/.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+
+<IfModule mod_setenvif.c>
+    SetEnvIfNoCase Authorization "^(.+)$" HTTP_AUTHORIZATION=$1
+</IfModule>

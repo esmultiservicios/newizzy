@@ -62,8 +62,20 @@ if ($authorization === '' && function_exists('apache_request_headers')) {
 }
 
 // No se aceptan tokens en URL, cookies ni parámetros del formulario.
+// Si el Access Token ya venció, Android puede cerrar la sesión enviando
+// {"refresh_token":"izzyr_..."} como JSON (opcional).
+$tokenRenovacion = '';
 
-if (!preg_match('/^Bearer\s+(izzy_[a-f0-9]{64})$/i', $authorization, $m)) {
+if ($authorization === '' && stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') === 0) {
+    if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) <= 8192) {
+        $entrada = json_decode((string) file_get_contents('php://input'), true);
+        if (is_array($entrada) && is_string($entrada['refresh_token'] ?? null)) {
+            $tokenRenovacion = $entrada['refresh_token'];
+        }
+    }
+}
+
+if ($tokenRenovacion === '' && !preg_match('/^Bearer\s+(izzy_[a-f0-9]{64})$/i', $authorization, $m)) {
     respuestaLogout(401, [
         'ok' => false,
         'mensaje' => 'Token requerido.'
@@ -73,7 +85,13 @@ if (!preg_match('/^Bearer\s+(izzy_[a-f0-9]{64})$/i', $authorization, $m)) {
 try {
     require_once dirname(__DIR__, 3) . '/core/services/AuthService.php';
 
-    (new IzzyApiAuthService())->logout($m[1]);
+    $servicio = new IzzyApiAuthService();
+
+    if ($tokenRenovacion !== '') {
+        $servicio->logoutConRefresh($tokenRenovacion);
+    } else {
+        $servicio->logout($m[1]);
+    }
 
     respuestaLogout(200, [
         'ok' => true,

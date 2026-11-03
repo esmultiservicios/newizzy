@@ -168,25 +168,21 @@ final class IzzyApiAuthService {
         if ($db !== DB_MAIN && (int)($cliente['validar'] ?? 1) !== 2) {
             $soloLectura = $this->modelo->pagosVencidos($db);
         }
-        $token = 'izzy_' . bin2hex(random_bytes(32));
-        $hash = hash('sha256', $token);
-        $conn = $this->modelo->connectionDBLocal(DB_MAIN);
-        try {
-            $q = $conn->prepare('INSERT INTO api_auth_tokens (token_hash, users_id, empresa_id, server_customers_id, db_cliente, expires_at) VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 60 MINUTE))');
-            if (!$q) throw new RuntimeException('No se encuentra configurado el almacenamiento de tokens.');
-            $uid=(int)$u['users_id']; $empresa=(int)$u['empresa_id']; $sc=(int)($cliente['server_customers_id'] ?? 0);
-            $q->bind_param('siiis', $hash, $uid, $empresa, $sc, $db);
-            if (!$q->execute()) throw new RuntimeException('No fue posible crear la sesión móvil.');
-            $q->close();
-        } finally { $conn->close(); }
+        $sesion = $this->crearSesionMovil(
+            (int) $u['users_id'],
+            (int) $u['empresa_id'],
+            (int) ($cliente['server_customers_id'] ?? 0),
+            $db
+        );
+
         $perfil = $this->perfilMovil($db, $u, $cliente, $soloLectura);
-        return [
-            'access_token'=>$token, 'token_type'=>'Bearer', 'expires_in'=>3600,
-            'usuario'=>$perfil['usuario'],
-            'cliente'=>$perfil['cliente'],
-            'permisos'=>$perfil['permisos'],
-            'solo_lectura_pago'=>$soloLectura
-        ];
+
+        return array_merge($sesion, [
+            'usuario' => $perfil['usuario'],
+            'cliente' => $perfil['cliente'],
+            'permisos' => $perfil['permisos'],
+            'solo_lectura_pago' => $soloLectura
+        ]);
     }
 
 
@@ -288,13 +284,311 @@ final class IzzyApiAuthService {
         return ['users_id'=>$id, 'empresa_id'=>$eid, 'privilegio_id'=>(int)$actual['privilegio_id'], 'db_cliente'=>$db];
     }
 
-    public function logout(string $token): void {
-        $this->autenticarToken($token);
-        $hash=hash('sha256',$token);
-        $conn=$this->modelo->connectionDBLocal(DB_MAIN);
+    /**
+     * Crea una sesión móvil: Access Token (60 min) + Refresh Token (30 días).
+     * Se guarda únicamente el hash SHA-256 de cada token.
+     */
+    private function crearSesionMovil(int $userId, int $empresaId, int $clienteId, string $db): array
+    {
+        $familia = bin2hex(random_bytes(16));
+        $accessToken = 'izzy_' . bin2hex(random_bytes(32));
+        $refreshToken = 'izzyr_' . bin2hex(random_bytes(32));
+        $accessHash = hash('sha256', $accessToken);
+        $refreshHash = hash('sha256', $refreshToken);
+
+        $cn = $this->modelo->connectionDBLocal(DB_MAIN);
         try {
-            $q=$conn->prepare('UPDATE api_auth_tokens SET revoked_at=NOW() WHERE token_hash=? AND revoked_at IS NULL');
-            $q->bind_param('s',$hash); $q->execute(); $q->close();
-        } finally { $conn->close(); }
+            $cn->begin_transaction();
+            try {
+                $stmt = $cn->prepare(
+                    'INSERT INTO api_auth_refresh_tokens '
+                    . '(token_hash, family_id, users_id, empresa_id, server_customers_id, db_cliente, expires_at) '
+                    . 'VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))'
+                );
+                if (!$stmt) {
+                    throw new RuntimeException('Falta instalar la actualización SQL de la API.');
+                }
+                $stmt->bind_param('ssiiis', $refreshHash, $familia, $userId, $empresaId, $clienteId, $db);
+                $stmt->execute();
+                $stmt->close();
+
+                $stmt = $cn->prepare(
+                    'INSERT INTO api_auth_tokens '
+                    . '(token_hash, users_id, empresa_id, server_customers_id, db_cliente, expires_at, refresh_family_id) '
+                    . 'VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 60 MINUTE), ?)'
+                );
+                if (!$stmt) {
+                    throw new RuntimeException('Falta instalar la actualización SQL de la API.');
+                }
+                $stmt->bind_param('siiiss', $accessHash, $userId, $empresaId, $clienteId, $db, $familia);
+                $stmt->execute();
+                $stmt->close();
+
+                $cn->commit();
+            } catch (Throwable $e) {
+                $cn->rollback();
+                throw $e;
+            }
+        } finally {
+            $cn->close();
+        }
+
+        return [
+            'access_token' => $accessToken,
+            'token_type' => 'Bearer',
+            'expires_in' => 3600,
+            'refresh_token' => $refreshToken,
+            'refresh_expires_in' => 2592000
+        ];
+    }
+
+    /**
+     * Renueva ambos tokens de forma atómica. Un refresh token se usa una sola vez.
+     * Si se reutiliza uno ya rotado, se invalida toda la familia de sesión.
+     */
+    public function renovarSesion(string $refreshToken): array
+    {
+        if (!preg_match('/^izzyr_[a-f0-9]{64}$/D', $refreshToken)) {
+            throw new DomainException('Token de renovación inválido.');
+        }
+
+        $hash = hash('sha256', $refreshToken);
+        $cn = $this->modelo->connectionDBLocal(DB_MAIN);
+        try {
+            $transaccionFinalizada = false;
+            $cn->begin_transaction();
+            try {
+                $stmt = $cn->prepare(
+                    'SELECT id, family_id, users_id, empresa_id, server_customers_id, '
+                    . 'db_cliente, expires_at, expires_at > NOW() AS sin_vencer, revoked_at, rotated_at '
+                    . 'FROM api_auth_refresh_tokens WHERE token_hash = ? LIMIT 1 FOR UPDATE'
+                );
+                $stmt->bind_param('s', $hash);
+                $stmt->execute();
+                $sesion = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if (!$sesion) {
+                    throw new DomainException('Sesión de renovación inválida.');
+                }
+
+                $familia = (string) $sesion['family_id'];
+                if ($sesion['rotated_at'] !== null) {
+                    $this->revocarFamiliaEnConexion($cn, $familia);
+                    $cn->commit();
+                    $transaccionFinalizada = true;
+                    throw new DomainException('La sesión fue invalidada por reutilización del token.');
+                }
+
+                if ($sesion['revoked_at'] !== null || !(bool) $sesion['sin_vencer']) {
+                    throw new DomainException('La sesión de renovación venció o fue revocada.');
+                }
+
+                $userId = (int) $sesion['users_id'];
+                $empresaId = (int) $sesion['empresa_id'];
+                $clienteId = (int) $sesion['server_customers_id'];
+                $db = (string) $sesion['db_cliente'];
+
+                if (!preg_match('/^[a-zA-Z0-9_]+$/D', $db)) {
+                    throw new DomainException('Sesión inválida.');
+                }
+
+                $this->validarCuentaParaRenovar($db, $userId, $empresaId, $clienteId);
+
+                $nuevoAccess = 'izzy_' . bin2hex(random_bytes(32));
+                $nuevoRefresh = 'izzyr_' . bin2hex(random_bytes(32));
+                $nuevoAccessHash = hash('sha256', $nuevoAccess);
+                $nuevoRefreshHash = hash('sha256', $nuevoRefresh);
+                $refreshId = (int) $sesion['id'];
+
+                $stmt = $cn->prepare(
+                    'UPDATE api_auth_refresh_tokens SET revoked_at = NOW(), rotated_at = NOW() '
+                    . 'WHERE id = ? AND revoked_at IS NULL'
+                );
+                $stmt->bind_param('i', $refreshId);
+                $stmt->execute();
+                $stmt->close();
+
+                $stmt = $cn->prepare(
+                    'INSERT INTO api_auth_refresh_tokens '
+                    . '(token_hash, family_id, users_id, empresa_id, server_customers_id, db_cliente, expires_at) '
+                    . 'VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))'
+                );
+                $stmt->bind_param('ssiiis', $nuevoRefreshHash, $familia, $userId, $empresaId, $clienteId, $db);
+                $stmt->execute();
+                $stmt->close();
+
+                $stmt = $cn->prepare(
+                    'INSERT INTO api_auth_tokens '
+                    . '(token_hash, users_id, empresa_id, server_customers_id, db_cliente, expires_at, refresh_family_id) '
+                    . 'VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 60 MINUTE), ?)'
+                );
+                $stmt->bind_param('siiiss', $nuevoAccessHash, $userId, $empresaId, $clienteId, $db, $familia);
+                $stmt->execute();
+                $stmt->close();
+
+                // Evita que un access token anterior siga en uso tras renovar.
+                $stmt = $cn->prepare(
+                    'UPDATE api_auth_tokens SET revoked_at = NOW() '
+                    . 'WHERE refresh_family_id = ? AND token_hash <> ? AND revoked_at IS NULL'
+                );
+                $stmt->bind_param('ss', $familia, $nuevoAccessHash);
+                $stmt->execute();
+                $stmt->close();
+
+                $cn->commit();
+
+                return [
+                    'access_token' => $nuevoAccess,
+                    'token_type' => 'Bearer',
+                    'expires_in' => 3600,
+                    'refresh_token' => $nuevoRefresh,
+                    'refresh_expires_in' => 2592000
+                ];
+            } catch (Throwable $e) {
+                if (!$transaccionFinalizada) {
+                    $cn->rollback();
+                }
+                throw $e;
+            }
+        } finally {
+            $cn->close();
+        }
+    }
+
+    /** Valida usuario y cuenta antes de generar nuevas credenciales. */
+    private function validarCuentaParaRenovar(string $db, int $userId, int $empresaId, int $clienteId): void
+    {
+        $cn = $this->modelo->connectionDBLocal($db);
+        try {
+            $stmt = $cn->prepare(
+                'SELECT estado FROM users WHERE users_id = ? AND empresa_id = ? LIMIT 1'
+            );
+            $stmt->bind_param('ii', $userId, $empresaId);
+            $stmt->execute();
+            $usuario = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+        } finally {
+            $cn->close();
+        }
+
+        if (!$usuario || (int) $usuario['estado'] !== 1) {
+            throw new DomainException('Usuario no autorizado.');
+        }
+
+        if ($db === DB_MAIN) {
+            return;
+        }
+
+        $cn = $this->modelo->connectionDBLocal(DB_MAIN);
+        try {
+            $stmt = $cn->prepare(
+                'SELECT estado FROM server_customers '
+                . 'WHERE server_customers_id = ? AND db = ? LIMIT 1'
+            );
+            $stmt->bind_param('is', $clienteId, $db);
+            $stmt->execute();
+            $cliente = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+        } finally {
+            $cn->close();
+        }
+
+        if (!$cliente || (int) $cliente['estado'] !== 1) {
+            throw new DomainException('Cuenta no autorizada.');
+        }
+    }
+
+    /** Revoca todos los Access y Refresh Tokens asociados a una sesión móvil. */
+    private function revocarFamiliaEnConexion(mysqli $cn, string $familia): void
+    {
+        $stmt = $cn->prepare(
+            'UPDATE api_auth_refresh_tokens SET revoked_at = COALESCE(revoked_at, NOW()) '
+            . 'WHERE family_id = ?'
+        );
+        $stmt->bind_param('s', $familia);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmt = $cn->prepare(
+            'UPDATE api_auth_tokens SET revoked_at = COALESCE(revoked_at, NOW()) '
+            . 'WHERE refresh_family_id = ?'
+        );
+        $stmt->bind_param('s', $familia);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    /** Conserva compatibilidad con el logout actual basado en Bearer Token. */
+    public function logout(string $token): void
+    {
+        $this->autenticarToken($token);
+        $hash = hash('sha256', $token);
+        $cn = $this->modelo->connectionDBLocal(DB_MAIN);
+        try {
+            $cn->begin_transaction();
+            try {
+                $stmt = $cn->prepare(
+                    'SELECT refresh_family_id FROM api_auth_tokens WHERE token_hash = ? LIMIT 1 FOR UPDATE'
+                );
+                $stmt->bind_param('s', $hash);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                $familia = (string) ($row['refresh_family_id'] ?? '');
+                if ($familia !== '') {
+                    $this->revocarFamiliaEnConexion($cn, $familia);
+                } else {
+                    $stmt = $cn->prepare(
+                        'UPDATE api_auth_tokens SET revoked_at = NOW() '
+                        . 'WHERE token_hash = ? AND revoked_at IS NULL'
+                    );
+                    $stmt->bind_param('s', $hash);
+                    $stmt->execute();
+                    $stmt->close();
+                }
+
+                $cn->commit();
+            } catch (Throwable $e) {
+                $cn->rollback();
+                throw $e;
+            }
+        } finally {
+            $cn->close();
+        }
+    }
+
+    /** Permite cerrar sesión con el Refresh Token cuando el Access Token ya venció. */
+    public function logoutConRefresh(string $refreshToken): void
+    {
+        if (!preg_match('/^izzyr_[a-f0-9]{64}$/D', $refreshToken)) {
+            throw new DomainException('Token de renovación inválido.');
+        }
+        $hash = hash('sha256', $refreshToken);
+        $cn = $this->modelo->connectionDBLocal(DB_MAIN);
+        try {
+            $cn->begin_transaction();
+            try {
+                $stmt = $cn->prepare(
+                    'SELECT family_id FROM api_auth_refresh_tokens WHERE token_hash = ? LIMIT 1 FOR UPDATE'
+                );
+                $stmt->bind_param('s', $hash);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+
+                if (!$row) {
+                    throw new DomainException('Sesión inválida.');
+                }
+                $this->revocarFamiliaEnConexion($cn, (string) $row['family_id']);
+                $cn->commit();
+            } catch (Throwable $e) {
+                $cn->rollback();
+                throw $e;
+            }
+        } finally {
+            $cn->close();
+        }
     }
 }

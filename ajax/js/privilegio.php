@@ -1097,8 +1097,16 @@ function privilegiosAccesoToggle(tipo, itemId, asignadoActual) {
             response && response.message ? response.message : 'La asignación fue actualizada correctamente.'
         );
 
-        listarAccesosPrivilegio(tipo);
-        listar_privilegio();
+        /* Actualizar el registro en memoria y redibujar el contenido del modal
+           sin volver a mostrar el estado de carga ni solicitar otra lista. */
+        var key = String(itemId);
+        var registro = config.registros.find(function (row) {
+            return String(row[config.parametroId]) === key;
+        });
+        if (registro) {
+            registro._asignado = nuevoEstado === 1;
+            privilegiosAccesoAplicarFiltro(config);
+        }
     })
     .fail(function (xhr) {
         privilegiosNotificar('error', 'Error', 'No se pudo procesar la asignación.');

@@ -21,6 +21,26 @@ function apiResponder($success, $message = '', $data = [], $extra = []) {
     exit;
 }
 
+function apiResponderThen($success, $message, $data, $afterResponse) {
+    ignore_user_abort(true);
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+    $payload = json_encode([
+        'success' => (bool)$success,
+        'message' => $message,
+        'data' => $data
+    ], JSON_UNESCAPED_UNICODE);
+    echo $payload;
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        while (ob_get_level() > 0) { @ob_end_flush(); }
+        @flush();
+    }
+    try { if (is_callable($afterResponse)) $afterResponse(); }
+    catch (Throwable $e) { error_log('IZZY Asignar Planes - tarea posterior: '.$e->getMessage()); }
+    exit;
+}
+
 function apiClean($value) {
     return trim((string)$value);
 }
@@ -363,7 +383,10 @@ function apiCompanyEmail(mysqli $client, $empresaId) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
 }
 
-function apiCollaboratorNotificationEmail(mysqli $client, $collabId, $empresaId) {
+function apiCollaboratorNotificationEmail(mysqli $client, $collabId, $empresaId, $preferredEmail = '') {
+    $preferredEmail = strtolower(trim((string)$preferredEmail));
+    if (filter_var($preferredEmail, FILTER_VALIDATE_EMAIL)) return $preferredEmail;
+
     $stmt = $client->prepare("SELECT email FROM users WHERE colaboradores_id=? AND estado=1 ORDER BY users_id ASC LIMIT 1");
     if ($stmt) {
         $stmt->bind_param('i', $collabId);
@@ -590,6 +613,7 @@ try {
         $puesto = apiInt('puestos_id');
         $empresa = apiInt('empresa_id');
         $estado = apiInt('estado', 1) === 2 ? 2 : 1;
+        $preferredEmail = strtolower(apiStr('email'));
         $fechaIngreso = apiStr('fecha_ingreso', date('Y-m-d'));
         if ($nombre === '') throw new Exception('El nombre del colaborador es obligatorio.');
         if (mb_strlen($nombre) > 100) throw new Exception('El nombre del colaborador no puede superar 100 caracteres.');
@@ -597,6 +621,7 @@ try {
         if (mb_strlen($telefono) > 8) throw new Exception('El teléfono del colaborador no puede superar 8 caracteres.');
         if ($puesto <= 0) throw new Exception('Debe seleccionar un puesto.');
         if ($empresa <= 0) throw new Exception('Debe seleccionar una empresa.');
+        if ($preferredEmail !== '' && !filter_var($preferredEmail, FILTER_VALIDATE_EMAIL)) throw new Exception('El correo del usuario no es válido.');
         if ($identidad === '') $identidad = apiGenerateCollaboratorIdentity($client);
 
         if ($id > 0) {
@@ -658,21 +683,9 @@ try {
                 }
                 throw new Exception('No se actualizó el colaborador porque falló la sincronización con la base principal: '.$mirrorError->getMessage());
             }
-            $notifyEmail = apiCollaboratorNotificationEmail($client, $id, $empresa);
-            $mailSent = $notifyEmail !== '' ? apiSendChangeMail(
-                $notifyEmail,
-                $nombre,
-                'Mejora y/o actualización de colaborador',
-                'Se realizó una mejora y/o actualización en los datos del colaborador '.$nombre.'.',
-                $sc['cliente_nombre']
-            ) : false;
-            apiResponder(
-                true,
-                $mailSent
-                    ? 'Colaborador actualizado y notificación enviada por correo.'
-                    : 'Colaborador actualizado correctamente. No se encontró un correo válido para enviar la notificación.',
-                ['colaboradores_id'=>$id, 'correo_enviado'=>$mailSent]
-            );
+            $notifyEmail = apiCollaboratorNotificationEmail($client, $id, $empresa, $preferredEmail);
+            $nombreNotificado=$nombre;$clienteNotificado=$sc['cliente_nombre'];
+            apiResponderThen(true,'Colaborador actualizado correctamente. La notificación se procesa en segundo plano.', ['colaboradores_id'=>$id, 'correo_enviado'=>'pendiente'],function() use ($notifyEmail,$nombreNotificado,$clienteNotificado){if($notifyEmail!=='')apiSendChangeMail($notifyEmail,$nombreNotificado,'Mejora y/o actualización de colaborador','Se realizó una mejora y/o actualización en los datos del colaborador '.$nombreNotificado.'.',$clienteNotificado);});
         }
 
         $stmt = $client->prepare("SELECT colaboradores_id FROM colaboradores WHERE identidad=? LIMIT 1");
@@ -692,22 +705,9 @@ try {
             throw new Exception('No se creó el colaborador porque falló la sincronización con la base principal: '.$mirrorError->getMessage());
         }
 
-        $notifyEmail = apiCollaboratorNotificationEmail($client, $id, $empresa);
-        $mailSent = $notifyEmail !== '' ? apiSendChangeMail(
-            $notifyEmail,
-            $nombre,
-            'Colaborador creado',
-            'Se registró el colaborador '.$nombre.' en IZZY.',
-            $sc['cliente_nombre']
-        ) : false;
-
-        apiResponder(
-            true,
-            $mailSent
-                ? 'Colaborador creado en ambas bases y notificación enviada por correo.'
-                : 'Colaborador creado en la base del cliente y sincronizado con la base principal. No se encontró un correo válido para notificar.',
-            ['colaboradores_id'=>$id, 'correo_enviado'=>$mailSent]
-        );
+        $notifyEmail = apiCollaboratorNotificationEmail($client, $id, $empresa, $preferredEmail);
+        $nombreNotificado=$nombre;$clienteNotificado=$sc['cliente_nombre'];
+        apiResponderThen(true,'Colaborador creado y sincronizado. La notificación se procesa en segundo plano.', ['colaboradores_id'=>$id, 'correo_enviado'=>'pendiente'],function() use ($notifyEmail,$nombreNotificado,$clienteNotificado){if($notifyEmail!=='')apiSendChangeMail($notifyEmail,$nombreNotificado,'Colaborador creado','Se registró el colaborador '.$nombreNotificado.' en IZZY.',$clienteNotificado);});
     }
 
     if ($action === 'save_user') {
@@ -856,22 +856,8 @@ try {
             if ((int)$old['estado'] !== $estado) $cambiosUsuario['Estado'] = ['anterior'=>((int)$old['estado']===1?'Activo':'Inactivo'), 'nuevo'=>($estado===1?'Activo':'Inactivo')];
             if (strtolower((string)$old['email']) !== strtolower($email)) $cambiosUsuario['Correo'] = ['anterior'=>$old['email'], 'nuevo'=>$email];
 
-            $mailSent = apiSendChangeMail(
-                $email,
-                $collab['nombre'],
-                'Mejora y/o actualización de usuario',
-                'Se realizó una mejora y/o actualización en los datos de tu usuario IZZY.',
-                $sc['cliente_nombre'],
-                $cambiosUsuario
-            );
-
-            apiResponder(
-                true,
-                $mailSent
-                    ? 'Usuario actualizado en ambas bases y notificación enviada al correo.'
-                    : 'Usuario actualizado y sincronizado con la base principal. No se pudo confirmar el envío del correo.',
-                ['users_id'=>$userId, 'correo_enviado'=>$mailSent]
-            );
+            $nombreNotificado=$collab['nombre'];$clienteNotificado=$sc['cliente_nombre'];$emailNotificado=$email;
+            apiResponderThen(true,'Usuario actualizado y sincronizado. La notificación se procesa en segundo plano.', ['users_id'=>$userId, 'correo_enviado'=>'pendiente'],function() use ($emailNotificado,$nombreNotificado,$clienteNotificado,$cambiosUsuario){apiSendChangeMail($emailNotificado,$nombreNotificado,'Mejora y/o actualización de usuario','Se realizó una mejora y/o actualización en los datos de tu usuario IZZY.',$clienteNotificado,$cambiosUsuario);});
         }
 
         apiAssertCanCreateUser($client);
@@ -901,8 +887,8 @@ try {
             throw new Exception('No se creó el usuario porque falló la sincronización con la base principal: '.$mirrorError->getMessage());
         }
 
-        $mailSent = apiSendPasswordMail($email, $collab['nombre'], $plain);
-        apiResponder(true, $mailSent ? 'Usuario creado y credenciales enviadas al correo.' : 'Usuario creado y sincronizado. No se pudo confirmar el envío del correo; puede restablecer la contraseña desde Acciones.', ['users_id'=>$userId,'correo_enviado'=>$mailSent]);
+        $nombreNotificado=$collab['nombre'];$emailNotificado=$email;$passwordNotificado=$plain;
+        apiResponderThen(true,'Usuario creado y sincronizado. Las credenciales se están enviando al correo.', ['users_id'=>$userId,'correo_enviado'=>'pendiente'],function() use ($emailNotificado,$nombreNotificado,$passwordNotificado){apiSendPasswordMail($emailNotificado,$nombreNotificado,$passwordNotificado);});
     }
 
     if ($action === 'reset_password') {
@@ -932,8 +918,8 @@ try {
                 'email'=>$info['email'],'password'=>$encrypted,'estado'=>$info['estado'],'privilegio_id'=>$info['privilegio_id'],'tipo_user_id'=>$info['tipo_user_id']
             ]);
         }
-        $mailSent = apiSendPasswordMail($info['email'], $info['nombre'], $plain);
-        apiResponder(true, $mailSent ? 'Contraseña restablecida y enviada al correo del usuario.' : 'La contraseña se restableció, pero no se pudo confirmar el envío del correo.', ['correo_enviado'=>$mailSent]);
+        $emailNotificado=$info['email'];$nombreNotificado=$info['nombre'];$passwordNotificado=$plain;
+        apiResponderThen(true,'Contraseña restablecida. Se está enviando al correo del usuario.', ['correo_enviado'=>'pendiente'],function() use ($emailNotificado,$nombreNotificado,$passwordNotificado){apiSendPasswordMail($emailNotificado,$nombreNotificado,$passwordNotificado);});
     }
 
     if ($action === 'save_company') {
@@ -960,22 +946,8 @@ try {
             $stmt->bind_param('sssssssii',$razon,$nombre,$rtn,$correo,$telefono,$celular,$ubicacion,$estado,$id);
             if(!$stmt->execute()) throw new Exception('No se pudo actualizar la empresa: '.$stmt->error);
             $stmt->close();
-            $mailResult = apiNotifyAdminEvent(
-                'Mejora y/o actualización de empresa',
-                'Se realizó una mejora y/o actualización en los datos de una empresa del cliente.',
-                ['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>$estado===1?'Activa':'Inactiva'],
-                [],
-                'info',
-                $id
-            );
-            $mailSent = !empty($mailResult['client']['sent']) || !empty($mailResult['main']['sent']);
-            apiResponder(
-                true,
-                $mailSent
-                    ? 'Empresa actualizada y notificación enviada al correo.'
-                    : 'Empresa actualizada correctamente en la base del cliente. No hay un correo válido para notificar.',
-                ['empresa_id'=>$id, 'correo_enviado'=>$mailSent]
-            );
+            $detallesEmpresa=['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>$estado===1?'Activa':'Inactiva'];
+            apiResponderThen(true,'Empresa actualizada correctamente. La notificación se procesa en segundo plano.', ['empresa_id'=>$id, 'correo_enviado'=>'pendiente'],function() use ($detallesEmpresa,$id){apiNotifyAdminEvent('Mejora y/o actualización de empresa','Se realizó una mejora y/o actualización en los datos de una empresa del cliente.',$detallesEmpresa,[],'info',$id);});
         }
 
         apiAssertCanCreateCompany($client);
@@ -987,22 +959,8 @@ try {
         $stmt->bind_param('isssssssii',$id,$razon,$nombre,$celular,$telefono,$correo,$rtn,$ubicacion,$estado,$creador);
         if(!$stmt->execute()) throw new Exception('No se pudo crear la empresa: '.$stmt->error);
         $stmt->close();
-        $mailResult = apiNotifyAdminEvent(
-            'Empresa creada',
-            'Se registró una nueva empresa para el cliente.',
-            ['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>'Activa'],
-            [],
-            'success',
-            $id
-        );
-        $mailSent = !empty($mailResult['client']['sent']) || !empty($mailResult['main']['sent']);
-        apiResponder(
-            true,
-            $mailSent
-                ? 'Empresa creada y notificación enviada al correo.'
-                : 'Empresa creada correctamente en la base del cliente. No hay un correo válido para notificar.',
-            ['empresa_id'=>$id, 'correo_enviado'=>$mailSent]
-        );
+        $detallesEmpresa=['Empresa'=>$nombre, 'RTN'=>$rtn, 'Correo'=>$correo, 'Teléfono'=>$telefono, 'Estado'=>'Activa'];
+        apiResponderThen(true,'Empresa creada correctamente. La notificación se procesa en segundo plano.', ['empresa_id'=>$id, 'correo_enviado'=>'pendiente'],function() use ($detallesEmpresa,$id){apiNotifyAdminEvent('Empresa creada','Se registró una nueva empresa para el cliente.',$detallesEmpresa,[],'success',$id);});
     }
 
     throw new Exception('Acción no reconocida.');

@@ -19,7 +19,7 @@ class emailTemplates {
     private function plantillaBase($titulo, $contenido, $datosEmpresa, $tipo = 'info') {
         $year = date('Y');
         $nombreEmpresa = trim((string)($datosEmpresa['nombre'] ?? $datosEmpresa['empresa'] ?? 'ES MULTISERVICIOS'));
-        $eslogan = trim((string)($datosEmpresa['eslogan'] ?? ''));
+        $eslogan = 'Más que servicio, construimos soluciones';
         $ubicacion = trim((string)($datosEmpresa['ubicacion'] ?? ''));
         $telefono = trim((string)($datosEmpresa['telefono'] ?? ''));
         $celular = trim((string)($datosEmpresa['celular'] ?? ''));

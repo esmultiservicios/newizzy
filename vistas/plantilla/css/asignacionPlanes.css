@@ -4114,6 +4114,7 @@ body > .modal-backdrop.ap-pdf-backdrop {
 .ap-rich-actions-menu .ap-item-icon-edit { background: #fff2cf !important; color: #d79518 !important; }
 .ap-rich-actions-menu .ap-item-icon-company { background: #eaf8fc !important; color: #0b7c9e !important; }
 .ap-rich-actions-menu .ap-item-icon-users { background: #e7efff !important; color: #356fe0 !important; }
+.ap-rich-actions-menu .ap-item-icon-key { background: #f1edff !important; color: #6554c0 !important; }
 .ap-rich-actions-menu .ap-item-icon-sequence { background: #eef4ff !important; color: #3567b7 !important; }
 .ap-rich-actions-menu .ap-item-icon-add { background: #e5f8ef !important; color: #16945d !important; }
 .ap-rich-actions-menu .ap-item-icon-pause { background: #fff3df !important; color: #d88917 !important; }
@@ -4153,6 +4154,100 @@ body > .modal-backdrop.ap-pdf-backdrop {
 }
 .ap-rich-actions-menu .ap-rich-action-item.text-danger .ap-item-copy strong { color: #bd2b38 !important; }
 .ap-rich-actions-menu .dropdown-divider { margin: 6px 4px !important; }
+
+/* Acciones de privilegios y permisos: mismo componente que Secuencias,
+   con iconos fijos y sin cambios de color o movimiento al pasar el cursor. */
+#modalAdministrarCliente .ap-access-actions {
+    position: relative;
+    z-index: 30;
+}
+
+#modalAdministrarCliente .ap-access-actions > .dropdown-menu.ap-rich-actions-menu {
+    z-index: 2405 !important;
+    min-width: 290px !important;
+    max-width: min(340px, calc(100vw - 24px));
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:active {
+    transform: none !important;
+    box-shadow: none !important;
+    transition: none !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:active {
+    background: transparent !important;
+    color: #26384e !important;
+    outline: 0;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item.text-danger:hover,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item.text-danger:focus,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item.text-danger:active {
+    background: transparent !important;
+    color: #bd2b38 !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon.ap-item-icon-users,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon.ap-item-icon-users,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon.ap-item-icon-users {
+    background: #e7efff !important;
+    color: #356fe0 !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon.ap-item-icon-add,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon.ap-item-icon-add,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon.ap-item-icon-add {
+    background: #e5f8ef !important;
+    color: #16945d !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon.ap-item-icon-sequence,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon.ap-item-icon-sequence,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon.ap-item-icon-sequence {
+    background: #eef4ff !important;
+    color: #3567b7 !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon.ap-item-icon-edit,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon.ap-item-icon-edit,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon.ap-item-icon-edit {
+    background: #fff2cf !important;
+    color: #d79518 !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon.ap-item-icon-key,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon.ap-item-icon-key,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon.ap-item-icon-key {
+    background: #f1edff !important;
+    color: #6554c0 !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon.ap-item-icon-danger,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon.ap-item-icon-danger,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon.ap-item-icon-danger {
+    background: #ffe9eb !important;
+    color: #d6404d !important;
+}
+
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item .ap-item-icon i,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:hover .ap-item-icon i,
+#modalAdministrarCliente .ap-access-actions .ap-rich-actions-menu .ap-rich-action-item:focus .ap-item-icon i {
+    color: inherit !important;
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+@media (max-width: 575.98px) {
+    #modalAdministrarCliente .ap-access-actions > .dropdown-menu.ap-rich-actions-menu {
+        min-width: min(290px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px);
+    }
+}
 
 @media (max-width: 575.98px) {
     .ap-rich-actions-menu {

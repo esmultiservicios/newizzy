@@ -1,5 +1,9 @@
 <link rel="stylesheet"
       href="<?php echo SERVERURL; ?>vistas/plantilla/css/asignacionPlanes.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/asignacionPlanes.css') ?: time(); ?>">
+<link rel="stylesheet"
+      href="<?php echo SERVERURL; ?>vistas/plantilla/css/privilegio.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/privilegio.css') ?: time(); ?>">
+<link rel="stylesheet"
+      href="<?php echo SERVERURL; ?>vistas/plantilla/css/tipoUser.css?v=<?php echo @filemtime(__DIR__ . '/../plantilla/css/tipoUser.css') ?: time(); ?>">
 
 <div class="container-fluid asignacion-planes-page" id="div_top">
     <!-- Breadcrumb -->

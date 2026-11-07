@@ -716,6 +716,19 @@
     box-shadow: 0 18px 45px rgba(15, 34, 53, .24);
 }
 
+.priv-access-modal {
+    --priv-navy: #17324D;
+    --priv-navy2: #1F354E;
+    --priv-blue: #2F9DDD;
+    --priv-teal: #0EA5A8;
+    --priv-green: #14804A;
+    --priv-red: #C9372C;
+    --priv-purple: #6554C0;
+    --priv-muted: #6B778C;
+    --priv-border: #DDE3EA;
+    --priv-text: #172B4D;
+}
+
 .priv-access-modal .modal-header {
     position: relative;
     display: flex;

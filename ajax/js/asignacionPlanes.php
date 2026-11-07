@@ -19,6 +19,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
         exit;
     }
 
+    function apApiRespondThen($success, $message, $data, $afterResponse) {
+        ignore_user_abort(true);
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+        $payload = json_encode(array(
+            'success' => (bool)$success,
+            'status' => $success ? 'success' : 'error',
+            'message' => $message,
+            'data' => $data
+        ), JSON_UNESCAPED_UNICODE);
+        echo $payload;
+        if (function_exists('fastcgi_finish_request')) {
+            fastcgi_finish_request();
+        } else {
+            while (ob_get_level() > 0) { @ob_end_flush(); }
+            @flush();
+        }
+        try { if (is_callable($afterResponse)) $afterResponse(); }
+        catch (Throwable $e) { error_log('Asignación de Planes - tarea posterior: '.$e->getMessage()); }
+        exit;
+    }
+
     function apApiColumns($conn, $table) {
         $cols = array();
         $safe = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
@@ -487,8 +508,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
             $seqInfo=null;$stInfo=$client->prepare("SELECT sf.*,COALESCE(e.nombre,CONCAT('Empresa #',sf.empresa_id)) empresa,COALESCE(d.nombre,CONCAT('Documento #',sf.documento_id)) documento FROM secuencia_facturacion sf LEFT JOIN empresa e ON e.empresa_id=sf.empresa_id LEFT JOIN documento d ON d.documento_id=sf.documento_id WHERE sf.secuencia_facturacion_id=? LIMIT 1");if($stInfo){$stInfo->bind_param('i',$id);$stInfo->execute();$seqInfo=$stInfo->get_result()->fetch_assoc();$stInfo->close();}
             $cambiosSeq=[];
             if($secuenciaAnterior){if((int)$secuenciaAnterior['siguiente']!==$siguiente)$cambiosSeq['Siguiente']=['anterior'=>$secuenciaAnterior['siguiente'],'nuevo'=>$siguiente];if((int)$secuenciaAnterior['activo']!==$activo)$cambiosSeq['Estado']=['anterior'=>(int)$secuenciaAnterior['activo']===1?'Activo':'Inactivo','nuevo'=>$activo===1?'Activo':'Inactivo'];}
-            apApiNotifyAdmin($dbName,$secuenciaAnterior?'Secuencia actualizada':'Secuencia creada',$secuenciaAnterior?'Se actualizó una secuencia de facturación.':'Se creó una nueva secuencia de facturación.',['Empresa'=>$seqInfo['empresa']??$empresa,'Documento'=>$seqInfo['documento']??$documento,'CAI'=>$seqInfo['cai']??$cai,'Prefijo'=>$seqInfo['prefijo']??$prefijo,'Rango'=>($seqInfo['rango_inicial']??$rin).' - '.($seqInfo['rango_final']??$rfin),'Fecha límite'=>$seqInfo['fecha_limite']??$flim],$cambiosSeq,$secuenciaAnterior?'info':'success',$empresa);
-            $client->close(); apApiRespond(true,'Secuencia guardada correctamente.',array('secuencia_facturacion_id'=>$id));
+            $tituloSeq=$secuenciaAnterior?'Secuencia actualizada':'Secuencia creada';
+            $resumenSeq=$secuenciaAnterior?'Se actualizó una secuencia de facturación.':'Se creó una nueva secuencia de facturación.';
+            $detallesSeq=['Empresa'=>$seqInfo['empresa']??$empresa,'Documento'=>$seqInfo['documento']??$documento,'CAI'=>$seqInfo['cai']??$cai,'Prefijo'=>$seqInfo['prefijo']??$prefijo,'Rango'=>($seqInfo['rango_inicial']??$rin).' - '.($seqInfo['rango_final']??$rfin),'Fecha límite'=>$seqInfo['fecha_limite']??$flim];
+            $tipoSeq=$secuenciaAnterior?'info':'success';
+            $client->close();
+            apApiRespondThen(true,'Secuencia guardada correctamente. La notificación se procesa en segundo plano.',array('secuencia_facturacion_id'=>$id),function() use ($dbName,$tituloSeq,$resumenSeq,$detallesSeq,$cambiosSeq,$tipoSeq,$empresa){apApiNotifyAdmin($dbName,$tituloSeq,$resumenSeq,$detallesSeq,$cambiosSeq,$tipoSeq,$empresa);});
         }
 
 
@@ -641,10 +666,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $st->close();
             }
             $cambiosPriv=[];if($privAnterior){if(trim((string)$privAnterior['nombre'])!==$nombre)$cambiosPriv['Privilegio']=['anterior'=>$privAnterior['nombre'],'nuevo'=>$nombre];if(isset($privAnterior['estado'])&&(int)$privAnterior['estado']!==$estado)$cambiosPriv['Estado']=['anterior'=>(int)$privAnterior['estado']===1?'Activo':'Inactivo','nuevo'=>$estado===1?'Activo':'Inactivo'];}
-            apApiNotifyAdmin($dbName,$privAnterior?'Privilegio actualizado':'Privilegio creado',$privAnterior?'Se actualizó un privilegio del cliente.':'Se creó un privilegio para el cliente.',['Privilegio'=>$nombre,'ID'=>$id],$cambiosPriv,$privAnterior?'security':'success');
+            $notificacionPrivilegio = apApiNotifyAdmin($dbName,$privAnterior?'Privilegio actualizado':'Privilegio creado',$privAnterior?'Se actualizó un privilegio del cliente.':'Se creó un privilegio para el cliente.',['Privilegio'=>$nombre,'ID'=>$id],$cambiosPriv,$privAnterior?'security':'success');
             if($privAnterior) apApiNotifyAffected($dbName,'privilegio_id',$id,'Privilegio actualizado','Se actualizó el privilegio asociado a tu usuario IZZY.',$cambiosPriv);
             $client->close();
-            apApiRespond(true, 'Privilegio guardado correctamente.', array('privilegio_id' => $id));
+            $mensajePrivilegio = !empty($notificacionPrivilegio['client']['sent'])
+                ? 'Privilegio guardado y notificación enviada a la administración del cliente.'
+                : 'Privilegio guardado. No se pudo confirmar el envío de la notificación al cliente.';
+            apApiRespond(true, $mensajePrivilegio, array('privilegio_id' => $id, 'notificacion_cliente' => !empty($notificacionPrivilegio['client']['sent'])));
         }
 
         if ($action === 'delete_privilege') {
@@ -733,10 +761,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 if($id<=0)$id=(int)$client->insert_id; $st->close();
             }
             $cambiosTipo=[];if($tipoAnterior){if(trim((string)$tipoAnterior['nombre'])!==$nombre)$cambiosTipo['Tipo / permisos']=['anterior'=>$tipoAnterior['nombre'],'nuevo'=>$nombre];if(isset($tipoAnterior['estado'])&&(int)$tipoAnterior['estado']!==$estado)$cambiosTipo['Estado']=['anterior'=>(int)$tipoAnterior['estado']===1?'Activo':'Inactivo','nuevo'=>$estado===1?'Activo':'Inactivo'];}
-            apApiNotifyAdmin($dbName,$tipoAnterior?'Tipo de usuario actualizado':'Tipo de usuario creado',$tipoAnterior?'Se actualizó un tipo de usuario/permisos.':'Se creó un tipo de usuario/permisos.',['Tipo'=>$nombre,'ID'=>$id],$cambiosTipo,$tipoAnterior?'security':'success');
+            $notificacionTipo = apApiNotifyAdmin($dbName,$tipoAnterior?'Tipo de usuario actualizado':'Tipo de usuario creado',$tipoAnterior?'Se actualizó un tipo de usuario/permisos.':'Se creó un tipo de usuario/permisos.',['Tipo'=>$nombre,'ID'=>$id],$cambiosTipo,$tipoAnterior?'security':'success');
             if($tipoAnterior) apApiNotifyAffected($dbName,'tipo_user_id',$id,'Permisos de usuario actualizados','Se actualizó el tipo de permisos asociado a tu usuario IZZY.',$cambiosTipo);
             $client->close();
-            apApiRespond(true, 'Tipo de usuario guardado correctamente.', array('tipo_user_id'=>$id));
+            $mensajeTipo = !empty($notificacionTipo['client']['sent'])
+                ? 'Tipo de permisos guardado y notificación enviada a la administración del cliente.'
+                : 'Tipo de permisos guardado. No se pudo confirmar el envío de la notificación al cliente.';
+            apApiRespond(true, $mensajeTipo, array('tipo_user_id'=>$id, 'notificacion_cliente'=>!empty($notificacionTipo['client']['sent'])));
         }
 
         if ($action === 'delete_type_user') {
@@ -780,10 +811,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
             if (!is_array($raw)) $raw = array();
             $permitidos=array('guardar','editar','eliminar','consultar','imprimir','crear','reportes','actualizar','view','pay','cambiar','cancelar','sistema','generar');
             $permisosAntes=[];
+            $registrosPermisosAntes=0;
             $stAntes=$client->prepare('SELECT tipo_permiso,estado FROM permisos WHERE tipo_user_id=?');
             if($stAntes){
                 $stAntes->bind_param('i',$tipoId);$stAntes->execute();$rsAntes=$stAntes->get_result();
-                while($rAntes=$rsAntes->fetch_assoc()){if((int)$rAntes['estado']===1)$permisosAntes[]=(string)$rAntes['tipo_permiso'];}
+                while($rAntes=$rsAntes->fetch_assoc()){$registrosPermisosAntes++;if((int)$rAntes['estado']===1)$permisosAntes[]=(string)$rAntes['tipo_permiso'];}
                 $stAntes->close();
             }
             $cols=apApiColumns($client,'permisos');
@@ -816,14 +848,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
             $tipoNombre='Tipo #'.$tipoId;$stTipo=$client->prepare('SELECT nombre FROM tipo_user WHERE tipo_user_id=? LIMIT 1');if($stTipo){$stTipo->bind_param('i',$tipoId);$stTipo->execute();$rTipo=$stTipo->get_result()->fetch_assoc();if($rTipo)$tipoNombre=$rTipo['nombre'];$stTipo->close();}
             $permisosActivos=[];foreach($permitidos as $perm){if(!empty($raw[$perm]))$permisosActivos[]=$perm;}
             sort($permisosAntes); sort($permisosActivos);
+            $permisosNuevos = $registrosPermisosAntes === 0;
+            $tituloNotificacion = $permisosNuevos ? 'Permisos creados' : 'Permisos actualizados';
+            $resumenNotificacion = $permisosNuevos
+                ? 'Se creó la configuración de permisos del tipo de usuario.'
+                : 'Se actualizó la configuración de permisos del tipo de usuario.';
             $cambiosPerm=['Permisos activos'=>[
                 'anterior'=>implode(', ',$permisosAntes)?:'Ninguno',
                 'nuevo'=>implode(', ',$permisosActivos)?:'Ninguno'
             ]];
-            apApiNotifyAdmin($dbName,'Permisos actualizados','Se actualizó la configuración de permisos de un tipo de usuario.',['Tipo'=>$tipoNombre],$cambiosPerm,'security');
-            apApiNotifyAffected($dbName,'tipo_user_id',$tipoId,'Permisos actualizados','Se actualizaron los permisos asociados a tu usuario IZZY.',$cambiosPerm);
+            $detallesPermisos = ['Tipo'=>$tipoNombre,'Permisos activos'=>implode(', ',$permisosActivos)?:'Ninguno'];
+            $notificacionPermisos = apApiNotifyAdmin($dbName,$tituloNotificacion,$resumenNotificacion,$detallesPermisos,$cambiosPerm,$permisosNuevos?'success':'security');
+            if (!$permisosNuevos) {
+                apApiNotifyAffected($dbName,'tipo_user_id',$tipoId,'Permisos actualizados','Se actualizaron los permisos asociados a tu usuario IZZY.',$cambiosPerm);
+            }
             $client->close();
-            apApiRespond(true,'Permisos guardados correctamente.');
+            $notificacionClienteEnviada = !empty($notificacionPermisos['client']['sent']);
+            $mensajePermisos = $permisosNuevos ? 'Permisos creados' : 'Permisos guardados';
+            $mensajePermisos .= $notificacionClienteEnviada
+                ? ' y notificación enviada a la administración del cliente.'
+                : '. No se pudo confirmar el envío de la notificación al cliente.';
+            apApiRespond(true,$mensajePermisos,array('notificacion_cliente'=>$notificacionClienteEnviada));
         }
 
         if ($action === 'privilege_matrix') {
@@ -1017,10 +1062,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 $st=$client->prepare("DELETE FROM `{$table}` WHERE privilegio_id=? AND `{$cfg['item']}`=?");
                 $st->bind_param('ii',$privId,$itemId);if(!$st->execute())throw new Exception($st->error);$st->close();
             }
-            $privNombre='Privilegio #'.$privId;$stPN=$client->prepare('SELECT nombre FROM privilegio WHERE privilegio_id=? LIMIT 1');if($stPN){$stPN->bind_param('i',$privId);$stPN->execute();$rPN=$stPN->get_result()->fetch_assoc();if($rPN)$privNombre=$rPN['nombre'];$stPN->close();}
-            $cambiosAcceso=['Acceso '.$level.' #'.$itemId=>['anterior'=>$assigned?'No asignado':'Asignado','nuevo'=>$assigned?'Asignado':'Retirado']];
-            apApiNotifyAdmin($dbName,'Acceso de privilegio actualizado','Se modificó la matriz de accesos de un privilegio.',['Privilegio'=>$privNombre],$cambiosAcceso,'security');
-            apApiNotifyAffected($dbName,'privilegio_id',$privId,'Accesos actualizados','Se actualizaron los accesos asociados a tu privilegio IZZY.',$cambiosAcceso);
+            /* La confirmación de esta acción se muestra inmediatamente en la
+               interfaz. No enviar correos sincrónicos por cada elemento: esos
+               envíos bloquean la respuesta y cada cambio se confirma aparte. */
             $client->close();
             apApiRespond(true,$assigned?'Acceso asignado correctamente.':'Acceso retirado correctamente.');
         }
@@ -1039,22 +1083,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                 }
             }
             $st=$client->prepare('DELETE FROM secuencia_facturacion WHERE secuencia_facturacion_id=?');$st->bind_param('i',$id);if(!$st->execute()) throw new Exception($st->error);$st->close();
-            apApiNotifyAdmin(
-                $dbName,
-                'Secuencia eliminada',
-                'Se eliminó una secuencia de facturación.',
-                [
-                    'Empresa'=>$seqEliminar['empresa_nombre']??'',
-                    'Documento'=>$seqEliminar['documento_nombre']??'',
-                    'CAI'=>$seqEliminar['cai']??'',
-                    'Prefijo'=>$seqEliminar['prefijo']??'',
-                    'Rango'=>($seqEliminar['rango_inicial']??'').' - '.($seqEliminar['rango_final']??'')
-                ],
-                [],
-                'audit'
-            );
+            $detallesEliminar=['Empresa'=>$seqEliminar['empresa_nombre']??'','Documento'=>$seqEliminar['documento_nombre']??'','CAI'=>$seqEliminar['cai']??'','Prefijo'=>$seqEliminar['prefijo']??'','Rango'=>($seqEliminar['rango_inicial']??'').' - '.($seqEliminar['rango_final']??'')];
             $client->close();
-            apApiRespond(true,'Secuencia eliminada correctamente.');
+            apApiRespondThen(true,'Secuencia eliminada correctamente. La notificación se procesa en segundo plano.',array(),function() use ($dbName,$detallesEliminar){apApiNotifyAdmin($dbName,'Secuencia eliminada','Se eliminó una secuencia de facturación.',$detallesEliminar,[],'audit');});
         }
 
         $client->close();
@@ -4350,6 +4381,14 @@ $(window).on("load", function() {
                     '<span class="ap-item-icon ap-item-icon-users"><i class="fas fa-user-shield"></i></span>' +
                     '<span class="ap-item-copy"><strong>Usuarios</strong><small>Administrar colaboradores y accesos</small></span>' +
                 '</button>' +
+                '<button type="button" class="ap-manage-client ap-action-item" data-ap-target="privileges" role="menuitem">' +
+                    '<span class="ap-item-icon ap-item-icon-users"><i class="fas fa-user-shield"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Privilegios</strong><small>Crear perfiles y configurar menús</small></span>' +
+                '</button>' +
+                '<button type="button" class="ap-manage-client ap-action-item" data-ap-target="permissions" role="menuitem">' +
+                    '<span class="ap-item-icon ap-item-icon-users"><i class="fas fa-key"></i></span>' +
+                    '<span class="ap-item-copy"><strong>Permisos</strong><small>Crear tipos y definir sus acciones</small></span>' +
+                '</button>' +
                 '<button type="button" class="ap-manage-client ap-action-item" data-ap-target="secuencias" role="menuitem">' +
                     '<span class="ap-item-icon ap-item-icon-sequence"><i class="fas fa-file-invoice"></i></span>' +
                     '<span class="ap-item-copy"><strong>Secuencia</strong><small>Documentos y secuencias de facturación</small></span>' +
@@ -4445,9 +4484,17 @@ $(window).on("load", function() {
             $(".ap-access-subpanel").removeClass("active");
             $("#ap_access_directory").addClass("active");
 
+            var accessTargetTab = targetTab === "privileges" || targetTab === "permissions" ? targetTab : "directory";
             var safeTargetTab = ["colaboradores", "empresas", "secuencias"].indexOf(targetTab) >= 0
                 ? targetTab
                 : "colaboradores";
+            if (accessTargetTab !== "directory") {
+                apAdminState.accessTab = accessTargetTab;
+                $(".ap-access-subtab").removeClass("active")
+                    .filter('[data-ap-access-tab="' + accessTargetTab + '"]').addClass("active");
+                $(".ap-access-subpanel").removeClass("active");
+                $("#ap_access_" + accessTargetTab).addClass("active");
+            }
             $(".ap-admin-tab").removeClass("active")
                 .filter('[data-ap-tab="' + safeTargetTab + '"]').addClass("active");
             $(".ap-admin-panel").removeClass("active");
@@ -5180,6 +5227,7 @@ $(window).on("load", function() {
         const collaboratorData = {
             colaboradores_id: "",
             nombre: String($modal.find("#nombre_colaborador").val() || "").trim(),
+            email: String($modal.find("#correo_usuario").val() || "").trim(),
             identidad: String($modal.find("#identidad_colaborador").val() || "").trim(),
             telefono: String($modal.find("#telefono_colaborador").val() || "").trim(),
             fecha_ingreso: String($modal.find("#fecha_ingreso_colaborador").val() || ""),
@@ -6598,13 +6646,13 @@ $(window).on("load", function() {
         const id=parseInt(row.privilegio_id,10)||0;
         return '<div class="dropdown ap-access-actions">'+
             '<button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i> Acciones</button>'+
-            '<div class="dropdown-menu dropdown-menu-right">'+
-                '<button type="button" class="dropdown-item ap-priv-menus" data-id="'+id+'"><i class="fas fa-bars mr-2"></i>Menús</button>'+
-                '<button type="button" class="dropdown-item ap-priv-submenus" data-id="'+id+'"><i class="fas fa-list-ul mr-2"></i>Submenús nivel 1</button>'+
-                '<button type="button" class="dropdown-item ap-priv-submenus1" data-id="'+id+'"><i class="fas fa-list-ol mr-2"></i>Submenús nivel 2</button>'+
+            '<div class="dropdown-menu dropdown-menu-right ap-rich-actions-menu">'+
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-priv-menus" data-id="'+id+'"><span class="ap-item-icon ap-item-icon-users"><i class="fas fa-bars"></i></span><span class="ap-item-copy"><strong>Menús</strong><small>Configurar el acceso a menús principales</small></span></button>'+
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-priv-submenus" data-id="'+id+'"><span class="ap-item-icon ap-item-icon-add"><i class="fas fa-list-ul"></i></span><span class="ap-item-copy"><strong>Submenús nivel 1</strong><small>Configurar accesos de primer nivel</small></span></button>'+
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-priv-submenus1" data-id="'+id+'"><span class="ap-item-icon ap-item-icon-sequence"><i class="fas fa-list-ol"></i></span><span class="ap-item-copy"><strong>Submenús nivel 2</strong><small>Configurar accesos de segundo nivel</small></span></button>'+
                 '<div class="dropdown-divider"></div>'+
-                '<button type="button" class="dropdown-item ap-edit-privilege" data-id="'+id+'"><i class="fas fa-edit mr-2"></i>Editar privilegio</button>'+
-                '<button type="button" class="dropdown-item text-danger ap-delete-privilege" data-id="'+id+'" '+((id===1||id===2)?'disabled aria-disabled="true"':'')+'><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>'+
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-edit-privilege" data-id="'+id+'"><span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-edit"></i></span><span class="ap-item-copy"><strong>Editar privilegio</strong><small>Actualizar nombre y estado</small></span></button>'+
+                '<button type="button" class="dropdown-item ap-rich-action-item text-danger ap-delete-privilege" data-id="'+id+'" '+((id===1||id===2)?'disabled aria-disabled="true"':'')+'><span class="ap-item-icon ap-item-icon-danger"><i class="fas fa-trash-alt"></i></span><span class="ap-item-copy"><strong>Eliminar privilegio</strong><small>Quitar este perfil de acceso</small></span></button>'+
             '</div>'+
         '</div>';
     }
@@ -6613,11 +6661,11 @@ $(window).on("load", function() {
         const id=parseInt(row.tipo_user_id,10)||0;
         return '<div class="dropdown ap-access-actions">'+
             '<button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog mr-1"></i> Acciones</button>'+
-            '<div class="dropdown-menu dropdown-menu-right">'+
-                '<button type="button" class="dropdown-item ap-configure-permissions" data-id="'+id+'"><i class="fas fa-key mr-2"></i>Configurar permisos</button>'+
-                '<button type="button" class="dropdown-item ap-edit-type" data-id="'+id+'"><i class="fas fa-edit mr-2"></i>Editar tipo de usuario</button>'+
+            '<div class="dropdown-menu dropdown-menu-right ap-rich-actions-menu">'+
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-configure-permissions" data-id="'+id+'"><span class="ap-item-icon ap-item-icon-key"><i class="fas fa-key"></i></span><span class="ap-item-copy"><strong>Configurar permisos</strong><small>Definir las acciones permitidas</small></span></button>'+
+                '<button type="button" class="dropdown-item ap-rich-action-item ap-edit-type" data-id="'+id+'"><span class="ap-item-icon ap-item-icon-edit"><i class="fas fa-edit"></i></span><span class="ap-item-copy"><strong>Editar tipo de usuario</strong><small>Actualizar nombre y estado</small></span></button>'+
                 '<div class="dropdown-divider"></div>'+
-                '<button type="button" class="dropdown-item text-danger ap-delete-type" data-id="'+id+'" '+((id===1||id===2)?'disabled aria-disabled="true"':'')+'><i class="fas fa-trash-alt mr-2"></i>Eliminar</button>'+
+                '<button type="button" class="dropdown-item ap-rich-action-item text-danger ap-delete-type" data-id="'+id+'" '+((id===1||id===2)?'disabled aria-disabled="true"':'')+'><span class="ap-item-icon ap-item-icon-danger"><i class="fas fa-trash-alt"></i></span><span class="ap-item-copy"><strong>Eliminar tipo de usuario</strong><small>Quitar este perfil y sus permisos</small></span></button>'+
             '</div>'+
         '</div>';
     }
@@ -6758,28 +6806,66 @@ $(window).on("load", function() {
         });
     }
 
-    function apInitAccessMatrixTable(selector, level, rows, privilege) {
-        const $table=$(selector).first();
-        if(!$table.length)return;
-        if($.fn.DataTable && $.fn.DataTable.isDataTable($table[0])){$table.DataTable().clear().destroy();}
-        const data=apAccessMatrixRowsToData(level,rows);
-        if($.fn.DataTable){
-            const cols=[];
-            if(level==="menu"){
-                cols.push({title:"#",data:"idx"},{title:"Menú",data:"nombre"});
-            }else if(level==="submenu"){
-                cols.push({title:"#",data:"idx"},{title:"Menú",data:"padre"},{title:"Submenú",data:"nombre"});
-            }else{
-                cols.push({title:"#",data:"idx"},{title:"Submenú",data:"padre"},{title:"Submenú Nivel 2",data:"nombre"});
-            }
-            cols.push({title:"Estado",data:null,render:function(d,t,r){return r.asignado?'<span class="badge badge-success">Asignado</span>':'<span class="badge badge-secondary">No asignado</span>';}},
-                      {title:"Acciones",data:null,orderable:false,render:function(d,t,r){return '<button type="button" class="btn btn-sm '+(r.asignado?'btn-danger':'btn-success')+' ap-toggle-access" data-level="'+level+'" data-item-id="'+r.id+'" data-privilege-id="'+privilege.privilegio_id+'" data-next="'+(r.asignado?0:1)+'"><i class="fas '+(r.asignado?'fa-times':'fa-plus')+' mr-1"></i>'+(r.asignado?'Quitar':'Asignar')+'</button>';}});
-            $table.DataTable({destroy:true,data:data,columns:cols,pageLength:10,lengthMenu:[[10,20,50,-1],[10,20,50,"Todos"]],language:typeof idioma_español!=="undefined"?idioma_español:{},autoWidth:false,responsive:true,dom:"<'row mb-2'<'col-sm-6'l><'col-sm-6'f>>rt<'row mt-2'<'col-sm-5'i><'col-sm-7'p>>"});
-        }else{
-            let h='<thead><tr><th>#</th>'+(level!=="menu"?'<th>Padre</th>':'')+'<th>'+(level==="menu"?'Menú':level==="submenu"?'Submenú':'Submenú Nivel 2')+'</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
-            data.forEach(function(r){h+='<tr><td>'+r.idx+'</td>'+(level!=="menu"?'<td>'+limpiarHtml(r.padre)+'</td>':'')+'<td>'+limpiarHtml(r.nombre)+'</td><td>'+(r.asignado?'Asignado':'No asignado')+'</td><td><button type="button" class="btn btn-sm '+(r.asignado?'btn-danger':'btn-success')+' ap-toggle-access" data-level="'+level+'" data-item-id="'+r.id+'" data-privilege-id="'+privilege.privilegio_id+'" data-next="'+(r.asignado?0:1)+'">'+(r.asignado?'Quitar':'Asignar')+'</button></td></tr>';});
-            $table.html(h+'</tbody>');
+    const apAccessMatrixState = {};
+
+    function apAccessMatrixEscape(value) {
+        return String(value == null ? "" : value).replace(/[&<>"\']/g, function(ch) {
+            return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\'":"&#039;"}[ch];
+        });
+    }
+
+    function apAccessMatrixRender(level) {
+        const state=apAccessMatrixState[level];if(!state)return;
+        const $modal=$(state.modal),$list=$modal.find("#"+state.prefix+"Listado");
+        const query=String($modal.find("#"+state.prefix+"Search").val()||"").trim().toLowerCase();
+        const pageSize=Math.max(1,parseInt($modal.find("#"+state.prefix+"PageSize").val(),10)||10);
+        const filtered=state.rows.filter(function(r){return !query||[r.nombre,r.padre].join(" ").toLowerCase().indexOf(query)!==-1;});
+        const pages=Math.max(1,Math.ceil(filtered.length/pageSize));state.page=Math.min(state.page,pages);
+        const start=(state.page-1)*pageSize,visible=filtered.slice(start,start+pageSize);
+        const isMini=$modal.find(".priv-access-view-btn.active").data("view")==="miniatura";
+        $modal.find(".priv-access-context-name").text(state.privilegeName||"—");
+        $modal.find(".priv-access-context-count").html('<i class="fas fa-check-circle"></i>'+state.rows.filter(r=>r.asignado).length+' asignados');
+        if(!filtered.length){$list.removeClass("vista-detalle vista-miniatura").html('<div class="priv-access-empty"><i class="fas fa-info-circle"></i><span>No hay registros disponibles para este plan.</span></div>');}
+        else {
+            let html="";
+            visible.forEach(function(r,i){
+                const action='<button type="button" class="btn '+(r.asignado?'btn-danger':'btn-success')+' priv-access-action-btn ap-toggle-access" data-level="'+level+'" data-item-id="'+r.id+'" data-privilege-id="'+state.privilegeId+'" data-next="'+(r.asignado?0:1)+'"><i class="fas '+(r.asignado?'fa-times':'fa-plus')+'"></i><span>'+(r.asignado?'Quitar':'Asignar')+'</span></button>';
+                const badge=r.asignado?'<span class="priv-access-assigned-badge"><i class="fas fa-check-circle"></i>Asignado</span>':'<span class="priv-access-unassigned-badge"><i class="fas fa-minus-circle"></i>No asignado</span>';
+                if(isMini){
+                    html+='<article class="priv-access-mini-card"><div class="priv-access-mini-header"><h5>'+apAccessMatrixEscape(r.nombre)+'</h5>'+badge+'</div><div class="priv-access-mini-body">'+(r.padre?'<div class="priv-access-mini-field"><span>Elemento superior</span><strong>'+apAccessMatrixEscape(r.padre)+'</strong></div>':'')+'<div class="priv-access-mini-field"><span>Estado</span><strong>'+badge+'</strong></div></div><div class="priv-access-mini-footer">'+action+'</div></article>';
+                }else{
+                    const cols=level==="menu"?"cols-menu":level==="submenu"?"cols-submenu":"cols-submenu1";
+                    html+='<article class="priv-access-detail-row '+cols+'"><div class="priv-access-cell center"><span class="priv-access-mobile-label">#</span>'+(start+i+1)+'</div>'+(level!=="menu"?'<div class="priv-access-cell"><span class="priv-access-mobile-label">Elemento superior</span>'+apAccessMatrixEscape(r.padre)+'</div>':'')+'<div class="priv-access-cell"><span class="priv-access-mobile-label">'+(level==="menu"?'Menú':level==="submenu"?'Submenú':'Submenú nivel 2')+'</span>'+apAccessMatrixEscape(r.nombre)+'</div><div class="priv-access-cell center"><span class="priv-access-mobile-label">Estado</span>'+badge+'</div><div class="priv-access-cell center"><span class="priv-access-mobile-label">Acción</span>'+action+'</div></article>';
+                }
+            });
+            if(!isMini){const cols=level==="menu"?"cols-menu":level==="submenu"?"cols-submenu":"cols-submenu1";html='<div class="priv-access-detail-header '+cols+'"><div>#</div>'+(level!=="menu"?'<div>Elemento superior</div>':'')+'<div>'+(level==="menu"?'Menú':level==="submenu"?'Submenú':'Submenú nivel 2')+'</div><div>Estado</div><div>Acción</div></div>'+html;}
+            $list.toggleClass("vista-detalle",!isMini).toggleClass("vista-miniatura",isMini).html(html);
         }
+        const end=Math.min(start+visible.length,filtered.length);
+        $modal.find("#"+state.prefix+"Info").text(filtered.length?'Mostrando '+(start+1)+' a '+end+' de '+filtered.length+' registros':'Mostrando 0 registros');
+        let pagination="";for(let p=1;p<=pages;p++)pagination+='<button type="button" class="priv-access-page-btn '+(p===state.page?'active':'')+' ap-access-matrix-page" data-level="'+level+'" data-page="'+p+'">'+p+'</button>';
+        $modal.find("#"+state.prefix+"Pagination").html(pagination);
+    }
+
+    function apInitAccessMatrixTable(selector, level, rows, privilege) {
+        const cfg={menu:{modal:"#modal_registrar_menuaccesos",prefix:"menuAccess"},submenu:{modal:"#modal_registrar_submenuaccesos",prefix:"submenuAccess"},submenu1:{modal:"#modal_registrar_submenu1accesos",prefix:"submenu1Access"}}[level];
+        if(!cfg||!$(cfg.modal+" #"+cfg.prefix+"Listado").length)return;
+        apAccessMatrixState[level]={modal:cfg.modal,prefix:cfg.prefix,privilegeId:privilege.privilegio_id,privilegeName:privilege.nombre||"",page:1,rows:apAccessMatrixRowsToData(level,rows)};
+        const $modal=$(cfg.modal),$size=$modal.find("#"+cfg.prefix+"PageSize");
+        if(!$size.children().length)$size.html('<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option>');
+        $modal.find("#"+cfg.prefix+"Search").val("");
+        $modal.find(".priv-access-view-btn").removeClass("active").attr("aria-pressed","false").filter('[data-view="detalle"]').addClass("active").attr("aria-pressed","true");
+        apAccessMatrixRender(level);
+    }
+
+    function apRefreshPrivilegeMatrix(level) {
+        const state=apAccessMatrixState[level];if(!state)return;
+        const $refresh=$(state.modal).find("#"+state.prefix+"Refresh").prop("disabled",true);
+        apAccessRequest("privilege_matrix",{privilegio_id:state.privilegeId}).done(function(resp){
+            if(!resp||!resp.success){apNotify("error","No se pudieron actualizar los accesos",resp&&resp.message?resp.message:"Error consultando la navegación.");return;}
+            const rows=level==="menu"?(resp.data.menus||[]):level==="submenu"?(resp.data.submenus||[]):(resp.data.submenu1||[]);
+            state.rows=apAccessMatrixRowsToData(level,rows);apAccessMatrixRender(level);
+        }).fail(function(xhr){apAjaxError(xhr,"No se pudieron actualizar los accesos");}).always(function(){$refresh.prop("disabled",false);});
     }
 
     function apOpenPrivilegeMatrix(row, level) {
@@ -6955,13 +7041,38 @@ $(window).on("load", function() {
                 if(!ok)return;apAccessRequest("delete_type_user",{tipo_user_id:row.tipo_user_id}).done(function(resp){if(resp&&resp.success){apNotify("success","Tipo de usuario eliminado",resp.message);apLoadAdmin();}else apNotify("error","No se pudo eliminar",resp&&resp.message?resp.message:"Error.");}).fail(function(xhr){apAjaxError(xhr,"No se pudo eliminar el tipo de usuario");});
             });
         })
+        .off("input.apMatrixSearch change.apMatrixSearch", "#menuAccessSearch,#submenuAccessSearch,#submenu1AccessSearch,#menuAccessPageSize,#submenuAccessPageSize,#submenu1AccessPageSize")
+        .on("input.apMatrixSearch change.apMatrixSearch", "#menuAccessSearch,#submenuAccessSearch,#submenu1AccessSearch,#menuAccessPageSize,#submenuAccessPageSize,#submenu1AccessPageSize", function(){
+            const level=this.id.indexOf("submenu1")===0?"submenu1":this.id.indexOf("submenu")===0?"submenu":"menu";
+            if(apAccessMatrixState[level]){apAccessMatrixState[level].page=1;apAccessMatrixRender(level);}
+        })
+        .off("click.apMatrixClear", "#menuAccessClear,#submenuAccessClear,#submenu1AccessClear")
+        .on("click.apMatrixClear", "#menuAccessClear,#submenuAccessClear,#submenu1AccessClear", function(){
+            const level=this.id.indexOf("submenu1")===0?"submenu1":this.id.indexOf("submenu")===0?"submenu":"menu";
+            const state=apAccessMatrixState[level];if(state){$(state.modal).find("#"+state.prefix+"Search").val("");state.page=1;apAccessMatrixRender(level);}
+        })
+        .off("click.apMatrixView", ".priv-access-view-btn")
+        .on("click.apMatrixView", ".priv-access-view-btn", function(){
+            const $button=$(this),$modal=$button.closest(".priv-access-modal");
+            $modal.find(".priv-access-view-btn").removeClass("active").attr("aria-pressed","false");
+            $button.addClass("active").attr("aria-pressed","true");
+            const id=$modal.attr("id"),level=id==="modal_registrar_submenu1accesos"?"submenu1":id==="modal_registrar_submenuaccesos"?"submenu":"menu";
+            apAccessMatrixRender(level);
+        })
+        .off("click.apMatrixRefresh", "#menuAccessRefresh,#submenuAccessRefresh,#submenu1AccessRefresh")
+        .on("click.apMatrixRefresh", "#menuAccessRefresh,#submenuAccessRefresh,#submenu1AccessRefresh", function(){const id=this.id,level=id.indexOf("submenu1")===0?"submenu1":id.indexOf("submenu")===0?"submenu":"menu";apRefreshPrivilegeMatrix(level);})
+        .off("click.apMatrixPage", ".ap-access-matrix-page")
+        .on("click.apMatrixPage", ".ap-access-matrix-page", function(){const level=$(this).data("level"),state=apAccessMatrixState[level];if(state){state.page=parseInt($(this).data("page"),10)||1;apAccessMatrixRender(level);}})
         .off("click.apToggleAccess",".ap-toggle-access")
         .on("click.apToggleAccess",".ap-toggle-access",function(){
             const $b=$(this),level=$b.data("level"),item=$b.data("item-id"),priv=$b.data("privilege-id"),next=parseInt($b.data("next"),10)||0;
             $b.prop("disabled",true);
             apAccessRequest("toggle_privilege_access",{level:level,item_id:item,privilegio_id:priv,assigned:next}).done(function(resp){
                 if(!resp||!resp.success){apNotify("error","No se pudo actualizar el acceso",resp&&resp.message?resp.message:"Error.");return;}
-                const row=apFindPrivilege(priv);apOpenPrivilegeMatrix(row,level);apLoadAccessData(false);
+                apNotify("success",next===1?"Acceso asignado":"Acceso retirado",resp.message||(next===1?"El acceso se asignó correctamente.":"El acceso se retiró correctamente."));
+                const state=apAccessMatrixState[level];
+                if(state){const current=state.rows.find(r=>String(r.id)===String(item));if(current)current.asignado=next===1;apAccessMatrixRender(level);}
+                apLoadAccessData(false);
             }).fail(function(xhr){apAjaxError(xhr,"No se pudo actualizar el acceso");}).always(function(){$b.prop("disabled",false);});
         })
         .off("click.apRefreshPrivileges","#ap_btn_actualizar_privilegios")

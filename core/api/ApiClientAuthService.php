@@ -16,22 +16,10 @@ final class IzzyApiClientAuthService
 
     public function emitirToken(string $clientId, string $secret): array
     {
-        if (!preg_match('/^izzyc_[a-f0-9]{24}$/D', $clientId) || !preg_match('/^izzys_[a-f0-9]{64}$/D', $secret)) {
-            throw new DomainException('Credenciales inválidas.');
-        }
-        $hash = hash('sha256', $secret);
-        $stmt = $this->db->prepare('SELECT id, scopes FROM api_integrations WHERE client_id=? AND secret_hash=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) LIMIT 1');
-        if (!$stmt) throw new RuntimeException('No se pudo validar la integración.');
-        $stmt->bind_param('ss', $clientId, $hash); $stmt->execute(); $integration = $stmt->get_result()->fetch_assoc(); $stmt->close();
-        if (!$integration) throw new DomainException('Credenciales inválidas o revocadas.');
-        $token = 'izzya_' . bin2hex(random_bytes(32));
-        $tokenHash = hash('sha256', $token);
-        $integrationId = (int)$integration['id'];
-        $scopes = (string)$integration['scopes'];
-        $stmt = $this->db->prepare('INSERT INTO api_integration_tokens (token_hash, integration_id, scopes, expires_at) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 60 MINUTE))');
-        if (!$stmt) throw new RuntimeException('No se pudo emitir el token.');
-        $stmt->bind_param('sis', $tokenHash, $integrationId, $scopes); $stmt->execute(); $stmt->close();
-        return ['access_token' => $token, 'token_type' => 'Bearer', 'expires_in' => 3600, 'scope' => $scopes];
+        // Fail closed hasta que Fase 2 vincule cada credencial a un tenant
+        // autorizado manualmente en DB_MAIN. La versión anterior de esta clase
+        // no vinculaba api_integrations a server_customers y no debe exponerse.
+        throw new DomainException('Las integraciones externas todavía no están habilitadas.');
     }
 
     public function __destruct()

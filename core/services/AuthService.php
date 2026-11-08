@@ -134,16 +134,22 @@ final class IzzyApiAuthService {
     public function __construct() { $this->modelo = new IzzyApiLoginModel(); }
 
     public function limitarIntentos(string $correo, string $ip): void {
-        // Ventana fija de 15 minutos, max. 8 intentos por IP+correo.
-        $identificador=hash('sha256',strtolower(trim($correo)).'|'.$ip);
+        // Dos límites: 8 por combinación usuario/IP y 100 globales por IP.
+        // Así se evita eludir el primero cambiando continuamente el usuario.
+        $identificadores = [
+            [hash('sha256', 'account|'.strtolower(trim($correo)).'|'.$ip), 8],
+            [hash('sha256', 'ip|'.$ip), 100]
+        ];
         $conn=$this->modelo->connectionDBLocal(DB_MAIN);
         try {
-            $stmt=$conn->prepare('INSERT INTO api_auth_rate_limits (identifier_hash, window_start, attempts) VALUES (?, NOW(), 1) ON DUPLICATE KEY UPDATE attempts=IF(window_start < DATE_SUB(NOW(), INTERVAL 15 MINUTE), 1, attempts+1), window_start=IF(window_start < DATE_SUB(NOW(), INTERVAL 15 MINUTE), NOW(), window_start)');
-            if (!$stmt) throw new RuntimeException('No se configuró el límite de intentos del API.');
-            $stmt->bind_param('s',$identificador); $stmt->execute(); $stmt->close();
-            $stmt=$conn->prepare('SELECT attempts FROM api_auth_rate_limits WHERE identifier_hash=?');
-            $stmt->bind_param('s',$identificador); $stmt->execute(); $row=$stmt->get_result()->fetch_assoc(); $stmt->close();
-            if ((int)($row['attempts']??0)>8) throw new OverflowException('Demasiados intentos. Vuelva a intentarlo en 15 minutos.');
+            foreach ($identificadores as [$identificador, $maximo]) {
+                $stmt=$conn->prepare('INSERT INTO api_auth_rate_limits (identifier_hash, window_start, attempts) VALUES (?, NOW(), 1) ON DUPLICATE KEY UPDATE attempts=IF(window_start < DATE_SUB(NOW(), INTERVAL 15 MINUTE), 1, attempts+1), window_start=IF(window_start < DATE_SUB(NOW(), INTERVAL 15 MINUTE), NOW(), window_start)');
+                if (!$stmt) throw new RuntimeException('No se configuró el límite de intentos del API.');
+                $stmt->bind_param('s',$identificador); $stmt->execute(); $stmt->close();
+                $stmt=$conn->prepare('SELECT attempts FROM api_auth_rate_limits WHERE identifier_hash=?');
+                $stmt->bind_param('s',$identificador); $stmt->execute(); $row=$stmt->get_result()->fetch_assoc(); $stmt->close();
+                if ((int)($row['attempts']??0)>$maximo) throw new OverflowException('Demasiados intentos. Vuelva a intentarlo en 15 minutos.');
+            }
         } finally { $conn->close(); }
     }
 
@@ -159,6 +165,7 @@ final class IzzyApiAuthService {
         // Nunca aceptar nombres de DB enviados por el dispositivo.
         if (!preg_match('/^[a-zA-Z0-9_]+$/D', $db)) throw new DomainException('No se pudo validar la cuenta.');
         if ($db !== DB_MAIN && (int)($cliente['estado'] ?? 0) !== 1) throw new DomainException('La cuenta del cliente no está activa.');
+        if ($db !== DB_MAIN && (int)($cliente['server_customers_id'] ?? 0) <= 0) throw new DomainException('Cuenta sin asignación válida.');
         $GLOBALS['db'] = $db;
         // Resolver el tenant desde DB_MAIN y validar contra su base asignada.
         $cifrado=$this->modelo->encryption($clave);
@@ -168,14 +175,15 @@ final class IzzyApiAuthService {
         if ($db !== DB_MAIN && (int)($cliente['validar'] ?? 1) !== 2) {
             $soloLectura = $this->modelo->pagosVencidos($db);
         }
+        // Resolver todos los permisos antes de emitir tokens; una consulta fallida
+        // nunca debe dejar una sesión móvil creada sin perfil completo.
+        $perfil = $this->perfilMovil($db, $u, $cliente, $soloLectura);
         $sesion = $this->crearSesionMovil(
             (int) $u['users_id'],
             (int) $u['empresa_id'],
             (int) ($cliente['server_customers_id'] ?? 0),
             $db
         );
-
-        $perfil = $this->perfilMovil($db, $u, $cliente, $soloLectura);
 
         return array_merge($sesion, [
             'usuario' => $perfil['usuario'],
@@ -252,7 +260,7 @@ final class IzzyApiAuthService {
             $stmt=$principal->prepare('SELECT server_customers_id, codigo_cliente, planes_id, validar, estado FROM server_customers WHERE db=? LIMIT 1');
             $stmt->bind_param('s',$db);$stmt->execute();$cliente=$stmt->get_result()->fetch_assoc();$stmt->close();
         } finally {$principal->close();}
-        if ($db !== DB_MAIN && (!$cliente || (int)$cliente['estado']!==1)) throw new DomainException('Cuenta no autorizada.');
+        if ($db !== DB_MAIN && (!$cliente || (int)$cliente['estado']!==1 || (int)$cliente['server_customers_id'] !== (int)$sesion['server_customers_id'])) throw new DomainException('Cuenta no autorizada.');
         if (!$cliente) $cliente=['planes_id'=>0];
         $soloLectura=false;
         if ($db !== DB_MAIN && (int)($cliente['validar']??1)!==2) {
@@ -336,6 +344,7 @@ final class IzzyApiAuthService {
         try {
             $stmt=$conn->prepare('SELECT users_id, empresa_id, server_customers_id, db_cliente FROM api_auth_tokens WHERE token_hash=? AND revoked_at IS NULL AND expires_at > NOW() LIMIT 1');
             $stmt->bind_param('s',$hash); $stmt->execute(); $row=$stmt->get_result()->fetch_assoc(); $stmt->close();
+            if ($row) $this->validarEmpresaRegistradaEnConexion($conn, (string)$row['db_cliente'], (int)$row['server_customers_id']);
         } finally { $conn->close(); }
         if (!$row) throw new DomainException('La sesión móvil venció o fue revocada.');
         $db=(string)$row['db_cliente'];
@@ -348,7 +357,22 @@ final class IzzyApiAuthService {
             $stmt->bind_param('ii',$id,$eid); $stmt->execute(); $actual=$stmt->get_result()->fetch_assoc(); $stmt->close();
         } finally { $dbconn->close(); }
         if (!$actual || (int)$actual['estado']!==1) throw new DomainException('Usuario no autorizado.');
-        return ['users_id'=>$id, 'empresa_id'=>$eid, 'privilegio_id'=>(int)$actual['privilegio_id'], 'db_cliente'=>$db];
+        return ['users_id'=>$id, 'empresa_id'=>$eid, 'privilegio_id'=>(int)$actual['privilegio_id'], 'server_customers_id'=>(int)$row['server_customers_id'], 'db_cliente'=>$db];
+    }
+
+    /** Valida el vínculo inmutable del token con el cliente de DB_MAIN. */
+    private function validarEmpresaRegistradaEnConexion(mysqli $cn, string $db, int $clienteId): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/D', $db)) throw new DomainException('Sesión inválida.');
+        if ($db === DB_MAIN) {
+            if ($clienteId !== 0) throw new DomainException('Sesión inválida.');
+            return;
+        }
+        if ($clienteId <= 0) throw new DomainException('Cuenta no autorizada.');
+        $stmt=$cn->prepare('SELECT estado FROM server_customers WHERE server_customers_id=? AND db=? LIMIT 1');
+        if (!$stmt) throw new RuntimeException('No se pudo verificar la cuenta.');
+        $stmt->bind_param('is',$clienteId,$db); $stmt->execute(); $cliente=$stmt->get_result()->fetch_assoc(); $stmt->close();
+        if (!$cliente || (int)$cliente['estado'] !== 1) throw new DomainException('Cuenta no autorizada.');
     }
 
     /**
@@ -526,6 +550,11 @@ final class IzzyApiAuthService {
     /** Valida usuario y cuenta antes de generar nuevas credenciales. */
     private function validarCuentaParaRenovar(string $db, int $userId, int $empresaId, int $clienteId): void
     {
+        // La renovación no puede saltarse el bloqueo o reasignación del tenant.
+        $principal = $this->modelo->connectionDBLocal(DB_MAIN);
+        try { $this->validarEmpresaRegistradaEnConexion($principal, $db, $clienteId); }
+        finally { $principal->close(); }
+
         $cn = $this->modelo->connectionDBLocal($db);
         try {
             $stmt = $cn->prepare(
@@ -543,27 +572,6 @@ final class IzzyApiAuthService {
             throw new DomainException('Usuario no autorizado.');
         }
 
-        if ($db === DB_MAIN) {
-            return;
-        }
-
-        $cn = $this->modelo->connectionDBLocal(DB_MAIN);
-        try {
-            $stmt = $cn->prepare(
-                'SELECT estado FROM server_customers '
-                . 'WHERE server_customers_id = ? AND db = ? LIMIT 1'
-            );
-            $stmt->bind_param('is', $clienteId, $db);
-            $stmt->execute();
-            $cliente = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-        } finally {
-            $cn->close();
-        }
-
-        if (!$cliente || (int) $cliente['estado'] !== 1) {
-            throw new DomainException('Cuenta no autorizada.');
-        }
     }
 
     /** Revoca todos los Access y Refresh Tokens asociados a una sesión móvil. */

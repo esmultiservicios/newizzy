@@ -586,6 +586,7 @@ function privilegiosAbrirAccesos(tipo, row) {
     config.privilegioNombre = privilegiosTexto(row.nombre, 'Sin nombre');
     config.pagina = 1;
     config.busqueda = '';
+    privilegiosAccesoReiniciarFiltros(tipo, config.registros);
 
     $(config.form + ' #privilegio_id_accesos').val(row.privilegio_id);
     $(config.form).attr({
@@ -609,6 +610,16 @@ function privilegiosAbrirAccesos(tipo, row) {
         show: true,
         keyboard: true,
         backdrop: 'static'
+    });
+    $(config.modal).off('shown.bs.modal.privAccessSearchFocus').on('shown.bs.modal.privAccessSearchFocus', function () {
+        window.setTimeout(function () {
+            var $search = $('#' + config.prefijo + 'Search');
+            $search.trigger('focus');
+            if ($search[0] && typeof $search[0].setSelectionRange === 'function') {
+                var cursor = String($search.val() || '').length;
+                $search[0].setSelectionRange(cursor, cursor);
+            }
+        }, 60);
     });
 }
 
@@ -869,6 +880,7 @@ function listarAccesosPrivilegio(tipo) {
             row._asignado = privilegiosAsignado(row.asignado);
             return row;
         });
+        privilegiosAccesoReiniciarFiltros(tipo, config.registros);
         config.cargando = false;
         config.pagina = 1;
         privilegiosAccesoAplicarFiltro(config);
@@ -897,11 +909,15 @@ function listar_submenu1accesos() {
 
 function privilegiosAccesoAplicarFiltro(config) {
     var busqueda = String(config.busqueda || '').toLowerCase().trim();
+    var menuId = config.tipo === 'submenu'
+        ? String($('#submenuAccessMenuFilter').val() || '')
+        : (config.tipo === 'submenu1' ? String($('#submenu1AccessMenuFilter').val() || '') : '');
+    var submenuId = config.tipo === 'submenu1' ? String($('#submenu1AccessSubmenuFilter').val() || '') : '';
 
     config.filtrados = config.registros.filter(function (row) {
-        if (!busqueda) {
-            return true;
-        }
+        if (menuId && String(row.menu_id || '') !== menuId) return false;
+        if (submenuId && String(row.submenu_id || '') !== submenuId) return false;
+        if (!busqueda) return true;
 
         var valores = config.campos.map(function (campo) {
             return row[campo.key];
@@ -912,6 +928,68 @@ function privilegiosAccesoAplicarFiltro(config) {
     });
 
     privilegiosAccesoRender(config);
+}
+
+function privilegiosAccesoPoblarSelect(selector, items, placeholder, getId, getText, disabled) {
+    var $select = $(selector).empty();
+    $select.append($('<option></option>').val('').text(placeholder));
+    items.forEach(function (item) {
+        $select.append($('<option></option>').val(getId(item)).text(getText(item)));
+    });
+    $select.prop('disabled', !!disabled);
+
+    if (typeof $.fn.select2 === 'function') {
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.trigger('change.select2');
+        } else {
+            var $modal = $select.closest('.modal');
+            $select.select2({
+                width: '100%',
+                dropdownAutoWidth: false,
+                minimumResultsForSearch: 0,
+                placeholder: placeholder,
+                allowClear: false,
+                dropdownParent: $modal
+            });
+        }
+        $select.off('select2:open.privAccessWidth').on('select2:open.privAccessWidth', function () {
+            var width = Math.ceil($select.next('.select2-container').outerWidth() || $select.parent().innerWidth() || 0);
+            if (width > 0) {
+                $select.closest('.modal').find('.select2-container--open .select2-dropdown').css({
+                    width: width + 'px',
+                    minWidth: width + 'px',
+                    maxWidth: width + 'px',
+                    boxSizing: 'border-box'
+                });
+            }
+        });
+    }
+}
+
+function privilegiosAccesoReiniciarFiltros(tipo, rows) {
+    if (tipo === 'submenu') {
+        var menus = {};
+        (rows || []).forEach(function (row) {
+            if (row.menu_id && !menus[String(row.menu_id)]) menus[String(row.menu_id)] = { id: row.menu_id, text: row.descripcion_padre || row.menu_name || 'Menú' };
+        });
+        privilegiosAccesoPoblarSelect('#submenuAccessMenuFilter', Object.keys(menus).map(function (key) { return menus[key]; }), 'Todos los menús', function (item) { return item.id; }, function (item) { return item.text; }, false);
+    } else if (tipo === 'submenu1') {
+        var menusNivel2 = {};
+        (rows || []).forEach(function (row) {
+            if (row.menu_id && !menusNivel2[String(row.menu_id)]) menusNivel2[String(row.menu_id)] = { id: row.menu_id, text: row.descripcion_padre || row.menu_name || 'Menú' };
+        });
+        privilegiosAccesoPoblarSelect('#submenu1AccessMenuFilter', Object.keys(menusNivel2).map(function (key) { return menusNivel2[key]; }), 'Todos los menús', function (item) { return item.id; }, function (item) { return item.text; }, false);
+        privilegiosAccesoActualizarSubmenusFiltro(rows || [], '');
+    }
+}
+
+function privilegiosAccesoActualizarSubmenusFiltro(rows, menuId) {
+    var filtrados = (rows || []).filter(function (row) { return !menuId || String(row.menu_id) === String(menuId); });
+    var submenus = {};
+    filtrados.forEach(function (row) {
+        if (row.submenu_id && !submenus[String(row.submenu_id)]) submenus[String(row.submenu_id)] = { id: row.submenu_id, text: row.descripcion || row.submenu_name || 'Submenú' };
+    });
+    privilegiosAccesoPoblarSelect('#submenu1AccessSubmenuFilter', Object.keys(submenus).map(function (key) { return submenus[key]; }), 'Todos los submenús', function (item) { return item.id; }, function (item) { return item.text; }, false);
 }
 
 function privilegiosAccesoEstadoHtml(row) {
@@ -1880,6 +1958,12 @@ $(document).ready(function () {
         $('#' + prefijo + 'Clear').off('click.' + prefijo).on('click.' + prefijo, function () {
             $('#' + prefijo + 'Search').val('').focus();
             config.busqueda = '';
+            if (tipo === 'submenu') $('#submenuAccessMenuFilter').val('');
+            if (tipo === 'submenu1') {
+                $('#submenu1AccessMenuFilter').val('');
+                privilegiosAccesoActualizarSubmenusFiltro(config.registros, '');
+                $('#submenu1AccessSubmenuFilter').val('');
+            }
             config.pagina = 1;
             privilegiosAccesoAplicarFiltro(config);
         });
@@ -1921,6 +2005,23 @@ $(document).ready(function () {
             config.pagina = pagina;
             privilegiosAccesoRender(config);
         });
+    });
+
+    $('#submenuAccessMenuFilter').off('change.privAccessFilter').on('change.privAccessFilter', function () {
+        var config = privilegiosAccess.submenu;
+        config.pagina = 1;
+        privilegiosAccesoAplicarFiltro(config);
+    });
+    $('#submenu1AccessMenuFilter').off('change.privAccessFilter').on('change.privAccessFilter', function () {
+        var config = privilegiosAccess.submenu1;
+        privilegiosAccesoActualizarSubmenusFiltro(config.registros, $(this).val() || '');
+        config.pagina = 1;
+        privilegiosAccesoAplicarFiltro(config);
+    });
+    $('#submenu1AccessSubmenuFilter').off('change.privAccessFilter').on('change.privAccessFilter', function () {
+        var config = privilegiosAccess.submenu1;
+        config.pagina = 1;
+        privilegiosAccesoAplicarFiltro(config);
     });
 
     $('#modal_registrar_privilegios').off('shown.bs.modal.privilegios').on('shown.bs.modal.privilegios', function () {

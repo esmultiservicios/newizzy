@@ -5,6 +5,7 @@ $peticionAjax = true;
 
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/MenuSyncHelper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -37,7 +38,8 @@ $stmt = null;
 $data = [];
 
 try {
-    $conexion = $insMainModel->connection();
+    // DB_MAIN es la fuente de verdad; las operaciones replican los cambios a clientes.
+    $conexion = MenuSyncHelper::conectarPrincipal($insMainModel);
 
     if (!$conexion) {
         throw new Exception("No se pudo conectar a la base de datos.");

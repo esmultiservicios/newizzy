@@ -17,6 +17,8 @@ header('X-Content-Type-Options: nosniff');
  */
 function responderApi(int $status, array $data): void
 {
+    if (!array_key_exists('mensaje', $data)) $data['mensaje'] = $status >= 400 ? 'No se pudo completar la solicitud.' : '';
+    if (!array_key_exists('data', $data)) $data['data'] = null;
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
@@ -41,7 +43,11 @@ if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 8192) {
 }
 
 // Leer las credenciales enviadas por la aplicación.
-$input = json_decode((string) file_get_contents('php://input'), true);
+$requestBody = (string) file_get_contents('php://input', false, null, 0, 8193);
+if (strlen($requestBody) > 8192) {
+    responderApi(413, ['ok' => false, 'mensaje' => 'Solicitud demasiado grande.']);
+}
+$input = json_decode($requestBody, true);
 
 if (!is_array($input)) {
     responderApi(400, ['ok' => false, 'mensaje' => 'JSON inválido.']);
@@ -62,7 +68,7 @@ try {
         (string) ($input['password'] ?? '')
     );
 
-    responderApi(200, ['ok' => true, 'data' => $result]);
+    responderApi(200, ['ok' => true, 'mensaje' => 'Inicio de sesión correcto.', 'data' => $result]);
 } catch (OverflowException $e) {
     header('Retry-After: 900');
     responderApi(429, ['ok' => false, 'mensaje' => $e->getMessage()]);

@@ -15,6 +15,8 @@ header('X-Content-Type-Options: nosniff');
 /** Envía una respuesta JSON y finaliza el procesamiento. */
 function responderPerfil(int $status, array $data): void
 {
+    if (!array_key_exists('mensaje', $data)) $data['mensaje'] = $status >= 400 ? 'No se pudo completar la solicitud.' : '';
+    if (!array_key_exists('data', $data)) $data['data'] = null;
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
@@ -84,6 +86,7 @@ try {
 
     responderPerfil(200, [
         'ok' => true,
+        'mensaje' => 'Perfil cargado.',
         'data' => $perfil
     ]);
 } catch (DomainException $e) {

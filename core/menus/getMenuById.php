@@ -5,6 +5,7 @@ $peticionAjax = true;
 
 require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/MenuSyncHelper.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -58,7 +59,8 @@ $conexion = null;
 $stmt = null;
 
 try {
-    $conexion = $insMainModel->connection();
+    // Leer el registro desde la base principal evita editar con IDs de una copia cliente.
+    $conexion = MenuSyncHelper::conectarPrincipal($insMainModel);
 
     if (!$conexion) {
         throw new Exception("No se pudo conectar a la base de datos.");

@@ -10,25 +10,28 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, private');
+header('X-Content-Type-Options: nosniff');
 
 /**
  * Devuelve una respuesta JSON y termina la solicitud.
  */
 function respuestaLogout(int $status, array $data): void
 {
+    if (!array_key_exists('mensaje', $data)) $data['mensaje'] = $status >= 400 ? 'No se pudo completar la solicitud.' : '';
+    if (!array_key_exists('data', $data)) $data['data'] = null;
     http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 // Solo se permite cerrar sesión mediante POST y HTTPS.
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header('Allow: POST');
-    respuestaLogout(405, ['ok' => false]);
+    respuestaLogout(405, ['ok' => false, 'mensaje' => 'Método no permitido.']);
 }
 
 if (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off') {
-    respuestaLogout(403, ['ok' => false]);
+    respuestaLogout(403, ['ok' => false, 'mensaje' => 'Se requiere HTTPS.']);
 }
 
 // Leer el token Bearer recibido en la cabecera HTTP.
@@ -62,16 +65,22 @@ if ($authorization === '' && function_exists('apache_request_headers')) {
 }
 
 // No se aceptan tokens en URL, cookies ni parámetros del formulario.
-// Si el Access Token ya venció, Android puede cerrar la sesión enviando
-// {"refresh_token":"izzyr_..."} como JSON (opcional).
+// Si el Access Token ya venció, Android puede cerrar sesión enviando el
+// refresh token como JSON, incluso si conserva el Bearer vencido en la cabecera.
 $tokenRenovacion = '';
 
-if ($authorization === '' && stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') === 0) {
-    if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) <= 8192) {
-        $entrada = json_decode((string) file_get_contents('php://input'), true);
-        if (is_array($entrada) && is_string($entrada['refresh_token'] ?? null)) {
-            $tokenRenovacion = $entrada['refresh_token'];
-        }
+if (stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') === 0) {
+    if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 8192) {
+        respuestaLogout(413, ['ok' => false, 'mensaje' => 'Solicitud demasiado grande.']);
+    }
+    $requestBody = (string) file_get_contents('php://input', false, null, 0, 8193);
+    if (strlen($requestBody) > 8192) {
+        respuestaLogout(413, ['ok' => false, 'mensaje' => 'Solicitud demasiado grande.']);
+    }
+    $entrada = json_decode($requestBody, true);
+    if (is_array($entrada) && is_string($entrada['refresh_token'] ?? null)
+        && preg_match('/^izzyr_[a-f0-9]{64}$/D', $entrada['refresh_token'])) {
+        $tokenRenovacion = $entrada['refresh_token'];
     }
 }
 
@@ -95,7 +104,8 @@ try {
 
     respuestaLogout(200, [
         'ok' => true,
-        'mensaje' => 'Sesión cerrada.'
+        'mensaje' => 'Sesión cerrada.',
+        'data' => null
     ]);
 } catch (DomainException $e) {
     respuestaLogout(401, [

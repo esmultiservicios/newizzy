@@ -7434,6 +7434,13 @@
                     <span class="priv-access-context-count"><i class="fas fa-check-circle"></i>0 asignados</span>
                 </div>
 
+                <div class="priv-access-filters" aria-label="Filtros de submenús">
+                    <label class="priv-access-filter">
+                        <span><i class="fas fa-bars"></i>Filtrar por menú</span>
+                        <select id="submenuAccessMenuFilter" class="form-control izzy-select2" data-width="100%" data-placeholder="Todos los menús"><option value="">Todos los menús</option></select>
+                    </label>
+                </div>
+
                 <div class="priv-access-toolbar">
                     <div class="priv-access-toolbar-left">
                         <button type="button" class="btn btn-secondary table_actualizar ocultar" id="submenuAccessRefresh">
@@ -7515,6 +7522,17 @@
                         <strong class="priv-access-context-name">—</strong>
                     </div>
                     <span class="priv-access-context-count"><i class="fas fa-check-circle"></i>0 asignados</span>
+                </div>
+
+                <div class="priv-access-filters" aria-label="Filtros de submenús nivel 2">
+                    <label class="priv-access-filter">
+                        <span><i class="fas fa-bars"></i>Filtrar por menú</span>
+                        <select id="submenu1AccessMenuFilter" class="form-control izzy-select2" data-width="100%" data-placeholder="Todos los menús"><option value="">Todos los menús</option></select>
+                    </label>
+                    <label class="priv-access-filter">
+                        <span><i class="fas fa-stream"></i>Filtrar por submenú</span>
+                        <select id="submenu1AccessSubmenuFilter" class="form-control izzy-select2" data-width="100%" data-placeholder="Todos los submenús" disabled><option value="">Todos los submenús</option></select>
+                    </label>
                 </div>
 
                 <div class="priv-access-toolbar">

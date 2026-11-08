@@ -107,7 +107,7 @@
                         <label for="filtroEstadoPlanes" class="small mb-1">
                             <i class="fas fa-toggle-on mr-1"></i> Estado
                         </label>
-                        <select id="filtroEstadoPlanes" class="form-control">
+                        <select id="filtroEstadoPlanes" class="form-control izzy-select2" data-placeholder="Filtrar por estado">
                             <option value="todos">Todos</option>
                             <option value="1">Activos</option>
                             <option value="0">Inactivos</option>
@@ -118,7 +118,7 @@
                         <label for="filtroConfiguracionPlanes" class="small mb-1">
                             <i class="fas fa-sliders-h mr-1"></i> Configuración
                         </label>
-                        <select id="filtroConfiguracionPlanes" class="form-control">
+                        <select id="filtroConfiguracionPlanes" class="form-control izzy-select2" data-placeholder="Buscar configuración">
                             <option value="">Todas las configuraciones</option>
                             <option value="usuarios">Usuarios</option>
                             <option value="clientes">Clientes</option>

@@ -13,6 +13,8 @@ header('X-Content-Type-Options: nosniff');
 
 function respuestaRenovacion(int $codigo, array $datos): void
 {
+    if (!array_key_exists('mensaje', $datos)) $datos['mensaje'] = $codigo >= 400 ? 'No se pudo completar la solicitud.' : '';
+    if (!array_key_exists('data', $datos)) $datos['data'] = null;
     http_response_code($codigo);
     echo json_encode($datos, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
@@ -35,7 +37,11 @@ if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 8192) {
     respuestaRenovacion(413, ['ok' => false, 'mensaje' => 'Solicitud demasiado grande.']);
 }
 
-$entrada = json_decode((string) file_get_contents('php://input'), true);
+$requestBody = (string) file_get_contents('php://input', false, null, 0, 8193);
+if (strlen($requestBody) > 8192) {
+    respuestaRenovacion(413, ['ok' => false, 'mensaje' => 'Solicitud demasiado grande.']);
+}
+$entrada = json_decode($requestBody, true);
 if (!is_array($entrada)) {
     respuestaRenovacion(400, ['ok' => false, 'mensaje' => 'JSON inválido.']);
 }
@@ -51,7 +57,7 @@ try {
     $servicio = new IzzyApiAuthService();
     $tokens = $servicio->renovarSesion($refreshToken);
 
-    respuestaRenovacion(200, ['ok' => true, 'data' => $tokens]);
+    respuestaRenovacion(200, ['ok' => true, 'mensaje' => 'Sesión renovada.', 'data' => $tokens]);
 } catch (DomainException $e) {
     respuestaRenovacion(401, [
         'ok' => false,

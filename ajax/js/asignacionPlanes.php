@@ -895,8 +895,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                             $join=' INNER JOIN menu_plan mp ON mp.menu_id=m.menu_id ';
                             $where[]='mp.planes_id='.(int)$planId;
                             if(isset($mpCols['estado']))$where[]='mp.estado=1';
-                        }
-                    }
+                        } else { $where[]='1=0'; }
+                    } else { $where[]='1=0'; }
                     if(isset($mCols['estado']))$where[]='m.estado=1';
                     $assignedExpr=apApiTableExists($client,'acceso_menu')
                         ? "EXISTS(SELECT 1 FROM acceso_menu a WHERE a.privilegio_id={$privId} AND a.menu_id=m.menu_id" .
@@ -919,8 +919,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                         if(isset($spCols['planes_id'])&&isset($spCols['submenu_id'])){
                             $join.=' INNER JOIN submenu_plan sp ON sp.submenu_id=s.submenu_id ';
                             $where[]='sp.planes_id='.(int)$planId;if(isset($spCols['estado']))$where[]='sp.estado=1';
-                        }
-                    }
+                        } else { $where[]='1=0'; }
+                    } else { $where[]='1=0'; }
                     if($mName&&isset($sCols['menu_id']))$join.=' LEFT JOIN menu m ON m.menu_id=s.menu_id ';
                     if(isset($sCols['estado']))$where[]='s.estado=1';
                     $assignedExpr=apApiTableExists($client,'acceso_submenu')
@@ -928,10 +928,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                           (isset(apApiColumns($client,'acceso_submenu')['estado']) ? " AND a.estado=1" : "") . ")"
                         : "0";
                     $parent=$mName?"COALESCE(m.`{$mName}`,'')":"''";
-                    $sql="SELECT DISTINCT s.submenu_id AS id,s.`{$nameField}` AS nombre,{$parent} AS padre,{$assignedExpr} AS asignado FROM submenu s {$join}".
+                    $menuIdExpr=isset($sCols['menu_id'])?'s.menu_id':'0';
+                    $sql="SELECT DISTINCT s.submenu_id AS id,s.`{$nameField}` AS nombre,{$menuIdExpr} AS menu_id,{$parent} AS padre,{$assignedExpr} AS asignado FROM submenu s {$join}".
                          (count($where)?' WHERE '.implode(' AND ',$where):'').' ORDER BY padre,s.`'.$nameField.'`';
                     $res=$client->query($sql);if(!$res)throw new Exception($client->error);
-                    while($r=$res->fetch_assoc()){$r['id']=(int)$r['id'];$r['asignado']=(int)$r['asignado'];$matrix['submenus'][]=$r;}
+                    while($r=$res->fetch_assoc()){$r['id']=(int)$r['id'];$r['menu_id']=(int)$r['menu_id'];$r['asignado']=(int)$r['asignado'];$matrix['submenus'][]=$r;}
                 }
             }
 
@@ -945,19 +946,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ap_api_action'])) {
                         if(isset($spCols['planes_id'])&&isset($spCols['submenu1_id'])){
                             $join.=' INNER JOIN submenu1_plan sp1 ON sp1.submenu1_id=s1.submenu1_id ';
                             $where[]='sp1.planes_id='.(int)$planId;if(isset($spCols['estado']))$where[]='sp1.estado=1';
-                        }
-                    }
+                        } else { $where[]='1=0'; }
+                    } else { $where[]='1=0'; }
                     if($sName&&isset($s1Cols['submenu_id']))$join.=' LEFT JOIN submenu s ON s.submenu_id=s1.submenu_id ';
+                    $mCols=apApiTableExists($client,'menu')?apApiColumns($client,'menu'):array();$mName=$catalogName($mCols);
+                    if($mName&&isset($sCols['menu_id']))$join.=' LEFT JOIN menu m ON m.menu_id=s.menu_id ';
                     if(isset($s1Cols['estado']))$where[]='s1.estado=1';
                     $assignedExpr=apApiTableExists($client,'acceso_submenu1')
                         ? "EXISTS(SELECT 1 FROM acceso_submenu1 a WHERE a.privilegio_id={$privId} AND a.submenu1_id=s1.submenu1_id" .
                           (isset(apApiColumns($client,'acceso_submenu1')['estado']) ? " AND a.estado=1" : "") . ")"
                         : "0";
                     $parent=$sName?"COALESCE(s.`{$sName}`,'')":"''";
-                    $sql="SELECT DISTINCT s1.submenu1_id AS id,s1.`{$nameField}` AS nombre,{$parent} AS padre,{$assignedExpr} AS asignado FROM submenu1 s1 {$join}".
+                    $menuParent=$mName?"COALESCE(m.`{$mName}`,'')":"''";
+                    $menuIdExpr=isset($sCols['menu_id'])?'s.menu_id':'0';
+                    $submenuIdExpr=isset($s1Cols['submenu_id'])?'s1.submenu_id':'0';
+                    $sql="SELECT DISTINCT s1.submenu1_id AS id,s1.`{$nameField}` AS nombre,{$submenuIdExpr} AS submenu_id,{$menuIdExpr} AS menu_id,{$parent} AS padre,{$menuParent} AS menu_padre,{$assignedExpr} AS asignado FROM submenu1 s1 {$join}".
                          (count($where)?' WHERE '.implode(' AND ',$where):'').' ORDER BY padre,s1.`'.$nameField.'`';
                     $res=$client->query($sql);if(!$res)throw new Exception($client->error);
-                    while($r=$res->fetch_assoc()){$r['id']=(int)$r['id'];$r['asignado']=(int)$r['asignado'];$matrix['submenu1'][]=$r;}
+                    while($r=$res->fetch_assoc()){$r['id']=(int)$r['id'];$r['submenu_id']=(int)$r['submenu_id'];$r['menu_id']=(int)$r['menu_id'];$r['asignado']=(int)$r['asignado'];$matrix['submenu1'][]=$r;}
                 }
             }
             $client->close();
@@ -6800,6 +6806,9 @@ $(window).on("load", function() {
                 idx:index+1,
                 padre:r.padre||"",
                 nombre:r.nombre||"",
+                menuId:parseInt(r.menu_id,10)||0,
+                submenuId:parseInt(r.submenu_id,10)||0,
+                menuNombre:r.menu_padre||"",
                 asignado:parseInt(r.asignado,10)===1,
                 id:r.id
             };
@@ -6819,7 +6828,13 @@ $(window).on("load", function() {
         const $modal=$(state.modal),$list=$modal.find("#"+state.prefix+"Listado");
         const query=String($modal.find("#"+state.prefix+"Search").val()||"").trim().toLowerCase();
         const pageSize=Math.max(1,parseInt($modal.find("#"+state.prefix+"PageSize").val(),10)||10);
-        const filtered=state.rows.filter(function(r){return !query||[r.nombre,r.padre].join(" ").toLowerCase().indexOf(query)!==-1;});
+        const menuFilter=level==="submenu"?String($modal.find("#submenuAccessMenuFilter").val()||""):level==="submenu1"?String($modal.find("#submenu1AccessMenuFilter").val()||""):"";
+        const submenuFilter=level==="submenu1"?String($modal.find("#submenu1AccessSubmenuFilter").val()||""):"";
+        const filtered=state.rows.filter(function(r){
+            if(menuFilter&&String(r.menuId)!==menuFilter)return false;
+            if(submenuFilter&&String(r.submenuId)!==submenuFilter)return false;
+            return !query||[r.nombre,r.padre,r.menuNombre].join(" ").toLowerCase().indexOf(query)!==-1;
+        });
         const pages=Math.max(1,Math.ceil(filtered.length/pageSize));state.page=Math.min(state.page,pages);
         const start=(state.page-1)*pageSize,visible=filtered.slice(start,start+pageSize);
         const isMini=$modal.find(".priv-access-view-btn.active").data("view")==="miniatura";
@@ -6852,10 +6867,40 @@ $(window).on("load", function() {
         if(!cfg||!$(cfg.modal+" #"+cfg.prefix+"Listado").length)return;
         apAccessMatrixState[level]={modal:cfg.modal,prefix:cfg.prefix,privilegeId:privilege.privilegio_id,privilegeName:privilege.nombre||"",page:1,rows:apAccessMatrixRowsToData(level,rows)};
         const $modal=$(cfg.modal),$size=$modal.find("#"+cfg.prefix+"PageSize");
+        const state=apAccessMatrixState[level];
+        function fillSelect($select, options, placeholder, valueFn, labelFn, disabled){
+            $select.empty().append($('<option></option>').val('').text(placeholder));
+            options.forEach(function(item){$select.append($('<option></option>').val(valueFn(item)).text(labelFn(item)));});
+            $select.prop('disabled',!!disabled);
+        }
+        if(level==="submenu"||level==="submenu1"){
+            const menuMap={};state.rows.forEach(function(r){if(r.menuId&&!menuMap[String(r.menuId)])menuMap[String(r.menuId)]={id:r.menuId,name:r.menuNombre||r.padre||"Menú"};});
+            const $menuFilter=$modal.find(level==="submenu"?"#submenuAccessMenuFilter":"#submenu1AccessMenuFilter");
+            fillSelect($menuFilter,Object.keys(menuMap).map(function(k){return menuMap[k];}),"Todos los menús",function(x){return x.id;},function(x){return x.name;},false);
+            if(typeof window.izzySoloSelect2==="function")window.izzySoloSelect2($menuFilter,{width:"100%",dropdownAutoWidth:false,minimumResultsForSearch:0,dropdownParent:$modal});
+            $menuFilter.trigger("change.select2");
+            apBindAccessFilterWidth($menuFilter);
+        }
+        if(level==="submenu1"){
+            const submenuMap={};state.rows.forEach(function(r){if(r.submenuId&&!submenuMap[String(r.submenuId)])submenuMap[String(r.submenuId)]={id:r.submenuId,name:r.padre||"Submenú",menuId:r.menuId};});
+            const $submenuFilter=$modal.find("#submenu1AccessSubmenuFilter");
+            fillSelect($submenuFilter,Object.keys(submenuMap).map(function(k){return submenuMap[k];}),"Todos los submenús",function(x){return x.id;},function(x){return x.name;},false);
+            if(typeof window.izzySoloSelect2==="function")window.izzySoloSelect2($submenuFilter,{width:"100%",dropdownAutoWidth:false,minimumResultsForSearch:0,dropdownParent:$modal});
+            $submenuFilter.trigger("change.select2");
+            apBindAccessFilterWidth($submenuFilter);
+        }
         if(!$size.children().length)$size.html('<option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option>');
         $modal.find("#"+cfg.prefix+"Search").val("");
         $modal.find(".priv-access-view-btn").removeClass("active").attr("aria-pressed","false").filter('[data-view="detalle"]').addClass("active").attr("aria-pressed","true");
         apAccessMatrixRender(level);
+    }
+
+    function apBindAccessFilterWidth($select){
+        if(!$select||!$select.length)return;
+        $select.off("select2:open.apAccessWidth").on("select2:open.apAccessWidth",function(){
+            const width=Math.ceil($select.next(".select2-container").outerWidth()||$select.parent().innerWidth()||0);
+            if(width>0)$select.closest(".modal").find(".select2-container--open .select2-dropdown").css({width:width+"px",minWidth:width+"px",maxWidth:width+"px",boxSizing:"border-box"});
+        });
     }
 
     function apRefreshPrivilegeMatrix(level) {
@@ -6885,6 +6930,17 @@ $(window).on("load", function() {
                 $modal.find("input[name='privilegio_id_accesos'],#privilegio_id_accesos").val(row.privilegio_id);
                 const data=level==="menu"?(resp.data.menus||[]):level==="submenu"?(resp.data.submenus||[]):(resp.data.submenu1||[]);
                 apInitAccessMatrixTable(cfg.table,level,data,row);
+                $modal.off("shown.bs.modal.apMatrixSearchFocus").on("shown.bs.modal.apMatrixSearchFocus",function(){
+                    window.setTimeout(function(){
+                        const searchId=level==="menu"?"menuAccessSearch":level==="submenu"?"submenuAccessSearch":"submenu1AccessSearch";
+                        const $search=$modal.find("#"+searchId);
+                        $search.trigger("focus");
+                        if($search[0]&&typeof $search[0].setSelectionRange==="function"){
+                            const cursor=String($search.val()||"").length;
+                            $search[0].setSelectionRange(cursor,cursor);
+                        }
+                    },60);
+                });
                 $modal.modal("show");
             })
             .fail(function(xhr){apAjaxError(xhr,"No se pudieron cargar los accesos del privilegio");});
@@ -7041,15 +7097,24 @@ $(window).on("load", function() {
                 if(!ok)return;apAccessRequest("delete_type_user",{tipo_user_id:row.tipo_user_id}).done(function(resp){if(resp&&resp.success){apNotify("success","Tipo de usuario eliminado",resp.message);apLoadAdmin();}else apNotify("error","No se pudo eliminar",resp&&resp.message?resp.message:"Error.");}).fail(function(xhr){apAjaxError(xhr,"No se pudo eliminar el tipo de usuario");});
             });
         })
-        .off("input.apMatrixSearch change.apMatrixSearch", "#menuAccessSearch,#submenuAccessSearch,#submenu1AccessSearch,#menuAccessPageSize,#submenuAccessPageSize,#submenu1AccessPageSize")
-        .on("input.apMatrixSearch change.apMatrixSearch", "#menuAccessSearch,#submenuAccessSearch,#submenu1AccessSearch,#menuAccessPageSize,#submenuAccessPageSize,#submenu1AccessPageSize", function(){
+        .off("input.apMatrixSearch change.apMatrixSearch", "#menuAccessSearch,#submenuAccessSearch,#submenu1AccessSearch,#menuAccessPageSize,#submenuAccessPageSize,#submenu1AccessPageSize,#submenuAccessMenuFilter,#submenu1AccessMenuFilter,#submenu1AccessSubmenuFilter")
+        .on("input.apMatrixSearch change.apMatrixSearch", "#menuAccessSearch,#submenuAccessSearch,#submenu1AccessSearch,#menuAccessPageSize,#submenuAccessPageSize,#submenu1AccessPageSize,#submenuAccessMenuFilter,#submenu1AccessMenuFilter,#submenu1AccessSubmenuFilter", function(){
             const level=this.id.indexOf("submenu1")===0?"submenu1":this.id.indexOf("submenu")===0?"submenu":"menu";
-            if(apAccessMatrixState[level]){apAccessMatrixState[level].page=1;apAccessMatrixRender(level);}
+            const state=apAccessMatrixState[level];
+            if(state&&level==="submenu1"&&this.id==="submenu1AccessMenuFilter"){
+                const $modal=$(state.modal),menuId=String($(this).val()||""),$submenu=$modal.find("#submenu1AccessSubmenuFilter"),selected=String($submenu.val()||"");
+                const options={};state.rows.forEach(function(r){if(r.submenuId&&(!menuId||String(r.menuId)===menuId)&&!options[String(r.submenuId)])options[String(r.submenuId)]={id:r.submenuId,name:r.padre||"Submenú"};});
+                $submenu.empty().append($('<option></option>').val('').text('Todos los submenús'));
+                Object.keys(options).forEach(function(k){$submenu.append($('<option></option>').val(options[k].id).text(options[k].name));});
+                if(options[selected])$submenu.val(selected);else $submenu.val('');
+                $submenu.trigger("change.select2");
+            }
+            if(state){state.page=1;apAccessMatrixRender(level);}
         })
         .off("click.apMatrixClear", "#menuAccessClear,#submenuAccessClear,#submenu1AccessClear")
         .on("click.apMatrixClear", "#menuAccessClear,#submenuAccessClear,#submenu1AccessClear", function(){
             const level=this.id.indexOf("submenu1")===0?"submenu1":this.id.indexOf("submenu")===0?"submenu":"menu";
-            const state=apAccessMatrixState[level];if(state){$(state.modal).find("#"+state.prefix+"Search").val("");state.page=1;apAccessMatrixRender(level);}
+            const state=apAccessMatrixState[level];if(state){const $modal=$(state.modal);$modal.find("#"+state.prefix+"Search").val("");if(level==="submenu")$modal.find("#submenuAccessMenuFilter").val("");if(level==="submenu1"){$modal.find("#submenu1AccessMenuFilter").val("").trigger("change");$modal.find("#submenu1AccessSubmenuFilter").val("");}state.page=1;apAccessMatrixRender(level);}
         })
         .off("click.apMatrixView", ".priv-access-view-btn")
         .on("click.apMatrixView", ".priv-access-view-btn", function(){

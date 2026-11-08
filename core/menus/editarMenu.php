@@ -69,7 +69,7 @@ try {
 
     $conexionPrincipal->autocommit(false);
 
-    MenuSyncHelper::asegurarEstructuraMenus($conexionPrincipal);
+    MenuSyncHelper::validarEstructuraMenus($conexionPrincipal);
 
     $oldName = MenuSyncHelper::obtenerNombreActual(
         $conexionPrincipal,
@@ -126,7 +126,7 @@ try {
             $connCliente = MenuSyncHelper::conectarCliente($insMainModel, $dbName);
 
             if (!$connCliente) {
-                $erroresClientes[] = "No se pudo conectar a la base {$dbName}.";
+                $erroresClientes[] = "{$dbName}: " . MenuSyncHelper::obtenerUltimoErrorConexion();
                 continue;
             }
 
@@ -147,12 +147,12 @@ try {
 
             $connCliente->commit();
 
-        } catch (Exception $eCliente) {
+        } catch (Throwable $eCliente) {
             if ($connCliente) {
                 $connCliente->rollback();
             }
 
-            $erroresClientes[] = "Error en {$dbName}: " . $eCliente->getMessage();
+            $erroresClientes[] = "{$dbName}: " . $eCliente->getMessage();
 
         } finally {
             if ($connCliente) {
@@ -166,15 +166,20 @@ try {
 
     $mensaje = empty($erroresClientes)
         ? "Elemento actualizado correctamente y sincronizado en las bases de clientes activas."
-        : "Elemento actualizado en la base principal, pero algunas bases de clientes no pudieron sincronizarse.";
+        : "Elemento actualizado en la base principal. Algunas bases IZZY no se sincronizaron; revise el detalle.";
 
     MenuSyncHelper::respuesta("success", "Operación exitosa", $mensaje, [
         "warnings" => $erroresClientes
     ]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    error_log('Error al editar elemento de menú: ' . $e->getMessage());
     if ($conexionPrincipal) {
-        $conexionPrincipal->rollback();
+        try {
+            $conexionPrincipal->rollback();
+        } catch (Throwable $rollbackError) {
+            error_log('Error al revertir edición de menú: ' . $rollbackError->getMessage());
+        }
     }
 
     MenuSyncHelper::respuesta("error", "Error", "Error en el servidor: " . $e->getMessage());

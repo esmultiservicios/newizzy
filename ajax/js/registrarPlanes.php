@@ -142,17 +142,29 @@
                 return;
             }
 
-            if (typeof window.izzyInitSelect2 === "function") {
-                window.izzyInitSelect2($select);
-                return;
+            /* Algunos controles dinámicos se inicializan primero por el
+               inicializador global, que puede conservar opciones anteriores.
+               Reiniciamos solo este select y fijamos búsqueda siempre visible. */
+            if ($select.hasClass("select2-hidden-accessible") && typeof $.fn.select2 === "function") {
+                $select.select2("destroy");
             }
 
-            if (typeof $.fn.select2 === "function" && !$select.hasClass("select2-hidden-accessible")) {
+            const options = {
+                width: "100%",
+                dropdownAutoWidth: false,
+                minimumResultsForSearch: 0,
+                placeholder: $select.attr("data-placeholder") || "Seleccione",
+                allowClear: false
+            };
+
+            if (typeof window.izzySoloSelect2 === "function") {
+                window.izzySoloSelect2($select, options);
+            } else if (typeof $.fn.select2 === "function") {
                 $select.select2({
-                    width: "100%",
-                    minimumResultsForSearch: 0,
-                    placeholder: $select.attr("data-placeholder") || "Seleccione"
+                    ...options
                 });
+            } else if (typeof window.izzyInitSelect2 === "function") {
+                window.izzyInitSelect2($select);
             }
         }
 

@@ -25,6 +25,13 @@
             <span id="form_title">Registrar Nuevo Elemento de Menú</span>
         </div>
         <div class="card-body">
+            <div class="menus-plan-workflow" role="note" aria-label="Pasos para habilitar un menú en un plan">
+                <span class="menus-plan-workflow-icon"><i class="fas fa-route"></i></span>
+                <div>
+                    <strong>Para que este elemento aparezca en un perfil</strong>
+                    <p>1. Cree aquí el menú, submenú o submenú nivel 2. &nbsp; 2. Abra <b>Sistema → Planes</b> y asígnelo al plan. &nbsp; 3. Luego vaya a <b>Privilegios</b> o <b>Asignar Planes</b> para dar el acceso al perfil. Los elementos que todavía no estén habilitados en el plan no aparecerán en esos listados.</p>
+                </div>
+            </div>
             <form id="formulario_menu">
                 <input type="hidden" id="menu_id" name="menu_id" value="">
                 

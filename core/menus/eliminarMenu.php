@@ -87,7 +87,7 @@ try {
             $connCliente = MenuSyncHelper::conectarCliente($insMainModel, $dbName);
 
             if (!$connCliente) {
-                $erroresClientes[] = "No se pudo conectar a la base {$dbName}.";
+                $erroresClientes[] = "{$dbName}: " . MenuSyncHelper::obtenerUltimoErrorConexion();
                 continue;
             }
 
@@ -97,12 +97,12 @@ try {
 
             $connCliente->commit();
 
-        } catch (Exception $eCliente) {
+        } catch (Throwable $eCliente) {
             if ($connCliente) {
                 $connCliente->rollback();
             }
 
-            $erroresClientes[] = "Error en {$dbName}: " . $eCliente->getMessage();
+            $erroresClientes[] = "{$dbName}: " . $eCliente->getMessage();
 
         } finally {
             if ($connCliente) {
@@ -116,7 +116,7 @@ try {
 
     $mensaje = empty($erroresClientes)
         ? "Registro eliminado correctamente y sincronizado en las bases de clientes activas."
-        : "Registro eliminado en la base principal, pero algunas bases de clientes no pudieron sincronizarse.";
+        : "Registro eliminado en la base principal. Algunas bases IZZY no se sincronizaron; revise el detalle.";
 
     MenuSyncHelper::respuesta("success", "Operación exitosa", $mensaje, [
         "warnings" => $erroresClientes

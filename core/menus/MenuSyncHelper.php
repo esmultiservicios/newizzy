@@ -3,6 +3,8 @@
 
 class MenuSyncHelper {
 
+    private static $ultimoErrorConexion = '';
+
     public static function responder($data) {
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         exit;
@@ -31,21 +33,28 @@ class MenuSyncHelper {
 
     public static function conectarCliente($mainModel, $dbName) {
         $dbName = trim((string)$dbName);
+        self::$ultimoErrorConexion = '';
 
         if ($dbName === "" || !self::validarDbName($dbName)) {
             return false;
         }
 
-        if (!method_exists($mainModel, "connectToDatabase")) {
+        try {
+            $conexion = new mysqli(SERVER, USER, PASS, $dbName);
+            if ($conexion->connect_errno) {
+                self::$ultimoErrorConexion = $conexion->connect_error ?: ('Código MySQL ' . $conexion->connect_errno);
+                return false;
+            }
+            $conexion->set_charset('utf8mb4');
+            return $conexion;
+        } catch (Throwable $e) {
+            self::$ultimoErrorConexion = $e->getMessage();
             return false;
         }
+    }
 
-        return $mainModel->connectToDatabase([
-            "host" => SERVER,
-            "user" => USER,
-            "pass" => PASS,
-            "name" => $dbName
-        ]);
+    public static function obtenerUltimoErrorConexion() {
+        return self::$ultimoErrorConexion !== '' ? self::$ultimoErrorConexion : 'conexión rechazada o base inexistente';
     }
 
     public static function validarDbName($dbName) {
@@ -182,15 +191,18 @@ class MenuSyncHelper {
 
     public static function obtenerBasesClientesActivas($conexionPrincipal) {
         $bases = [];
+        $dbPrincipal = defined('DB_MAIN') ? strtolower(trim((string)DB_MAIN)) : '';
+        $dbActual = strtolower(trim((string)($GLOBALS['db'] ?? '')));
 
         $sql = "
-            SELECT db
-            FROM server_customers
-            WHERE estado = 1
-              AND sistema_id = 1
-              AND db IS NOT NULL
-              AND TRIM(db) != ''
-            ORDER BY server_customers_id ASC
+            SELECT sc.db
+            FROM server_customers sc
+            INNER JOIN sistema s ON s.sistema_id = sc.sistema_id
+            WHERE sc.estado = 1
+              AND UPPER(TRIM(s.nombre)) = 'IZZY'
+              AND sc.db IS NOT NULL
+              AND TRIM(sc.db) != ''
+            ORDER BY sc.server_customers_id ASC
         ";
 
         $resultado = $conexionPrincipal->query($sql);
@@ -201,13 +213,41 @@ class MenuSyncHelper {
 
         while ($row = $resultado->fetch_assoc()) {
             $db = trim((string)$row["db"]);
+            $dbKey = strtolower($db);
 
-            if ($db !== "" && self::validarDbName($db)) {
-                $bases[] = $db;
+            // DB_MAIN ya recibió la operación; abrirla como cliente durante la
+            // misma escritura puede competir con el registro que se está creando.
+            if ($db !== "" && self::validarDbName($db) && $dbKey !== $dbPrincipal) {
+                $bases[$dbKey] = $db;
             }
         }
 
-        return array_values(array_unique($bases));
+        // La base de sesión puede incorporarse aunque esté inactiva, pero solo
+        // después de confirmar en el catálogo principal que pertenece a IZZY.
+        // Así nunca se intenta escribir en las bases de CAMI u otros sistemas.
+        if ($dbActual !== '' && self::validarDbName($dbActual) && $dbActual !== $dbPrincipal) {
+            $stmtActual = $conexionPrincipal->prepare(
+                "SELECT sc.db FROM server_customers sc " .
+                "INNER JOIN sistema s ON s.sistema_id = sc.sistema_id " .
+                "WHERE LOWER(TRIM(sc.db)) = ? AND UPPER(TRIM(s.nombre)) = 'IZZY' LIMIT 1"
+            );
+            if (!$stmtActual) {
+                throw new Exception('No se pudo validar el sistema de la base actual: ' . $conexionPrincipal->error);
+            }
+            $stmtActual->bind_param('s', $dbActual);
+            if (!$stmtActual->execute()) {
+                $error = $stmtActual->error;
+                $stmtActual->close();
+                throw new Exception('No se pudo validar el sistema de la base actual: ' . $error);
+            }
+            $resultadoActual = $stmtActual->get_result();
+            if ($resultadoActual && $resultadoActual->num_rows > 0) {
+                $bases[$dbActual] = trim((string)$GLOBALS['db']);
+            }
+            $stmtActual->close();
+        }
+
+        return array_values($bases);
     }
 
     public static function validarDependencia($conexion, $config, $tipo, $dependencia) {

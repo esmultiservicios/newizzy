@@ -1,659 +1,77 @@
 <?php
-// core/menus/MenuSyncHelper.php
+/** Devuelve las dependencias del formulario de administración de menús. */
+$peticionAjax = true;
+require_once __DIR__ . '/../configGenerales.php';
+require_once __DIR__ . '/../mainModel.php';
+require_once __DIR__ . '/MenuSyncHelper.php';
 
-class MenuSyncHelper {
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, private');
+header('X-Content-Type-Options: nosniff');
 
-    public static function responder($data) {
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
+function responderDependenciasMenu($success, array $data = [], $message = '', $status = 200)
+{
+    http_response_code($status);
+    echo json_encode([
+        'success' => (bool)$success,
+        'data' => $data,
+        'message' => (string)$message
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+$model = new mainModel();
+$validacion = mainModel::validarSesion();
+if (!empty($validacion['error'])) {
+    responderDependenciasMenu(false, [], $validacion['mensaje'] ?? 'La sesión no es válida.', 401);
+}
+
+$tipo = trim((string)($_POST['tipo'] ?? ''));
+if (!in_array($tipo, ['getMenus', 'getAllSubmenus', 'getSubmenusByMenu'], true)) {
+    responderDependenciasMenu(false, [], 'Tipo de dependencia no válido.', 400);
+}
+
+$conexion = null;
+$stmt = null;
+try {
+    $conexion = MenuSyncHelper::conectarPrincipal($model);
+    if (!$conexion) throw new RuntimeException('No se pudo conectar a la base principal.');
+    MenuSyncHelper::validarEstructuraMenus($conexion);
+
+    if ($tipo === 'getMenus') {
+        $sql = 'SELECT menu_id AS id, name, descripcion FROM menu ORDER BY orden ASC, menu_id ASC';
+        $stmt = $conexion->prepare($sql);
+    } elseif ($tipo === 'getAllSubmenus') {
+        $sql = 'SELECT s.submenu_id AS id, s.name, '
+             . 'CONCAT(COALESCE(m.descripcion, "Menú"), " · ", s.descripcion) AS descripcion '
+             . 'FROM submenu s INNER JOIN menu m ON m.menu_id=s.menu_id '
+             . 'ORDER BY m.orden ASC, s.orden ASC, s.submenu_id ASC';
+        $stmt = $conexion->prepare($sql);
+    } else {
+        $menuId = filter_var($_POST['menu_id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$menuId || $menuId < 1) responderDependenciasMenu(false, [], 'Seleccione un menú principal válido.', 422);
+        $sql = 'SELECT s.submenu_id AS id, s.name, s.descripcion '
+             . 'FROM submenu s WHERE s.menu_id=? ORDER BY s.orden ASC, s.submenu_id ASC';
+        $stmt = $conexion->prepare($sql);
+        if ($stmt) $stmt->bind_param('i', $menuId);
     }
 
-    public static function respuesta($type, $title, $message, $extra = []) {
-        self::responder(array_merge([
-            "type" => $type,
-            "title" => $title,
-            "message" => $message
-        ], $extra));
-    }
-
-    public static function conectarPrincipal($mainModel) {
-        if (defined('DB_MAIN') && method_exists($mainModel, 'connectToDatabase')) {
-            return $mainModel->connectToDatabase([
-                "host" => SERVER,
-                "user" => USER,
-                "pass" => PASS,
-                "name" => DB_MAIN
-            ]);
-        }
-
-        return $mainModel->connection();
-    }
-
-    public static function conectarCliente($mainModel, $dbName) {
-        $dbName = trim((string)$dbName);
-
-        if ($dbName === "" || !self::validarDbName($dbName)) {
-            return false;
-        }
-
-        if (!method_exists($mainModel, "connectToDatabase")) {
-            return false;
-        }
-
-        return $mainModel->connectToDatabase([
-            "host" => SERVER,
-            "user" => USER,
-            "pass" => PASS,
-            "name" => $dbName
-        ]);
-    }
-
-    public static function validarDbName($dbName) {
-        return preg_match('/^[a-zA-Z0-9_]+$/', $dbName) === 1;
-    }
-
-    public static function normalizarTipo($tipo) {
-        $tipo = strtolower(trim((string)$tipo));
-
-        if (!in_array($tipo, ["menu", "submenu", "submenu1"], true)) {
-            return "";
-        }
-
-        return $tipo;
-    }
-
-    public static function obtenerConfig($tipo) {
-        if ($tipo === "menu") {
-            return [
-                "tabla" => "menu",
-                "id_field" => "menu_id",
-                "parent_field" => "",
-                "dependency_table" => "",
-                "dependency_field" => "",
-                "nombre_tipo" => "menú principal"
-            ];
-        }
-
-        if ($tipo === "submenu") {
-            return [
-                "tabla" => "submenu",
-                "id_field" => "submenu_id",
-                "parent_field" => "menu_id",
-                "dependency_table" => "menu",
-                "dependency_field" => "menu_id",
-                "nombre_tipo" => "submenú nivel 1"
-            ];
-        }
-
-        return [
-            "tabla" => "submenu1",
-            "id_field" => "submenu1_id",
-            "parent_field" => "submenu_id",
-            "dependency_table" => "submenu",
-            "dependency_field" => "submenu_id",
-            "nombre_tipo" => "submenú nivel 2"
+    if (!$stmt) throw new RuntimeException('No se pudo preparar la consulta de dependencias: ' . $conexion->error);
+    if (!$stmt->execute()) throw new RuntimeException('No se pudieron consultar las dependencias: ' . $stmt->error);
+    $result = $stmt->get_result();
+    $data = [];
+    while ($row = $result->fetch_assoc()) {
+        $data[] = [
+            'id' => (int)$row['id'],
+            'nombre' => (string)($row['name'] ?? ''),
+            'descripcion' => (string)($row['descripcion'] ?? '')
         ];
     }
-
-    public static function tablaExiste($conexion, $tabla) {
-        $tabla = trim((string)$tabla);
-
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $tabla)) {
-            return false;
-        }
-
-        $dbResult = $conexion->query("SELECT DATABASE() AS db_actual");
-
-        if (!$dbResult) {
-            return false;
-        }
-
-        $dbRow = $dbResult->fetch_assoc();
-        $dbActual = isset($dbRow["db_actual"]) ? $conexion->real_escape_string($dbRow["db_actual"]) : "";
-        $tablaSafe = $conexion->real_escape_string($tabla);
-
-        if ($dbActual === "") {
-            return false;
-        }
-
-        $sql = "
-            SELECT COUNT(*) AS total
-            FROM INFORMATION_SCHEMA.TABLES
-            WHERE TABLE_SCHEMA = '{$dbActual}'
-              AND TABLE_NAME = '{$tablaSafe}'
-            LIMIT 1
-        ";
-
-        $resultado = $conexion->query($sql);
-
-        if (!$resultado) {
-            return false;
-        }
-
-        $row = $resultado->fetch_assoc();
-
-        return isset($row["total"]) && (int)$row["total"] > 0;
-    }
-
-    public static function columnaExiste($conexion, $tabla, $columna) {
-        $tabla = trim((string)$tabla);
-        $columna = trim((string)$columna);
-
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $tabla) || !preg_match('/^[a-zA-Z0-9_]+$/', $columna)) {
-            return false;
-        }
-
-        $dbResult = $conexion->query("SELECT DATABASE() AS db_actual");
-
-        if (!$dbResult) {
-            return false;
-        }
-
-        $dbRow = $dbResult->fetch_assoc();
-        $dbActual = isset($dbRow["db_actual"]) ? $conexion->real_escape_string($dbRow["db_actual"]) : "";
-        $tablaSafe = $conexion->real_escape_string($tabla);
-        $columnaSafe = $conexion->real_escape_string($columna);
-
-        if ($dbActual === "") {
-            return false;
-        }
-
-        $sql = "
-            SELECT COUNT(*) AS total
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_SCHEMA = '{$dbActual}'
-              AND TABLE_NAME = '{$tablaSafe}'
-              AND COLUMN_NAME = '{$columnaSafe}'
-            LIMIT 1
-        ";
-
-        $resultado = $conexion->query($sql);
-
-        if (!$resultado) {
-            return false;
-        }
-
-        $row = $resultado->fetch_assoc();
-
-        return isset($row["total"]) && (int)$row["total"] > 0;
-    }
-
-    public static function asegurarEstructuraMenus($conexion) {
-        if (!self::tablaExiste($conexion, "menu")) {
-            $sql = "
-                CREATE TABLE menu (
-                    menu_id int NOT NULL AUTO_INCREMENT,
-                    name char(30) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    descripcion varchar(50) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    icon varchar(50) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
-                    orden int NOT NULL DEFAULT '0',
-                    fecha_registro timestamp NOT NULL,
-                    visible tinyint(1) DEFAULT '1' COMMENT '1. Si 0. No',
-                    PRIMARY KEY (menu_id)
-                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Lista de todos los menús disponibles en el sistema'
-            ";
-
-            if (!$conexion->query($sql)) {
-                throw new Exception("No se pudo crear la tabla menu: " . $conexion->error);
-            }
-        }
-
-        if (!self::tablaExiste($conexion, "submenu")) {
-            $sql = "
-                CREATE TABLE submenu (
-                    submenu_id int NOT NULL AUTO_INCREMENT,
-                    menu_id int NOT NULL,
-                    name char(25) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    descripcion varchar(50) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    icon varchar(50) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
-                    orden int NOT NULL DEFAULT '0',
-                    fecha_registro timestamp NOT NULL,
-                    visible tinyint(1) DEFAULT '1' COMMENT '1. Si 0. No',
-                    PRIMARY KEY (submenu_id)
-                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Lista de todos los submenús de nivel 1 disponibles en el sistema'
-            ";
-
-            if (!$conexion->query($sql)) {
-                throw new Exception("No se pudo crear la tabla submenu: " . $conexion->error);
-            }
-        }
-
-        if (!self::tablaExiste($conexion, "submenu1")) {
-            $sql = "
-                CREATE TABLE submenu1 (
-                    submenu1_id int NOT NULL AUTO_INCREMENT,
-                    submenu_id int NOT NULL,
-                    name char(20) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    descripcion varchar(50) COLLATE utf8mb4_spanish_ci NOT NULL,
-                    icon varchar(50) COLLATE utf8mb4_spanish_ci DEFAULT NULL,
-                    orden int NOT NULL DEFAULT '0',
-                    fecha_registro timestamp NOT NULL,
-                    visible tinyint(1) DEFAULT '1' COMMENT '1. Si 0. No',
-                    PRIMARY KEY (submenu1_id)
-                ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci COMMENT='Lista de todos los submenús de nivel 2 disponibles en el sistema'
-            ";
-
-            if (!$conexion->query($sql)) {
-                throw new Exception("No se pudo crear la tabla submenu1: " . $conexion->error);
-            }
-        }
-
-        return true;
-    }
-
-    public static function obtenerBasesClientesActivas($conexionPrincipal) {
-        $bases = [];
-
-        $sql = "
-            SELECT db
-            FROM server_customers
-            WHERE estado = 1
-              AND db IS NOT NULL
-              AND TRIM(db) != ''
-            ORDER BY server_customers_id ASC
-        ";
-
-        $resultado = $conexionPrincipal->query($sql);
-
-        if (!$resultado) {
-            throw new Exception("No se pudieron obtener las bases activas: " . $conexionPrincipal->error);
-        }
-
-        while ($row = $resultado->fetch_assoc()) {
-            $db = trim((string)$row["db"]);
-
-            if ($db !== "" && self::validarDbName($db)) {
-                $bases[] = $db;
-            }
-        }
-
-        return array_values(array_unique($bases));
-    }
-
-    public static function validarDependencia($conexion, $config, $tipo, $dependencia) {
-        if ($tipo === "menu") {
-            return true;
-        }
-
-        if ($dependencia <= 0) {
-            return false;
-        }
-
-        $tabla = $config["dependency_table"];
-        $campo = $config["dependency_field"];
-
-        if (!self::tablaExiste($conexion, $tabla)) {
-            return false;
-        }
-
-        $sql = "SELECT {$campo} FROM {$tabla} WHERE {$campo} = ? LIMIT 1";
-        $stmt = $conexion->prepare($sql);
-
-        if (!$stmt) {
-            throw new Exception("No se pudo preparar la validación de dependencia: " . $conexion->error);
-        }
-
-        $stmt->bind_param("i", $dependencia);
-        $stmt->execute();
-
-        $resultado = $stmt->get_result();
-        $existe = $resultado && $resultado->num_rows > 0;
-
-        $stmt->close();
-
-        return $existe;
-    }
-
-    public static function obtenerNombreActual($conexion, $tabla, $idField, $id) {
-        if (!self::tablaExiste($conexion, $tabla)) {
-            return "";
-        }
-
-        $sql = "SELECT name FROM {$tabla} WHERE {$idField} = ? LIMIT 1";
-        $stmt = $conexion->prepare($sql);
-
-        if (!$stmt) {
-            throw new Exception("No se pudo preparar consulta del registro actual: " . $conexion->error);
-        }
-
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-
-        $resultado = $stmt->get_result();
-
-        if (!$resultado || $resultado->num_rows <= 0) {
-            $stmt->close();
-            return "";
-        }
-
-        $row = $resultado->fetch_assoc();
-        $nombre = isset($row["name"]) ? trim((string)$row["name"]) : "";
-
-        $stmt->close();
-
-        return $nombre;
-    }
-
-    public static function existeDuplicado($conexion, $tipo, $idExcluir, $nombre, $dependencia) {
-        if ($tipo === "menu") {
-            $sql = "
-                SELECT menu_id
-                FROM menu
-                WHERE name = ?
-                  AND menu_id <> ?
-                LIMIT 1
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar validación de duplicado de menú: " . $conexion->error);
-            }
-
-            $stmt->bind_param("si", $nombre, $idExcluir);
-
-        } elseif ($tipo === "submenu") {
-            $sql = "
-                SELECT submenu_id
-                FROM submenu
-                WHERE name = ?
-                  AND menu_id = ?
-                  AND submenu_id <> ?
-                LIMIT 1
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar validación de duplicado de submenú: " . $conexion->error);
-            }
-
-            $stmt->bind_param("sii", $nombre, $dependencia, $idExcluir);
-
-        } else {
-            $sql = "
-                SELECT submenu1_id
-                FROM submenu1
-                WHERE name = ?
-                  AND submenu_id = ?
-                  AND submenu1_id <> ?
-                LIMIT 1
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar validación de duplicado de submenú nivel 2: " . $conexion->error);
-            }
-
-            $stmt->bind_param("sii", $nombre, $dependencia, $idExcluir);
-        }
-
-        $stmt->execute();
-
-        $resultado = $stmt->get_result();
-        $existe = $resultado && $resultado->num_rows > 0;
-
-        $stmt->close();
-
-        return $existe;
-    }
-
-    public static function obtenerSiguienteId($conexion, $tabla, $idField) {
-        $permitidos = [
-            "menu" => "menu_id",
-            "submenu" => "submenu_id",
-            "submenu1" => "submenu1_id"
-        ];
-
-        if (!isset($permitidos[$tabla]) || $permitidos[$tabla] !== $idField) {
-            throw new Exception("Tabla o campo no permitido para correlativo.");
-        }
-
-        $sql = "SELECT COALESCE(MAX({$idField}), 0) + 1 AS siguiente FROM {$tabla}";
-        $resultado = $conexion->query($sql);
-
-        if (!$resultado) {
-            throw new Exception("No se pudo obtener el correlativo de {$tabla}: " . $conexion->error);
-        }
-
-        $row = $resultado->fetch_assoc();
-
-        return (int)$row["siguiente"];
-    }
-
-    public static function insertarRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible) {
-        self::asegurarEstructuraMenus($conexion);
-
-        if ($tipo === "menu") {
-            $sql = "
-                INSERT INTO menu (
-                    menu_id,
-                    name,
-                    descripcion,
-                    icon,
-                    orden,
-                    fecha_registro,
-                    visible
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar registro de menú: " . $conexion->error);
-            }
-
-            $stmt->bind_param("isssisi", $id, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible);
-
-        } elseif ($tipo === "submenu") {
-            $sql = "
-                INSERT INTO submenu (
-                    submenu_id,
-                    menu_id,
-                    name,
-                    descripcion,
-                    icon,
-                    orden,
-                    fecha_registro,
-                    visible
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar registro de submenú: " . $conexion->error);
-            }
-
-            $stmt->bind_param("iisssisi", $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible);
-
-        } else {
-            $sql = "
-                INSERT INTO submenu1 (
-                    submenu1_id,
-                    submenu_id,
-                    name,
-                    descripcion,
-                    icon,
-                    orden,
-                    fecha_registro,
-                    visible
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar registro de submenú nivel 2: " . $conexion->error);
-            }
-
-            $stmt->bind_param("iisssisi", $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible);
-        }
-
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
-            $stmt->close();
-            throw new Exception("No se pudo registrar el elemento: " . $error);
-        }
-
-        $stmt->close();
-
-        return true;
-    }
-
-    public static function actualizarRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $visible) {
-        self::asegurarEstructuraMenus($conexion);
-
-        if ($tipo === "menu") {
-            $sql = "
-                UPDATE menu SET
-                    name = ?,
-                    descripcion = ?,
-                    icon = ?,
-                    orden = ?,
-                    visible = ?
-                WHERE menu_id = ?
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar actualización de menú: " . $conexion->error);
-            }
-
-            $stmt->bind_param("sssiii", $nombre, $descripcion, $icono, $orden, $visible, $id);
-
-        } elseif ($tipo === "submenu") {
-            $sql = "
-                UPDATE submenu SET
-                    menu_id = ?,
-                    name = ?,
-                    descripcion = ?,
-                    icon = ?,
-                    orden = ?,
-                    visible = ?
-                WHERE submenu_id = ?
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar actualización de submenú: " . $conexion->error);
-            }
-
-            $stmt->bind_param("isssiii", $dependencia, $nombre, $descripcion, $icono, $orden, $visible, $id);
-
-        } else {
-            $sql = "
-                UPDATE submenu1 SET
-                    submenu_id = ?,
-                    name = ?,
-                    descripcion = ?,
-                    icon = ?,
-                    orden = ?,
-                    visible = ?
-                WHERE submenu1_id = ?
-            ";
-
-            $stmt = $conexion->prepare($sql);
-
-            if (!$stmt) {
-                throw new Exception("No se pudo preparar actualización de submenú nivel 2: " . $conexion->error);
-            }
-
-            $stmt->bind_param("isssiii", $dependencia, $nombre, $descripcion, $icono, $orden, $visible, $id);
-        }
-
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
-            $stmt->close();
-            throw new Exception("No se pudo actualizar el elemento: " . $error);
-        }
-
-        $stmt->close();
-
-        return true;
-    }
-
-    public static function upsertRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible) {
-        self::asegurarEstructuraMenus($conexion);
-
-        $config = self::obtenerConfig($tipo);
-        $tabla = $config["tabla"];
-        $idField = $config["id_field"];
-
-        $existe = self::obtenerNombreActual($conexion, $tabla, $idField, $id) !== "";
-
-        if ($existe) {
-            self::actualizarRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $visible);
-        } else {
-            self::insertarRegistro($conexion, $tipo, $id, $dependencia, $nombre, $descripcion, $icono, $orden, $fechaRegistro, $visible);
-        }
-
-        return true;
-    }
-
-    public static function tieneDependencias($conexion, $tipo, $id) {
-        if ($tipo === "menu") {
-            if (!self::tablaExiste($conexion, "submenu")) {
-                return false;
-            }
-
-            $sql = "SELECT 1 FROM submenu WHERE menu_id = ? LIMIT 1";
-
-        } elseif ($tipo === "submenu") {
-            if (!self::tablaExiste($conexion, "submenu1")) {
-                return false;
-            }
-
-            $sql = "SELECT 1 FROM submenu1 WHERE submenu_id = ? LIMIT 1";
-
-        } else {
-            return false;
-        }
-
-        $stmt = $conexion->prepare($sql);
-
-        if (!$stmt) {
-            throw new Exception("No se pudo preparar validación de dependencias: " . $conexion->error);
-        }
-
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-
-        $resultado = $stmt->get_result();
-        $existe = $resultado && $resultado->num_rows > 0;
-
-        $stmt->close();
-
-        return $existe;
-    }
-
-    public static function eliminarRegistro($conexion, $tipo, $id) {
-        $config = self::obtenerConfig($tipo);
-
-        if (!self::tablaExiste($conexion, $config["tabla"])) {
-            return true;
-        }
-
-        $sql = "DELETE FROM {$config["tabla"]} WHERE {$config["id_field"]} = ?";
-        $stmt = $conexion->prepare($sql);
-
-        if (!$stmt) {
-            throw new Exception("No se pudo preparar eliminación: " . $conexion->error);
-        }
-
-        $stmt->bind_param("i", $id);
-
-        if (!$stmt->execute()) {
-            $error = $stmt->error;
-            $stmt->close();
-            throw new Exception("No se pudo eliminar el elemento: " . $error);
-        }
-
-        $stmt->close();
-
-        return true;
-    }
+    responderDependenciasMenu(true, $data);
+} catch (Throwable $e) {
+    error_log('Dependencias de menús: ' . $e->getMessage());
+    responderDependenciasMenu(false, [], 'No se pudieron consultar las dependencias en la base principal.', 500);
+} finally {
+    if ($stmt) $stmt->close();
+    if ($conexion) $conexion->close();
 }

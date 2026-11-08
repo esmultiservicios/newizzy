@@ -710,10 +710,51 @@
    ========================================================= */
 
 .priv-access-modal .modal-content {
+    display: flex;
+    flex: 0 0 100%;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
     border: 0;
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 18px 45px rgba(15, 34, 53, .24);
+}
+
+#modal_registrar_privilegios .modal-content,
+#modal_registrar_tipoUsuario .modal-content,
+#modal_permisos .modal-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+#modal_registrar_privilegios .modal-header,
+#modal_registrar_privilegios .modal-footer,
+#modal_registrar_tipoUsuario .modal-header,
+#modal_registrar_tipoUsuario .modal-footer,
+#modal_permisos .modal-header,
+#modal_permisos .modal-footer {
+    flex: 0 0 auto;
+}
+
+#modal_registrar_privilegios .modal-body,
+#modal_registrar_tipoUsuario .modal-body,
+#modal_permisos .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .priv-access-modal {
@@ -727,6 +768,93 @@
     --priv-muted: #6B778C;
     --priv-border: #DDE3EA;
     --priv-text: #172B4D;
+}
+
+/* Tamaño estable para los tres modales de navegación. El contenido y
+   Select2 se desplazan dentro del modal; nunca alteran su geometría. */
+.priv-access-modal {
+    padding: 16px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+.priv-access-modal.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.priv-access-modal > .modal-dialog {
+    width: min(1120px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: min(1120px, calc(100vw - 32px)) !important;
+    height: min(780px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    max-height: min(780px, calc(100dvh - 32px)) !important;
+    margin: 0 !important;
+    flex: 0 0 auto !important;
+    box-sizing: border-box !important;
+}
+
+/* Cierre estable: Bootstrap desplaza el diálogo al entrar/salir de .fade.
+   En este modal se conserva siempre el mismo centro y tamaño. */
+.priv-access-modal,
+.priv-access-modal.fade,
+.priv-access-modal.show,
+.priv-access-modal.fade .modal-dialog,
+.priv-access-modal.show .modal-dialog {
+    transition: none !important;
+}
+
+.priv-access-modal.fade .modal-dialog,
+.priv-access-modal.show .modal-dialog {
+    transform: none !important;
+}
+
+/* Reserva el espacio de la barra vertical para que la página de fondo no
+   cambie de posición horizontal cuando Bootstrap cierra el modal. */
+html {
+    scrollbar-gutter: stable;
+}
+
+#modal_registrar_privilegios.show,
+#modal_registrar_tipoUsuario.show,
+#modal_permisos.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+    overflow: hidden !important;
+}
+
+#modal_registrar_privilegios > .modal-dialog,
+#modal_registrar_tipoUsuario > .modal-dialog {
+    width: min(640px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: min(640px, calc(100vw - 32px)) !important;
+    height: min(560px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    max-height: min(560px, calc(100dvh - 32px)) !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#modal_permisos > .modal-dialog {
+    width: min(1120px, calc(100vw - 32px)) !important;
+    min-width: 0 !important;
+    max-width: min(1120px, calc(100vw - 32px)) !important;
+    height: min(780px, calc(100dvh - 32px)) !important;
+    min-height: 0 !important;
+    max-height: min(780px, calc(100dvh - 32px)) !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+#modal_permisos .modal-content {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 .priv-access-modal .modal-header {
@@ -757,8 +885,55 @@
 }
 
 .priv-access-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 18px 20px;
     background: #fff;
+}
+
+.priv-access-modal .modal-header,
+.priv-access-modal .modal-footer {
+    flex: 0 0 auto;
+}
+
+.priv-access-modal .select2-container--open .select2-dropdown {
+    position: absolute !important;
+    max-height: min(320px, calc(100dvh - 80px));
+    overflow: hidden;
+}
+
+.priv-access-modal .select2-results__options {
+    max-height: min(260px, calc(100dvh - 140px));
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+    .priv-access-modal,
+    #modal_registrar_privilegios.show,
+    #modal_registrar_tipoUsuario.show,
+    #modal_permisos.show {
+        padding: 6px !important;
+    }
+
+    .priv-access-modal > .modal-dialog,
+    #modal_registrar_privilegios > .modal-dialog,
+    #modal_registrar_tipoUsuario > .modal-dialog,
+    #modal_permisos > .modal-dialog {
+        width: calc(100vw - 12px) !important;
+        max-width: calc(100vw - 12px) !important;
+        height: calc(100dvh - 12px) !important;
+        max-height: calc(100dvh - 12px) !important;
+    }
+
+    .priv-access-modal .modal-body {
+        padding: 14px 12px;
+    }
 }
 
 .priv-access-context {
@@ -817,6 +992,105 @@
     gap: 12px;
     margin-bottom: 14px;
     flex-wrap: wrap;
+}
+
+.priv-access-filters {
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 12px;
+    border: 1px solid #D8E5F0;
+    border-radius: 10px;
+    background: #F7FAFD;
+}
+
+.priv-access-filter {
+    display: flex;
+    flex: 1 1 240px;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 180px;
+    margin: 0;
+    color: #40536A;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.priv-access-filter > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.priv-access-filter > span i {
+    color: #168FD0;
+}
+
+.priv-access-filter select {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid #C9D9E8;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #233B55;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.priv-access-filter select:focus {
+    border-color: #269BDF;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(38, 155, 223, .12);
+}
+
+.priv-access-filter select:disabled {
+    background-color: #EDF2F7;
+    color: #8290A2;
+    cursor: not-allowed;
+}
+
+.priv-access-filter > select.izzy-select2 + .select2-container {
+    display: block;
+    flex: 1 1 100%;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+.priv-access-filter > select.izzy-select2 + .select2-container .select2-selection--single {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+.priv-access-filter > select.izzy-select2 + .select2-container .select2-selection__rendered {
+    min-width: 0;
+    text-align: left;
+}
+
+.priv-access-modal .select2-container--open .select2-dropdown {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.priv-access-modal .select2-container--disabled .select2-selection--single {
+    background: #EDF2F7 !important;
+    color: #8290A2 !important;
+}
+
+@media (max-width: 575.98px) {
+    .priv-access-filters {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .priv-access-filter {
+        flex-basis: auto;
+        min-width: 0;
+        width: 100%;
+    }
 }
 
 .priv-access-toolbar-left,

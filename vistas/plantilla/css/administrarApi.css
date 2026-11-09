@@ -302,3 +302,80 @@
     .api-secret-modal{height:390px}
 }
 @media(max-height:480px){.api-modal-backdrop{align-items:flex-start}.api-modal{margin:auto 0}}
+
+/* Accesos externos: formulario de lectura horizontal, sin casillas gigantes. */
+#api_integration_modal .api-modal{width:min(900px,calc(100vw - 32px));height:auto;max-height:calc(100dvh - 32px)}
+#api_integration_modal .api-modal-form-body{gap:14px;padding:18px 24px}
+#api_integration_modal .api-integration-purpose{align-items:center;padding:11px 15px}
+#api_integration_modal .api-integration-form-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px 16px;align-items:end}
+#api_integration_modal .api-integration-field{display:flex;flex-direction:column;min-width:0;gap:7px}
+#api_integration_modal .api-integration-field-company,#api_integration_modal .api-no-authorized-hint{grid-column:1/-1}
+#api_integration_modal .api-integration-field>label{margin:0;font-size:12px;color:#25445c}
+#api_integration_modal .api-integration-field>label>i{margin-right:5px;color:#168bd0}
+#api_integration_modal .api-integration-text-input{display:block;box-sizing:border-box;width:100%;height:44px!important;min-height:44px;padding:0 14px!important;border:1px solid #b9cedd!important;border-radius:10px!important;background:#fff!important;color:#18374f!important;font-size:13px;font-weight:500;line-height:1.4;transition:border-color .16s,box-shadow .16s}
+#api_integration_modal .api-integration-text-input::placeholder{color:#8398a9;opacity:1}
+#api_integration_modal .api-integration-text-input:focus{border-color:#128ad2!important;box-shadow:0 0 0 3px rgba(18,138,210,.15)!important;outline:0}
+#api_integration_modal .api-integration-field .select2-container{width:100%!important;max-width:100%}
+#api_integration_modal .api-integration-field .select2-selection--single{height:44px!important;min-height:44px!important;display:flex!important;align-items:center;border:1px solid #b9cedd!important;border-radius:10px!important;background:#fff!important}
+#api_integration_modal .api-integration-field .select2-selection__rendered{padding-left:13px!important;color:#25445c!important}
+#api_integration_modal .api-integration-field .select2-selection__arrow{top:8px!important;right:8px!important}
+#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#api_integration_modal .api-modal-form-body>.api-scopes>label{position:relative;min-height:48px;gap:8px;padding:8px 10px;border:1px solid #d2e2ec;border-radius:10px;background:#f5f9fc;box-shadow:none;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+#api_integration_modal .api-modal-form-body>.api-scopes>label:hover{border-color:#4ba8d9;background:#eef8ff;transform:translateY(-1px)}
+#api_integration_modal .api-modal-form-body>.api-scopes>label:has(input:checked){border-color:#7bbfe7;background:#e8f5ff;box-shadow:inset 3px 0 #168bd0}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>i{font-size:14px;color:#0e88c5}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>span{font-size:12px;font-weight:800;white-space:normal}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>small{font-size:10px;padding:3px 7px;white-space:nowrap}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]{appearance:none;-webkit-appearance:none;display:grid;place-items:center;flex:0 0 26px;width:26px!important;height:22px!important;margin:0;border:1px solid #aac3d4;border-radius:6px;background:#fff;cursor:pointer}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]::after{content:'✓';font-size:14px;font-weight:900;line-height:1;color:#fff;opacity:0}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]:checked{border-color:#0b85cb;background:#0b85cb}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]:checked::after{opacity:1}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]:focus-visible{outline:2px solid #0b85cb;outline-offset:3px}
+#api_integration_modal .api-modal-form-body>p{font-size:11px;line-height:1.5;margin:0}
+#api_integration_modal .api-modal-actions{justify-content:flex-end;min-height:62px;padding:11px 24px!important}
+#api_integration_modal .api-modal-actions .btn{border-radius:9px;color:#fff!important}
+@media(max-width:767px){#api_integration_modal .api-integration-form-grid{grid-template-columns:1fr}#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){#api_integration_modal .api-modal-form-body{padding:14px}#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:1fr}#api_integration_modal .api-modal-actions{padding:10px 14px!important}}
+
+/* Selector premium: el indicador circular va al extremo derecho y queda centrado. */
+#api_integration_modal .api-modal-form-body>.api-scopes>label{display:flex;align-items:center;min-height:56px;gap:10px;padding:10px 13px;border-radius:12px;border:1px solid #d7e3ee;background:#f8fafc;box-shadow:0 2px 8px rgba(25,63,92,.04)}
+#api_integration_modal .api-modal-form-body>.api-scopes>label:has(input:checked){background:#eff8ff;border-color:#58a9d7;box-shadow:0 3px 12px rgba(17,115,178,.11),inset 0 0 0 1px rgba(17,115,178,.08)}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>i{order:1;display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#e0eef9;color:#087fc1;font-size:15px}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>span{order:2;flex:1;min-width:0;font-size:13px}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>small{order:3;background:transparent;color:#678399;padding:0;font-size:10px}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]{order:4;appearance:none;-webkit-appearance:none;display:grid;place-items:center;flex:0 0 29px;width:29px!important;height:29px!important;margin:0 0 0 2px;border:2px solid #a7bfd1;border-radius:50%;background:#fff;align-self:center;cursor:pointer}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]:checked{border-color:#0785cb;background:#0785cb}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]::after{content:'✓';color:#fff;font:900 16px/1 Arial,sans-serif;opacity:0}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]:checked::after{opacity:1}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]:focus-visible{outline:3px solid #70c4ec;outline-offset:3px}
+
+/* Filtro por sistema además del estado de la empresa. */
+.api-authorizations-toolbar{grid-template-columns:minmax(280px,1fr) minmax(150px,220px) minmax(200px,250px)}
+.api-authorizations-toolbar #api_authorizations_system+.select2-container .select2-selection--single{height:43px!important;border:1px solid #cfe0eb!important;border-radius:10px!important}
+.api-system-chip{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;margin-top:6px;padding:4px 9px;border-radius:20px;font-size:10px;font-weight:800}
+.api-system-chip.is-izzy{color:#05639e;background:#e8f5ff;border:1px solid #bee5fb}
+.api-system-chip.is-other{color:#746038;background:#fff4d9;border:1px solid #f4dea9}
+.api-system-unavailable{display:inline-flex;gap:6px;align-items:center;color:#8b6670;font-size:11px;font-weight:800}
+@media(max-width:950px){.api-authorizations-toolbar{grid-template-columns:1fr 1fr}.api-authorizations-search{grid-column:1/-1}}
+@media(max-width:580px){.api-authorizations-toolbar{grid-template-columns:1fr}.api-authorizations-search{grid-column:auto}#api_integration_modal .api-modal-form-body>.api-scopes>label>small{display:none}}
+
+/* Alineación del indicador: sin padding nativo ni desplazamiento de pseudo-elementos. */
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]{position:relative;align-self:center!important;justify-self:center!important;padding:0!important;min-width:29px!important;min-height:29px!important;vertical-align:middle!important;line-height:1!important;box-sizing:border-box!important}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]::after{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;line-height:1!important;text-align:center}
+.api-record-number{font-weight:900;font-size:14px;line-height:1;color:#087db8;background:#eaf5fc;border:1px solid #cce7f5}
+.api-route-section-title{display:flex;align-items:center;gap:8px;margin:19px 0 11px;color:#234b68;font-size:14px;font-weight:800}
+.api-route-section-title i{color:#168bd0}
+.api-route-params{margin-top:10px;padding-top:9px;border-top:1px solid #e0eaf1;color:#52758e;font-size:11px}
+.api-route-params i{color:#168bd0;margin-right:4px}
+.api-route-params code{color:#17618e;font-weight:700}
+
+/* El directorio de recursos usa filas completas: URL y permisos arriba, texto debajo. */
+.api-route-grid>.api-resource-card{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:10px;min-width:0;min-height:122px;padding:15px 17px}
+.api-route-grid>.api-resource-card>.api-route-top{display:flex;align-items:center;flex-wrap:wrap;gap:9px;width:100%;min-width:0}
+.api-route-grid>.api-resource-card>.api-route-top>.api-method{flex:0 0 auto}
+.api-route-grid>.api-resource-card>.api-route-top>strong{display:block;flex:1 1 auto;min-width:190px;max-width:100%;font-size:13px;line-height:1.55;overflow-wrap:normal;word-break:normal;white-space:normal;color:#163a57}
+.api-route-grid>.api-resource-card>.api-route-top>.api-auth-tag{flex:0 0 auto;margin-left:auto;max-width:100%;white-space:nowrap}
+.api-route-grid>.api-resource-card>small{display:block;width:100%;margin:0;color:#56758b;font-size:12px;line-height:1.6;overflow-wrap:break-word}
+.api-route-grid>.api-resource-card>.api-route-params{width:100%;margin-top:auto;line-height:1.65;overflow-wrap:break-word}
+@media(max-width:1050px){.api-route-grid>.api-resource-card>.api-route-top>strong{min-width:160px}.api-route-grid>.api-resource-card>.api-route-top>.api-auth-tag{margin-left:0}}
+@media(max-width:650px){.api-route-grid>.api-resource-card{min-height:0}.api-route-grid>.api-resource-card>.api-route-top>strong{flex:1 1 calc(100% - 75px);min-width:0}.api-route-grid>.api-resource-card>.api-route-top>.api-auth-tag{margin-left:0}}

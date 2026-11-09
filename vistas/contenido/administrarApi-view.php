@@ -39,6 +39,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         <div class="api-integration-directions"><article><i class="fas fa-arrow-right"></i><div><strong>De otro sistema hacia IZZY</strong><span>Estas credenciales permiten que un sistema externo solicite tokens para una empresa autorizada.</span></div></article><article><i class="fas fa-arrow-left"></i><div><strong>De IZZY hacia un proveedor externo</strong><span>Pasarelas de pago, WhatsApp o mensajería necesitarán su propio módulo de conectores, con claves del proveedor y webhooks. No se configuran en este formulario.</span></div></article></div>
         <div class="api-integration-notice"><i class="fas fa-info-circle"></i><span>Estas credenciales identifican integraciones servidor a servidor. Las rutas móviles de login, refresh, perfil, cierre y menús siguen usando tokens individuales de usuario.</span></div>
         <div class="api-integration-quickstart"><div><strong><i class="fas fa-link"></i> URL para obtener token</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>integrations/token.php</code></div><div><strong><i class="fas fa-shield-alt"></i> URL para comprobar integración</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>integrations/me.php</code></div><p>Ambas direcciones son comunes; IZZY identifica automáticamente la empresa por su credencial. Nunca se envía un nombre de base de datos desde la integración.</p></div>
+        <div class="api-integration-quickstart"><div><strong><i class="fas fa-users"></i> Consultar clientes</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/clientes.php</code></div><div><strong><i class="fas fa-box"></i> Consultar productos</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/productos.php</code></div><div><strong><i class="fas fa-truck"></i> Consultar proveedores</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/proveedores.php</code></div><div><strong><i class="fas fa-file-invoice"></i> Consultar facturas</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/facturas.php</code></div><div><strong><i class="fas fa-building"></i> Consultar empresa</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/empresa.php</code></div><div><strong><i class="fas fa-list-ol"></i> Consultar secuencias</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/secuencias.php</code></div><p>Rutas de consulta con Bearer de integración y alcances por módulo; sirven también con Bearer de usuario móvil autorizado. La consulta de secuencias no reserva correlativos. La creación, edición y emisión de facturas permanecen deshabilitadas mientras no se integren y prueben las reglas de negocio.</p></div>
         <div class="api-integration-list" id="api_integrations_rows" aria-live="polite"><div class="api-loading">Cargando integraciones…</div></div>
         <div class="api-footnote"><i class="fas fa-lock"></i> El secreto no se guarda en texto legible. Las rutas protegidas para servidor se habilitarán conforme se publiquen sus endpoints y alcances.</div>
     </section>
@@ -47,6 +48,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         <div class="api-panel-heading"><div><h2>Autorización de API por empresa</h2><p>Solo usted puede habilitar o suspender integraciones externas; sin aprobación no se emiten tokens.</p></div><button type="button" class="btn btn-primary" id="api_refresh_authorizations"><i class="fas fa-sync-alt"></i> Actualizar</button></div>
         <div class="api-authorizations-toolbar">
             <label class="api-authorizations-search"><i class="fas fa-search" aria-hidden="true"></i><input type="search" id="api_authorizations_search" placeholder="Buscar empresa, código o base de datos" aria-label="Buscar empresas"></label>
+            <select id="api_authorizations_system" aria-label="Filtrar por sistema"><option value="1" selected>IZZY</option><option value="all">Todos los sistemas</option></select>
             <select id="api_authorizations_status" aria-label="Filtrar acceso API"><option value="active" selected>Empresas activas</option><option value="approved">Activas autorizadas</option><option value="denied">Activas no autorizadas</option><option value="inactive">Empresas inactivas</option><option value="all">Todas las empresas</option></select>
         </div>
         <div class="api-authorizations-count" id="api_authorizations_count" aria-live="polite"></div>
@@ -54,7 +56,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
     </section>
 
     <section class="api-panel" data-api-panel="routes">
-        <div class="api-panel-heading"><div><h2>Rutas de la aplicación móvil</h2><p>Estas rutas usan la autenticación por usuario y no son registros de integración.</p></div>
+        <div class="api-panel-heading"><div><h2>Directorio completo de API v1</h2><p>Rutas de la APK, credenciales externas y recursos compartidos con permisos independientes.</p></div>
             <span class="api-status is-active"><i class="fas fa-code-branch"></i> izzy_apiv1</span></div>
         <div class="api-base-url"><span>Base URL</span><code><?php echo htmlspecialchars($apiBase, ENT_QUOTES, 'UTF-8'); ?></code></div>
         <div class="api-token-lifecycle" aria-label="Duración de tokens">
@@ -62,6 +64,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
             <div><i class="fas fa-sync-alt"></i><span>Refresh token<strong>30 días, con rotación</strong></span></div>
             <div><i class="fas fa-database"></i><span>Almacenamiento<strong>Solo hash en DB_MAIN</strong></span></div>
         </div>
+        <h3 class="api-route-section-title"><i class="fas fa-mobile-alt"></i> Autenticación y navegación de la APK</h3>
         <div class="api-route-grid">
             <article class="api-route-card api-route-detail">
                 <div class="api-route-top"><span class="api-method method-post">POST</span><strong>/auth/login.php</strong><button type="button" class="api-auth-tag auth-public" data-api-info="No necesita un token previo: valida las credenciales de usuario para iniciar sesión. La conexión siempre debe usar HTTPS.">Pública · HTTPS</button></div>
@@ -96,6 +99,24 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
                 <details><summary>Ver encabezado y reglas</summary><pre>Authorization: Bearer &lt;access_token&gt;</pre><p>El móvil puede usar la respuesta para dibujar la navegación; el servidor debe volver a validar los permisos en cada endpoint funcional.</p></details>
             </article>
         </div>
+        <h3 class="api-route-section-title"><i class="fas fa-plug"></i> Autenticación de integraciones externas</h3>
+        <div class="api-route-grid">
+            <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-post">POST</span><strong>/integrations/token.php</strong><span class="api-auth-tag auth-public">Client ID + Secret</span></div><small>Genera el Bearer para un servidor externo autorizado. El secreto no se incluye en la APK.</small></article>
+            <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-get">GET</span><strong>/integrations/me.php</strong><span class="api-auth-tag auth-bearer">Bearer externo</span></div><small>Comprueba la integración, empresa vinculada y sus alcances vigentes.</small></article>
+        </div>
+        <h3 class="api-route-section-title"><i class="fas fa-database"></i> Recursos de datos para APK e integraciones</h3>
+        <div class="api-route-grid">
+            <?php
+            require_once dirname(__DIR__, 2).'/core/api/ApiModuleCatalog.php';
+            foreach (IzzyApiModuleCatalog::items() as $apiModule):
+            ?>
+            <article class="api-route-card api-resource-card">
+                <div class="api-route-top"><span class="api-method method-get">GET</span><strong>/data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</strong><span class="api-auth-tag auth-bearer">Bearer + permisos</span></div>
+                <small><?php echo htmlspecialchars($apiModule['descripcion'], ENT_QUOTES, 'UTF-8'); ?> Alcance: <code><?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:read</code>.</small>
+                <div class="api-route-params"><i class="fas fa-filter"></i> Parámetros: <code>pagina</code>, <code>limite</code>, <code>id</code>. <span>Solo consulta GET.</span></div>
+            </article>
+            <?php endforeach; ?>
+        </div>
         <section class="api-mobile-flow" aria-labelledby="api_mobile_flow_title">
             <div><span class="api-eyebrow">ORDEN DE CONSUMO</span><h3 id="api_mobile_flow_title">Flujo recomendado para la app</h3>
                 <p>La aplicación conserva los tokens de forma segura en el dispositivo y solicita cada recurso protegido con el access token vigente.</p></div>
@@ -122,16 +143,23 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
             <form id="api_integration_form" autocomplete="off">
                 <div class="api-modal-form-body">
                 <div class="api-integration-purpose"><i class="fas fa-network-wired"></i><span><strong>Acceso de un sistema externo a IZZY</strong><small>Para un cliente autorizado. No es para configurar pasarelas de pagos, SMS o WhatsApp de otros proveedores.</small></span></div>
-                <label for="api_integration_customer">Empresa autorizada</label>
-                <select id="api_integration_customer" required><option value="">Seleccione una empresa</option></select>
-                <div class="api-no-authorized-hint" id="api_no_authorized_hint" hidden><i class="fas fa-info-circle"></i><span>No hay empresas activas con acceso API autorizado. Primero autorice al cliente en <strong>Empresas autorizadas</strong>.</span><button type="button" class="btn btn-primary btn-sm" id="api_go_authorizations"><i class="fas fa-user-shield"></i> Autorizar empresa</button></div>
-                <label for="api_integration_name">Nombre de la integración</label>
-                <input id="api_integration_name" name="name" type="text" maxlength="100" placeholder="Ej. Sistema de reportes" required>
-                <label for="api_integration_expiry">Vencimiento</label>
-                <select id="api_integration_expiry" name="expires_in" data-placeholder="Seleccione vencimiento" required><option value="">Seleccione vencimiento</option><option value="30">30 días</option><option value="90">90 días</option><option value="365">1 año</option><option value="0">Sin vencimiento</option></select>
-                <label>Alcances reservados <small>Rutas de consulta pendientes de publicación</small></label>
-                <div class="api-scopes"><label><input type="checkbox" name="api_scope" value="clientes:read" checked><i class="fas fa-users"></i><span>Clientes</span><small>Consultar</small></label><label><input type="checkbox" name="api_scope" value="productos:read" checked><i class="fas fa-box"></i><span>Productos</span><small>Consultar</small></label><label><input type="checkbox" name="api_scope" value="proveedores:read"><i class="fas fa-truck"></i><span>Proveedores</span><small>Consultar</small></label><label><input type="checkbox" name="api_scope" value="facturas:read"><i class="fas fa-file-invoice"></i><span>Facturas</span><small>Consultar</small></label></div>
-                <p>El Client ID y el secreto aparecerán una sola vez; guárdelos en un servidor. El registro no habilita acceso hasta que publiquemos rutas servidor a servidor con sus alcances.</p>
+                <div class="api-integration-form-grid">
+                    <div class="api-integration-field api-integration-field-company"><label for="api_integration_customer"><i class="fas fa-building"></i> Empresa autorizada</label><select id="api_integration_customer" required><option value="">Seleccione una empresa</option></select></div>
+                    <div class="api-no-authorized-hint" id="api_no_authorized_hint" hidden><i class="fas fa-info-circle"></i><span>No hay empresas activas con acceso API autorizado. Primero autorice al cliente en <strong>Empresas autorizadas</strong>.</span><button type="button" class="btn btn-primary btn-sm" id="api_go_authorizations"><i class="fas fa-user-shield"></i> Autorizar empresa</button></div>
+                    <div class="api-integration-field"><label for="api_integration_name"><i class="fas fa-tag"></i> Nombre de la integración</label><input class="api-integration-text-input" id="api_integration_name" name="name" type="text" maxlength="100" placeholder="Ej. Sistema de reportes" required></div>
+                    <div class="api-integration-field"><label for="api_integration_expiry"><i class="fas fa-calendar-alt"></i> Vencimiento</label><select id="api_integration_expiry" name="expires_in" data-placeholder="Seleccione vencimiento" required><option value="">Seleccione vencimiento</option><option value="30">30 días</option><option value="90">90 días</option><option value="365">1 año</option><option value="0">Sin vencimiento</option></select></div>
+                </div>
+                <label>Alcances de consulta <small>En validación para API v1</small></label>
+                <div class="api-scopes">
+                    <?php
+                    require_once dirname(__DIR__, 2).'/core/api/ApiModuleCatalog.php';
+                    foreach (IzzyApiModuleCatalog::items() as $apiModule):
+                        $checked = in_array($apiModule['clave'], ['clientes', 'productos'], true);
+                    ?>
+                    <label><input type="checkbox" name="api_scope" value="<?php echo htmlspecialchars($apiModule['clave'].':read', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $checked ? 'checked' : ''; ?>><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i><span><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></span><small>Consultar</small></label>
+                    <?php endforeach; ?>
+                </div>
+                <p>El Client ID y el secreto aparecerán una sola vez; guárdelos en su servidor. Las consultas GET de API v1 están disponibles para validar en DEMO; las escrituras todavía no están habilitadas.</p>
                 </div>
                 <div class="api-modal-actions"><button type="button" class="btn btn-secondary" data-api-modal-close>Cancelar</button><button type="submit" class="btn btn-primary" id="api_create_integration"><i class="fas fa-key"></i> Crear credenciales</button></div>
             </form>

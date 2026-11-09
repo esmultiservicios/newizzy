@@ -224,7 +224,7 @@ Antes de publicar cambios:
 
 ---
 
-## API IZZY v1 — Aplicación móvil e integraciones (fases 1 y 2)
+## API IZZY v1 — Aplicación móvil e integraciones (fases 1 a 3, en desarrollo)
 
 Esta es la **única documentación de API** del repositorio. No se necesitan archivos de documentación por fase. Todas las direcciones mostradas usan la base del entorno desplegado, por ejemplo `https://demo.izzycloud.app/api/v1/` o `https://sistema.izzycloud.app/api/v1/`; las credenciales de ambos entornos son distintas.
 
@@ -266,12 +266,14 @@ No debe enviarse `db`, `empresa_id` ni `server_customers_id` para decidir qué e
 
 | Recurso | Alcance de credencial | Operaciones de datos |
 | --- | --- | --- |
-| Clientes | `clientes:read` | Pendiente de publicación y pruebas |
-| Productos e inventario | `productos:read` | Pendiente de publicación y pruebas |
-| Proveedores | `proveedores:read` | Pendiente de publicación y pruebas |
-| Facturas | `facturas:read` | Pendiente de publicación y pruebas |
+| Clientes | `clientes:read` | `GET data/clientes.php` — implementación para pruebas |
+| Productos e inventario | `productos:read` | `GET data/productos.php` — catálogo; movimientos de inventario pendientes |
+| Proveedores | `proveedores:read` | `GET data/proveedores.php` — implementación para pruebas |
+| Facturas | `facturas:read` | `GET data/facturas.php` — consulta y detalle; emisión pendiente |
+| Empresa | `empresa:read` | `GET data/empresa.php` — información de la empresa autorizada |
+| Secuencias | `secuencias:read` | `GET data/secuencias.php` — CAI, rangos y fechas; **no reserva correlativos** |
 
-**Importante:** estos alcances se pueden registrar, pero **no existe aún una API publicada de CRUD** de esos recursos en esta entrega. No prometer a terceros endpoints de lectura o escritura que todavía no existen. Para la siguiente fase se necesitan `clientes:write`, `productos:write`, `proveedores:write` y `facturas:create`, con validación del usuario o integración, privilegios, aislamiento entre bases y transacciones. En facturación, la norma SAR impide modificar una factura emitida: las anulaciones y notas de crédito requieren su flujo legal, no un `PUT` genérico. Deben probarse casos positivos y negativos en DEMO antes de permitir mutaciones. Las APIs para APK también deberán revisar permisos por usuario, plan, menú y empresa para cada acción, sin duplicar lógica de negocio.
+**Importante:** existen endpoints de **consulta** para pruebas en DEMO. **No existe todavía un CRUD completo**. Las operaciones POST/PUT devuelven HTTP 405 deliberadamente, hasta validar los campos de cada modelo, los privilegios, el aislamiento entre bases y la integridad transaccional. Para habilitar escrituras se necesitarán `clientes:write`, `productos:write`, `proveedores:write` y `facturas:create`. En facturación, la norma SAR impide modificar una factura emitida: las anulaciones y notas de crédito requieren su flujo legal, no un `PUT` genérico. No publicar estas rutas en producción antes de las pruebas con bases reales.
 
 ### Base de datos e instalación
 
@@ -285,16 +287,58 @@ No debe enviarse `db`, `empresa_id` ni `server_customers_id` para decidir qué e
 
 La APK podrá incluir catálogo, existencias, clientes, proveedores, secuencias y emisión de facturas cuando existan los controladores API que invoquen **las mismas reglas de negocio vigentes de IZZY**, incluyendo apertura de caja, permisos y comprobantes fiscales. Para una pasarela de pago futura se requiere conector separado, firma y verificación de webhooks, operaciones idempotentes y conciliación; las claves del proveedor de pagos no deben mezclarse con los secretos de estas integraciones.
 
-### Dos direcciones de integración (interfaz v2.3)
+### Dos direcciones de integración
 
 - **Otro sistema → IZZY:** la empresa autorizada crea una credencial en **Mi cuenta → Integraciones API** o el equipo de IZZY la administra desde **Sistema → API → Accesos externos a IZZY**. `integrations/token.php` obtiene un Bearer y `integrations/me.php` confirma la identidad. La credencial nunca concede acceso a otra base de datos.
 - **IZZY → servicios externos:** una pasarela de pago, SMS, WhatsApp o servicio de mensajería necesita un conector **saliente** distinto que administre credenciales y eventos del proveedor. El formulario de accesos externos **no configura ese tipo de conexión**; este conector queda pendiente de implementación.
 
 En Mi cuenta se muestran tres pestañas de tamaño fijo: **Mis accesos**, **Módulos y operaciones**, **Cómo conectarse**. La segunda explica clientes, productos, inventario, proveedores y facturas, indicando expresamente que sus endpoints de datos y escrituras aún no están publicados. No se debe vender una autorización de alcance como funcionalidad implementada. La tercera pestaña contiene las URL y ejemplos copiables, con desplazamiento interno para que no cambie el tamaño del modal.
 
-La integración externa **no inicia sesión como usuario**: envía su Client ID y Client Secret a `integrations/token.php` y usa el Bearer resultante. `integrations/me.php` verifica el vínculo. Las futuras rutas por módulo tendrán lectura (`GET`), creación (`POST`) y actualización (`PUT`) únicamente cuando su implementación haya sido aprobada y probada. En facturas, `POST` será para emisión conforme al SAR, nunca modificación de documentos ya emitidos. Los nombres y direcciones concretas de esas rutas aún no están disponibles; no intentar invocar rutas supuestas.
+La integración externa **no inicia sesión como usuario**: envía su Client ID y Client Secret a `integrations/token.php` y usa el Bearer resultante. `integrations/me.php` verifica el vínculo. Las rutas de consulta `GET data/*.php` están incluidas para pruebas. Las futuras operaciones de creación (`POST`) y actualización (`PUT`) se publicarán únicamente cuando su implementación haya sido aprobada y probada. En facturas, `POST` será para emisión conforme al SAR, nunca modificación de documentos ya emitidos. No intentar invocar rutas de escritura supuestas.
 
-### Controles de interfaz v2.4
+### Fase 3 — Entrega de consulta y validación de permisos
+
+| Ruta GET | Parámetros | Autorización |
+| --- | --- | --- |
+| `/api/v1/data/clientes.php` | `pagina`, `limite`, `id` | `clientes:read` o menú `clientes` + `consultar` |
+| `/api/v1/data/productos.php` | `pagina`, `limite`, `id` | `productos:read` o menú `productos` + `consultar` |
+| `/api/v1/data/proveedores.php` | `pagina`, `limite`, `id` | `proveedores:read` o menú `proveedores` + `consultar` |
+| `/api/v1/data/facturas.php` | `pagina`, `limite`, `id` | `facturas:read` o menú `facturas` + `consultar` |
+| `/api/v1/data/empresa.php` | `pagina`, `limite`, `id` | `empresa:read` o menú `empresa` + `consultar` |
+| `/api/v1/data/secuencias.php` | `pagina`, `limite`, `id` | `secuencias:read` o menú `secuencia` + `consultar` |
+
+`pagina` empieza en 1, `limite` usa 25 por defecto y no excede 100, `id` consulta un registro. `facturas.php?id=123` incluye líneas del detalle. Todas las consultas exigen Bearer y HTTPS, no aceptan nombre de DB y devuelven `ok`, `mensaje` y `data`. El menú móvil ahora devuelve `acciones`, `privilegio_id`, `privilegio_nombre` y `tipo_user_id`; el perfil `auth/me.php` también incluye `acciones`. Los permisos son calculados nuevamente desde las tablas del tenant en cada petición.
+
+**Estado:** implementación de código preparada; validación HTTP con MySQL real y pruebas de aislamiento entre dos tenants pendientes. **No constituye cierre de las fases 3.2–3.5 ni autorización de escritura**. En las fases siguientes se necesita adaptar los casos de uso de registro, inventario y facturación con sus transacciones, auditoría e idempotencia. Hasta entonces no enviar operaciones de escritura desde la APK ni sistemas externos.
+
+### Guía de pruebas para el desarrollador de la APK
+
+Usar exclusivamente el dominio del ambiente DEMO y usuarios de prueba. Nunca compartir los tokens reales en mensajes o capturas.
+
+1. Ejecutar `POST https://demo.izzycloud.app/api/v1/auth/login.php` con el mismo cuerpo de usuario/correo y contraseña de la API móvil. Guardar el `access_token` devuelto.
+2. Ejecutar `GET https://demo.izzycloud.app/api/v1/auth/me.php` con la cabecera `Authorization: Bearer ACCESS_TOKEN`. Revisar `usuario`, `cliente`, `permisos` y `acciones`.
+3. Ejecutar `GET https://demo.izzycloud.app/api/v1/navigation/menus.php` con **ese mismo Bearer de usuario**. Verificar que muestra solo menús/submenús del plan y privilegio, además de los permisos de acción.
+4. Con el mismo Bearer, consultar `GET /api/v1/data/clientes.php?pagina=1&limite=10`, `productos.php`, `proveedores.php`, `facturas.php`, `empresa.php` y `secuencias.php` (siempre bajo `/api/v1/data/`). Probar un usuario con y sin permiso `consultar` y comparar las respuestas.
+5. Probar `GET /api/v1/data/facturas.php?id=ID_DE_PRUEBA` para ver el encabezado y detalle de una factura existente. **No se altera ni emite ninguna factura**.
+6. Confirmar que los tokens vencidos, usuarios desactivados, permisos retirados y empresas ajenas no pueden leer datos. El mismo token no debe acceder a otra empresa cambiando parámetros.
+
+Para un integrador externo, **no usar `auth/login.php`**: obtener token en `POST /api/v1/integrations/token.php` con su Client ID/Secret y consultar únicamente las rutas permitidas por sus scopes. `integrations/me.php` comprueba la integración; `auth/me.php` comprueba usuarios de la APK.
+
+Los resultados de estas pruebas deben registrarse antes de promover cambios a producción. La lectura de secuencias es informativa: el campo `siguiente` no constituye una reserva, garantía ni autorización para emitir ese número desde un cliente móvil o externo.
+
+### Controles de interfaz
+
+**Ubicación de modales:** el navbar (`vistas/plantilla/modulos/navbartop.php`) ahora contiene únicamente la navegación y el enlace a Integraciones API. Los diálogos de Integraciones API, Centro de Ayuda y Notificaciones se renderizan desde `vistas/contenido/modals/vistasModals.php`, incluido por la plantilla. No duplicar IDs ni reinstalar un modal en `navbartop.php`.
+
+**Directorio Sistema → API → Rutas API:** muestra las 13 rutas existentes de esta entrega: cuatro de autenticación móvil, una de navegación, dos de autenticación de integraciones y seis recursos de datos. Los módulos y scopes se muestran desde `core/api/ApiModuleCatalog.php`.
+
+**Vista de empresas:** la lista se numera del 1 en adelante según el resultado filtrado; el número visible es ordinal y no sustituye `server_customers_id`.
+
+**Sistema → API / Empresas autorizadas:** cada empresa muestra el sistema al que pertenece y puede filtrarse por sistema, estado y nombre. El filtro inicial es **IZZY**; CAMI y Monitoring pueden visualizarse al seleccionar su sistema, pero esta versión de la API solo permite emitir integraciones de IZZY (`sistema_id=1`). No se habilita acceso cruzado a otras plataformas.
+
+**Mi cuenta → Integraciones API:** la pestaña de módulos y ambos formularios de alcances se construyen desde `core/api/ApiModuleCatalog.php`. Para agregar un recurso futuro, además de implementar su endpoint y permisos, debe registrarse en este catálogo; aparecerá en los formularios y la guía de módulos sin repetir tarjetas HTML manualmente. Un elemento en el catálogo no implica que su API de escritura ya esté disponible.
+
+**Diseño del formulario de acceso externo:** tarjetas de alcance con indicador circular a la derecha, foco visible, modales responsivos y acciones fijas en el footer; no se incorporan dependencias de `Swal.fire`.
 
 1. Confirmación explícita antes de autorizar una empresa.
 2. Confirmación explícita antes de suspenderla.
@@ -307,7 +351,7 @@ La integración externa **no inicia sesión como usuario**: envía su Client ID 
 9. Diferenciación entre autenticación de usuario móvil y credencial de servidor.
 10. Diseño responsivo sin botones blancos ni hover que borre las etiquetas.
 
-### Claridad para el administrador (v2.5)
+### Claridad para el administrador
 
 **Autorizar una empresa** habilita exclusivamente la **emisión de credenciales de integración**. Después se escogen los alcances reservados por credencial (clientes, productos, proveedores y facturas). **Todavía no activa los endpoints de lectura o escritura**: requieren implementación y pruebas por separado. Una empresa inactiva no aparece en el selector de emisión.
 

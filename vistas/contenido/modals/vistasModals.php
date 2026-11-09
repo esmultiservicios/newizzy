@@ -61,6 +61,116 @@
         </div>
     </div>
 </div>
+
+<?php
+if (session_status()!==PHP_SESSION_ACTIVE) session_start(['name'=>'SD']);
+if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(random_bytes(32));
+?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>vistas/plantilla/css/miCuentaApi.css?v=1">
+<div class="izzy-account-api-overlay" id="izzy-account-api-overlay" aria-hidden="true" data-csrf="<?php echo htmlspecialchars($_SESSION['csrf_api_cuenta'],ENT_QUOTES,'UTF-8'); ?>" data-url="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>ajax/miCuentaApi.php" data-base-url="<?php echo htmlspecialchars(rtrim(SERVERURL,'/').'/api/v1/',ENT_QUOTES,'UTF-8'); ?>">
+  <section class="izzy-account-api-dialog" role="dialog" aria-modal="true" aria-labelledby="izzy-account-api-title">
+    <header><div><small>MI CUENTA · INTEGRACIONES</small><h2 id="izzy-account-api-title">Integraciones API</h2></div><button type="button" class="izzy-account-api-close" aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
+    <div class="izzy-account-api-body">
+      <p>Administre el acceso de otros sistemas a su empresa IZZY. Los datos permanecen aislados en su base y la autorización siempre depende de IZZY.</p>
+      <div id="izzy-account-api-status" role="status"></div>
+      <nav class="izzy-account-api-tabs" aria-label="Opciones de integración"><button type="button" class="is-active" data-izzy-api-tab="access"><i class="fas fa-plug"></i> Mis accesos</button><button type="button" data-izzy-api-tab="modules"><i class="fas fa-layer-group"></i> Módulos y operaciones</button><button type="button" data-izzy-api-tab="guide"><i class="fas fa-book-open"></i> Cómo conectarse</button></nav>
+      <div class="izzy-account-api-tab-panel is-active" data-izzy-api-content="access">
+      <div id="izzy-account-api-list"></div>
+      <div class="izzy-account-api-promo"><span><i class="fas fa-cloud"></i></span><div><strong>Conecte su operación con IZZY</strong><small>Un solo acceso por integración, autorización de su empresa y credenciales revocables. Sus datos permanecen protegidos.</small></div></div>
+      <form id="izzy-account-api-form" autocomplete="off">
+        <h3>Nuevo acceso para un sistema externo</h3>
+        <div class="izzy-account-api-fields"><div><label for="izzy-account-api-name">Nombre</label><input id="izzy-account-api-name" maxlength="100" required placeholder="Ej. Conexión con mi tienda"></div>
+        <div><label for="izzy-account-api-expiry">Vencimiento</label><select id="izzy-account-api-expiry" required><option value="90">90 días</option><option value="30">30 días</option><option value="365">1 año</option><option value="0">Sin vencimiento</option></select></div></div>
+        <fieldset class="izzy-account-api-scopes">
+          <legend>Datos que desea compartir (consultas para pruebas)</legend>
+          <?php
+          require_once dirname(__DIR__, 3).'/core/api/ApiModuleCatalog.php';
+          foreach (IzzyApiModuleCatalog::items() as $apiModule):
+              $checked = in_array($apiModule['clave'], ['clientes', 'productos'], true);
+          ?>
+          <label><input type="checkbox" value="<?php echo htmlspecialchars($apiModule['clave'].':read', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $checked ? 'checked' : ''; ?>><span class="izzy-account-api-scope-icon"><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i></span><span><strong><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></strong><small>Consultar · API v1</small></span></label>
+          <?php endforeach; ?>
+        </fieldset>
+        <div class="izzy-account-api-actions"><button class="btn btn-primary" type="submit"><i class="fas fa-key"></i> Crear credenciales</button></div>
+      </form>
+      </div>
+      <section class="izzy-account-api-tab-panel" data-izzy-api-content="modules" aria-label="Módulos de integración">
+        <h3><i class="fas fa-database"></i> ¿Qué podrá conectar con IZZY?</h3>
+        <p>Las consultas GET están preparadas para pruebas en DEMO. Las escrituras se habilitarán cuando las validaciones de negocio e integridad estén completas.</p>
+        <div class="izzy-account-api-modules">
+          <?php
+          require_once dirname(__DIR__, 3).'/core/api/ApiModuleCatalog.php';
+          foreach (IzzyApiModuleCatalog::items() as $apiModule):
+          ?>
+          <article>
+            <i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i>
+            <strong><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></strong>
+            <span><?php echo htmlspecialchars($apiModule['descripcion'], ENT_QUOTES, 'UTF-8'); ?></span>
+            <small><?php echo htmlspecialchars($apiModule['nota'], ENT_QUOTES, 'UTF-8'); ?></small>
+          </article>
+          <?php endforeach; ?>
+        </div>
+        <div class="izzy-account-api-warning"><i class="fas fa-shield-alt"></i> La API no acepta un nombre de base de datos proporcionado por el cliente. Cada credencial identifica exclusivamente su empresa.</div>
+      </section>
+      <div class="izzy-account-api-tab-panel" data-izzy-api-content="guide">
+      <details class="izzy-account-api-guide" id="izzy-account-api-guide" aria-labelledby="izzy-account-api-guide-title">
+        <summary><i class="fas fa-book-open"></i> Guía de conexión, URL y ejemplos <span>Ver instrucciones <i class="fas fa-chevron-down"></i></span></summary>
+        <div class="izzy-account-api-guide-head"><div><small>GUÍA DE CONEXIÓN</small><h3 id="izzy-account-api-guide-title">Cómo usar su API en 3 pasos</h3></div><span class="izzy-account-api-guide-badge"><i class="fas fa-lock"></i> HTTPS seguro</span></div>
+        <ol><li><strong>1. Cree una integración</strong><span>Debe estar autorizada por IZZY. Elija la empresa y los datos que autoriza a compartir.</span></li><li><strong>2. Guarde sus credenciales</strong><span>El Client Secret se muestra una sola vez. Guárdelo en su servidor, nunca en una aplicación pública.</span></li><li><strong>3. Solicite un Bearer y consulte su acceso</strong><span>Su servidor se identifica con Client ID + Secret. No necesita iniciar sesión con correo y contraseña como lo hace la APK.</span></li></ol>
+        <div class="izzy-account-api-endpoint"><span><b>POST</b> Obtener token</span><code id="izzy-account-api-token-url"></code><button type="button" data-izzy-copy="izzy-account-api-token-url" aria-label="Copiar URL de token"><i class="far fa-copy"></i> Copiar</button></div>
+        <div class="izzy-account-api-endpoint"><span><b>GET</b> Verificar integración</span><code id="izzy-account-api-me-url"></code><button type="button" data-izzy-copy="izzy-account-api-me-url" aria-label="Copiar URL de verificación"><i class="far fa-copy"></i> Copiar</button></div>
+        <div class="izzy-account-api-example"><div><strong>Ejemplo para obtener token</strong><button type="button" data-izzy-copy="izzy-account-api-json"><i class="far fa-copy"></i> Copiar JSON</button></div><pre id="izzy-account-api-json">{
+  "client_id": "SU_CLIENT_ID",
+  "client_secret": "SU_CLIENT_SECRET"
+}</pre><small>Encabezado: Content-Type: application/json. Para verificar la integración, envíe Authorization: Bearer SU_ACCESS_TOKEN.</small></div>
+        <div class="izzy-account-api-connection-map">
+          <h4><i class="fas fa-project-diagram"></i> Rutas de consulta API v1</h4>
+          <p>Su servidor obtiene el Bearer con Client ID y Secret. En cada consulta envía <code>Authorization: Bearer TOKEN</code>. IZZY identifica automáticamente la base autorizada.</p>
+          <?php foreach (IzzyApiModuleCatalog::items() as $apiModule): ?>
+          <div><span><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i> <?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></span><strong><code>GET data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</code></strong><small>Consultar</small></div>
+          <?php endforeach; ?>
+          <p>Agregue la ruta a la URL base. Use <code>?pagina=1&amp;limite=25</code> para paginar o <code>?id=123</code> para obtener un registro. Las escrituras no están habilitadas y consultar secuencias no reserva correlativos fiscales.</p>
+        </div>
+        <div class="izzy-account-api-warning"><i class="fas fa-building"></i> También puede consultar <code>GET data/empresa.php</code> y <code>GET data/secuencias.php</code> con sus respectivos alcances. Las secuencias se consultan solamente; no se reserva ni consume un número fiscal.</div>
+        <div class="izzy-account-api-warning"><i class="fas fa-info-circle"></i> Estas rutas de consulta requieren pruebas en DEMO antes de usarlas en producción. POST/PUT aún no están habilitados.</div>
+      </details>
+      </div>
+      <div id="izzy-account-api-credentials" hidden><strong>Guarde estas credenciales ahora; el secreto se mostrará una sola vez.</strong><label>Client ID</label><code id="izzy-account-client-id"></code><label>Client Secret</label><code id="izzy-account-client-secret"></code><button type="button" class="btn btn-primary" id="izzy-account-api-credentials-close"><i class="fas fa-check"></i> Entendido</button></div>
+    </div>
+    <footer><span class="izzy-account-api-footer-caption"><i class="fas fa-shield-alt"></i> IZZY · Integraciones seguras por empresa</span><button type="button" class="btn btn-secondary izzy-account-api-close"><i class="fas fa-times"></i> Cerrar</button></footer>
+  </section>
+</div>
+<script src="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>ajax/js/miCuentaApi.js?v=1" defer></script>
+
+<!-- Centro de Ayuda: informativo, no requiere cambios en tablas ni permisos. -->
+<div class="modal fade izzy-help-dialog" id="izzy-help-center-modal" tabindex="-1" role="dialog" aria-labelledby="izzy-help-title" aria-hidden="true" data-izzy-payment-readonly-allowed="1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="izzy-help-title"><i class="fas fa-life-ring mr-2"></i>Centro de Ayuda de IZZY</h5><button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>
+      <div class="modal-body">
+        <p class="text-muted">Busque respuestas sobre el uso de IZZY. Esta guía inicial es informativa; las opciones disponibles dependen de su plan y permisos.</p>
+        <input type="search" id="izzy-help-search" class="izzy-help-search" placeholder="Buscar ayuda: facturas, caja, inventario..." aria-label="Buscar artículos de ayuda">
+        <div id="izzy-help-articles">
+          <article class="izzy-help-topic"><strong><i class="fas fa-file-invoice mr-2"></i>Ventas y facturación</strong><p>Acceda a Ventas para gestionar documentos. Consulte sus reportes según los permisos disponibles. Las fechas de emisión de facturas no deben alterarse después de emitirlas.</p></article>
+          <article class="izzy-help-topic"><strong><i class="fas fa-cash-register mr-2"></i>Caja y cobros</strong><p>Antes de facturar, revise la apertura de caja y los métodos de pago configurados. Las funciones disponibles dependen del perfil asignado.</p></article>
+          <article class="izzy-help-topic"><strong><i class="fas fa-boxes mr-2"></i>Productos e inventario</strong><p>Desde los módulos autorizados puede consultar productos, existencias y movimientos de almacén.</p></article>
+          <article class="izzy-help-topic"><strong><i class="fas fa-users mr-2"></i>Clientes y proveedores</strong><p>Registre los datos de contacto e identificación. Use la edición para actualizar información existente de forma controlada.</p></article>
+          <article class="izzy-help-topic"><strong><i class="fas fa-file-invoice-dollar mr-2"></i>Facturación de su suscripción</strong><p>Abra Detalles de Facturación desde el menú del usuario para consultar documentos y pagos. El plazo habitual de pago es hasta el día 15.</p></article>
+          <article class="izzy-help-topic"><strong><i class="fas fa-shield-alt mr-2"></i>Usuarios y seguridad</strong><p>Utilice Mi Perfil para revisar sus datos y Modificar Contraseña para actualizar su acceso. No comparta sus credenciales.</p></article>
+          <article class="izzy-help-topic"><strong><i class="fas fa-headset mr-2"></i>Soporte técnico</strong><p>¿Necesita ayuda? Contacte a ES MULTISERVICIOS por WhatsApp. Describa el módulo y el mensaje mostrado, sin enviar contraseñas.</p></article>
+        </div>
+      </div>
+      <div class="modal-footer"><a href="https://wa.me/50489136844" target="_blank" rel="noopener noreferrer" class="btn btn-success" data-izzy-payment-readonly-allowed="1"><i class="fab fa-whatsapp mr-1"></i> Solicitar soporte</a><button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-2" aria-hidden="true"></i>Cerrar</button></div>
+    </div>
+  </div>
+</div>
+<div class="modal fade izzy-history-dialog" id="izzy-notifications-modal" tabindex="-1" role="dialog" aria-labelledby="izzy-notifications-title" aria-hidden="true" data-izzy-payment-readonly-allowed="1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="izzy-notifications-title"><i class="fas fa-bell mr-2"></i>Todas las notificaciones</h5><button type="button" class="close text-white" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>
+    <div class="modal-body"><p class="text-muted small">Avisos de facturación disponibles en esta sesión. El historial persistente se incorporará cuando se conecte la tabla de notificaciones.</p><div id="izzy-all-notification-items"></div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times mr-2" aria-hidden="true"></i>Cerrar</button></div>
+  </div></div>
+</div>
 <!--FIN MODAL LOGIN-->
 
 <!--INICIO MODAL PARA EL INGRESO DE CUENTAS CONTABLES-->

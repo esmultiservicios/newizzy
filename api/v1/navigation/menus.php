@@ -35,8 +35,10 @@ if (!preg_match('/^Bearer\s+(izzy_[a-f0-9]{64})$/i', $authorization, $matches)) 
 }
 try {
     require_once dirname(__DIR__, 3) . '/core/api/ApiNavigationService.php';
-    $menus = (new IzzyApiNavigationService())->menus($matches[1]);
-    responderMenusApi(200, ['ok' => true, 'mensaje' => 'Menús autorizados cargados.', 'data' => ['menus' => $menus]]);
+    $servicio=new IzzyApiNavigationService();
+    $menus=$servicio->menus($matches[1]);
+    $perfil=(new IzzyApiAuthService())->miPerfil($matches[1]);
+    responderMenusApi(200, ['ok' => true, 'mensaje' => 'Menús y permisos autorizados cargados.', 'data' => ['menus' => $menus,'acciones'=>$perfil['acciones']??[],'privilegio_id'=>$perfil['usuario']['privilegio_id']??0,'privilegio_nombre'=>$perfil['usuario']['privilegio_nombre']??'','tipo_user_id'=>$perfil['usuario']['tipo_user_id']??0]]);
 } catch (DomainException $e) {
     responderMenusApi(401, ['ok' => false, 'mensaje' => 'Sesión inválida o vencida.']);
 } catch (Throwable $e) {

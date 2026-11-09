@@ -26,10 +26,12 @@ final class IzzyApiIntegrationService
 
     public function autorizaciones(): array
     {
-        $result=$this->db->query('SELECT s.server_customers_id, s.codigo_cliente, s.db, s.estado, '
+        $result=$this->db->query('SELECT s.server_customers_id, s.codigo_cliente, s.db, s.estado, s.sistema_id, '
+            .'COALESCE(NULLIF(TRIM(si.nombre),\'\'),\'Sin sistema\') AS sistema_nombre, '
             .'COALESCE(NULLIF(TRIM(c.nombre),\'\'),\'Empresa sin nombre\') AS nombre_empresa, '
             .'COALESCE(a.habilitada,0) AS habilitada '
             .'FROM server_customers s LEFT JOIN clientes c ON c.clientes_id=s.clientes_id '
+            .'LEFT JOIN sistema si ON si.sistema_id=s.sistema_id '
             .'LEFT JOIN api_empresa_autorizacion a ON a.server_customers_id=s.server_customers_id '
             .'ORDER BY s.server_customers_id DESC');
         if (!$result) throw new RuntimeException('No se pudo consultar la autorización de empresas.');
@@ -39,9 +41,10 @@ final class IzzyApiIntegrationService
     public function autorizar(int $clienteId, bool $habilitar, int $operador): void
     {
         if ($clienteId<=0 || $operador<=0) throw new InvalidArgumentException('Empresa u operador inválido.');
-        $stmt=$this->db->prepare('SELECT estado FROM server_customers WHERE server_customers_id=? LIMIT 1');
+        $stmt=$this->db->prepare('SELECT estado,sistema_id FROM server_customers WHERE server_customers_id=? LIMIT 1');
         $stmt->bind_param('i',$clienteId); $stmt->execute(); $cliente=$stmt->get_result()->fetch_assoc(); $stmt->close();
         if (!$cliente || ($habilitar && (int)$cliente['estado']!==1)) throw new InvalidArgumentException('La empresa debe existir y estar activa.');
+        if ($habilitar && (int)$cliente['sistema_id']!==1) throw new InvalidArgumentException('En esta fase solo puede autorizar empresas del sistema IZZY.');
         $enabled=$habilitar?1:0;
         $this->db->begin_transaction();
         try {
@@ -58,7 +61,7 @@ final class IzzyApiIntegrationService
     public function permitido(int $clienteId): bool
     {
         if ($clienteId<=0) return false;
-        $stmt=$this->db->prepare('SELECT 1 FROM api_empresa_autorizacion a INNER JOIN server_customers s ON s.server_customers_id=a.server_customers_id WHERE a.server_customers_id=? AND a.habilitada=1 AND s.estado=1 LIMIT 1');
+        $stmt=$this->db->prepare('SELECT 1 FROM api_empresa_autorizacion a INNER JOIN server_customers s ON s.server_customers_id=a.server_customers_id WHERE a.server_customers_id=? AND a.habilitada=1 AND s.estado=1 AND s.sistema_id=1 LIMIT 1');
         $stmt->bind_param('i',$clienteId); $stmt->execute(); $ok=(bool)$stmt->get_result()->fetch_assoc(); $stmt->close();
         return $ok;
     }
@@ -78,7 +81,8 @@ final class IzzyApiIntegrationService
         if (!in_array($expiresInDays, [0, 30, 90, 365], true)) throw new InvalidArgumentException('El vencimiento seleccionado no es válido.');
         if ($createdBy <= 0) throw new InvalidArgumentException('No se pudo identificar al administrador actual.');
         if (!$this->permitido($clienteId)) throw new DomainException('IZZY no ha autorizado el uso de integraciones para esta empresa.');
-        $validos=['clientes:read','productos:read','proveedores:read','facturas:read'];
+        require_once __DIR__.'/ApiModuleCatalog.php';
+        $validos=array_map(static fn(array $module): string => $module['clave'].':read', IzzyApiModuleCatalog::items());
         $scopes=array_values(array_unique(array_map('strval',$scopes)));
         if (!$scopes || array_diff($scopes,$validos)) throw new InvalidArgumentException('Seleccione alcances autorizados válidos.');
 

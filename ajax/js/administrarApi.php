@@ -109,24 +109,35 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     function renderAuthorizations(){
         const query=String($('#api_authorizations_search').val()||'').trim().toLocaleLowerCase('es');
         const status=String($('#api_authorizations_status').val()||'active');
+        const system=String($('#api_authorizations_system').val()||'1');
         const rows=authorizedCompanies.filter(row=>{
             const enabled=Number(row.habilitada)===1,active=Number(row.estado)===1;
-            const matches=!query||[row.nombre_empresa,row.codigo_cliente,row.server_customers_id,row.db].some(value=>String(value||'').toLocaleLowerCase('es').includes(query));
-            return matches&&(status==='all'||(status==='active'&&active)||(status==='approved'&&active&&enabled)||(status==='denied'&&active&&!enabled)||(status==='inactive'&&!active));
+            const matches=!query||[row.nombre_empresa,row.codigo_cliente,row.server_customers_id,row.db,row.sistema_nombre].some(value=>String(value||'').toLocaleLowerCase('es').includes(query));
+            return matches&&(system==='all'||String(row.sistema_id)===system)&&(status==='all'||(status==='active'&&active)||(status==='approved'&&active&&enabled)||(status==='denied'&&active&&!enabled)||(status==='inactive'&&!active));
         });
-        $('#api_authorizations_count').text('Mostrando '+rows.length+' de '+authorizedCompanies.length+' empresas');
-        $('#api_authorizations_rows').html(rows.map(row=>{
+        $('#api_authorizations_count').text('Mostrando '+rows.length+' de '+authorizedCompanies.length+' empresas · Sistema: '+($('#api_authorizations_system option:selected').text()||'IZZY'));
+        $('#api_authorizations_rows').html(rows.map((row,index)=>{
             const enabled=Number(row.habilitada)===1,active=Number(row.estado)===1;
+            const isIzzy=Number(row.sistema_id)===1;
             const name=esc(row.nombre_empresa||'Empresa sin nombre');
-            return '<article class="api-record-card api-company-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-building"></i></span><div class="api-record-title"><strong>'+name+'</strong><span>Código '+esc(row.codigo_cliente||row.server_customers_id)+' · <code>'+esc(row.db)+'</code></span></div></div><div class="api-record-meta"><div><small>Estado empresa</small><span class="api-status '+(active?'is-active':'is-expired')+'"><i class="fas '+(active?'fa-check-circle':'fa-pause-circle')+'"></i> '+(active?'Activa':'Inactiva')+'</span></div><div><small>Acceso API</small><span class="api-status '+(enabled?'is-active':'is-revoked')+'"><i class="fas '+(enabled?'fa-shield-alt':'fa-ban')+'"></i> '+(enabled?'Autorizado':'Denegado')+'</span></div></div><div class="api-record-actions"><button type="button" class="btn '+(enabled?'btn-danger':'btn-primary')+'" data-api-grant="'+Number(row.server_customers_id)+'" data-api-enable="'+(enabled?0:1)+'" '+(!active&&!enabled?'disabled':'')+'><i class="fas '+(enabled?'fa-ban':'fa-shield-alt')+'"></i> '+(enabled?'Suspender':'Autorizar')+'</button></div></article>';
+            return '<article class="api-record-card api-company-card"><div class="api-record-main"><span class="api-record-icon api-record-number">'+(index+1)+'</span><div class="api-record-title"><strong>'+name+'</strong><span>Código '+esc(row.codigo_cliente||row.server_customers_id)+' · <code>'+esc(row.db)+'</code></span><span class="api-system-chip '+(isIzzy?'is-izzy':'is-other')+'"><i class="fas fa-cubes"></i> '+esc(row.sistema_nombre||'Sin sistema')+'</span></div></div><div class="api-record-meta"><div><small>Estado empresa</small><span class="api-status '+(active?'is-active':'is-expired')+'"><i class="fas '+(active?'fa-check-circle':'fa-pause-circle')+'"></i> '+(active?'Activa':'Inactiva')+'</span></div><div><small>Acceso API</small><span class="api-status '+(enabled?'is-active':'is-revoked')+'"><i class="fas '+(enabled?'fa-shield-alt':'fa-ban')+'"></i> '+(enabled?'Autorizado':'Denegado')+'</span></div></div><div class="api-record-actions">'+(!isIzzy&&!enabled?'<span class="api-system-unavailable"><i class="fas fa-lock"></i> API solo IZZY</span>':'<button type="button" class="btn '+(enabled?'btn-danger':'btn-primary')+'" data-api-grant="'+Number(row.server_customers_id)+'" data-api-enable="'+(enabled?0:1)+'" '+(!active&&!enabled?'disabled':'')+'><i class="fas '+(enabled?'fa-ban':'fa-shield-alt')+'"></i> '+(enabled?'Suspender':'Autorizar')+'</button>')+'</div></article>';
         }).join('')||'<div class="api-empty-state"><i class="fas fa-search"></i><strong>Sin resultados</strong><span>Pruebe con otro nombre, código o estado.</span></div>');
     }
     function loadAuthorizations(){
         $('#api_authorizations_rows').html('<div class="api-loading"><i class="fas fa-spinner fa-spin"></i> Cargando empresas…</div>');
         return post({action:'list_authorizations'}).done(response=>{
             authorizedCompanies=response.datos.empresas||[];
+            const systemSelect=$('#api_authorizations_system');
+            const selectedSystem=String(systemSelect.val()||'1');
+            const systems=new Map();
+            authorizedCompanies.forEach(company=>systems.set(String(company.sistema_id),String(company.sistema_nombre||'Sin sistema')));
+            systemSelect.empty();
+            Array.from(systems.entries()).sort((a,b)=>Number(a[0])-Number(b[0])).forEach(([id,label])=>systemSelect.append($('<option>').val(id).text(label)));
+            systemSelect.append($('<option>').val('all').text('Todos los sistemas'));
+            systemSelect.val(systems.has(selectedSystem)||selectedSystem==='all'?selectedSystem:(systems.has('1')?'1':'all'));
+            if(systemSelect.hasClass('select2-hidden-accessible'))systemSelect.trigger('change.select2');
             const select=$('#api_integration_customer');
-            const eligible=authorizedCompanies.filter(x=>Number(x.habilitada)===1&&Number(x.estado)===1);
+            const eligible=authorizedCompanies.filter(x=>Number(x.habilitada)===1&&Number(x.estado)===1&&Number(x.sistema_id)===1);
             select.empty().append($('<option>').val('').text(eligible.length?'Seleccione una empresa autorizada':'No hay empresas autorizadas'));
             eligible.forEach(x=>select.append($('<option>').val(x.server_customers_id).text((x.nombre_empresa||'Empresa sin nombre')+' · '+(x.codigo_cliente||x.server_customers_id))));
             $('#api_no_authorized_hint').prop('hidden',eligible.length>0);
@@ -138,7 +149,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $('#api_refresh_authorizations').on('click',loadAuthorizations);
     $('#api_authorizations_search').on('input',renderAuthorizations);
     $('#api_authorizations_status').on('change',renderAuthorizations);
+    $('#api_authorizations_system').on('change',renderAuthorizations);
     if($.fn.select2)$('#api_authorizations_status').select2({width:'100%',minimumResultsForSearch:Infinity});
+    if($.fn.select2)$('#api_authorizations_system').select2({width:'100%',minimumResultsForSearch:Infinity});
     function confirmAuthorization(title,description,company,enable){
         if(typeof window.swal==='function'){
             return window.swal({title,text:company+' — '+description,icon:'warning',buttons:{cancel:{text:'Cancelar',value:null,visible:true,className:'izzy-swal-cancel'},confirm:{text:enable?'Sí, autorizar':'Sí, suspender',value:true,visible:true,className:enable?'izzy-swal-approve':'izzy-swal-danger'}},dangerMode:!enable,closeOnClickOutside:false,closeOnEsc:true}).then(result=>result===true);

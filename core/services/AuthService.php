@@ -76,10 +76,11 @@ final class IzzyApiLoginModel extends mainModel
         $cn = $this->connectionDBLocal($db);
         try {
             $columna = $esCorreo ? 'u.email' : 'u.username';
-            $sql = "SELECT u.*, tu.nombre AS cuentaTipo, c.identidad
+            $sql = "SELECT u.*, tu.nombre AS cuentaTipo, c.identidad, p.nombre AS privilegio_nombre
                     FROM users AS u
                     INNER JOIN tipo_user AS tu ON u.tipo_user_id = tu.tipo_user_id
                     INNER JOIN colaboradores AS c ON u.colaboradores_id = c.colaboradores_id
+                    LEFT JOIN privilegio AS p ON p.privilegio_id = u.privilegio_id
                     WHERE BINARY {$columna} = ? AND u.password = ? AND u.estado = 1
                     LIMIT 1";
             $stmt = $cn->prepare($sql);
@@ -231,6 +232,7 @@ final class IzzyApiAuthService {
                 'empresa_id'=>(int)$u['empresa_id'],
                 'colaborador_id'=>(int)($u['colaboradores_id']??0),
                 'privilegio_id'=>$privilegio,
+                'privilegio_nombre'=>(string)($u['privilegio_nombre']??''),
                 'tipo_user_id'=>(int)($u['tipo_user_id']??0),
                 'tipo_cuenta'=>(string)($u['cuentaTipo']??'')
             ],
@@ -240,8 +242,22 @@ final class IzzyApiAuthService {
                 'server_customers_id'=>(int)($cliente['server_customers_id']??0),
                 'solo_lectura_pago'=>$soloLectura
             ],
-            'permisos'=>$this->obtenerPermisos($db,$privilegio,$plan)
+            'permisos'=>$this->obtenerPermisos($db,$privilegio,$plan),
+            'acciones'=>$this->obtenerAccionesPermitidas($db,(int)($u['tipo_user_id']??0))
         ];
+    }
+
+    /** Permisos de operación existentes de IZZY (independientes del menú). */
+    private function obtenerAccionesPermitidas(string $db,int $tipoUsuario): array {
+        if ($tipoUsuario<=0) return [];
+        $cn=$this->modelo->connectionDBLocal($db);
+        try {
+            $stmt=$cn->prepare('SELECT DISTINCT tipo_permiso FROM permisos WHERE tipo_user_id=? AND estado=1 ORDER BY tipo_permiso');
+            if (!$stmt) throw new RuntimeException('No se pudieron consultar permisos de acción.');
+            $stmt->bind_param('i',$tipoUsuario);$stmt->execute();$result=$stmt->get_result();$actions=[];
+            while($row=$result->fetch_assoc())$actions[]=trim((string)$row['tipo_permiso']);
+            $stmt->close();return $actions;
+        } finally {$cn->close();}
     }
 
     /** Obtiene permisos actuales sin una segunda solicitud de contraseña. */
@@ -250,7 +266,7 @@ final class IzzyApiAuthService {
         $db=$sesion['db_cliente'];
         $cn=$this->modelo->connectionDBLocal($db);
         try {
-            $stmt=$cn->prepare('SELECT u.*, t.nombre AS cuentaTipo FROM users u INNER JOIN tipo_user t ON t.tipo_user_id=u.tipo_user_id WHERE u.users_id=? AND u.empresa_id=? AND u.estado=1 LIMIT 1');
+            $stmt=$cn->prepare('SELECT u.*, t.nombre AS cuentaTipo, p.nombre AS privilegio_nombre FROM users u INNER JOIN tipo_user t ON t.tipo_user_id=u.tipo_user_id LEFT JOIN privilegio p ON p.privilegio_id=u.privilegio_id WHERE u.users_id=? AND u.empresa_id=? AND u.estado=1 LIMIT 1');
             $id=(int)$sesion['users_id']; $empresa=(int)$sesion['empresa_id'];
             $stmt->bind_param('ii',$id,$empresa);$stmt->execute();$u=$stmt->get_result()->fetch_assoc();$stmt->close();
         } finally {$cn->close();}

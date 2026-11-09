@@ -1,0 +1,121 @@
+.izzy-account-api-overlay{position:fixed;inset:0;z-index:13000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(13,29,44,.62)}
+.izzy-user-panel .izzy-account-action>.izzy-account-icon{display:inline-grid;place-items:center;width:29px;height:29px;margin-right:10px;border-radius:8px;vertical-align:middle;font-size:12px;transition:background .15s}
+.izzy-account-icon-key{background:#fff0da;color:#b8730a!important}
+.izzy-account-icon-profile{background:#e7f3ff;color:#146ab9!important}
+.izzy-account-icon-api{background:#def8f4;color:#088c83!important}
+.izzy-account-icon-pin{background:#f0eafe;color:#7b49b4!important}
+.izzy-account-icon-billing{background:#fff0e5;color:#ba6320!important}
+.izzy-account-icon-help{background:#e8f2ff;color:#3769b8!important}
+.izzy-account-icon-exit{background:#ffe9ed;color:#ce3551!important}
+.izzy-user-panel .izzy-account-action:hover>.izzy-account-icon{filter:brightness(.94)}
+.izzy-account-api-overlay.is-open{display:flex}
+.izzy-account-api-dialog{display:flex;flex-direction:column;width:min(1040px,100%);height:min(760px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);border:0;border-radius:17px;background:#fff;overflow:hidden;box-shadow:0 24px 80px rgba(0,18,33,.32)}
+.izzy-account-api-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;border-bottom:4px solid #18b6ac;border-radius:17px 17px 0 0;background:#152c40;color:#fff}
+.izzy-account-api-dialog>header small{display:block;color:#5cbaf0;font-size:10px;font-weight:800;letter-spacing:.1em}
+.izzy-account-api-dialog h2{margin:4px 0 0;color:#fff;font-size:19px}
+.izzy-account-api-close{border:0;border-radius:9px;background:#2d4559;color:#fff;padding:9px 12px;cursor:pointer}
+.izzy-account-api-close:hover{background:#405f77;color:#fff}
+.izzy-account-api-body{flex:1 1 auto;min-height:0;overflow-y:auto;padding:20px 22px;color:#27435a}
+.izzy-account-api-tabs{position:sticky;top:-20px;z-index:2;display:flex;flex-wrap:wrap;gap:7px;padding:9px 0 12px;background:#fff;border-bottom:1px solid #dae7ef}
+.izzy-account-api-tabs button{border:1px solid #d4e5ef;border-radius:9px;background:#f2f7fb;color:#385b73;padding:10px 13px;font-size:12px;font-weight:800;cursor:pointer}
+.izzy-account-api-tabs button.is-active{background:#138bd0;border-color:#138bd0;color:#fff}
+.izzy-account-api-tab-panel{display:none;min-width:0;padding:12px 0}
+.izzy-account-api-tab-panel.is-active{display:block}
+.izzy-account-api-tab-panel>p{color:#58748a;font-size:12px;line-height:1.65}
+.izzy-account-api-modules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.izzy-account-api-modules article{display:grid;gap:6px;align-content:start;border:1px solid #d8e7f0;border-radius:13px;padding:16px;background:#f9fcff}
+.izzy-account-api-modules article>i{font-size:20px;color:#1188c9}
+.izzy-account-api-modules strong{font-size:14px;color:#1c405b}
+.izzy-account-api-modules span{font-size:12px;color:#58768a}
+.izzy-account-api-modules small{width:max-content;max-width:100%;border-radius:100px;padding:5px 9px;background:#fff1dc;color:#8b610e;font-size:10px;font-weight:800}
+.izzy-account-api-body>p{font-size:12px;color:#60778b;line-height:1.5}
+.izzy-account-api-body h3{margin:16px 0 12px;font-size:15px;color:#18374d}
+.izzy-account-api-body form{display:grid;gap:8px}
+.izzy-account-api-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(200px,1fr);gap:14px}
+.izzy-account-api-fields>div{display:grid;align-content:start;gap:7px;min-width:0}
+.izzy-account-api-fields label{font-size:12px;font-weight:800;color:#28465e;margin:0}
+.izzy-account-api-body form>label,.izzy-account-api-body #izzy-account-api-credentials>label{font-size:12px;font-weight:800}
+.izzy-account-api-body input:not([type=checkbox]),.izzy-account-api-body select{width:100%;min-height:40px;padding:8px 11px;border:1px solid #cbdce8;border-radius:9px;background:#fff;color:#29455b}
+.izzy-account-api-body fieldset{display:flex;flex-wrap:wrap;gap:10px;border:1px solid #dce8ef;border-radius:10px;padding:12px}
+.izzy-account-api-body legend{width:auto;margin:0;padding:0 5px;font-size:12px;font-weight:800}
+.izzy-account-api-body fieldset label{font-size:12px;display:flex;align-items:center;gap:5px;margin:0}
+.izzy-account-api-actions{text-align:right}
+.izzy-account-api-dialog footer{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px;border-top:1px solid #dce8ef;background:#f3f7fa;text-align:right}
+.izzy-account-api-footer-caption{display:flex;align-items:center;gap:8px;color:#60849b;font-size:11px;font-weight:700}
+.izzy-account-api-footer-caption i{color:#128bc7}
+.izzy-account-api-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:130px;text-align:center;padding:20px;background:#f1f8fc;border:1px dashed #bfddeb;border-radius:12px;color:#4c738c}
+.izzy-account-api-empty i{font-size:24px;color:#168bd0}
+.izzy-account-api-empty strong{font-size:14px;color:#204b68}
+.izzy-account-api-empty span{max-width:400px;font-size:12px;line-height:1.5}
+.izzy-account-api-promo{display:flex;align-items:center;gap:13px;margin:14px 0;padding:15px 17px;border:1px solid #d4e8f3;border-radius:12px;background:#f3faff}
+.izzy-account-api-promo>span{display:grid;place-items:center;flex:0 0 40px;height:40px;border-radius:11px;background:#e0f3fe;color:#1385c3;font-size:20px}
+.izzy-account-api-promo strong,.izzy-account-api-promo small{display:block}
+.izzy-account-api-promo strong{font-size:13px;color:#1d5272}
+.izzy-account-api-promo small{margin-top:3px;font-size:11px;line-height:1.5;color:#5e8199}
+.izzy-account-api-tabs button:hover,.izzy-account-api-close:hover,.izzy-account-api-dialog .btn:hover{filter:brightness(.93)}
+.izzy-account-api-dialog .btn:hover{color:#fff!important}
+.izzy-swal-cancel{background:#3b556c!important;color:#fff!important;border:0!important}
+.izzy-swal-danger{background:#d44343!important;color:#fff!important;border:0!important}
+.izzy-swal-cancel:hover,.izzy-swal-danger:hover{filter:brightness(.9);color:#fff!important}
+.izzy-account-api-tabs button.is-active:hover{color:#fff}
+.izzy-account-api-record{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #dce8ef;border-radius:10px;margin:8px 0}
+.izzy-account-api-record>div{display:grid;gap:4px;min-width:0}
+.izzy-account-api-record strong{font-size:13px}
+.izzy-account-api-record small{font-size:11px;overflow-wrap:anywhere;color:#60778b}
+#izzy-account-api-credentials{margin-top:18px;padding:15px;border:1px solid #b2dccb;border-radius:10px;background:#f1fcf7}
+#izzy-account-api-credentials[hidden]{display:none!important}
+#izzy-account-api-credentials label,#izzy-account-api-credentials code{display:block;margin:10px 0 5px}
+#izzy-account-api-credentials code{padding:9px;border-radius:7px;background:#fff;overflow-wrap:anywhere}
+@media(max-width:575px){.izzy-account-api-body{padding:14px}.izzy-account-api-dialog>header{padding:14px}.izzy-account-api-record{flex-wrap:wrap}}
+
+/* Guía de autoservicio y selección visual de alcances. */
+.izzy-account-api-guide{margin:15px 0 18px;padding:17px;border:1px solid #d3e6f2;border-radius:13px;background:linear-gradient(145deg,#f6fbff,#fff)}
+.izzy-account-api-guide>summary{display:flex;align-items:center;gap:10px;list-style:none;color:#155c8b;font-size:13px;font-weight:800;cursor:pointer}
+.izzy-account-api-guide>summary::-webkit-details-marker{display:none}
+.izzy-account-api-guide>summary>span{margin-left:auto;font-size:11px;color:#4c7995}
+.izzy-account-api-guide[open]>summary{padding-bottom:15px;border-bottom:1px solid #d3e6f2;margin-bottom:14px}
+.izzy-account-api-guide[open]>summary .fa-chevron-down{transform:rotate(180deg)}
+.izzy-account-api-guide-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.izzy-account-api-guide-head small{font-size:10px;font-weight:800;color:#168bd0;letter-spacing:.1em}
+.izzy-account-api-guide-head h3{margin:3px 0 0;font-size:16px}
+.izzy-account-api-guide-badge{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:#e5f8ee;color:#147449;border-radius:100px;padding:6px 10px;font-size:11px;font-weight:800}
+.izzy-account-api-guide ol{display:grid;gap:8px;margin:10px 0 15px;padding:0;list-style:none}
+.izzy-account-api-guide li{display:grid;gap:3px;padding:10px 12px;border:1px solid #e1ecf3;border-radius:9px;background:#fff}
+.izzy-account-api-guide li strong{font-size:12px;color:#26465c}
+.izzy-account-api-guide li span{font-size:11px;color:#668092}
+.izzy-account-api-endpoint{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;padding:10px;margin:8px 0;border:1px solid #dce9f0;border-radius:10px;background:#fff}
+.izzy-account-api-endpoint>span{grid-column:1 / -1;color:#45677e;font-size:11px;font-weight:700}
+.izzy-account-api-endpoint>span b{color:#0c7bbf;margin-right:5px}
+.izzy-account-api-endpoint code{min-width:0;color:#125e91;font-size:12px;overflow-wrap:anywhere}
+.izzy-account-api-endpoint button,.izzy-account-api-example button{border:1px solid #b8dbef;border-radius:7px;background:#e6f5ff;color:#12689b;padding:7px 9px;font-size:11px;font-weight:800;cursor:pointer}
+.izzy-account-api-example{margin-top:12px;overflow:hidden;border-radius:10px;border:1px solid #dae6ef;background:#fff}
+.izzy-account-api-example>div{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#f1f8fd;font-size:12px}
+.izzy-account-api-example pre{margin:0;padding:13px;color:#29516d;white-space:pre-wrap;font-size:12px}
+.izzy-account-api-example>small{display:block;margin:0 12px 12px;font-size:11px;color:#627d91;line-height:1.5}
+.izzy-account-api-warning{display:flex;gap:8px;margin-top:12px;padding:10px 12px;background:#fff8e7;border:1px solid #f5e2b6;border-radius:9px;color:#745814;font-size:11px;line-height:1.5}
+.izzy-account-api-connection-map{margin-top:14px;padding:15px;border:1px solid #d3e5f1;border-radius:12px;background:#f8fbfe}
+.izzy-account-api-connection-map h4{font-size:14px;color:#195579;margin:0 0 7px}
+.izzy-account-api-connection-map p{font-size:11px;color:#597a91;line-height:1.6}
+.izzy-account-api-connection-map>div{display:grid;grid-template-columns:minmax(120px,.7fr) minmax(0,1.3fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #dceaf3}
+.izzy-account-api-connection-map>div:last-child{border-bottom:0}
+.izzy-account-api-connection-map span{font-size:12px;font-weight:800;color:#215878}
+.izzy-account-api-connection-map strong{font-size:11px;font-weight:700;color:#43687f}
+.izzy-account-api-connection-map small{font-size:10px;color:#8a6415;background:#fff0d8;border-radius:50px;padding:5px 8px}
+@media(max-width:850px){.izzy-account-api-connection-map>div{grid-template-columns:1fr;gap:4px}}
+.izzy-account-api-denied,.izzy-account-api-approved,.izzy-account-api-empty{display:flex;align-items:center;gap:9px;padding:12px;margin:10px 0;border-radius:9px;font-size:12px;font-weight:700}
+.izzy-account-api-denied{background:#fff2ee;color:#a84b37}
+.izzy-account-api-approved{background:#eaf9f1;color:#197a4e}
+.izzy-account-api-empty{background:#f3f8fc;color:#587287}
+.izzy-account-api-scopes{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px!important;padding:12px!important}
+.izzy-account-api-scopes legend{grid-column:1 / -1}
+.izzy-account-api-scopes>label{display:flex!important;align-items:center;gap:10px!important;margin:0!important;padding:12px!important;border:1px solid #dbe7ef;border-radius:11px;background:#fff;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.izzy-account-api-scopes>label:has(input:checked){background:#edf8ff;border-color:#8acaf0;box-shadow:inset 3px 0 #168bd0}
+.izzy-account-api-scopes input[type=checkbox]{flex:0 0 17px;width:17px;height:17px;accent-color:#168bd0}
+.izzy-account-api-scope-icon{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;border-radius:9px;background:#eaf4fc;color:#168bd0}
+.izzy-account-api-scopes>label>span:last-child{display:grid;gap:3px;min-width:0}
+.izzy-account-api-scopes strong{font-size:12px;color:#294a62}
+.izzy-account-api-scopes small{font-size:10px;color:#6c8293}
+.izzy-account-api-body .select2-container .select2-selection--single{height:42px!important;display:flex;align-items:center;border:1px solid #cbdce8!important;border-radius:9px!important}
+@media(max-width:575px){.izzy-account-api-scopes{grid-template-columns:1fr}.izzy-account-api-guide{padding:12px}.izzy-account-api-guide-head{align-items:flex-start;flex-direction:column}}
+@media(max-width:680px){.izzy-account-api-fields{grid-template-columns:1fr}.izzy-account-api-dialog{width:100%}.izzy-account-api-guide>summary>span{display:none}}
+@media(max-width:680px){.izzy-account-api-modules{grid-template-columns:1fr}.izzy-account-api-tabs button{flex:1 1 auto}}

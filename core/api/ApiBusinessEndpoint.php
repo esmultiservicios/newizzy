@@ -16,14 +16,34 @@ function izzyEjecutarCatalogo(string $modulo): void
     header('X-Content-Type-Options: nosniff');
     header('Vary: Authorization');
     if(($_SERVER['HTTPS']??'off')==='off')izzyResponderCatalogo(403,'Se requiere HTTPS.');
-    if(($_SERVER['REQUEST_METHOD']??'')!=='GET'){
-        header('Allow: GET');
-        izzyResponderCatalogo(405,'Por seguridad, este recurso solo admite GET hasta completar las reglas de escritura de IZZY.');
+    $method=(string)($_SERVER['REQUEST_METHOD']??'');
+    $writeEnabled=in_array($modulo,['clientes','proveedores'],true);
+    $allowed=$writeEnabled?['GET','POST','PATCH']:['GET'];
+    if(!in_array($method,$allowed,true)){
+        header('Allow: '.implode(', ',$allowed));
+        izzyResponderCatalogo(405,'Esta operación aún no está habilitada para este recurso.');
     }
     try{
         require_once __DIR__.'/ApiBusinessContext.php';
         require_once __DIR__.'/ApiCatalogService.php';
-        $identity=IzzyApiBusinessContext::identificar($modulo,'read');
+        $identity=IzzyApiBusinessContext::identificar($modulo,$method==='GET'?'read':($method==='POST'?'create':'update'));
+        if($method!=='GET'){
+            $contentType=(string)($_SERVER['CONTENT_TYPE']??'');
+            if(stripos($contentType,'application/json')!==0)izzyResponderCatalogo(415,'Debe enviar application/json.');
+            if((int)($_SERVER['CONTENT_LENGTH']??0)>16384)izzyResponderCatalogo(413,'Solicitud demasiado grande.');
+            $raw=(string)file_get_contents('php://input',false,null,0,16385);
+            if(strlen($raw)>16384)izzyResponderCatalogo(413,'Solicitud demasiado grande.');
+            $payload=json_decode($raw,true);
+            if(!is_array($payload)||array_is_list($payload))izzyResponderCatalogo(400,'JSON de objeto inválido.');
+            $id=null;
+            if($method==='PATCH'){
+                $id=filter_input(INPUT_GET,'id',FILTER_VALIDATE_INT);
+                if(!$id||$id<1)throw new InvalidArgumentException('Para editar indique ?id=N válido.');
+            }
+            require_once __DIR__.'/ApiCatalogWriteService.php';
+            $saved=(new IzzyApiCatalogWriteService($identity))->save($modulo,$payload,$id);
+            izzyResponderCatalogo($method==='POST'?201:200,$method==='POST'?'Registro creado.':'Registro actualizado.',$saved);
+        }
         $id=filter_input(INPUT_GET,'id',FILTER_VALIDATE_INT);
         $page=filter_input(INPUT_GET,'pagina',FILTER_VALIDATE_INT);
         $limit=filter_input(INPUT_GET,'limite',FILTER_VALIDATE_INT);

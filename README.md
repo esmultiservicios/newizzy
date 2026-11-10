@@ -224,7 +224,7 @@ Antes de publicar cambios:
 
 ---
 
-## API IZZY v1 — Aplicación móvil e integraciones (fases 1 a 3, en desarrollo)
+## API IZZY v1 — Aplicación móvil e integraciones (fases 1 a 4.1, en desarrollo)
 
 Esta es la **única documentación de API** del repositorio. No se necesitan archivos de documentación por fase. Todas las direcciones mostradas usan la base del entorno desplegado, por ejemplo `https://demo.izzycloud.app/api/v1/` o `https://sistema.izzycloud.app/api/v1/`; las credenciales de ambos entornos son distintas.
 
@@ -266,14 +266,14 @@ No debe enviarse `db`, `empresa_id` ni `server_customers_id` para decidir qué e
 
 | Recurso | Alcance de credencial | Operaciones de datos |
 | --- | --- | --- |
-| Clientes | `clientes:read` | `GET data/clientes.php` — implementación para pruebas |
+| Clientes | `clientes:read` y `clientes:write` | `GET`, `POST`, `PATCH data/clientes.php` — consulta, registro y edición |
 | Productos e inventario | `productos:read` | `GET data/productos.php` — catálogo; movimientos de inventario pendientes |
-| Proveedores | `proveedores:read` | `GET data/proveedores.php` — implementación para pruebas |
+| Proveedores | `proveedores:read` y `proveedores:write` | `GET`, `POST`, `PATCH data/proveedores.php` — consulta, registro y edición |
 | Facturas | `facturas:read` | `GET data/facturas.php` — consulta y detalle; emisión pendiente |
 | Empresa | `empresa:read` | `GET data/empresa.php` — información de la empresa autorizada |
 | Secuencias | `secuencias:read` | `GET data/secuencias.php` — CAI, rangos y fechas; **no reserva correlativos** |
 
-**Importante:** existen endpoints de **consulta** para pruebas en DEMO. **No existe todavía un CRUD completo**. Las operaciones POST/PUT devuelven HTTP 405 deliberadamente, hasta validar los campos de cada modelo, los privilegios, el aislamiento entre bases y la integridad transaccional. Para habilitar escrituras se necesitarán `clientes:write`, `productos:write`, `proveedores:write` y `facturas:create`. En facturación, la norma SAR impide modificar una factura emitida: las anulaciones y notas de crédito requieren su flujo legal, no un `PUT` genérico. No publicar estas rutas en producción antes de las pruebas con bases reales.
+**Importante:** existe consulta GET para seis recursos. La fase 4.1 añade `POST` y `PATCH` **solo para clientes y proveedores**, con permisos de escritura independientes. `POST/PUT/PATCH` de productos, inventario, facturas, empresa y secuencias continúan deshabilitados. No existe todavía un CRUD completo. Las anulaciones, notas de crédito y correlativos de facturación requieren sus propios procesos conforme al SAR. No promover escrituras a producción sin pruebas reales.
 
 ### Base de datos e instalación
 
@@ -292,9 +292,15 @@ La APK podrá incluir catálogo, existencias, clientes, proveedores, secuencias 
 - **Otro sistema → IZZY:** la empresa autorizada crea una credencial en **Mi cuenta → Integraciones API** o el equipo de IZZY la administra desde **Sistema → API → Accesos externos a IZZY**. `integrations/token.php` obtiene un Bearer y `integrations/me.php` confirma la identidad. La credencial nunca concede acceso a otra base de datos.
 - **IZZY → servicios externos:** una pasarela de pago, SMS, WhatsApp o servicio de mensajería necesita un conector **saliente** distinto que administre credenciales y eventos del proveedor. El formulario de accesos externos **no configura ese tipo de conexión**; este conector queda pendiente de implementación.
 
-En Mi cuenta se muestran tres pestañas de tamaño fijo: **Mis accesos**, **Módulos y operaciones**, **Cómo conectarse**. La segunda explica clientes, productos, inventario, proveedores y facturas, indicando expresamente que sus endpoints de datos y escrituras aún no están publicados. No se debe vender una autorización de alcance como funcionalidad implementada. La tercera pestaña contiene las URL y ejemplos copiables, con desplazamiento interno para que no cambie el tamaño del modal.
+En Mi cuenta se muestran tres pestañas de tamaño fijo: **Mis accesos**, **Módulos y operaciones**, **Cómo conectarse**. La segunda muestra las operaciones realmente disponibles: GET para seis recursos y POST/PATCH para clientes y proveedores. La tercera incluye las rutas y ejemplos con desplazamiento interno para conservar el tamaño del modal.
 
-La integración externa **no inicia sesión como usuario**: envía su Client ID y Client Secret a `integrations/token.php` y usa el Bearer resultante. `integrations/me.php` verifica el vínculo. Las rutas de consulta `GET data/*.php` están incluidas para pruebas. Las futuras operaciones de creación (`POST`) y actualización (`PUT`) se publicarán únicamente cuando su implementación haya sido aprobada y probada. En facturas, `POST` será para emisión conforme al SAR, nunca modificación de documentos ya emitidos. No intentar invocar rutas de escritura supuestas.
+**Regla de uniformidad UI:** Sistema → API y Mi cuenta → Integraciones usan los mismos seis recursos de datos y los mismos ocho permisos seleccionables para accesos externos (seis `:read` y dos `:write`). Los ocho permisos deben verse explícitamente en el modal del cliente; `POST` y `PATCH` comparten el permiso `:write` por recurso. En el directorio, cada ruta de autenticación externa y cada recurso ofrece **Ver detalles** con encabezados, parámetros y ejemplos. Las rutas móviles (`auth/*`, `navigation/menus.php`) se documentan por separado: no requieren credenciales de integración y no deben exponerse como permisos externos.
+
+Los detalles de las rutas se abren en un **modal de documentación con scroll interno**, sin aumentar la altura de cada tarjeta ni desalinear su cuadrícula. El cliente dispone del mismo patrón en la pestaña de módulos: ocho tarjetas de permisos visibles y botones «Ver detalles» con operaciones, rutas, encabezados y ejemplos. Ambos modales muestran encabezado y botón de cierre, admiten la tecla ESC y no se cierran al pulsar fuera.
+
+Los modales de documentación muestran un resumen, la solicitud, pasos de consumo, seguridad por empresa y comprobaciones de respuesta. En «Nuevo acceso externo», una advertencia destacada explica que el secreto solo se muestra una vez y que conceder escrituras requiere marcar los permisos correspondientes al crear la credencial; las ya existentes no reciben ese permiso automáticamente.
+
+La integración externa **no inicia sesión como usuario**: envía Client ID y Client Secret a `integrations/token.php` y usa el Bearer resultante. `integrations/me.php` verifica el vínculo. Para clientes y proveedores, los nuevos alcances `:write` autorizan POST/PATCH; las credenciales ya emitidas no ganan permisos de escritura automáticamente. En facturación, una futura emisión POST deberá respetar el SAR; nunca permitirá alterar documentos ya emitidos.
 
 ### Fase 3 — Entrega de consulta y validación de permisos
 
@@ -309,7 +315,44 @@ La integración externa **no inicia sesión como usuario**: envía su Client ID 
 
 `pagina` empieza en 1, `limite` usa 25 por defecto y no excede 100, `id` consulta un registro. `facturas.php?id=123` incluye líneas del detalle. Todas las consultas exigen Bearer y HTTPS, no aceptan nombre de DB y devuelven `ok`, `mensaje` y `data`. El menú móvil ahora devuelve `acciones`, `privilegio_id`, `privilegio_nombre` y `tipo_user_id`; el perfil `auth/me.php` también incluye `acciones`. Los permisos son calculados nuevamente desde las tablas del tenant en cada petición.
 
-**Estado:** implementación de código preparada; validación HTTP con MySQL real y pruebas de aislamiento entre dos tenants pendientes. **No constituye cierre de las fases 3.2–3.5 ni autorización de escritura**. En las fases siguientes se necesita adaptar los casos de uso de registro, inventario y facturación con sus transacciones, auditoría e idempotencia. Hasta entonces no enviar operaciones de escritura desde la APK ni sistemas externos.
+**Estado:** las consultas permanecen disponibles. Las escrituras de clientes y proveedores de la fase 4.1 requieren validación HTTP contra MySQL real y prueba de aislamiento entre dos tenants antes de usarse en producción. Inventario, facturación y secuencias necesitan todavía sus transacciones, auditoría e idempotencia.
+
+### Fase 4.1 — Escritura de clientes y proveedores (APK e integraciones)
+
+Base DEMO: `https://demo.izzycloud.app/api/v1/`. Las rutas son exactamente las mismas para ambas identidades; la **base de datos se resuelve desde el token**. Nunca enviar `db`, `empresa_id` o `server_customers_id` en los datos de registro.
+
+| Recurso | GET (consulta) | POST (crear) | PATCH (editar) | Alcance externo de escritura |
+| --- | --- | --- | --- | --- |
+| Clientes | `data/clientes.php` | `data/clientes.php` | `data/clientes.php?id=N` | `clientes:write` |
+| Proveedores | `data/proveedores.php` | `data/proveedores.php` | `data/proveedores.php?id=N` | `proveedores:write` |
+
+Todos usan `Authorization: Bearer ACCESS_TOKEN`. Para POST y PATCH enviar `Content-Type: application/json`. En la APK, el token se obtiene de `auth/login.php`; en sistemas externos autorizados, se obtiene de `integrations/token.php` con Client ID y Secret **únicamente desde el servidor**.
+
+Ejemplo de creación (POST):
+
+```http
+POST /api/v1/data/clientes.php
+Authorization: Bearer ACCESS_TOKEN
+Content-Type: application/json
+
+{"nombre":"Cliente de prueba","rtn":"","telefono":"","correo":"","departamentos_id":0,"municipios_id":0,"localidad":""}
+```
+
+Ejemplo de edición (PATCH):
+
+```http
+PATCH /api/v1/data/proveedores.php?id=25
+Authorization: Bearer ACCESS_TOKEN
+Content-Type: application/json
+
+{"telefono":"99998888","correo":"proveedor@ejemplo.com"}
+```
+
+Campos admitidos: `nombre`, `rtn`, `fecha` (`YYYY-MM-DD`), `departamentos_id`, `municipios_id`, `localidad`, `telefono`, `correo`, `estado`. En creación, `nombre` es obligatorio. IZZY asigna el ID y controla RTN duplicado, validaciones, límite del plan y restricciones por pagos vencidos. No se admite eliminar registros por API en esta entrega.
+
+**Pruebas obligatorias en DEMO:** crear y editar clientes/proveedores; comprobar los registros en el sistema web; intentar un RTN duplicado, token vencido, usuario sin permisos, integración sin `:write`, plan sin cupo, cuenta con pago vencido y acceso cruzado de dos empresas. Respuestas esperadas: `201` creado, `200` editado, `400` JSON inválido, `403` permiso insuficiente, `404` ID inexistente, `405` método no permitido y `422` campos inválidos. **No se han completado todavía pruebas autenticadas reales contra MySQL**, por lo que estas escrituras no deben publicarse en producción sin validación.
+
+**Próximos módulos:** productos y existencias, movimientos de inventario, cotizaciones, compras, CxC/CxP, facturas, notas de crédito, secuencias fiscales, apertura/cierre de caja y reportes. No habilitar POST de productos o facturas hasta reutilizar y probar sus reglas de negocio, inventario, caja y SAR.
 
 ### Guía de pruebas para el desarrollador de la APK
 

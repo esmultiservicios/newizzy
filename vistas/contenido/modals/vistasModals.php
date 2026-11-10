@@ -82,13 +82,16 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
         <div class="izzy-account-api-fields"><div><label for="izzy-account-api-name">Nombre</label><input id="izzy-account-api-name" maxlength="100" required placeholder="Ej. Conexión con mi tienda"></div>
         <div><label for="izzy-account-api-expiry">Vencimiento</label><select id="izzy-account-api-expiry" required><option value="90">90 días</option><option value="30">30 días</option><option value="365">1 año</option><option value="0">Sin vencimiento</option></select></div></div>
         <fieldset class="izzy-account-api-scopes">
-          <legend>Datos que desea compartir (consultas para pruebas)</legend>
+          <legend>Permisos que desea autorizar a esta integración</legend>
           <?php
           require_once dirname(__DIR__, 3).'/core/api/ApiModuleCatalog.php';
           foreach (IzzyApiModuleCatalog::items() as $apiModule):
               $checked = in_array($apiModule['clave'], ['clientes', 'productos'], true);
           ?>
           <label><input type="checkbox" value="<?php echo htmlspecialchars($apiModule['clave'].':read', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $checked ? 'checked' : ''; ?>><span class="izzy-account-api-scope-icon"><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i></span><span><strong><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></strong><small>Consultar · API v1</small></span></label>
+          <?php if (in_array($apiModule['clave'], ['clientes', 'proveedores'], true)): ?>
+          <label><input type="checkbox" value="<?php echo htmlspecialchars($apiModule['clave'].':write', ENT_QUOTES, 'UTF-8'); ?>"><span class="izzy-account-api-scope-icon"><i class="fas fa-pen"></i></span><span><strong><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></strong><small>Crear y editar · Fase 4.1</small></span></label>
+          <?php endif; ?>
           <?php endforeach; ?>
         </fieldset>
         <div class="izzy-account-api-actions"><button class="btn btn-primary" type="submit"><i class="fas fa-key"></i> Crear credenciales</button></div>
@@ -96,7 +99,7 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
       </div>
       <section class="izzy-account-api-tab-panel" data-izzy-api-content="modules" aria-label="Módulos de integración">
         <h3><i class="fas fa-database"></i> ¿Qué podrá conectar con IZZY?</h3>
-        <p>Las consultas GET están preparadas para pruebas en DEMO. Las escrituras se habilitarán cuando las validaciones de negocio e integridad estén completas.</p>
+        <p>El catálogo tiene <strong>6 recursos de datos y 8 permisos configurables</strong>: seis permisos de consulta y dos de escritura (clientes y proveedores). Aquí se muestran todas las operaciones que puede autorizar su empresa.</p>
         <div class="izzy-account-api-modules">
           <?php
           require_once dirname(__DIR__, 3).'/core/api/ApiModuleCatalog.php';
@@ -107,10 +110,23 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
             <strong><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></strong>
             <span><?php echo htmlspecialchars($apiModule['descripcion'], ENT_QUOTES, 'UTF-8'); ?></span>
             <small><?php echo htmlspecialchars($apiModule['nota'], ENT_QUOTES, 'UTF-8'); ?></small>
+            <div class="izzy-account-api-operation"><b>GET</b><code>data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</code><span><?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:read · Consultar lista o registro</span></div>
+            <button type="button" class="izzy-account-api-detail-button" data-izzy-api-detail><i class="fas fa-search-plus"></i> Ver detalles de consulta</button>
           </article>
+          <?php if (in_array($apiModule['clave'], ['clientes', 'proveedores'], true)): ?>
+          <article class="izzy-account-api-write-card">
+            <i class="fas fa-edit"></i>
+            <strong><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?> · Escritura</strong>
+            <span>Crear y editar registros autorizados de su empresa.</span>
+            <small>POST · PATCH · <?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:write</small>
+            <div class="izzy-account-api-operation"><b>POST</b><code>data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</code><span>Crear un registro con JSON.</span></div><div class="izzy-account-api-operation"><b>PATCH</b><code>data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php?id=N</code><span>Editar los campos enviados.</span></div><details class="izzy-account-api-module-details"><summary><i class="fas fa-plus-circle"></i> Ver ejemplo y reglas</summary><pre>{"nombre":"Registro de prueba","telefono":""}</pre><p>Requiere el permiso <code><?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:write</code>; la empresa se determina desde el Bearer. Para crear, el nombre es obligatorio.</p></details>
+            <button type="button" class="izzy-account-api-detail-button" data-izzy-api-detail><i class="fas fa-search-plus"></i> Ver detalles de escritura</button>
+          </article>
+          <?php endif; ?>
           <?php endforeach; ?>
         </div>
-        <div class="izzy-account-api-warning"><i class="fas fa-shield-alt"></i> La API no acepta un nombre de base de datos proporcionado por el cliente. Cada credencial identifica exclusivamente su empresa.</div>
+        <aside class="izzy-account-api-module-promo"><i class="fas fa-shield-alt"></i><div><strong>IZZY API · Una sola conexión, datos protegidos</strong><p>Conecte sus herramientas con clientes, proveedores y catálogos autorizados. Cada acceso queda vinculado a su empresa y puede revocarse cuando lo necesite. Las operaciones nuevas respetan los permisos concedidos.</p></div></aside>
+        <div class="izzy-account-api-warning"><i class="fas fa-shield-alt"></i><span>La API no acepta un nombre de base de datos proporcionado por el cliente. Cada credencial identifica exclusivamente su empresa. Solo puede utilizar las operaciones y permisos que autorice.</span></div>
       </section>
       <div class="izzy-account-api-tab-panel" data-izzy-api-content="guide">
       <details class="izzy-account-api-guide" id="izzy-account-api-guide" aria-labelledby="izzy-account-api-guide-title">
@@ -124,23 +140,30 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
   "client_secret": "SU_CLIENT_SECRET"
 }</pre><small>Encabezado: Content-Type: application/json. Para verificar la integración, envíe Authorization: Bearer SU_ACCESS_TOKEN.</small></div>
         <div class="izzy-account-api-connection-map">
-          <h4><i class="fas fa-project-diagram"></i> Rutas de consulta API v1</h4>
-          <p>Su servidor obtiene el Bearer con Client ID y Secret. En cada consulta envía <code>Authorization: Bearer TOKEN</code>. IZZY identifica automáticamente la base autorizada.</p>
+          <h4><i class="fas fa-project-diagram"></i> Rutas y operaciones API v1</h4>
+          <p>Su servidor obtiene el Bearer con Client ID y Secret. En cada solicitud envía <code>Authorization: Bearer TOKEN</code>. IZZY identifica automáticamente la base autorizada.</p>
           <?php foreach (IzzyApiModuleCatalog::items() as $apiModule): ?>
-          <div><span><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i> <?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></span><strong><code>GET data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</code></strong><small>Consultar</small></div>
+          <div class="izzy-account-api-route-row"><span><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i> <?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></span><div class="izzy-account-api-route-detail"><code>GET data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</code><small>Alcance <?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:read</small><?php if (in_array($apiModule['clave'], ['clientes', 'proveedores'], true)): ?><code>POST data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</code><code>PATCH data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php?id=N</code><small>Alcance <?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:write · JSON</small><?php endif; ?></div></div>
           <?php endforeach; ?>
-          <p>Agregue la ruta a la URL base. Use <code>?pagina=1&amp;limite=25</code> para paginar o <code>?id=123</code> para obtener un registro. Las escrituras no están habilitadas y consultar secuencias no reserva correlativos fiscales.</p>
+          <p>Agregue la ruta a la URL base. En GET use <code>?pagina=1&amp;limite=25</code> o <code>?id=123</code>. En POST/PATCH envíe JSON. PATCH exige <code>?id=N</code>. Las escrituras requieren autorización explícita; consultar secuencias no reserva correlativos fiscales.</p>
         </div>
-        <div class="izzy-account-api-warning"><i class="fas fa-building"></i> También puede consultar <code>GET data/empresa.php</code> y <code>GET data/secuencias.php</code> con sus respectivos alcances. Las secuencias se consultan solamente; no se reserva ni consume un número fiscal.</div>
-        <div class="izzy-account-api-warning"><i class="fas fa-info-circle"></i> Estas rutas de consulta requieren pruebas en DEMO antes de usarlas en producción. POST/PUT aún no están habilitados.</div>
+        <div class="izzy-account-api-warning"><i class="fas fa-shield-alt"></i><span>Clientes y proveedores permiten crear (POST) y editar (PATCH) solamente con permiso de escritura. Empresa, productos, facturas y secuencias continúan como GET. Ninguna solicitud puede seleccionar otra base de datos.</span></div>
+        <div class="izzy-account-api-warning"><i class="fas fa-info-circle"></i><span>Primero valide en DEMO las operaciones autorizadas. Las secuencias solo se consultan: no se reserva ni consume un número fiscal.</span></div>
       </details>
       </div>
       <div id="izzy-account-api-credentials" hidden><strong>Guarde estas credenciales ahora; el secreto se mostrará una sola vez.</strong><label>Client ID</label><code id="izzy-account-client-id"></code><label>Client Secret</label><code id="izzy-account-client-secret"></code><button type="button" class="btn btn-primary" id="izzy-account-api-credentials-close"><i class="fas fa-check"></i> Entendido</button></div>
     </div>
     <footer><span class="izzy-account-api-footer-caption"><i class="fas fa-shield-alt"></i> IZZY · Integraciones seguras por empresa</span><button type="button" class="btn btn-secondary izzy-account-api-close"><i class="fas fa-times"></i> Cerrar</button></footer>
   </section>
+  <div class="izzy-account-api-detail-overlay" id="izzy-account-api-detail-overlay" aria-hidden="true">
+    <section class="izzy-account-api-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="izzy-account-api-detail-title">
+      <header><div><small>IZZY API · DOCUMENTACIÓN DE RECURSO</small><h2 id="izzy-account-api-detail-title">Detalle de operación</h2></div><button type="button" class="izzy-account-api-detail-close" aria-label="Cerrar detalles"><i class="fas fa-times"></i></button></header>
+      <div class="izzy-account-api-detail-body" id="izzy-account-api-detail-body"></div>
+      <footer><span><i class="fas fa-shield-alt"></i> Datos protegidos por empresa y permisos</span><button type="button" class="izzy-account-api-detail-close"><i class="fas fa-times"></i> Cerrar</button></footer>
+    </section>
+  </div>
 </div>
-<script src="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>ajax/js/miCuentaApi.js?v=1" defer></script>
+<script src="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>ajax/js/miCuentaApi.js?v=<?php echo @filemtime(dirname(__DIR__, 3).'/ajax/js/miCuentaApi.js') ?: time(); ?>" defer></script>
 
 <!-- Centro de Ayuda: informativo, no requiere cambios en tablas ni permisos. -->
 <div class="modal fade izzy-help-dialog" id="izzy-help-center-modal" tabindex="-1" role="dialog" aria-labelledby="izzy-help-title" aria-hidden="true" data-izzy-payment-readonly-allowed="1">

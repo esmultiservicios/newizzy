@@ -83,6 +83,7 @@ final class IzzyApiIntegrationService
         if (!$this->permitido($clienteId)) throw new DomainException('IZZY no ha autorizado el uso de integraciones para esta empresa.');
         require_once __DIR__.'/ApiModuleCatalog.php';
         $validos=array_map(static fn(array $module): string => $module['clave'].':read', IzzyApiModuleCatalog::items());
+        foreach (['clientes','proveedores'] as $escribible) $validos[]=$escribible.':write';
         $scopes=array_values(array_unique(array_map('strval',$scopes)));
         if (!$scopes || array_diff($scopes,$validos)) throw new InvalidArgumentException('Seleccione alcances autorizados válidos.');
 

@@ -9,9 +9,28 @@
         $('#izzy-account-api-token-url').text(base+'integrations/token.php');
         $('#izzy-account-api-me-url').text(base+'integrations/me.php');
         const esc=value=>$('<span>').text(value==null?'':String(value)).html();
+        const detailOverlay=$('#izzy-account-api-detail-overlay');
+        function closeDetail(){detailOverlay.removeClass('is-open').attr('aria-hidden','true');$('#izzy-account-api-detail-body').empty();}
+        root.on('click','[data-izzy-api-detail]',function(){
+            const card=$(this).closest('article'),title=card.children('strong').first().text();
+            const body=$('#izzy-account-api-detail-body').empty();
+            body.append($('<div class="izzy-account-api-detail-intro">').append($('<strong>').text(title)).append($('<p>').text(card.children('span').first().text())));
+            card.children('.izzy-account-api-operation').each(function(){body.append($(this).clone());});
+            const extra=card.children('details').clone();if(extra.length){extra.prop('open',true);extra.find('summary').remove();body.append(extra.children());}
+            body.append($('<div class="izzy-account-api-detail-note">').html('<i class="fas fa-info-circle"></i> URL base: <code>'+esc(base)+'</code>. Envíe <code>Authorization: Bearer TOKEN</code>. GET admite <code>?id=N</code> o <code>?pagina=1&amp;limite=25</code>. POST y PATCH requieren JSON y permiso de escritura; PATCH exige <code>?id=N</code>.'));
+            const isWrite=card.hasClass('izzy-account-api-write-card');
+            const instructions=$('<section class="izzy-account-api-detail-guide">');
+            instructions.append($('<article>').html('<h3><i class="fas fa-list-ol"></i> Pasos para utilizarlo</h3><p>1. Autorice el permiso correspondiente en «Mis accesos».</p><p>2. Obtenga un Bearer mediante <code>integrations/token.php</code> desde su servidor.</p><p>3. Llame la ruta indicada con HTTPS, encabezado Bearer y '+(isWrite?'JSON para crear o editar.':'parámetros opcionales de consulta.')+'</p>'));
+            instructions.append($('<article>').html('<h3><i class="fas fa-shield-alt"></i> Seguridad por empresa</h3><p>IZZY identifica la empresa desde la credencial y comprueba sus permisos. Nunca envíe el nombre de la base de datos ni incorpore el Client Secret en la APK.</p>'));
+            instructions.append($('<article>').html('<h3><i class="fas fa-clipboard-check"></i> Verifique la respuesta</h3><p>Compruebe el código HTTP y los campos <code>ok</code>, <code>mensaje</code> y <code>data</code>. '+(isWrite?'Pruebe primero la creación y edición en DEMO antes de usar producción.':'Las consultas no autorizan cambios ni reservan numeración fiscal.')+'</p>'));
+            body.append(instructions);
+            $('#izzy-account-api-detail-title').text(title);detailOverlay.addClass('is-open').attr('aria-hidden','false');
+            detailOverlay.find('.izzy-account-api-detail-close').first().trigger('focus');
+        });
+        detailOverlay.on('click','.izzy-account-api-detail-close',closeDetail);
         function notify(message,type){if(typeof window.showNotify==='function')window.showNotify(type||'success','API',message);else if(typeof window.swal==='function')window.swal({title:'API',text:message,icon:type==='error'?'error':'success',button:'Entendido'});}
         function post(data){return $.ajax({url:endpoint,method:'POST',dataType:'json',data:{...data,csrf},headers:{'X-CSRF-Token':csrf}});}
-        function close(){root.removeClass('is-open').attr('aria-hidden','true');$('#izzy-account-client-secret').text('');$('#izzy-account-api-credentials').prop('hidden',true);$('body').css('overflow','');}
+        function close(){closeDetail();root.removeClass('is-open').attr('aria-hidden','true');$('#izzy-account-client-secret').text('');$('#izzy-account-api-credentials').prop('hidden',true);$('body').css('overflow','');}
         let statusKnown=false,statusAllowed=false;
         function open(){root.addClass('is-open').attr('aria-hidden','false');$('body').css('overflow','hidden');if(statusKnown&&statusAllowed)load();setTimeout(()=>root.find('.izzy-account-api-tabs .is-active').trigger('focus'),30);}
         root.on('click','[data-izzy-api-tab]',function(){
@@ -48,7 +67,7 @@
         });
         link.on('click',e=>{e.preventDefault();open();});
         root.find('.izzy-account-api-close').on('click',close);
-        $(document).on('keydown',e=>{if(e.key==='Escape'&&root.hasClass('is-open'))close();});
+        $(document).on('keydown',e=>{if(e.key==='Escape'&&detailOverlay.hasClass('is-open'))closeDetail();else if(e.key==='Escape'&&root.hasClass('is-open'))close();});
         $('#izzy-account-api-form').on('submit',function(e){
             e.preventDefault();
             const button=$(this).find('[type=submit]'),scopes=$(this).find('input[type=checkbox]:checked').map(function(){return this.value;}).get();

@@ -34,12 +34,17 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
     </div>
 
     <section class="api-panel is-active" data-api-panel="integrations">
-        <div class="api-panel-heading"><div><h2>Accesos externos a IZZY</h2><p>Autorice que otro sistema lea datos de una empresa IZZY; cada credencial queda ligada a una sola empresa.</p></div>
+        <div class="api-panel-heading"><div><h2>Accesos externos a IZZY</h2><p>Autorice consultas o escrituras permitidas para una empresa IZZY; cada credencial queda ligada a una sola empresa.</p></div>
             <button type="button" class="btn btn-primary" id="api_new_integration"><i class="fas fa-plus"></i> Nuevo acceso externo</button></div>
         <div class="api-integration-directions"><article><i class="fas fa-arrow-right"></i><div><strong>De otro sistema hacia IZZY</strong><span>Estas credenciales permiten que un sistema externo solicite tokens para una empresa autorizada.</span></div></article><article><i class="fas fa-arrow-left"></i><div><strong>De IZZY hacia un proveedor externo</strong><span>Pasarelas de pago, WhatsApp o mensajería necesitarán su propio módulo de conectores, con claves del proveedor y webhooks. No se configuran en este formulario.</span></div></article></div>
         <div class="api-integration-notice"><i class="fas fa-info-circle"></i><span>Estas credenciales identifican integraciones servidor a servidor. Las rutas móviles de login, refresh, perfil, cierre y menús siguen usando tokens individuales de usuario.</span></div>
         <div class="api-integration-quickstart"><div><strong><i class="fas fa-link"></i> URL para obtener token</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>integrations/token.php</code></div><div><strong><i class="fas fa-shield-alt"></i> URL para comprobar integración</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>integrations/me.php</code></div><p>Ambas direcciones son comunes; IZZY identifica automáticamente la empresa por su credencial. Nunca se envía un nombre de base de datos desde la integración.</p></div>
-        <div class="api-integration-quickstart"><div><strong><i class="fas fa-users"></i> Consultar clientes</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/clientes.php</code></div><div><strong><i class="fas fa-box"></i> Consultar productos</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/productos.php</code></div><div><strong><i class="fas fa-truck"></i> Consultar proveedores</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/proveedores.php</code></div><div><strong><i class="fas fa-file-invoice"></i> Consultar facturas</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/facturas.php</code></div><div><strong><i class="fas fa-building"></i> Consultar empresa</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/empresa.php</code></div><div><strong><i class="fas fa-list-ol"></i> Consultar secuencias</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/secuencias.php</code></div><p>Rutas de consulta con Bearer de integración y alcances por módulo; sirven también con Bearer de usuario móvil autorizado. La consulta de secuencias no reserva correlativos. La creación, edición y emisión de facturas permanecen deshabilitadas mientras no se integren y prueben las reglas de negocio.</p></div>
+        <div class="api-integration-quickstart">
+            <?php require_once dirname(__DIR__, 2).'/core/api/ApiModuleCatalog.php'; foreach (IzzyApiModuleCatalog::items() as $apiModule): $apiKey=htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>
+            <div><strong><i class="<?php echo htmlspecialchars($apiModule['icono'],ENT_QUOTES,'UTF-8'); ?>"></i> <?php echo htmlspecialchars($apiModule['nombre'],ENT_QUOTES,'UTF-8'); ?></strong><span class="api-inline-method">GET · <?php echo $apiKey; ?>:read</span><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>data/<?php echo $apiKey; ?>.php</code><?php if(in_array($apiModule['clave'],['clientes','proveedores'],true)): ?><span class="api-inline-method is-write">POST / PATCH · <?php echo $apiKey; ?>:write</span><small>POST para crear · PATCH con <code>?id=N</code> para editar · Cuerpo JSON</small><?php endif; ?></div>
+            <?php endforeach; ?>
+            <p>Las rutas son comunes para APK e integraciones autorizadas; el token determina la empresa. Solo clientes y proveedores admiten POST y PATCH; facturas, productos, empresa y secuencias continúan como consulta GET. Ninguna lectura de secuencia reserva números fiscales.</p>
+        </div>
         <div class="api-integration-list" id="api_integrations_rows" aria-live="polite"><div class="api-loading">Cargando integraciones…</div></div>
         <div class="api-footnote"><i class="fas fa-lock"></i> El secreto no se guarda en texto legible. Las rutas protegidas para servidor se habilitarán conforme se publiquen sus endpoints y alcances.</div>
     </section>
@@ -101,8 +106,8 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         </div>
         <h3 class="api-route-section-title"><i class="fas fa-plug"></i> Autenticación de integraciones externas</h3>
         <div class="api-route-grid">
-            <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-post">POST</span><strong>/integrations/token.php</strong><span class="api-auth-tag auth-public">Client ID + Secret</span></div><small>Genera el Bearer para un servidor externo autorizado. El secreto no se incluye en la APK.</small></article>
-            <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-get">GET</span><strong>/integrations/me.php</strong><span class="api-auth-tag auth-bearer">Bearer externo</span></div><small>Comprueba la integración, empresa vinculada y sus alcances vigentes.</small></article>
+            <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-post">POST</span><strong>/integrations/token.php</strong><span class="api-auth-tag auth-public">Client ID + Secret</span></div><small>Genera el Bearer para un servidor externo autorizado. El secreto no se incluye en la APK.</small><details class="api-route-write-example"><summary>Ver solicitud y respuesta</summary><p>Solo debe llamarse desde un servidor seguro de la integración.</p><pre>{"client_id":"SU_CLIENT_ID","client_secret":"SU_CLIENT_SECRET"}</pre><p>Enviar <code>Content-Type: application/json</code>. Conserve el token obtenido en el servidor; nunca publique el secreto en una APK.</p></details></article>
+            <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-get">GET</span><strong>/integrations/me.php</strong><span class="api-auth-tag auth-bearer">Bearer externo</span></div><small>Comprueba la integración, empresa vinculada y sus alcances vigentes.</small><details class="api-route-write-example"><summary>Ver encabezado y permisos</summary><pre>Authorization: Bearer TOKEN_DE_INTEGRACION</pre><p>La respuesta identifica la integración, su empresa autorizada y los alcances concedidos. Los alcances <code>clientes:write</code> y <code>proveedores:write</code> son independientes de los permisos de consulta.</p></details></article>
         </div>
         <h3 class="api-route-section-title"><i class="fas fa-database"></i> Recursos de datos para APK e integraciones</h3>
         <div class="api-route-grid">
@@ -113,7 +118,15 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
             <article class="api-route-card api-resource-card">
                 <div class="api-route-top"><span class="api-method method-get">GET</span><strong>/data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</strong><span class="api-auth-tag auth-bearer">Bearer + permisos</span></div>
                 <small><?php echo htmlspecialchars($apiModule['descripcion'], ENT_QUOTES, 'UTF-8'); ?> Alcance: <code><?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>:read</code>.</small>
-                <div class="api-route-params"><i class="fas fa-filter"></i> Parámetros: <code>pagina</code>, <code>limite</code>, <code>id</code>. <span>Solo consulta GET.</span></div>
+                <div class="api-route-params"><i class="fas fa-filter"></i> GET: <code>?pagina=1&amp;limite=25</code> o <code>?id=N</code>.</div>
+                <?php if(in_array($apiModule['clave'],['clientes','proveedores'],true)): ?>
+                <div class="api-route-write"><span class="api-method method-post">POST</span><span class="api-method method-patch">PATCH</span><strong>Crear / editar</strong><small>Alcance <code><?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>:write</code></small></div>
+                <details class="api-route-write-example"><summary>Ver solicitudes GET, POST y PATCH</summary><p><strong>GET:</strong> consulta por página o ID; usa el alcance <code><?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>:read</code>.</p><pre>GET /data/<?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>.php?pagina=1&amp;limite=25</pre><p><strong>POST:</strong> crea sin ID. <strong>PATCH:</strong> edita con <code>?id=N</code>. Ambos requieren <code><?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>:write</code> para integraciones externas.</p><pre>Authorization: Bearer TOKEN
+Content-Type: application/json
+
+{"nombre":"Registro de prueba","rtn":"","telefono":""}</pre><p>En PATCH envíe solo los campos que desea cambiar. Primero valide las escrituras en DEMO.</p></details>
+                <?php else: ?><small class="api-route-readonly">Solo consulta GET · Escritura pendiente de reglas de negocio.</small><details class="api-route-write-example"><summary>Ver solicitud y respuesta</summary><pre>GET /data/<?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>.php?pagina=1&amp;limite=25
+Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</code>. Se aplica el permiso <code><?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>:read</code>. La respuesta JSON incluye <code>ok</code>, <code>mensaje</code> y <code>data</code>. No se permite escritura en este módulo.</p></details><?php endif; ?>
             </article>
             <?php endforeach; ?>
         </div>
@@ -149,7 +162,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
                     <div class="api-integration-field"><label for="api_integration_name"><i class="fas fa-tag"></i> Nombre de la integración</label><input class="api-integration-text-input" id="api_integration_name" name="name" type="text" maxlength="100" placeholder="Ej. Sistema de reportes" required></div>
                     <div class="api-integration-field"><label for="api_integration_expiry"><i class="fas fa-calendar-alt"></i> Vencimiento</label><select id="api_integration_expiry" name="expires_in" data-placeholder="Seleccione vencimiento" required><option value="">Seleccione vencimiento</option><option value="30">30 días</option><option value="90">90 días</option><option value="365">1 año</option><option value="0">Sin vencimiento</option></select></div>
                 </div>
-                <label>Alcances de consulta <small>En validación para API v1</small></label>
+                <label>Alcances autorizados <small>Lectura y escritura controlada para API v1</small></label>
                 <div class="api-scopes">
                     <?php
                     require_once dirname(__DIR__, 2).'/core/api/ApiModuleCatalog.php';
@@ -157,9 +170,12 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
                         $checked = in_array($apiModule['clave'], ['clientes', 'productos'], true);
                     ?>
                     <label><input type="checkbox" name="api_scope" value="<?php echo htmlspecialchars($apiModule['clave'].':read', ENT_QUOTES, 'UTF-8'); ?>" <?php echo $checked ? 'checked' : ''; ?>><i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i><span><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></span><small>Consultar</small></label>
+                    <?php if (in_array($apiModule['clave'], ['clientes', 'proveedores'], true)): ?>
+                    <label><input type="checkbox" name="api_scope" value="<?php echo htmlspecialchars($apiModule['clave'].':write', ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-pen"></i><span><?php echo htmlspecialchars($apiModule['nombre'], ENT_QUOTES, 'UTF-8'); ?></span><small>Crear y editar</small></label>
+                    <?php endif; ?>
                     <?php endforeach; ?>
                 </div>
-                <p>El Client ID y el secreto aparecerán una sola vez; guárdelos en su servidor. Las consultas GET de API v1 están disponibles para validar en DEMO; las escrituras todavía no están habilitadas.</p>
+                <aside class="api-credentials-alert" role="note"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i><div><strong>Importante · Guarde las credenciales al crearlas</strong><p>El Client ID y el Client Secret se muestran una sola vez. Conserve el secreto únicamente en el servidor de su integración, nunca en la APK ni en código público.</p><p><i class="fas fa-lock"></i> Las escrituras de clientes y proveedores requieren marcar expresamente el permiso «Crear y editar». Las credenciales existentes no reciben nuevos permisos automáticamente.</p></div></aside>
                 </div>
                 <div class="api-modal-actions"><button type="button" class="btn btn-secondary" data-api-modal-close>Cancelar</button><button type="submit" class="btn btn-primary" id="api_create_integration"><i class="fas fa-key"></i> Crear credenciales</button></div>
             </form>

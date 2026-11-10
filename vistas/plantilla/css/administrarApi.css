@@ -195,6 +195,10 @@
 .api-integration-quickstart strong i{color:#168bd0;margin-right:5px}
 .api-integration-quickstart code{overflow-wrap:anywhere;color:#13669a;font-size:11px}
 .api-integration-quickstart p{grid-column:1 / -1;margin:0;color:#59768b;font-size:11px;line-height:1.5}
+.api-integration-quickstart .api-inline-method{display:inline-flex;align-items:center;align-self:start;width:max-content;max-width:100%;padding:4px 8px;border-radius:6px;background:#e7f7ed;color:#16643c;font-size:11px;font-weight:800}
+.api-integration-quickstart .api-inline-method.is-write{background:#e7f1ff;color:#145e9b}
+.api-integration-quickstart>div>small{display:block;line-height:1.5;color:#536d83;font-size:11px}
+.api-integration-quickstart>div>small code{display:inline;font-size:11px}
 @media(max-width:767px){.api-authorizations-toolbar{grid-template-columns:1fr}.api-company-card{grid-template-columns:1fr}.api-company-card .api-record-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:767px){.api-integration-quickstart{grid-template-columns:1fr}}
 .api-modal form{min-height:0}
@@ -260,7 +264,6 @@
 .api-route-modal{height:min(500px,calc(100dvh - 32px))}
 .api-route-modal-body{flex:1 1 auto;min-height:0}
 .api-modal>.api-modal-actions{flex:0 0 auto;margin-top:0}
-.api-route-modal-body::after{content:'IZZY API · Accesos seguros y documentados';display:block;margin-top:22px;padding:12px 15px;border:1px solid #d6e9f4;border-radius:9px;background:#f4fbff;color:#5684a1;font-size:11px;font-weight:800;text-align:center}
 .izzy-api-page .btn:not(:disabled):hover,.api-confirm-dialog .btn:not(:disabled):hover{filter:brightness(.93)}
 .izzy-api-page .btn-primary:hover,.izzy-api-page .btn-danger:hover,.izzy-api-page .btn-secondary:hover,.api-confirm-dialog .btn:hover{color:#fff!important}
 .api-secret-content{display:grid;gap:8px;flex:1;overflow:auto;padding:18px}
@@ -377,5 +380,52 @@
 .api-route-grid>.api-resource-card>.api-route-top>.api-auth-tag{flex:0 0 auto;margin-left:auto;max-width:100%;white-space:nowrap}
 .api-route-grid>.api-resource-card>small{display:block;width:100%;margin:0;color:#56758b;font-size:12px;line-height:1.6;overflow-wrap:break-word}
 .api-route-grid>.api-resource-card>.api-route-params{width:100%;margin-top:auto;line-height:1.65;overflow-wrap:break-word}
+.api-route-write{display:flex;flex-wrap:wrap;align-items:center;gap:7px;border-top:1px solid #dfebf5;padding-top:10px;width:100%}
+.api-route-write>strong{font-size:12px;color:#254b6a}
+.api-route-write>small{margin-left:auto;font-size:11px!important}
+.api-route-write .method-patch{background:#f0eaff;color:#5b3495}
+.api-route-write-example{width:100%;border:1px solid #d9e9f5;border-radius:8px;background:#f8fbff;padding:9px 11px}
+.api-route-write-example summary{cursor:pointer;font-weight:800;color:#1777ad;font-size:12px}
+.api-route-write-example summary::marker{color:#168bd0}
+.api-route-grid>.api-resource-card>.api-route-write-example{margin-top:auto}
+.api-route-grid>.api-resource-card>.api-route-top>strong{overflow-wrap:anywhere;word-break:normal;white-space:normal}
+.api-route-write-example pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;background:#fff;border-radius:6px;padding:9px;font-size:11px}
+.api-route-write-example p{font-size:11px;line-height:1.6;margin:8px 0}
+.api-route-readonly{color:#8b6e37!important;font-weight:700}
+/* Todas las rutas abren el mismo modal; las tarjetas conservan su altura. */
+.api-route-grid{align-items:stretch}
+.api-route-grid>.api-route-card{height:100%;min-height:170px;box-sizing:border-box}
+.api-route-grid>.api-resource-card{min-height:215px}
+.api-route-grid>.api-route-card details{margin-top:auto;width:100%;border-top:1px solid #dce8f1;padding:10px 0 0;background:transparent}
+.api-route-grid>.api-route-card details summary{display:block;cursor:pointer;list-style:none;color:#0878b7;font-size:12px;font-weight:800}
+.api-route-grid>.api-route-card details summary::-webkit-details-marker{display:none}
+.api-route-grid>.api-route-card details summary::before{content:'＋';margin-right:7px;color:#089f9b}
+.api-route-grid>.api-route-card details[open]>:not(summary){display:none!important}
+.api-route-modal{height:min(810px,calc(100dvh - 24px));width:min(980px,calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+.api-route-modal-body{font-size:13px;line-height:1.8}
+.api-route-modal-body pre{font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+.api-route-modal-intro{padding:14px 16px;margin-bottom:15px;border-radius:11px;background:#eff8ff;border:1px solid #cfe4f3}
+.api-route-modal-intro strong{display:block;color:#144f7c;font-size:16px;overflow-wrap:anywhere}
+.api-route-modal-intro p{margin:4px 0 0}
+@media(max-width:650px){.api-route-grid>.api-route-card,.api-route-grid>.api-resource-card{min-height:0}}
+/* Documentación accionable: igual que las tarjetas del cliente. */
+.api-route-grid>.api-route-card details summary{display:block;width:100%;padding:11px 13px;border-radius:8px;background:#1889c5;color:#fff!important;text-align:center;line-height:1.5}
+.api-route-grid>.api-route-card details summary::before{content:'\f002';font-family:'Font Awesome 5 Free';font-weight:900;margin-right:8px;color:#fff}
+.api-route-grid>.api-route-card details summary:hover,.api-route-grid>.api-route-card details summary:focus{background:#106c9f;color:#fff!important}
+.api-credentials-alert{display:flex;gap:13px;align-items:flex-start;padding:16px 18px;margin:10px 0 4px;border:1px solid #f1cb7c;border-left:5px solid #d88903;border-radius:12px;background:#fff6e4;color:#754913;box-shadow:0 5px 20px rgba(126,84,7,.06)}
+.api-credentials-alert>i{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:10px;background:#ffe6ac;color:#a76b00;font-size:17px}
+.api-credentials-alert>div{min-width:0}
+.api-credentials-alert strong{display:block;font-size:13px;color:#72470c}
+.api-credentials-alert p{font-size:12px;line-height:1.65;margin:6px 0 0;color:#805e27}
+.api-credentials-alert p i{margin-right:4px}
+.api-route-modal-body{display:flex;flex-direction:column;gap:15px}
+.api-route-modal-example{padding:0 2px;min-width:0}
+.api-route-modal-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:2px}
+.api-route-modal-guide article{padding:15px;border:1px solid #d7e6f0;border-radius:11px;background:#f7fbfe;min-width:0}
+.api-route-modal-guide article:first-child{grid-column:1/-1;background:#eff8fe}
+.api-route-modal-guide h3{margin:0 0 8px;color:#205878;font-size:13px;font-weight:800}
+.api-route-modal-guide h3 i{margin-right:6px;color:#1689c8}
+.api-route-modal-guide p{font-size:12px;line-height:1.75;margin:5px 0;color:#4b6a80;overflow-wrap:anywhere}
+@media(max-width:650px){.api-route-modal-guide{grid-template-columns:1fr}.api-route-modal-guide article:first-child{grid-column:auto}.api-credentials-alert{padding:12px}.api-credentials-alert>i{flex-basis:30px;width:30px;height:30px}}
 @media(max-width:1050px){.api-route-grid>.api-resource-card>.api-route-top>strong{min-width:160px}.api-route-grid>.api-resource-card>.api-route-top>.api-auth-tag{margin-left:0}}
 @media(max-width:650px){.api-route-grid>.api-resource-card{min-height:0}.api-route-grid>.api-resource-card>.api-route-top>strong{flex:1 1 calc(100% - 75px);min-width:0}.api-route-grid>.api-resource-card>.api-route-top>.api-auth-tag{margin-left:0}}

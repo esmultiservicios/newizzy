@@ -21,9 +21,17 @@ final class IzzyApiBusinessContext
         $token=$matches[1];
         if (str_starts_with($token,'izzya_')) {
             require_once __DIR__.'/ApiClientAuthService.php';
-            $scope=$modulo.':'.($accion==='read'?'read':($modulo==='facturas'?'create':'write'));
+            $scope=$modulo.':'.($accion==='read'?'read':'write');
             $tenant=(new IzzyApiClientAuthService())->autenticarToken($token,$scope);
-            return ['tipo'=>'integracion','db'=>$tenant['db_cliente'],'empresa_id'=>null,'users_id'=>null,'solo_lectura'=>false];
+            if ($accion!=='read') {
+                // Las integraciones no pueden saltarse el bloqueo de escritura
+                // por facturación vencida aplicado a la cuenta en el sistema web.
+                require_once dirname(__DIR__).'/services/AuthService.php';
+                $db=(string)$tenant['db_cliente'];
+                $GLOBALS['db']=$db;
+                if ((new IzzyApiLoginModel())->pagosVencidos($db)) throw new DomainException('Cuenta limitada a consulta por pago vencido.');
+            }
+            return ['tipo'=>'integracion','db'=>$tenant['db_cliente'],'empresa_id'=>null,'users_id'=>null,'colaborador_id'=>1,'solo_lectura'=>false];
         }
         if (!str_starts_with($token,'izzy_')) throw new DomainException('Token inválido.');
         require_once dirname(__DIR__).'/services/AuthService.php';
@@ -38,6 +46,6 @@ final class IzzyApiBusinessContext
         if ($accion==='create') $allowed=['guardar','crear'];
         if (!array_intersect($allowed,$perfil['acciones']??[])) throw new DomainException('El usuario no tiene permiso para esta operación.');
         if ($accion!=='read' && !empty($perfil['cliente']['solo_lectura_pago'])) throw new DomainException('Cuenta restringida a consulta por estado de pago.');
-        return ['tipo'=>'movil','db'=>$session['db_cliente'],'empresa_id'=>(int)$session['empresa_id'],'users_id'=>(int)$session['users_id'],'solo_lectura'=>!empty($perfil['cliente']['solo_lectura_pago'])];
+        return ['tipo'=>'movil','db'=>$session['db_cliente'],'empresa_id'=>(int)$session['empresa_id'],'users_id'=>(int)$session['users_id'],'colaborador_id'=>(int)($perfil['usuario']['colaborador_id']??1),'solo_lectura'=>!empty($perfil['cliente']['solo_lectura_pago'])];
     }
 }

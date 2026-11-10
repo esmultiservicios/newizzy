@@ -235,14 +235,29 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $('[data-api-modal-close]').on('click',()=>closeModal(integrationModal));
     $('[data-api-secret-close]').on('click',()=>closeModal(secretModal));
     $('[data-api-route-close]').on('click',()=>closeModal(routeModal));
-    $('.api-route-grid').on('click','.api-route-detail summary',function(event){
+    $('.api-route-grid').on('click','.api-route-card details summary',function(event){
         event.preventDefault();
         const details=$(this).closest('details'),card=details.closest('.api-route-card');
         // Nunca abrir <details> en la cuadrícula: mantiene las tarjetas inmóviles.
         details.prop('open',false);
         $('#api_route_modal_title').text(card.find('.api-route-top strong').first().text());
         const source=details.clone();source.removeAttr('open');source.find('summary').remove();
-        $('#api_route_modal_body').empty().append(source.children());
+        const lead=$('<div class="api-route-modal-intro">').append($('<strong>').text(card.find('.api-route-top strong').first().text())).append($('<p>').text(card.children('small').first().text()));
+        const method=card.find('.api-route-top .api-method').first().text().trim();
+        const path=card.find('.api-route-top strong').first().text().trim();
+        const external=path.indexOf('/integrations/')===0;
+        const mobile=path.indexOf('/auth/')===0||path.indexOf('/navigation/')===0;
+        const protectedRoute=path!=='/auth/login.php'&&path!=='/auth/refresh.php'&&path!=='/integrations/token.php';
+        const guide=$('<section class="api-route-modal-guide">');
+        const purpose=$('<article>').append('<h3><i class="fas fa-route"></i> Cómo consumir esta ruta</h3>');
+        purpose.append($('<p>').text('Método '+method+' · Dirección '+path));
+        purpose.append($('<p>').text(protectedRoute?'Envíe el token Bearer vigente en el encabezado Authorization.':'Solicite esta ruta por HTTPS y envíe las credenciales correspondientes en el cuerpo JSON.'));
+        const security=$('<article>').append('<h3><i class="fas fa-shield-alt"></i> Seguridad y alcance</h3>');
+        security.append($('<p>').text(external?'Solo para integraciones externas autorizadas. El Client Secret debe permanecer en su servidor.':mobile?'Esta ruta corresponde a sesiones individuales de usuarios de la APK. No utilice aquí Client ID ni Client Secret.':'El token determina la empresa y sus permisos; nunca envíe el nombre de una base de datos.'));
+        const response=$('<article>').append('<h3><i class="fas fa-clipboard-check"></i> Qué verificar</h3>');
+        response.append($('<p>').text('Compruebe la respuesta HTTP, la autorización y el campo de datos devuelto. Un error de permisos o autenticación no debe convertirse en una operación exitosa.'));
+        guide.append(purpose,security,response);
+        $('#api_route_modal_body').empty().append(lead).append($('<div class="api-route-modal-example">').append(source.children())).append(guide);
         openModal(routeModal,'[data-api-route-close]');
     });
     $(document).on('keydown',event=>{if(event.key==='Escape'){if(routeModal.hasClass('is-open'))closeModal(routeModal);else if(secretModal.hasClass('is-open'))closeModal(secretModal);else if(integrationModal.hasClass('is-open'))closeModal(integrationModal);}});

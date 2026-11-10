@@ -59,7 +59,7 @@
             '<span class="izzy-notify-symbol"><i class="fas ' + typeIcons[kind] + '" aria-hidden="true"></i></span>' +
             '<div class="izzy-notify-body"><strong>' + heading + '</strong>' +
             (description ? '<span class="izzy-notify-description">' + description + '</span>' : '') +
-            (config.buttonText && config.buttonUrl ? '<a class="izzy-notify-action" href="' + escapeHtml(config.buttonUrl) + '">' + escapeHtml(config.buttonText) + '</a>' : '') +
+            (config.buttonText && config.buttonUrl ? '<a class="izzy-notify-action" data-izzy-payment-readonly-allowed="1" href="' + escapeHtml(config.buttonUrl) + '">' + escapeHtml(config.buttonText) + '</a>' : '') +
             '</div><button type="button" class="izzy-notify-close" id="' + closeId + '" aria-label="Cerrar notificación" title="Cerrar">' +
             '<i class="fas fa-times" aria-hidden="true"></i></button></div>';
 
@@ -78,6 +78,23 @@
                 event.preventDefault();
                 event.stopPropagation();
                 engine.dismiss(toast);
+            });
+        }
+
+        // Los avisos son interactivos: Notyf puede escuchar el clic de toda la
+        // tarjeta. La acción debe navegar sin ser absorbida por ese manejador.
+        var actionButton = document.getElementById(closeId);
+        var actionLink = actionButton && actionButton.closest('.izzy-notify-card')
+            ? actionButton.closest('.izzy-notify-card').querySelector('.izzy-notify-action')
+            : null;
+        if (actionLink) {
+            actionLink.addEventListener('click', function (event) {
+                event.stopPropagation();
+                if (typeof config.onAction === 'function') {
+                    event.preventDefault();
+                    config.onAction(event, toast);
+                }
+                // Los enlaces ordinarios conservan su navegación nativa.
             });
         }
 

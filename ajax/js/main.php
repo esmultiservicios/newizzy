@@ -14536,7 +14536,10 @@ function izzyActualizarAvisosFacturacion(response) {
             aviso.tipo === 'recordatorio' ? 'warning' : 'info';
         var notificacion = window.showNotify(tipo, aviso.titulo, aviso.mensaje, {
             buttonText: aviso.tipo === 'factura' ? 'Ver factura' : 'Ver detalles',
-            buttonUrl: '<?php echo SERVERURL; ?>DetallesFacturacion/'
+            buttonUrl: '<?php echo SERVERURL; ?>DetallesFacturacion/',
+            onAction: function () {
+                window.location.assign('<?php echo SERVERURL; ?>DetallesFacturacion/');
+            }
         });
         if (notificacion) {
             try { sessionStorage.setItem(clave, '1'); } catch (error) {}

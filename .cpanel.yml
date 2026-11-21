@@ -12,3 +12,8 @@ deployment:
     - export DEPLOYPATH=/home/esmultiservicios/public_html/demo.izzycloud.app/
     - /usr/bin/test -d "$DEPLOYPATH"
     - /usr/bin/test -f "$DEPLOYPATH/index.php"
+    # Registra el worker de altas (importación SQL de nuevos clientes y correos),
+    # la facturación y la rotación de logs. No ejecuta importaciones en el deploy.
+    # El instalador añade faltantes sin alterar cron de otros proyectos.
+    - /bin/bash "$DEPLOYPATH/bin/install-cron.sh" --deploy
+    - /bin/bash "$DEPLOYPATH/bin/verify-cron.sh"

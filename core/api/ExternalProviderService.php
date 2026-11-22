@@ -9,8 +9,8 @@ final class IzzyExternalProviderService {
         $this->db=(new mainModel())->connectionDBLocal(DB_MAIN);
     }
     private function key(): string {
-        $secret=trim((string)getenv('IZZY_EXTERNAL_API_ENCRYPTION_KEY'));
-        if (!preg_match('/^[a-f0-9]{64}$/i',$secret)) throw new RuntimeException('Configure IZZY_EXTERNAL_API_ENCRYPTION_KEY (64 caracteres hexadecimales) solo en el servidor.');
+        $secret=trim((string)(getenv('IZZY_EXTERNAL_API_ENCRYPTION_KEY') ?: ($_ENV['IZZY_EXTERNAL_API_ENCRYPTION_KEY'] ?? '')));
+        if (!preg_match('/^[a-f0-9]{64}$/i',$secret)) throw new RuntimeException('EXTERNAL_KEY_MISSING: Configure IZZY_EXTERNAL_API_ENCRYPTION_KEY (64 caracteres hexadecimales) en el .env protegido de DEVIZZY/NEWIZZY, según entorno.');
         return hex2bin($secret);
     }
     private function encrypt(string $value): string {
@@ -25,6 +25,43 @@ final class IzzyExternalProviderService {
         $result=openssl_decrypt(substr($bin,28),'aes-256-gcm',$this->key(),OPENSSL_RAW_DATA,substr($bin,0,12),substr($bin,12,16));
         if ($result===false) throw new RuntimeException('No se pudo descifrar la credencial.');
         return $result;
+    }
+    /** Diagnóstico sin secretos ni acceso externo: comprueba dependencias antes de guardar. */
+    public function diagnostics(): array {
+        $required=['api_external_connections','api_external_checks','api_external_categories','api_external_operations'];
+        $available=[];
+        foreach($required as $name){
+            $stmt=$this->db->prepare('SELECT COUNT(*) AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+            $stmt->bind_param('s',$name);$stmt->execute();$result=$stmt->get_result()->fetch_assoc();$stmt->close();
+            $available[$name]=((int)($result['n']??0))===1;
+        }
+        $secret=(string)(getenv('IZZY_EXTERNAL_API_ENCRYPTION_KEY') ?: ($_ENV['IZZY_EXTERNAL_API_ENCRYPTION_KEY']??''));
+        return ['tablas'=>$available,'cifrado_configurado'=>(bool)preg_match('/^[a-f0-9]{64}$/i',trim($secret)),
+            'curl_disponible'=>function_exists('curl_init'),'openssl_disponible'=>function_exists('openssl_encrypt')];
+    }
+    private static function safeJsonOk(?array $data): bool {
+        if(!is_array($data))return false;
+        if(array_key_exists('ok',$data))return $data['ok']===true;
+        if(array_key_exists('success',$data))return $data['success']===true;
+        return false;
+    }
+    /** Identifica únicamente un canal WhatsApp; si existen varios evita asignar el incorrecto. */
+    private function identifyChannel(int $connectionId,array $decoded): array {
+        $channels=$decoded['data']['channels']??$decoded['channels']??null;
+        if(!is_array($channels))return ['canal_detectado'=>false,'motivo'=>'La respuesta no contiene data.channels.'];
+        $matching=[];
+        foreach($channels as $channel){
+            if(!is_array($channel))continue;
+            $type=strtolower((string)($channel['type']??$channel['channel']??''));
+            if($type==='whatsapp' && isset($channel['id']) && is_scalar($channel['id']))$matching[]=trim((string)$channel['id']);
+        }
+        $matching=array_values(array_unique(array_filter($matching,static fn($v)=>$v!=='')));
+        if(count($matching)!==1)return ['canal_detectado'=>false,'canales_whatsapp'=>count($matching),
+            'motivo'=>count($matching)>1?'Hay varios canales WhatsApp autorizados; no se asignó ninguno automáticamente.':'No se encontró un canal WhatsApp identificable.'];
+        $id=$matching[0];
+        $stmt=$this->db->prepare('UPDATE api_external_connections SET canal_id=? WHERE id=? AND archivado=0');
+        $stmt->bind_param('si',$id,$connectionId);$stmt->execute();$stmt->close();
+        return ['canal_detectado'=>true,'canales_whatsapp'=>1,'canal_id'=>$id];
     }
     public function categories(): array {
         $r=$this->db->query('SELECT nombre FROM api_external_categories WHERE activo=1 ORDER BY nombre');
@@ -110,29 +147,40 @@ final class IzzyExternalProviderService {
         $stmt=$this->db->prepare('SELECT * FROM api_external_connections WHERE id=? AND archivado=0 LIMIT 1');$stmt->bind_param('i',$id);$stmt->execute();$row=$stmt->get_result()->fetch_assoc();$stmt->close();
         if (!$row) throw new DomainException('Conexión no encontrada.');return $row;
     }
-    /** Respuesta aceptada NO implica entrega en WhatsApp. */
+    /** Solo lectura de recursos ZYNKO documentados. Los envíos requieren contrato verificado. */
     public function request(int $id,string $route,string $method='GET',?array $payload=null,?string $idempotency=null): array {
         $row=$this->conn($id);
-        if ($row['proveedor']!=='ZYNKO' || $row['tipo_auth']!=='bearer' || $row['url_base']!=='https://zynkocloud.app/api.php') throw new DomainException('Las pruebas de conexión de este proveedor requieren un conector autorizado.');
-        if (!(int)$row['activo']) throw new DomainException('La conexión está desactivada.');
-        if (!in_array($route,['v1/channels','v1/whatsapp/status','v1/whatsapp/send'],true)) throw new DomainException('Ruta ZYNKO no autorizada.');
-        if ($route==='v1/whatsapp/send' && ($method!=='POST' || !$idempotency)) throw new DomainException('Un envío requiere POST e Idempotency-Key.');
-        if ($route!=='v1/whatsapp/send' && $method!=='GET') throw new DomainException('Método no autorizado.');
+        if (strtoupper(trim((string)$row['proveedor']))!=='ZYNKO' || $row['tipo_auth']!=='bearer' || $row['url_base']!=='https://zynkocloud.app/api.php')
+            throw new DomainException('Conector ZYNKO no autorizado para esta conexión.');
+        if (!(int)$row['activo']) throw new DomainException('Active primero la conexión para comprobarla.');
+        $allowed=['v1/channels','v1/whatsapp/history','v1/whatsapp/status'];
+        if($method!=='GET'||!in_array($route,$allowed,true)||$payload!==null||$idempotency!==null)
+            throw new DomainException('Solo se permiten consultas de lectura autorizadas. No se han activado envíos.');
+        if(!function_exists('curl_init'))throw new RuntimeException('CURL_MISSING: PHP necesita la extensión cURL para realizar conexiones HTTPS.');
         $url='https://zynkocloud.app/api.php?r='.rawurlencode($route);
-        $headers=['Authorization: Bearer '.$this->decrypt($row['token_cifrado']),'Accept: application/json'];
-        if ($method==='POST') { $headers[]='Content-Type: application/json';$headers[]='Idempotency-Key: '.$idempotency; }
+        if($route==='v1/whatsapp/history')$url.='&page=1&per_page=20';
+        $token=$this->decrypt((string)$row['token_cifrado']);
+        $headers=['Authorization: Bearer '.$token,'Accept: application/json'];
         $ch=curl_init($url);
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>15,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_MAXREDIRS=>0]);
-        if ($method==='POST') curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));
-        $body=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$error=$body===false?'Fallo de transporte (cURL '.curl_errno($ch).')':'';curl_close($ch);
-        $decoded=is_string($body)?json_decode($body,true):null;
-        $ok=$error==='' && $status>=200 && $status<300 && is_array($decoded);
-        // Nunca registrar cuerpos HTTP: pueden contener tokens, teléfonos o enlaces confidenciales.
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>15,
+            CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_MAXREDIRS=>0,
+            CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_MAXFILESIZE=>1048576]);
+        $body=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        $curlErr=$body===false?curl_errno($ch):0;curl_close($ch);
+        unset($token,$headers);
+        // Evitar procesar o registrar documentos excesivamente grandes.
+        $decoded=is_string($body)&&strlen($body)<=1048576?json_decode($body,true):null;
+        $ok=$curlErr===0 && $status>=200 && $status<300 && self::safeJsonOk(is_array($decoded)?$decoded:null);
+        $channelInfo=[];
+        if($ok&&$route==='v1/channels')$channelInfo=$this->identifyChannel($id,$decoded);
+        $logMessage=$curlErr?'Error de transporte HTTPS (cURL '.$curlErr.')':($status===401?'Credencial rechazada (HTTP 401)':($status===403?'Permisos, IP o canal no autorizado (HTTP 403)':($ok?'Consulta autenticada confirmada':'El proveedor devolvió HTTP '.$status.' o una respuesta no exitosa')));
         $stmt=$this->db->prepare('INSERT INTO api_external_checks (connection_id,ruta,http_status,exitoso,descripcion) VALUES (?,?,?,?,?)');
-        $logMessage=$error?:($ok?'Respuesta HTTP recibida':'HTTP inesperado o JSON inválido');$flag=$ok?1:0;
-        $stmt->bind_param('isiis',$id,$route,$status,$flag,$logMessage);$stmt->execute();$stmt->close();
-        $stmt=$this->db->prepare('UPDATE api_external_connections SET ultima_prueba=NOW(),ultimo_resultado=? WHERE id=?');$stmt->bind_param('si',$logMessage,$id);$stmt->execute();$stmt->close();
-        return ['ok'=>$ok,'http_status'=>$status,'respuesta'=>$decoded,'estado'=>'aceptacion_no_es_entrega'];
+        $flag=$ok?1:0;$stmt->bind_param('isiis',$id,$route,$status,$flag,$logMessage);$stmt->execute();$stmt->close();
+        $stmt=$this->db->prepare('UPDATE api_external_connections SET ultima_prueba=NOW(),ultimo_resultado=? WHERE id=?');
+        $stmt->bind_param('si',$logMessage,$id);$stmt->execute();$stmt->close();
+        // Nunca exponer bodies completos: historial y estados pueden incluir teléfonos y documentos.
+        return ['ok'=>$ok,'http_status'=>$status,'detalle'=>$logMessage,'canal'=>$channelInfo,
+            'respuesta_exitosa'=>$ok,'estado'=>'consulta_sin_confirmar_entrega'];
     }
     /** Catálogo declarativo: el registro NO autoriza ejecutar HTTP arbitrario. */
     public function operations(int $connectionId): array {

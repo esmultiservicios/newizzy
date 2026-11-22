@@ -31,14 +31,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if (str_starts_with($action, 'external_')) {
             require_once dirname(__DIR__,2).'/core/api/ExternalProviderService.php';
             $external=new IzzyExternalProviderService();
+            if ($action==='external_diagnostics') $respond(true,'Diagnóstico de dependencias.', $external->diagnostics());
             if ($action==='external_list') $respond(true,'Conexiones salientes.', ['conexiones'=>$external->listing(),'categorias'=>$external->categories()]);
-            if ($action==='external_save') { $savedId=$external->save($_POST); if(strtoupper(trim((string)($_POST['proveedor']??'')))==='ZYNKO' && trim((string)($_POST['url_base']??''))==='https://zynkocloud.app/api.php') $external->seedZynkoOperations($savedId); $respond(true,'Conexión guardada. Verifique su estado y permisos antes de utilizarla.', ['id'=>$savedId]); }
+            if ($action==='external_save') {
+                $savedId=$external->save($_POST);
+                // El catálogo declarativo es auxiliar: si falta la migración v011, NO fingir que el guardado falló.
+                $catalogo='no_aplicable';
+                if(strtoupper(trim((string)($_POST['proveedor']??'')))==='ZYNKO' && trim((string)($_POST['url_base']??''))==='https://zynkocloud.app/api.php') {
+                    try { $external->seedZynkoOperations($savedId);$catalogo='cargado'; }
+                    catch(Throwable $catalogError){error_log('IZZY external seed: '.get_class($catalogError));$catalogo='pendiente_migracion_v011';}
+                }
+                $respond(true,$catalogo==='pendiente_migracion_v011'?'Conexión guardada; falta instalar la tabla de operaciones v011.':'Conexión guardada. Active y pruebe sus permisos antes de utilizarla.', ['id'=>$savedId,'catalogo'=>$catalogo]);
+            }
             if ($action==='external_toggle') { $external->toggle((int)($_POST['id']??0),(string)($_POST['activo']??'0')==='1');$respond(true,'Estado actualizado.'); }
             if ($action==='external_archive') { $external->archive((int)($_POST['id']??0));$respond(true,'Conexión archivada.'); }
             if ($action==='external_test') {
                 // Prueba sin envío de mensajes: consultar solamente los canales.
                 $result=$external->request((int)($_POST['id']??0),'v1/channels');
-                $respond($result['ok'],$result['ok']?'Conectividad HTTPS/JSON confirmada.':'No se pudo validar la respuesta del proveedor.', ['http_status'=>$result['http_status']],$result['ok']?200:502);
+                $respond($result['ok'],$result['ok']?'Autenticación y respuesta ZYNKO confirmadas.':$result['detalle'], ['http_status'=>$result['http_status'],'detalle'=>$result['detalle'],'canal'=>$result['canal']],$result['ok']?200:502);
+            }
+            if ($action==='external_read') {
+                $query=(string)($_POST['tipo']??'');
+                if(!in_array($query,['history','status'],true))$respond(false,'Consulta no autorizada.',[],422);
+                $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/'.$query);
+                $respond($result['ok'],$result['detalle'],['http_status'=>$result['http_status'],'canal'=>$result['canal']],$result['ok']?200:502);
             }
             if ($action==='external_operations') $respond(true,'Operaciones registradas.', ['operaciones'=>$external->operations((int)($_POST['connection_id']??0))]);
             if ($action==='external_operation_save') $respond(true,'Operación guardada desactivada.',['id'=>$external->saveOperation($_POST)]);
@@ -82,6 +98,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $respond(false, 'Acción no reconocida.', [], 400);
     } catch (InvalidArgumentException $e) {
         $respond(false, $e->getMessage(), [], 422);
+    } catch (mysqli_sql_exception $e) {
+        error_log('Administración API IZZY (SQL): '.$e->getCode().' / '.$e->getSqlState());
+        $respond(false,'Error SQL de integraciones. Compruebe las tablas de DB_Cambios.sql en DB_MAIN de DEVIZZY (no ZYNKO) y su estructura actual.',[],500);
+    } catch (RuntimeException $e) {
+        $safe=(string)$e->getMessage();
+        if(str_starts_with($safe,'EXTERNAL_KEY_MISSING:')||str_starts_with($safe,'CURL_MISSING:'))$respond(false,$safe,[],503);
+        error_log('Administración API IZZY (runtime): '.get_class($e));
+        $respond(false,'Error de configuración del servidor. Revise los registros de PHP.',[],500);
     } catch (DomainException $e) {
         $respond(false, $e->getMessage(), [], 403);
     } catch (Throwable $e) {
@@ -121,19 +145,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
         post({action:'external_list'}).done(r=>{
             const rows=r.datos.conexiones||[];
-            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button><button class="btn btn-secondary" data-ext-operations="' +Number(x.id)+ '"><i class="fas fa-cogs"></i> Operaciones API</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'"><i class="fas fa-vial"></i> Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'"><i class="fas fa-history"></i> Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'<i class="fas fa-ban"></i> Desactivar':'<i class="fas fa-check-circle"></i> Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'"><i class="fas fa-archive"></i> Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
+            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button><button class="btn btn-secondary" data-ext-operations="' +Number(x.id)+ '"><i class="fas fa-cogs"></i> Operaciones API</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'"><i class="fas fa-vial"></i> Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'"><i class="fas fa-history"></i> Comprobaciones</button><button class="btn btn-secondary" data-ext-read="history" data-id="'+Number(x.id)+'"><i class="fas fa-book"></i> Consultar historial ZYNKO</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'<i class="fas fa-ban"></i> Desactivar':'<i class="fas fa-check-circle"></i> Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'"><i class="fas fa-archive"></i> Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
             $('#api_ext_rows').data('connections',rows);
             apiExternalCategories=Array.from(new Map([...(r.datos.categorias||[]).map(x=>({value:String(x),label:String(x)})),...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
         }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
     }
     $('#api_ext_refresh').on('click',loadExternal);
+    $('#api_ext_diagnostics').on('click',()=>post({action:'external_diagnostics'}).done(r=>{const x=r.datos||{};const failures=Object.entries(x.tablas||{}).filter(([k,v])=>!v).map(([k])=>k);notify(failures.length?'Faltan tablas en DB_MAIN: '+failures.join(', '):(!x.cifrado_configurado?'Falta IZZY_EXTERNAL_API_ENCRYPTION_KEY en el entorno PHP de IZZY.':'Tablas y cifrado preparados; cURL '+(x.curl_disponible?'disponible':'NO disponible')+'.'),failures.length||!x.cifrado_configurado?'error':'success');}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo diagnosticar la instalación','error')));
+
     $('#api_ext_clear').on('click',()=>{$('#api_ext_id').val(0);$('#api_ext_token').val('');});
     $('#api_ext_form').on('submit',function(e){
         e.preventDefault();const descriptionHtml=syncExternalDescription();
         if(descriptionHtml.length>500){notify('La descripción excede los 500 caracteres permitidos.','error');return;}
         const fields=$(this).serializeArray(),data={action:'external_save'};
         fields.forEach(x=>data[x.name]=x.value);
-        post(data).done(r=>{notify(r.mensaje);this.reset();$('#api_ext_id').val(0);closeModal($('#api_external_modal'));loadExternal();}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar','error'));
+        const submit=$(this).find('[type=submit]').prop('disabled',true);
+        post(data).done(r=>{notify(r.mensaje);this.reset();$('#api_ext_id').val(0);closeModal($('#api_external_modal'));loadExternal();})
+        .fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar (HTTP '+(e.status||'desconocido')+'). Revise diagnóstico de API externas.','error'))
+        .always(()=>submit.prop('disabled',false));
+    });
+    $('#api_ext_rows').on('click','[data-ext-read]',function(){
+        const id=Number($(this).attr('data-id')),tipo=String($(this).attr('data-ext-read'));
+        post({action:'external_read',id,tipo}).done(r=>notify(r.mensaje)).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo realizar la consulta','error'));
     });
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
@@ -520,7 +553,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         initExternalCategorySelect();
         const auth=$('#api_ext_auth');
         if(auth.hasClass('select2-hidden-accessible'))auth.select2('destroy');
-        auth.select2({width:'100%',dropdownParent:$('#api_external_modal'),minimumResultsForSearch:0,placeholder:'Seleccione autenticación',allowClear:false});
+        auth.select2({width:'100%',dropdownParent:$('#api_external_modal'),minimumResultsForSearch:0,
+            dropdownAutoWidth:false,placeholder:'Seleccione autenticación',allowClear:false});
+        auth.off('select2:open.apiAuthSearch').on('select2:open.apiAuthSearch',function(){
+            const field=$('#api_external_modal .select2-container--open .select2-search__field');
+            field.attr('placeholder','Buscar autenticación...').prop('disabled',false);
+            if(field.length)field.trigger('focus');
+        });
     }
     function openExternalModal(edit){
         if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');setExternalDescription('');$('#api_ext_config').val('{}');}

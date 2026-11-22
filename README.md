@@ -502,3 +502,53 @@ Si existe `DB_CAMBIOS_API_EXTERNAS_20261122.sql` de una entrega no instalada, ta
 - La ejecución de operaciones arbitrarias y los envíos automáticos **no están implementados ni habilitados**: no se permite ejecutar peticiones configuradas hasta contar con motor SSRF-safe y políticas de autorización de operaciones.
 - Modal «Mi Cuenta > Integraciones API» administra credenciales entrantes a IZZY. **No se ha convertido todavía en configurador saliente por empresa.** La segunda fase requerirá tablas por empresa y autorización propia, sin reutilizar el 403 existente.
 - Pruebas: PHP lint, JS parser y ZIP. Pendientes: BD DEVIZZY, Select2 en navegador, OpenAPI interactivo y conexión real a ZYNKO.
+
+
+## IZZY v012 — Recuperación de guardado y prueba de conexión ZYNKO
+
+**No se añade un script SQL nuevo.** La v011 sí incorporó **un bloque nuevo al final de `DB_Cambios.sql`**: `CREATE TABLE IF NOT EXISTS api_external_operations`. Son cosas diferentes: un archivo SQL nuevo versus un bloque nuevo dentro del archivo existente. Ejecutarlo **solo una vez** en la DB_MAIN de **DEVIZZY**, previa copia de seguridad; nunca seleccionar la DB `zynko` en phpMyAdmin. Los bloques anteriores v010 son necesarios si todavía no fueron aplicados.
+
+**Antes de guardar:** desde Servicios API externos, botón **Diagnóstico**, compruebe `api_external_connections`, `api_external_checks`, `api_external_categories` y `api_external_operations`, además de `cifrado_configurado` y `curl_disponible`. Este diagnóstico no muestra nombres de bases, contraseñas ni claves.
+
+**Clave de cifrado:** `IZZY_EXTERNAL_API_ENCRYPTION_KEY` debe contener 64 dígitos hexadecimales y estar cargada en el entorno PHP mediante el `.env` PROTEGIDO que ya lee `core/configAPP.php`. Defina claves distintas en `C:\credentials\newizzy\.env` y `C:\credentials\devizzy\.env` o en sus rutas correspondientes bajo `/home/esmultiservicios/credentials/`. Generate una vez con `php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"`. **No regenere esta clave tras cifrar tokens**, porque perdería la capacidad de descifrarlos. Asegúrese de que PHP-FPM recibe la configuración y que `configAPP.php` se carga en el flujo.
+
+**Conexión:** guarde ZYNKO como Bearer Token, `https://zynkocloud.app/api.php`, JSON `{}`, ID de canal vacío. Active la conexión y seleccione **Probar conexión**. La consulta real servidor-a-servidor es `GET ?r=v1/channels` y el servidor evalúa `ok:true` y `data.channels`; guarda ID automáticamente si existe exactamente un canal WhatsApp autorizado. Si no hay ninguno o hay múltiples, no escoge arbitrariamente. Se registra solo estado HTTP y resultado saneado.
+
+**Lectura:** `Consultar historial ZYNKO` usa `GET ?r=v1/whatsapp/history&page=1&per_page=20` sin devolver contenido personal al navegador; únicamente confirma resultado de transporte, autenticación y contrato. La consulta de estado está restringida al backend hasta confirmar el parámetro identificador correcto.
+
+**Envíos:** permanecen NO implementados/NO habilitados en v012. Existe discrepancia entre el contrato citado por usuario (`v1/whatsapp/send`) y la documentación pública actual (`v1/messages/send` con `channel_id`, `to`, `message` y `Idempotency-Key`). No se debe inventar un endpoint ni hacer una prueba de envío sin comprobar el contrato instalado y autorización explícita del destinatario. Cola fiscal, estado de entrega y procesamiento automático continúan pendientes.
+
+**HTTP 500:** si falla Guardar, el backend ahora diferencia clave de cifrado ausente, tabla faltante y fallo general. No enviar capturas con el token. Revisar `error_log` del PHP y el JSON del POST (sin credenciales) si el fallo persiste. Un fallo al crear el catálogo de operaciones ya no invalida un guardado exitoso (se notifica `pendiente_migracion_v011`).
+
+**Pruebas estáticas realizadas:** PHP lint / JS check / integridad ZIP. **Pendientes:** conexión HTTP real autenticada, integración de la clave en entorno local, DB real, envío real, historial de mensajes y estados, colas, PDFs, facturación y pruebas de regresión visual. Nunca afirmar que una prueba autenticada ha sido realizada sin registrar su resultado.
+
+
+---
+
+## v013 — Corrección visual y configuración del cifrado de APIs externas
+
+### El botón Guardar muestra EXTERNAL_KEY_MISSING
+
+Esta validación es deliberada. IZZY no debe almacenar el Bearer Token en texto plano ni inventar una clave; **sin una clave de cifrado configurada no podrá guardarse una conexión con credencial secreta**.
+
+1. Confirme qué archivo `.env` está cargando la instalación `newizzy.test`. El `core/configAPP.php` de la aplicación elige la ruta según el entorno; en la distribución original el entorno local NEWIZZY usa `C:\credentials\newizzy\.env`, salvo que se haya definido `IZZY_ENV_FILE`. Si ese archivo fue personalizado, respete su ubicación actual.
+2. Genere **una sola vez** 32 bytes aleatorios seguros. En PowerShell puede ejecutar:
+
+   ```powershell
+   $bytes = [byte[]]::new(32)
+   [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+   [Convert]::ToHexString($bytes).ToLowerInvariant()
+   ```
+
+   En servidores Linux también puede utilizar `openssl rand -hex 32`.
+3. Agregue al `.env` protegido **del entorno correcto**, fuera del directorio público, la línea `IZZY_EXTERNAL_API_ENCRYPTION_KEY=<64_hex_generados>`, reemplazando el marcador por el resultado. No la coloque en Git, capturas de pantalla, logs ni en el formulario JSON. No es la API Key de ZYNKO.
+4. Reinicie/recargue PHP si el entorno mantiene cachés de configuración, use el botón **Diagnóstico** y compruebe `cifrado_configurado: true`. Después guarde la conexión.
+5. Utilice claves distintas para DEVIZZY y NEWIZZY. **Nunca cambie ni regenere** una clave en un entorno con credenciales ya cifradas: necesitaría un procedimiento explícito de rotación con descifrado y recifrado.
+
+### Desplazamiento horizontal con Select2
+
+La v013 ajusta únicamente `vistas/plantilla/css/administrarApi.css`: limita el tamaño del modal, el formulario y el menú Select2 al viewport. El contenido de un modal alto mantiene scroll **vertical interno**. Las opciones de Select2, su búsqueda, el cierre con Esc/X/Cancelar y la prohibición de cerrar por clic fuera permanecen sin modificaciones.
+
+### Archivos y pruebas
+
+Solo se entregan los archivos CSS y README completos. **No hay migraciones SQL nuevas ni modificaciones de base de datos**. La clave `.env` debe configurarla quien administra el entorno: no se incluye en el ZIP. Se recomienda verificar en DEVIZZY el guardado, prueba de canales, vista móvil y ausencia de barra de desplazamiento horizontal. La comprobación sintáctica CSS/estructura ZIP no sustituye una prueba de navegador real.

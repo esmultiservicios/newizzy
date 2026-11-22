@@ -58,7 +58,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
     </section>
 
     <section class="api-panel" data-api-panel="external">
-        <div class="api-panel-heading"><div><h2>Servicios API externos</h2><p>Conexiones salientes de IZZY. Exclusivas del administrador principal; los tokens nunca se muestran en pantalla.</p></div><button type="button" class="btn btn-primary" id="api_ext_refresh"><i class="fas fa-sync"></i> Actualizar</button></div>
+        <div class="api-panel-heading"><div><h2>Servicios API externos</h2><p>Conexiones salientes de IZZY. Exclusivas del administrador principal; los tokens nunca se muestran en pantalla.</p></div><button type="button" class="btn btn-secondary" id="api_ext_diagnostics" title="Comprueba tablas y cifrado, sin exponer secretos"><i class="fas fa-stethoscope"></i> Diagnóstico</button><button type="button" class="btn btn-primary" id="api_ext_refresh"><i class="fas fa-sync"></i> Actualizar</button></div>
         <div class="api-integration-notice"><i class="fas fa-shield-alt"></i><span>Los envíos automáticos de documentos permanecen desactivados. Primero valide credenciales y rutas con el proveedor.</span></div>
         <h3 class="api-route-section-title">Conexiones registradas</h3>
         <div class="api-results-toolbar" data-api-results="ext" aria-label="Herramientas de resultados">

@@ -27,6 +27,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if ($csrf === '' || !hash_equals((string)($_SESSION['csrf_administrar_api'] ?? ''), $csrf)) $respond(false, 'La solicitud expiró. Recargue la página e intente nuevamente.', [], 419);
 
         $action = (string)($_POST['action'] ?? '');
+        // Conexiones salientes: reutiliza sesión de administrador global y CSRF anteriores.
+        if (str_starts_with($action, 'external_')) {
+            require_once dirname(__DIR__,2).'/core/api/ExternalProviderService.php';
+            $external=new IzzyExternalProviderService();
+            if ($action==='external_list') $respond(true,'Conexiones salientes.', ['conexiones'=>$external->listing()]);
+            if ($action==='external_save') $respond(true,'Conexión guardada. Verifique su estado y permisos antes de utilizarla.', ['id'=>$external->save($_POST)]);
+            if ($action==='external_toggle') { $external->toggle((int)($_POST['id']??0),(string)($_POST['activo']??'0')==='1');$respond(true,'Estado actualizado.'); }
+            if ($action==='external_archive') { $external->archive((int)($_POST['id']??0));$respond(true,'Conexión archivada.'); }
+            if ($action==='external_test') {
+                // Prueba sin envío de mensajes: consultar solamente los canales.
+                $result=$external->request((int)($_POST['id']??0),'v1/channels');
+                $respond($result['ok'],$result['ok']?'Conectividad HTTPS/JSON confirmada.':'No se pudo validar la respuesta del proveedor.', ['http_status'=>$result['http_status']],$result['ok']?200:502);
+            }
+            if ($action==='external_checks') $respond(true,'Resultados de conexión.', ['historial'=>$external->checks((int)($_POST['id']??0))]);
+            $respond(false,'Operación no autorizada.',[],400);
+        }
+
         if ($action === 'list_sessions') {
             require_once dirname(__DIR__, 2) . '/core/api/ApiAdminService.php';
             $service = new IzzyApiAdminService();
@@ -66,7 +83,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     } catch (Throwable $e) {
         error_log('Administración API IZZY: ' . $e->getMessage());
         $message = in_array((string)($action ?? ''), ['list_integrations', 'create_integration', 'revoke_integration'], true)
-            ? 'No se pudo completar la operación. Verifique en DB_MAIN la tabla api_integrations del script DB_CAMBIOS_API_20261108.sql.'
+            ? 'No se pudo completar la operación. Verifique en DB_MAIN la tabla api_integrations del script DB_Cambios.sql.'
             : 'No se pudo completar la operación. Verifique la instalación de las tablas de autenticación.';
         $respond(false, $message, [], 500);
     }
@@ -95,6 +112,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             return response;
         });
     }
+    // UI de conexiones salientes; nunca se devuelve ni se recupera el token guardado.
+    function loadExternal(){
+        $('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
+        post({action:'external_list'}).done(r=>{
+            const rows=r.datos.conexiones||[];
+            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'">Editar</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'">Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'">Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'Desactivar':'Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'">Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
+            $('#api_ext_rows').data('connections',rows);
+        }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
+    }
+    $('#api_ext_refresh').on('click',loadExternal);
+    $('#api_ext_clear').on('click',()=>{$('#api_ext_id').val(0);$('#api_ext_token').val('');});
+    $('#api_ext_form').on('submit',function(e){
+        e.preventDefault();const fields=$(this).serializeArray(),data={action:'external_save'};
+        fields.forEach(x=>data[x.name]=x.value);
+        post(data).done(r=>{notify(r.mensaje);this.reset();$('#api_ext_id').val(0);closeModal($('#api_external_modal'));loadExternal();}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar','error'));
+    });
+    $('#api_ext_rows').on('click','[data-ext-edit]',function(){
+        const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
+        if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');
+        $('#api_ext_form [name="descripcion"]').val(x.descripcion||'');openExternalModal(true);
+    }).on('click','[data-ext-toggle],[data-ext-test],[data-ext-check],[data-ext-archive]',function(){
+        const b=$(this),id=Number(b.attr('data-ext-toggle')||b.attr('data-ext-test')||b.attr('data-ext-check')||b.attr('data-ext-archive'));
+        const action=b.is('[data-ext-toggle]')?'external_toggle':b.is('[data-ext-test]')?'external_test':b.is('[data-ext-check]')?'external_checks':'external_archive';
+        if(action==='external_archive'&&!window.confirm('¿Archivar esta conexión? Los datos históricos permanecerán.'))return;
+        post({action,id,activo:b.attr('data-ext-on')||0}).done(r=>{
+            if(action==='external_checks')$('#api_ext_checks').html((r.datos.historial||[]).map(h=>'<article class="api-record-card"><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></article>').join('')||'<div class="api-empty-state">Sin comprobaciones.</div>');
+            else {notify(r.mensaje);loadExternal();}
+        }).fail(e=>notify(e.responseJSON?.mensaje||'Operación no completada','error'));
+    });
+    $('[data-api-tab="external"]').on('click',loadExternal);
     function sessionState(row){
         if(row.revoked_at)return '<span class="api-status is-revoked"><i class="fas fa-ban"></i> Revocada</span>';
         if(row.expires_at&&new Date(String(row.expires_at).replace(' ','T'))<new Date())return '<span class="api-status is-expired"><i class="fas fa-clock"></i> Vencida</span>';
@@ -107,7 +154,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
     let authorizedCompanies=[];
     function renderAuthorizations(){
-        const query=String($('#api_authorizations_search').val()||'').trim().toLocaleLowerCase('es');
+        const query=String($('[data-api-results="authorizations"] .api-results-query').val()||'').trim().toLocaleLowerCase('es');
         const status=String($('#api_authorizations_status').val()||'active');
         const system=String($('#api_authorizations_system').val()||'1');
         const rows=authorizedCompanies.filter(row=>{
@@ -147,7 +194,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }).fail(xhr=>$('#api_authorizations_rows').html('<div class="api-error-state">'+esc(xhr.responseJSON?.mensaje||'No se pudieron cargar las empresas.')+'</div>'));
     }
     $('#api_refresh_authorizations').on('click',loadAuthorizations);
-    $('#api_authorizations_search').on('input',renderAuthorizations);
+    
     $('#api_authorizations_status').on('change',renderAuthorizations);
     $('#api_authorizations_system').on('change',renderAuthorizations);
     if($.fn.select2)$('#api_authorizations_status').select2({width:'100%',minimumResultsForSearch:Infinity});
@@ -296,6 +343,76 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         const name=$(this).data('api-tab');$('[data-api-tab]').removeClass('is-active');$(this).addClass('is-active');$('[data-api-panel]').removeClass('is-active').filter('[data-api-panel="'+name+'"]').addClass('is-active');
         if(name==='sessions')loadSessions();if(name==='integrations')loadIntegrations();if(name==='authorizations')loadAuthorizations();
     });
+    // Toolbar de resultados compartida: trabaja con las tarjetas existentes (no tablas).
+    // Se aplica después de cada render AJAX mediante MutationObserver, sin modificar los eventos de cada tarjeta.
+    const listTargets={integrations:'#api_integrations_rows',ext:'#api_ext_rows',authorizations:'#api_authorizations_rows',sessions:'#api_sessions_rows'};
+    const resultState={};
+    Object.keys(listTargets).forEach(k=>{resultState[k]={page:1,limit:'25',view:'detail',busy:false};});
+    function exportRows(key){
+        const el=$(listTargets[key]);
+        const toolbar=$('[data-api-results="'+key+'"]');
+        const filter=String(toolbar.find('.api-results-query').val()||'').trim().toLocaleLowerCase('es');
+        return el.children('article.api-record-card').filter(function(){return !filter||$(this).text().toLocaleLowerCase('es').includes(filter);}).toArray();
+    }
+    function updateResults(key){
+        const state=resultState[key],list=$(listTargets[key]);if(!list.length||state.busy)return;
+        const toolbar=$('[data-api-results="'+key+'"]');
+        const records=exportRows(key),n=records.length;
+        const all=list.children('article.api-record-card');
+        const count=Number(state.limit)==0?n:Math.max(1,Number(state.limit));
+        const pages=Math.max(1,Math.ceil(n/count));state.page=Math.min(Math.max(1,state.page),pages);
+        state.busy=true;
+        all.hide().attr('aria-hidden','true');
+        const first=(state.page-1)*count;$(records.slice(first,first+count)).show().attr('aria-hidden','false');
+        list.toggleClass('api-view-tiles',state.view==='tiles');
+        toolbar.find('.api-view-option').removeClass('is-active').filter('[data-view="'+state.view+'"]').addClass('is-active');
+        toolbar.find('.api-results-size option[value="all"]').text('Todos ('+n+')');
+        const pagination=$('[data-api-pagination="'+key+'"]');pagination.empty();
+        pagination.append($('<span class="api-page-summary">').text(n?'Mostrando '+(first+1)+'–'+Math.min(first+count,n)+' de '+n:'0 resultados'));
+        const actions=$('<div class="api-page-buttons">');
+        const button=(text,page,disabled,selected)=>$('<button type="button">').addClass('api-page-button').toggleClass('is-current',!!selected).attr('data-go-page',page).prop('disabled',disabled).text(text);
+        actions.append(button('‹',state.page-1,state.page===1,false));
+        const start=Math.max(1,Math.min(state.page-2,pages-4)),end=Math.min(pages,start+4);
+        for(let i=start;i<=end;i++)actions.append(button(String(i),i,false,i===state.page));
+        actions.append(button('›',state.page+1,state.page===pages,false));pagination.append(actions);
+        state.busy=false;
+    }
+    Object.keys(listTargets).forEach(key=>{
+        const node=document.querySelector(listTargets[key]);if(!node)return;
+        const toolbar=$('[data-api-results="'+key+'"]');
+        toolbar.on('input','.api-results-query',()=>{resultState[key].page=1;updateResults(key);});
+        toolbar.on('change','.api-results-size',function(){resultState[key].limit=$(this).val()==='all'?'0':String($(this).val());resultState[key].page=1;updateResults(key);});
+        toolbar.on('click','.api-view-option',function(){resultState[key].view=$(this).attr('data-view')==='tiles'?'tiles':'detail';updateResults(key);});
+        $('[data-api-pagination="'+key+'"]').on('click','[data-go-page]',function(){resultState[key].page=Number($(this).attr('data-go-page'))||1;updateResults(key);});
+        toolbar.on('click','.api-export-excel',()=>{
+            const cards=exportRows(key),data=cards.map(x=>$(x).find('.api-record-title').text().replace(/\s+/g,' ').trim());
+            const csv='\ufeff"Registro"\r\n'+data.map(x=>'"'+x.replace(/"/g,'""')+'"').join('\r\n');
+            const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');a.href=url;a.download='IZZY_'+key+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        });
+        toolbar.on('click','.api-export-pdf',()=>{
+            if(!window.pdfMake||typeof window.pdfMake.createPdf!=='function'){notify('El visor PDF no está disponible en esta pantalla.','error');return;}
+            const items=exportRows(key).map(x=>({text:$(x).find('.api-record-title').text().replace(/\s+/g,' ').trim(),margin:[0,5,0,5]}));
+            const definition={content:[{text:'IZZY · '+key.toUpperCase(),style:'header'},...items],styles:{header:{fontSize:16,bold:true,margin:[0,0,0,12]}},defaultStyle:{fontSize:9}};
+            window.pdfMake.createPdf(definition).open();
+        });
+        const observer=new MutationObserver(mutations=>{
+            if(resultState[key].busy)return;
+            // Solo recalcular cuando se agregan/quitan nodos de resultado; ocultar tarjetas no causa mutaciones en childList.
+            if(mutations.some(m=>m.type==='childList')){resultState[key].page=1;updateResults(key);}
+        });observer.observe(node,{childList:true});updateResults(key);
+    });
+    function openExternalModal(edit){
+        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');}
+        else $('#api_external_modal_title').text('Editar conexión externa');
+        openModal($('#api_external_modal'),'#api_ext_name');
+    }
+    $('#api_ext_new').on('click',()=>openExternalModal(false));
+    $('[data-api-external-close]').on('click',()=>closeModal($('#api_external_modal')));
+    $('#api_ext_clear').off('click').on('click',()=>openExternalModal(false));
+    // Evita el efecto de crecimiento incluso cuando Select2 termina de inicializar.
+    $('.api-modal-backdrop').on('click',function(e){if(e.target===this)closeModal($(this));});
+    $(document).on('keydown.apiModalEscape',e=>{if(e.key==='Escape')$('.api-modal-backdrop.is-open').each(function(){closeModal($(this));});});
     loadIntegrations();
 })(window.jQuery);
 </script>

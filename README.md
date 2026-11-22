@@ -278,7 +278,7 @@ No debe enviarse `db`, `empresa_id` ni `server_customers_id` para decidir qué e
 ### Base de datos e instalación
 
 - Respaldar DB_MAIN y los archivos antes de actualizar.
-- Ejecutar **una sola vez y en DB_MAIN** `DB_CAMBIOS_API_20261108.sql`, que consolida las tablas y migraciones de autenticación, autorización e integraciones. No ejecutarlo en cada base cliente.
+- Las migraciones de autenticación, autorización e integraciones ahora están consolidadas en `DB_Cambios.sql`. Aplicar **solo los bloques necesarios** en DB_MAIN, previa verificación del esquema existente; no ejecutar todo el archivo histórico sin revisión.
 - No ejecutar nuevamente el script a ciegas; revisar los cambios ya aplicados y la estructura real antes de migraciones posteriores.
 - Probar en DEMO: login/refresh/me/logout, menú por privilegio, empresa sin permiso, empresa suspendida, tokens vencidos, secreto incorrecto, revocación y acceso cruzado entre dos clientes.
 - Esta entrega no realiza migración remota ni certifica respuestas HTTP reales contra una base de datos del usuario.
@@ -423,3 +423,61 @@ Para consultas, soporte técnico o incidencias relacionadas con el proyecto, con
 ### ES MULTISERVICIOS
 
 **Más que servicio, construimos soluciones.**
+
+
+---
+
+# API IZZY y conexiones externas ZYNKO · v005
+
+# IZZY — Documentación consolidada v005 — SQL consolidado y ajustes de administración ZYNKO
+
+## Regla permanente de scripts SQL
+- **`DB_Cambios.sql`**: consolidar aquí todas las nuevas migraciones y correcciones de esquema de esta integración.
+- **`DB_CAMBIOS_API_20261108.sql`**: su contenido se incorporó a `DB_Cambios.sql`; retirar el archivo duplicado del repositorio después de verificar el cambio.
+- No conservar `DB_CAMBIOS_API_EXTERNAS_20261122.sql` ni `INSTALACION_API_EXTERNAS_20261122.md`: sus contenidos están integrados en `DB_Cambios.sql` y en este README.
+- Esta entrega reemplaza completamente las v003 y v004 (el usuario indicó que aún no instaló la anterior). NO instalar v003 y v004 juntas.
+
+## Instalación segura en DEVIZZY
+1. Crear respaldos íntegros y verificables de código y DB_MAIN y comprobar en qué base está conectado DEVIZZY.
+2. Revisar el historial de ejecución existente de `DB_Cambios.sql`: es un script histórico con numerosas migraciones ajenas a esta entrega. **NO ejecutar el archivo entero a ciegas** sin revisión de su estado real y backups. Para una base que ya aplica el resto de cambios históricos, ejecutar únicamente el bloque final etiquetado `2026-11-22 | IZZY — API EXTERNAS Y NOTIFICACIONES`, mediante el proceso SQL utilizado por su equipo.
+3. Verificar la existencia de las tablas API v1 en DB_MAIN. Si ya existen, no repetir alteraciones innecesariamente; revisar de manera individual el bloque 2026-11-08 incluido ahora en `DB_Cambios.sql`.
+4. Configurar en el entorno de PHP de DEVIZZY la variable privada `IZZY_EXTERNAL_API_ENCRYPTION_KEY` (64 caracteres hexadecimales, generar con `php -r 'echo bin2hex(random_bytes(32)),PHP_EOL;'`). No guardar el valor en el repositorio ni en JS. Usar clave diferente en NEWIZZY.
+5. Copiar los archivos del ZIP a la raíz del proyecto conservando su ruta exacta. Reiniciar o recargar PHP opcache si corresponde.
+6. Administrador principal: abrir administración de API → Servicios externos → registrar conexión ZYNKO → activar → Probar conexión. La prueba solo consulta `GET ?r=v1/channels`; **no envía WhatsApp**.
+7. Validar roles sin permiso, acceso directo al endpoint, CSRF, edición sin sustituir token, cifrado, archivado e historial.
+8. No aplicar en NEWIZZY hasta completar pruebas con base y credenciales exclusivas DEVIZZY.
+
+## Estado real y asuntos pendientes
+- **Disponible:** formulario administración externa ZYNKO, almacenamiento cifrado, activación/desactivación, archivado, comprobación HTTP/JSON de canales y registro técnico; esquema de base de notificaciones sin uso activo.
+- **No disponible:** centro de notificaciones operativo, selección de canal verificada con ZYNKO, adjuntos PDF/URL seguros, envíos manuales y automáticos, cola worker, reintentos, enganche a facturación individual/recurrente, estados reales/webhook, consentimiento por empresa y plantillas aprobadas.
+- Para completar lo anterior hay que inspeccionar en repositorio ZYNKO la implementación y contratos reales de `v1/channels`, `v1/whatsapp/send` y `v1/whatsapp/status`, así como los permisos `whatsapp:send`, `whatsapp:bulk`, `whatsapp:status`. No se ha verificado la implementación ZYNKO con esta entrega. **Un 2xx de envío no significa mensaje entregado**.
+- No se deben activar automatizaciones ni tratar las tablas base como un sistema de envíos funcional.
+- Nada del proceso de facturación, CAI, SAR, correlativos ni cierre contable se modifica en esta entrega.
+
+## Título del commit
+🚀 IZZY v004 | Consolidación SQL de integraciones API y ZYNKO
+
+## Detalle del commit
+🔧 Consolidar migración API externa en DB_Cambios.sql y retirar el tercer script SQL de la entrega.
+🔒 Conservar credenciales cifradas y administración independiente sin alterar APIs entrantes.
+💬 Corregir los textos de la interfaz y de la documentación para reflejar el alcance real.
+🛡️ Mantener las notificaciones automáticas desactivadas y los procesos fiscales intactos.
+📋 Documentar validaciones pendientes de ZYNKO, pruebas en DEVIZZY y límites de entrega.
+
+
+## Listados administrativos v005
+- Se reutiliza una **barra de resultados** común: acciones, búsqueda con icono, detalle/miniaturas y tamaño de página con `Todos (n)`.
+- Paginación inferior sin tablas HTML para integraciones, proveedores externos, empresas autorizadas y sesiones móviles.
+- **Excel**: exportación CSV compatible con Excel de los resultados filtrados; no genera archivo XLSX nativo.
+- **PDF**: visualización mediante `pdfMake.createPdf(...).open()` que ya carga el proyecto; el navegador decide cómo abrir la vista previa.
+- El formulario ZYNKO se abre en modal y no ocupa espacio en la lista. Modales con alto estable y sin efecto de crecimiento.
+- Los listados actuales son filtrados/paginados en cliente sobre lo retornado por los endpoints; sesiones móviles conservan el límite original de 100 definido en backend.
+- No se activan envíos ni automatizaciones WhatsApp.
+
+## Archivos históricos que se deben eliminar del repositorio
+Estos archivos no se incluyen en el ZIP porque un ZIP no puede borrar archivos existentes al extraerse. Tras respaldarlos y verificar la consolidación, ejecutar en Git:
+
+```bash
+git rm -- DB_CAMBIOS_API_20261108.sql INSTALACION_API_EXTERNAS_20261122.md
+```
+Si existe `DB_CAMBIOS_API_EXTERNAS_20261122.sql` de una entrega no instalada, también eliminarlo. **No ejecutar ningún SQL completo a ciegas sobre producción**.

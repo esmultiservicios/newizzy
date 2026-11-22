@@ -9,7 +9,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
     <div class="api-page-heading">
         <div class="api-heading-icon"><i class="fas fa-code"></i></div>
         <div><span class="api-eyebrow">SISTEMA / API</span><h1>API y accesos</h1>
-            <p>Acceso de terceros a IZZY, sesiones móviles y futuras conexiones de IZZY con proveedores externos.</p></div>
+            <p>Accesos entrantes, sesiones móviles y administración de conexiones salientes con proveedores externos.</p></div>
     </div>
 
     <section class="api-identity-card">
@@ -28,6 +28,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
 
     <div class="api-tabs" role="tablist">
         <button class="api-tab is-active" type="button" data-api-tab="integrations"><i class="fas fa-plug"></i> Integraciones</button>
+        <button class="api-tab" type="button" data-api-tab="external"><i class="fas fa-paper-plane"></i> Servicios externos</button>
         <button class="api-tab" type="button" data-api-tab="authorizations"><i class="fas fa-user-shield"></i> Empresas autorizadas</button>
         <button class="api-tab" type="button" data-api-tab="routes"><i class="fas fa-code"></i> Rutas API</button>
         <button class="api-tab" type="button" data-api-tab="sessions"><i class="fas fa-mobile-alt"></i> Sesiones móviles</button>
@@ -36,7 +37,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
     <section class="api-panel is-active" data-api-panel="integrations">
         <div class="api-panel-heading"><div><h2>Accesos externos a IZZY</h2><p>Autorice consultas o escrituras permitidas para una empresa IZZY; cada credencial queda ligada a una sola empresa.</p></div>
             <button type="button" class="btn btn-primary" id="api_new_integration"><i class="fas fa-plus"></i> Nuevo acceso externo</button></div>
-        <div class="api-integration-directions"><article><i class="fas fa-arrow-right"></i><div><strong>De otro sistema hacia IZZY</strong><span>Estas credenciales permiten que un sistema externo solicite tokens para una empresa autorizada.</span></div></article><article><i class="fas fa-arrow-left"></i><div><strong>De IZZY hacia un proveedor externo</strong><span>Pasarelas de pago, WhatsApp o mensajería necesitarán su propio módulo de conectores, con claves del proveedor y webhooks. No se configuran en este formulario.</span></div></article></div>
+        <div class="api-integration-directions"><article><i class="fas fa-arrow-right"></i><div><strong>De otro sistema hacia IZZY</strong><span>Estas credenciales permiten que un sistema externo solicite tokens para una empresa autorizada.</span></div></article><article><i class="fas fa-arrow-left"></i><div><strong>De IZZY hacia un proveedor externo</strong><span>Las conexiones salientes se administran en «Servicios externos». Por ahora se permite configurar y comprobar ZYNKO, sin activar envíos documentales.</span></div></article></div>
         <div class="api-integration-notice"><i class="fas fa-info-circle"></i><span>Estas credenciales identifican integraciones servidor a servidor. Las rutas móviles de login, refresh, perfil, cierre y menús siguen usando tokens individuales de usuario.</span></div>
         <div class="api-integration-quickstart"><div><strong><i class="fas fa-link"></i> URL para obtener token</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>integrations/token.php</code></div><div><strong><i class="fas fa-shield-alt"></i> URL para comprobar integración</strong><code><?php echo htmlspecialchars($apiBase,ENT_QUOTES,'UTF-8'); ?>integrations/me.php</code></div><p>Ambas direcciones son comunes; IZZY identifica automáticamente la empresa por su credencial. Nunca se envía un nombre de base de datos desde la integración.</p></div>
         <div class="api-integration-quickstart">
@@ -45,19 +46,49 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
             <?php endforeach; ?>
             <p>Las rutas son comunes para APK e integraciones autorizadas; el token determina la empresa. Solo clientes y proveedores admiten POST y PATCH; facturas, productos, empresa y secuencias continúan como consulta GET. Ninguna lectura de secuencia reserva números fiscales.</p>
         </div>
+        <div class="api-results-toolbar" data-api-results="integrations" aria-label="Herramientas de resultados">
+        <div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+        <label class="api-results-search" aria-label="Buscar integraciones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar integraciones…"></label>
+        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
+        </div>
         <div class="api-integration-list" id="api_integrations_rows" aria-live="polite"><div class="api-loading">Cargando integraciones…</div></div>
+        <nav class="api-results-pagination" data-api-pagination="integrations" aria-label="Paginación de integraciones"></nav>
         <div class="api-footnote"><i class="fas fa-lock"></i> El secreto no se guarda en texto legible. Las rutas protegidas para servidor se habilitarán conforme se publiquen sus endpoints y alcances.</div>
+    </section>
+
+    <section class="api-panel" data-api-panel="external">
+        <div class="api-panel-heading"><div><h2>Servicios API externos</h2><p>Conexiones salientes de IZZY. Exclusivas del administrador principal; los tokens nunca se muestran en pantalla.</p></div><button type="button" class="btn btn-primary" id="api_ext_refresh"><i class="fas fa-sync"></i> Actualizar</button></div>
+        <div class="api-integration-notice"><i class="fas fa-shield-alt"></i><span>Los envíos automáticos de documentos permanecen desactivados. Primero valide credenciales y rutas con el proveedor.</span></div>
+        <h3 class="api-route-section-title">Conexiones registradas</h3>
+        <div class="api-results-toolbar" data-api-results="ext" aria-label="Herramientas de resultados">
+        <div class="api-results-action"><button type="button" class="btn btn-primary" id="api_ext_new"><i class="fas fa-plus"></i> Nueva conexión</button><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+        <label class="api-results-search" aria-label="Buscar conexiones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar conexiones…"></label>
+        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
+        </div>
+        <div id="api_ext_rows" class="api-integration-list" aria-live="polite"><div class="api-loading">Seleccione la pestaña para cargar las conexiones.</div></div>
+        <nav class="api-results-pagination" data-api-pagination="ext" aria-label="Paginación de conexiones"></nav>
+        <h3 class="api-route-section-title">Historial técnico de comprobaciones</h3>
+        <div id="api_ext_checks" class="api-integration-list"><div class="api-loading">Seleccione «Historial» en una conexión.</div></div>
     </section>
 
     <section class="api-panel" data-api-panel="authorizations">
         <div class="api-panel-heading"><div><h2>Autorización de API por empresa</h2><p>Solo usted puede habilitar o suspender integraciones externas; sin aprobación no se emiten tokens.</p></div><button type="button" class="btn btn-primary" id="api_refresh_authorizations"><i class="fas fa-sync-alt"></i> Actualizar</button></div>
         <div class="api-authorizations-toolbar">
-            <label class="api-authorizations-search"><i class="fas fa-search" aria-hidden="true"></i><input type="search" id="api_authorizations_search" placeholder="Buscar empresa, código o base de datos" aria-label="Buscar empresas"></label>
+            
             <select id="api_authorizations_system" aria-label="Filtrar por sistema"><option value="1" selected>IZZY</option><option value="all">Todos los sistemas</option></select>
             <select id="api_authorizations_status" aria-label="Filtrar acceso API"><option value="active" selected>Empresas activas</option><option value="approved">Activas autorizadas</option><option value="denied">Activas no autorizadas</option><option value="inactive">Empresas inactivas</option><option value="all">Todas las empresas</option></select>
         </div>
         <div class="api-authorizations-count" id="api_authorizations_count" aria-live="polite"></div>
+        <div class="api-results-toolbar" data-api-results="authorizations" aria-label="Herramientas de resultados">
+        <div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+        <label class="api-results-search" aria-label="Buscar empresas"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar empresas…"></label>
+        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
+        </div>
         <div class="api-integration-list" id="api_authorizations_rows"><div class="api-loading">Cargando empresas…</div></div>
+        <nav class="api-results-pagination" data-api-pagination="authorizations" aria-label="Paginación de empresas"></nav>
     </section>
 
     <section class="api-panel" data-api-panel="routes">
@@ -146,10 +177,34 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
     <section class="api-panel" data-api-panel="sessions">
         <div class="api-panel-heading"><div><h2>Sesiones de la aplicación móvil</h2><p>Revocar una sesión también invalida su refresh token asociado.</p></div>
             <button type="button" class="btn btn-primary" id="api_refresh_sessions"><i class="fas fa-sync-alt"></i> Actualizar</button></div>
+        <div class="api-results-toolbar" data-api-results="sessions" aria-label="Herramientas de resultados">
+        <div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+        <label class="api-results-search" aria-label="Buscar sesiones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar sesiones…"></label>
+        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
+        </div>
         <div class="api-session-list" id="api_sessions_rows" aria-live="polite"><div class="api-loading">Abra esta pestaña para cargar las sesiones.</div></div>
+        <nav class="api-results-pagination" data-api-pagination="sessions" aria-label="Paginación de sesiones"></nav>
         <div class="api-footnote"><i class="fas fa-clock"></i> Se muestran las últimas 100 sesiones emitidas por <code>api/v1/auth/login.php</code>. Revocar aquí invalida también la renovación automática del dispositivo.</div>
     </section>
 
+    <div class="api-modal-backdrop" id="api_external_modal" aria-hidden="true">
+        <section class="api-modal api-external-modal" role="dialog" aria-modal="true" aria-labelledby="api_external_modal_title">
+            <header><div><span class="api-eyebrow">IZZY → PROVEEDOR EXTERNO</span><h2 id="api_external_modal_title">Nueva conexión externa</h2></div><button type="button" class="api-modal-close" data-api-external-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
+        <form id="api_ext_form" class="api-external-form" autocomplete="off">
+            <input type="hidden" name="id" id="api_ext_id" value="0">
+            <label>Nombre<input type="text" name="nombre" id="api_ext_name" required maxlength="100" value="ZYNKO"></label>
+            <label>Proveedor<input type="text" name="proveedor" readonly value="ZYNKO"></label>
+            <label>Categoría<input type="text" name="categoria" readonly value="whatsapp"></label>
+            <label>URL HTTPS<input type="url" name="url_base" readonly value="https://zynkocloud.app/api.php"></label>
+            <label>Autenticación<input type="text" name="tipo_auth" readonly value="bearer"></label>
+            <label>Canal WhatsApp autorizado<input type="text" name="canal_id" id="api_ext_channel" maxlength="120" placeholder="ID del canal (validar con ZYNKO)"></label>
+            <label class="api-ext-wide">Descripción<input type="text" name="descripcion" maxlength="500" placeholder="Propósito de esta integración"></label>
+            <label class="api-ext-wide">Bearer Token<input type="password" name="token" id="api_ext_token" autocomplete="new-password" placeholder="Obligatorio para crear; vacío conserva el existente"></label>
+            <div class="api-ext-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar conexión</button><button type="reset" class="btn btn-secondary" id="api_ext_clear">Nueva conexión</button></div>
+        </form>
+        </section>
+    </div>
     <div class="api-modal-backdrop" id="api_integration_modal" aria-hidden="true">
         <section class="api-modal" role="dialog" aria-modal="true" aria-labelledby="api_integration_modal_title">
             <header><div><span class="api-eyebrow">OTRO SISTEMA → IZZY</span><h2 id="api_integration_modal_title">Nuevo acceso externo a IZZY</h2></div><button type="button" class="api-modal-close" data-api-modal-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>

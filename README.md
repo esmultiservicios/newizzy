@@ -481,3 +481,24 @@ Estos archivos no se incluyen en el ZIP porque un ZIP no puede borrar archivos e
 git rm -- DB_CAMBIOS_API_20261108.sql INSTALACION_API_EXTERNAS_20261122.md
 ```
 Si existe `DB_CAMBIOS_API_EXTERNAS_20261122.sql` de una entrega no instalada, también eliminarlo. **No ejecutar ningún SQL completo a ciegas sobre producción**.
+
+
+## v010: categorías, parámetros y pruebas en DEVIZZY
+
+- No se crea ningún archivo SQL nuevo. En `DB_Cambios.sql` se agregó la sección `2026-11-22 | Catálogo único administrable`. Ejecutar únicamente ese bloque en DB_MAIN de DEVIZZY, después de respaldo (requiere también las tablas de API externas de v004).
+- Se crea `api_external_categories` con categorías administrables. Al guardar una conexión, si la categoría no existe se incorpora al catálogo. Las categorías anteriores se migran con INSERT IGNORE.
+- `configuracion_json` almacena parámetros no secretos del proveedor. No coloque tokens, passwords o claves ahí: use siempre el campo Credencial secreta. El conector ZYNKO sigue siendo de conectividad básica (consultar canales); no se habilitan envíos automáticos.
+- Para ZYNKO configure nombre, proveedor `ZYNKO`, categoría `WhatsApp`, URL `https://zynkocloud.app/api.php`, autenticación Bearer Token y la credencial del entorno DEVIZZY. Obtenga el ID de canal mediante la consulta `v1/channels` y registre su identificador verificado. La IP de salida de WEB01 que debe autorizar en ZYNKO es `13.140.230.254` si coincide con la IP real del servidor.
+- Asegure que las credenciales DEVIZZY y NEWIZZY estén separadas; nunca envíe Bearer Token al navegador.
+- PRUEBAS PENDIENTES: confirmar esquema JSON real de canales/historial/estados y envíos de ZYNKO, comprobar guardado en MariaDB, observar Select2 en navegador y probar mensajes con destino autorizado. Los envíos automáticos permanecen apagados.
+
+
+## v011 — Administrador de operaciones externas (primera etapa)
+
+- Ejecutar **solo el bloque SQL v011** agregado al final de `DB_Cambios.sql` en DB_MAIN de DEVIZZY, tras realizar respaldo. No volver a ejecutar todo el histórico.
+- La autenticación muestra búsqueda Select2. Las categorías siguen siendo administrables desde la conexión y el catálogo ya instalado en v010.
+- Cada conexión permite abrir «Operaciones API», crear/editar declaraciones HTTP y cargar las 4 operaciones conocidas de ZYNKO (sin activar ni ejecutar). La importación OpenAPI 3 JSON proporciona vista previa; YAML, selección/guardado por lote y ejecución segura siguen pendientes.
+- Se mantiene como regla que la clave ZYNKO determina el canal: no se exige ingresarlo manualmente. La consulta del canal y su compatibilidad deben validarse contra el contrato vivo antes del uso comercial.
+- La ejecución de operaciones arbitrarias y los envíos automáticos **no están implementados ni habilitados**: no se permite ejecutar peticiones configuradas hasta contar con motor SSRF-safe y políticas de autorización de operaciones.
+- Modal «Mi Cuenta > Integraciones API» administra credenciales entrantes a IZZY. **No se ha convertido todavía en configurador saliente por empresa.** La segunda fase requerirá tablas por empresa y autorización propia, sin reutilizar el 403 existente.
+- Pruebas: PHP lint, JS parser y ZIP. Pendientes: BD DEVIZZY, Select2 en navegador, OpenAPI interactivo y conexión real a ZYNKO.

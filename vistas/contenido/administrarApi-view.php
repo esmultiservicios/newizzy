@@ -70,7 +70,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         <div id="api_ext_rows" class="api-integration-list" aria-live="polite"><div class="api-loading">Seleccione la pestaña para cargar las conexiones.</div></div>
         <nav class="api-results-pagination" data-api-pagination="ext" aria-label="Paginación de conexiones"></nav>
         <h3 class="api-route-section-title">Historial técnico de comprobaciones</h3>
-        <div id="api_ext_checks" class="api-integration-list"><div class="api-loading">Seleccione «Historial» en una conexión.</div></div>
+        <div id="api_ext_checks" class="api-integration-list"><div class="api-empty-state"><i class="fas fa-history"></i><strong>Sin comprobaciones registradas</strong><span>Seleccione «Historial» en una conexión para consultar los resultados técnicos.</span></div></div>
     </section>
 
     <section class="api-panel" data-api-panel="authorizations">
@@ -196,13 +196,15 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
             <label>Nombre<input type="text" name="nombre" id="api_ext_name" required maxlength="100" placeholder="Ej. Proveedor de SMS"></label>
             <label>Proveedor<input type="text" name="proveedor" id="api_ext_provider" required maxlength="50" placeholder="Ej. ZYNKO, Proveedor SMS"></label>
             <label>Categoría
-                <select name="categoria" id="api_ext_category" required aria-label="Categoría del proveedor">
+                <select name="categoria" id="api_ext_category" class="api-enhanced-select" required aria-label="Categoría del proveedor">
                     <option value=""></option>
                 </select>
             </label>
             <label>URL HTTPS<input type="url" name="url_base" id="api_ext_url" required maxlength="255" placeholder="https://api.proveedor.com/v1"></label>
-            <label>Autenticación<select name="tipo_auth" id="api_ext_auth" required><option value="">Seleccione autenticación</option><option value="bearer">Bearer Token</option><option value="api_key">API Key</option><option value="basic">Basic Auth</option><option value="none">Sin autenticación</option></select></label>
-            <label>Canal / identificador (opcional)<input type="text" name="canal_id" id="api_ext_channel" maxlength="120" placeholder="ID del canal (validar con ZYNKO)"></label>
+            <label>Autenticación<select name="tipo_auth" id="api_ext_auth" class="api-enhanced-select" required><option value="">Seleccione autenticación</option><option value="bearer">Bearer Token</option><option value="api_key">API Key</option><option value="basic">Basic Auth</option><option value="none">Sin autenticación</option></select></label>
+            <label id="api_ext_channel_group">Identificador del recurso (solo cuando sea necesario)<input type="text" name="canal_id" id="api_ext_channel" maxlength="120" placeholder="Opcional, si el proveedor no permite descubrirlo"></label>
+            <div class="api-ext-wide api-provider-guide"><i class="fas fa-shield-alt"></i><div><strong>Parámetros del proveedor</strong><small>Las operaciones se administran por conexión en «Operaciones API». ZYNKO utiliza su canal asociado a la credencial y se consulta mediante <code>v1/channels</code>, sin introducir un ID manual. Nunca guarde secretos en parámetros JSON.</small></div></div>
+            <label class="api-ext-wide">Parámetros adicionales (JSON, sin secretos)<textarea name="configuracion_json" id="api_ext_config" rows="3" maxlength="4000" spellcheck="false" placeholder='{"sender_id":"ejemplo","region":"hn"}'>{}</textarea><small class="api-editor-note">Opcional. Solo configuraciones públicas/no secretas; las operaciones declarativas se configuran por separado. No se ejecutan automáticamente.</small></label>
             <div class="api-ext-wide api-ext-editor-field"><label for="api_ext_description_editor">Descripción</label>
                 <div class="api-rich-editor" role="group" aria-label="Editor enriquecido de descripción">
                     <div class="api-rich-toolbar" role="toolbar" aria-label="Formato de descripción">
@@ -219,6 +221,28 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
             <div class="api-ext-actions"><button type="button" class="btn btn-secondary api-cancel-button" data-api-external-close><i class="fas fa-times-circle"></i> Cancelar</button><button type="button" class="btn btn-warning api-clear-button" id="api_ext_clear"><i class="fas fa-eraser"></i> Limpiar</button><button type="submit" form="api_ext_form" class="btn btn-primary"><i class="fas fa-save"></i> Guardar conexión</button></div>
         </form>
         </section>
+    </div>
+    <div class="api-modal-backdrop" id="api_operations_modal" aria-hidden="true">
+      <section class="api-modal api-external-modal" role="dialog" aria-modal="true" aria-labelledby="api_operations_title">
+        <header><div><span class="api-eyebrow">IZZY → OPERACIONES API</span><h2 id="api_operations_title"><i class="fas fa-cogs"></i> Operaciones del proveedor</h2><p class="api-modal-subtitle">Defina endpoints sin modificar PHP. El registro no ejecuta solicitudes ni activa envíos.</p></div><button class="api-modal-close" type="button" data-api-operations-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
+        <div class="api-operations-scroll">
+          <div id="api_operations_list" class="api-integration-list"><div class="api-empty-state"><i class="fas fa-cogs"></i><strong>Sin operaciones registradas</strong><span>Agregue una operación o cargue un catálogo preconfigurado.</span></div></div>
+          <div class="api-operations-actions"><button type="button" class="btn btn-primary" id="api_operations_seed"><i class="fas fa-cloud-download-alt"></i> Cargar operaciones ZYNKO</button></div>
+          <form id="api_operation_form" class="api-operation-grid" autocomplete="off">
+            <input type="hidden" id="api_operation_connection" name="connection_id"><input type="hidden" id="api_operation_id" name="operation_id" value="0">
+            <label>Identificador interno<input required id="api_operation_code" name="codigo" maxlength="80" placeholder="enviar_mensaje"></label>
+            <label>Nombre de la operación<input required id="api_operation_name" name="nombre" maxlength="120" placeholder="Enviar mensaje"></label>
+            <label>Método HTTP<select id="api_operation_method" name="metodo" required><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select></label>
+            <label>Ruta relativa<input required id="api_operation_route" name="ruta" maxlength="512" placeholder="/messages o ?r=v1/channels"></label>
+            <label class="api-ext-wide">Parámetros estructurados (JSON, sin secretos)<textarea name="parametros_json" id="api_operation_params" rows="3">{}</textarea></label>
+            <label class="api-ext-wide">Respuesta esperada (JSON, sin secretos)<textarea name="respuesta_json" id="api_operation_response" rows="3">{}</textarea></label>
+            <label class="api-ext-wide">Descripción<textarea name="descripcion" id="api_operation_description" rows="2" maxlength="2000"></textarea></label>
+            <div class="api-ext-wide api-operations-actions"><button type="reset" class="btn btn-warning"><i class="fas fa-eraser"></i> Limpiar</button><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar operación</button></div>
+          </form>
+          <div class="api-operations-import"><h3><i class="fas fa-file-import"></i> Importar OpenAPI</h3><p>Vista previa segura para OpenAPI 3 en JSON. No realiza conexiones ni importa automáticamente operaciones.</p><textarea id="api_openapi_json" rows="3" placeholder='{"openapi":"3.0.0","paths":{}}'></textarea><button type="button" class="btn btn-secondary" id="api_openapi_preview"><i class="fas fa-search"></i> Analizar especificación</button><div id="api_openapi_result"></div></div>
+        </div>
+        <footer class="api-operations-footer"><button type="button" class="btn btn-secondary" data-api-operations-close><i class="fas fa-times-circle"></i> Cerrar</button></footer>
+      </section>
     </div>
     <div class="api-modal-backdrop" id="api_integration_modal" aria-hidden="true">
         <section class="api-modal" role="dialog" aria-modal="true" aria-labelledby="api_integration_modal_title">

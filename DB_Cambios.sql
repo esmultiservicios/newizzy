@@ -1515,3 +1515,49 @@ INSERT IGNORE INTO api_document_notification_settings (document_type,automatic_e
 ('recibo',0,'Estimado cliente, su comprobante está disponible: {url_documento}');
 
 -- FIN DE CAMBIOS API EXTERNAS — 2026-11-22
+
+-- 2026-11-22 | Catálogo único administrable de categorías API externas.
+-- Ejecute este bloque SOLO en DB_MAIN (DEVIZZY primero). No crea otro script SQL.
+CREATE TABLE IF NOT EXISTS api_external_categories (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ nombre VARCHAR(40) NOT NULL,
+ activo TINYINT(1) NOT NULL DEFAULT 1,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_api_external_category (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT IGNORE INTO api_external_categories (nombre) VALUES ('WhatsApp'),('SMS'),('Correo electrónico'),('Divisas'),('Pagos'),('Otro');
+INSERT IGNORE INTO api_external_categories (nombre)
+ SELECT DISTINCT categoria FROM api_external_connections WHERE categoria <> '';
+-- Parámetros generales no secretos; la clave de autenticación permanece cifrada separadamente.
+DROP PROCEDURE IF EXISTS izzy_api_external_parameters_migrate;
+DELIMITER $$
+CREATE PROCEDURE izzy_api_external_parameters_migrate()
+BEGIN
+ IF NOT EXISTS (SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='api_external_connections' AND COLUMN_NAME='configuracion_json') THEN
+  ALTER TABLE api_external_connections ADD COLUMN configuracion_json TEXT NULL AFTER canal_id;
+ END IF;
+END$$
+DELIMITER ;
+CALL izzy_api_external_parameters_migrate();
+DROP PROCEDURE izzy_api_external_parameters_migrate;
+
+-- v011 | Operaciones declarativas de proveedores externos (sin ejecución HTTP dinámica)
+-- Ejecutar únicamente este bloque en DB_MAIN de DEVIZZY después de respaldo.
+CREATE TABLE IF NOT EXISTS api_external_operations (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+ connection_id BIGINT UNSIGNED NOT NULL,
+ codigo VARCHAR(80) NOT NULL,
+ nombre VARCHAR(120) NOT NULL,
+ metodo ENUM('GET','POST','PUT','PATCH','DELETE') NOT NULL DEFAULT 'GET',
+ ruta VARCHAR(512) NOT NULL,
+ parametros_json TEXT NULL,
+ respuesta_json TEXT NULL,
+ descripcion TEXT NULL,
+ activo TINYINT(1) NOT NULL DEFAULT 0,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (id),
+ UNIQUE KEY uq_external_operation (connection_id,codigo),
+ KEY idx_external_operations_connection (connection_id),
+ CONSTRAINT fk_external_operations_connection FOREIGN KEY (connection_id) REFERENCES api_external_connections(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

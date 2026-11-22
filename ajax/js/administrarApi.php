@@ -31,8 +31,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if (str_starts_with($action, 'external_')) {
             require_once dirname(__DIR__,2).'/core/api/ExternalProviderService.php';
             $external=new IzzyExternalProviderService();
-            if ($action==='external_list') $respond(true,'Conexiones salientes.', ['conexiones'=>$external->listing()]);
-            if ($action==='external_save') $respond(true,'Conexión guardada. Verifique su estado y permisos antes de utilizarla.', ['id'=>$external->save($_POST)]);
+            if ($action==='external_list') $respond(true,'Conexiones salientes.', ['conexiones'=>$external->listing(),'categorias'=>$external->categories()]);
+            if ($action==='external_save') { $savedId=$external->save($_POST); if(strtoupper(trim((string)($_POST['proveedor']??'')))==='ZYNKO' && trim((string)($_POST['url_base']??''))==='https://zynkocloud.app/api.php') $external->seedZynkoOperations($savedId); $respond(true,'Conexión guardada. Verifique su estado y permisos antes de utilizarla.', ['id'=>$savedId]); }
             if ($action==='external_toggle') { $external->toggle((int)($_POST['id']??0),(string)($_POST['activo']??'0')==='1');$respond(true,'Estado actualizado.'); }
             if ($action==='external_archive') { $external->archive((int)($_POST['id']??0));$respond(true,'Conexión archivada.'); }
             if ($action==='external_test') {
@@ -40,6 +40,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $result=$external->request((int)($_POST['id']??0),'v1/channels');
                 $respond($result['ok'],$result['ok']?'Conectividad HTTPS/JSON confirmada.':'No se pudo validar la respuesta del proveedor.', ['http_status'=>$result['http_status']],$result['ok']?200:502);
             }
+            if ($action==='external_operations') $respond(true,'Operaciones registradas.', ['operaciones'=>$external->operations((int)($_POST['connection_id']??0))]);
+            if ($action==='external_operation_save') $respond(true,'Operación guardada desactivada.',['id'=>$external->saveOperation($_POST)]);
+            if ($action==='external_seed_zynko') $respond(true,'Catálogo ZYNKO cargado sin activar operaciones.',['agregadas'=>$external->seedZynkoOperations((int)($_POST['connection_id']??0))]);
+            if ($action==='external_openapi_preview') $respond(true,'Vista previa de operaciones OpenAPI.', ['operaciones'=>$external->previewOpenApi((string)($_POST['openapi_json']??''))]);
             if ($action==='external_checks') $respond(true,'Resultados de conexión.', ['historial'=>$external->checks((int)($_POST['id']??0))]);
             $respond(false,'Operación no autorizada.',[],400);
         }
@@ -117,9 +121,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
         post({action:'external_list'}).done(r=>{
             const rows=r.datos.conexiones||[];
-            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'"><i class="fas fa-vial"></i> Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'"><i class="fas fa-history"></i> Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'<i class="fas fa-ban"></i> Desactivar':'<i class="fas fa-check-circle"></i> Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'"><i class="fas fa-archive"></i> Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
+            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button><button class="btn btn-secondary" data-ext-operations="' +Number(x.id)+ '"><i class="fas fa-cogs"></i> Operaciones API</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'"><i class="fas fa-vial"></i> Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'"><i class="fas fa-history"></i> Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'<i class="fas fa-ban"></i> Desactivar':'<i class="fas fa-check-circle"></i> Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'"><i class="fas fa-archive"></i> Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
             $('#api_ext_rows').data('connections',rows);
-            apiExternalCategories=Array.from(new Map([...apiDefaultCategories,...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
+            apiExternalCategories=Array.from(new Map([...(r.datos.categorias||[]).map(x=>({value:String(x),label:String(x)})),...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
         }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
     }
     $('#api_ext_refresh').on('click',loadExternal);
@@ -133,14 +137,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     });
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
-        if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_provider').val(x.proveedor||'');$('#api_ext_url').val(x.url_base||'');$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');setExternalCategory(x.categoria||'');setExtSelect('#api_ext_auth',x.tipo_auth||'');
+        if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_provider').val(x.proveedor||'');$('#api_ext_url').val(x.url_base||'');$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');$('#api_ext_config').val(x.configuracion_json||'{}');setExternalCategory(x.categoria||'');setExtSelect('#api_ext_auth',x.tipo_auth||'');
         setExternalDescription(x.descripcion||'');openExternalModal(true);
     }).on('click','[data-ext-toggle],[data-ext-test],[data-ext-check],[data-ext-archive]',function(){
         const b=$(this),id=Number(b.attr('data-ext-toggle')||b.attr('data-ext-test')||b.attr('data-ext-check')||b.attr('data-ext-archive'));
         const action=b.is('[data-ext-toggle]')?'external_toggle':b.is('[data-ext-test]')?'external_test':b.is('[data-ext-check]')?'external_checks':'external_archive';
         if(action==='external_archive'&&!window.confirm('¿Archivar esta conexión? Los datos históricos permanecerán.'))return;
         post({action,id,activo:b.attr('data-ext-on')||0}).done(r=>{
-            if(action==='external_checks')$('#api_ext_checks').html((r.datos.historial||[]).map(h=>'<article class="api-record-card"><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></article>').join('')||'<div class="api-empty-state">Sin comprobaciones.</div>');
+            if(action==='external_checks')$('#api_ext_checks').html((r.datos.historial||[]).map(h=>'<article class="api-record-card"><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></article>').join('')||'<div class="api-empty-state"><i class="fas fa-history"></i><strong>Sin comprobaciones registradas</strong><span>Esta conexión todavía no tiene pruebas de conectividad.</span></div>');
             else {notify(r.mensaje);loadExternal();}
         }).fail(e=>notify(e.responseJSON?.mensaje||'Operación no completada','error'));
     });
@@ -171,7 +175,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             const isIzzy=Number(row.sistema_id)===1;
             const name=esc(row.nombre_empresa||'Empresa sin nombre');
             return '<article class="api-record-card api-company-card"><div class="api-record-main"><span class="api-record-icon api-record-number">'+(index+1)+'</span><div class="api-record-title"><strong>'+name+'</strong><span>Código '+esc(row.codigo_cliente||row.server_customers_id)+' · <code>'+esc(row.db)+'</code></span><span class="api-system-chip '+(isIzzy?'is-izzy':'is-other')+'"><i class="fas fa-cubes"></i> '+esc(row.sistema_nombre||'Sin sistema')+'</span></div></div><div class="api-record-meta"><div><small>Estado empresa</small><span class="api-status '+(active?'is-active':'is-expired')+'"><i class="fas '+(active?'fa-check-circle':'fa-pause-circle')+'"></i> '+(active?'Activa':'Inactiva')+'</span></div><div><small>Acceso API</small><span class="api-status '+(enabled?'is-active':'is-revoked')+'"><i class="fas '+(enabled?'fa-shield-alt':'fa-ban')+'"></i> '+(enabled?'Autorizado':'Denegado')+'</span></div></div><div class="api-record-actions">'+(!isIzzy&&!enabled?'<span class="api-system-unavailable"><i class="fas fa-lock"></i> API solo IZZY</span>':'<button type="button" class="btn '+(enabled?'btn-danger':'btn-primary')+'" data-api-grant="'+Number(row.server_customers_id)+'" data-api-enable="'+(enabled?0:1)+'" '+(!active&&!enabled?'disabled':'')+'><i class="fas '+(enabled?'fa-ban':'fa-shield-alt')+'"></i> '+(enabled?'Suspender':'Autorizar')+'</button>')+'</div></article>';
-        }).join('')||'<div class="api-empty-state"><i class="fas fa-search"></i><strong>Sin resultados</strong><span>Pruebe con otro nombre, código o estado.</span></div>');
+        }).join('')||'<div class="api-empty-state"><i class="fas fa-building"></i><strong>No hay empresas autorizadas para mostrar</strong><span>Autorice una empresa o cambie los filtros de búsqueda.</span></div>');
     }
     function loadAuthorizations(){
         $('#api_authorizations_rows').html('<div class="api-loading"><i class="fas fa-spinner fa-spin"></i> Cargando empresas…</div>');
@@ -455,7 +459,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         if(current&&!known.has(String(current).toLowerCase()))extCategory.append(new Option(current,current,false,false));
         extCategory.val(current||null);
-        extCategory.select2({width:'100%',dropdownParent:$('#api_external_modal .api-external-form'),tags:true,
+        extCategory.select2({width:'100%',dropdownParent:$('#api_external_modal'),tags:true,
             placeholder:'Seleccione o escriba una categoría',allowClear:false,
             createTag:function(params){const term=String(params.term||'').trim();
                 if(!term||term.length>40)return null;
@@ -516,10 +520,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         initExternalCategorySelect();
         const auth=$('#api_ext_auth');
         if(auth.hasClass('select2-hidden-accessible'))auth.select2('destroy');
-        auth.select2({width:'100%',dropdownParent:$('#api_external_modal .api-external-form'),minimumResultsForSearch:Infinity,placeholder:'Seleccione autenticación',allowClear:false});
+        auth.select2({width:'100%',dropdownParent:$('#api_external_modal'),minimumResultsForSearch:0,placeholder:'Seleccione autenticación',allowClear:false});
     }
     function openExternalModal(edit){
-        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');setExternalDescription('');}
+        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');setExternalDescription('');$('#api_ext_config').val('{}');}
         else $('#api_external_modal_title').text('Editar conexión externa');
         openModal($('#api_external_modal'),'#api_ext_name');initExtSelects();
     }
@@ -540,6 +544,31 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if($('.select2-container--open').length){closeExternalDropdowns();return;}
         const open=$('.api-modal-backdrop.is-open').last();if(open.length)closeModal(open);
     });
+    let apiOperationConnection=0;
+    function loadOperations(){
+        if(!apiOperationConnection)return;
+        post({action:'external_operations',connection_id:apiOperationConnection}).done(r=>{
+            const rows=r.datos.operaciones||[];
+            $('#api_operations_list').data('operations',rows).html(rows.map(x=>'<article class="api-record-card"><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.metodo)+' '+esc(x.ruta)+' · '+esc(x.codigo)+' · Inactiva para ejecución</span></div><div class="api-record-actions"><button type="button" class="btn btn-secondary" data-op-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button></div></article>').join('')||'<div class="api-empty-state"><i class="fas fa-cogs"></i><strong>Sin operaciones registradas</strong><span>Defina sus operaciones o cargue las conocidas de ZYNKO.</span></div>');
+        }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las operaciones','error'));
+    }
+    $('#api_ext_rows').on('click','[data-ext-operations]',function(){
+        apiOperationConnection=Number($(this).attr('data-ext-operations'));
+        const conn=($('#api_ext_rows').data('connections')||[]).find(x=>Number(x.id)===apiOperationConnection);
+        $('#api_operations_title').text('Operaciones API · '+String(conn?.nombre||''));
+        $('#api_operation_form')[0].reset();$('#api_operation_id').val(0);$('#api_operation_connection').val(apiOperationConnection);
+        $('#api_operations_seed').toggle(String(conn?.proveedor||'').toUpperCase()==='ZYNKO');
+        openModal($('#api_operations_modal'));loadOperations();
+    });
+    $('[data-api-operations-close]').on('click',()=>closeModal($('#api_operations_modal')));
+    $('#api_operations_seed').on('click',()=>post({action:'external_seed_zynko',connection_id:apiOperationConnection}).done(r=>{notify(r.mensaje);loadOperations();}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo cargar el catálogo ZYNKO','error')));
+    $('#api_operations_list').on('click','[data-op-edit]',function(){
+        const x=($('#api_operations_list').data('operations')||[]).find(x=>Number(x.id)===Number($(this).attr('data-op-edit')));if(!x)return;
+        $('#api_operation_id').val(x.id);$('#api_operation_code').val(x.codigo);$('#api_operation_name').val(x.nombre);$('#api_operation_method').val(x.metodo);$('#api_operation_route').val(x.ruta);$('#api_operation_params').val(x.parametros_json||'{}');$('#api_operation_response').val(x.respuesta_json||'{}');$('#api_operation_description').val(x.descripcion||'');
+    });
+    $('#api_operation_form').on('reset',function(){setTimeout(()=>{$('#api_operation_id').val(0);$('#api_operation_connection').val(apiOperationConnection);},0);});
+    $('#api_operation_form').on('submit',function(e){e.preventDefault();const data={action:'external_operation_save'};$(this).serializeArray().forEach(x=>data[x.name]=x.value);post(data).done(r=>{notify(r.mensaje);$('#api_operation_form')[0].reset();loadOperations();}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar la operación','error'));});
+    $('#api_openapi_preview').on('click',()=>{post({action:'external_openapi_preview',openapi_json:$('#api_openapi_json').val()}).done(r=>$('#api_openapi_result').html('<div class="api-empty-state"><i class="fas fa-file-code"></i><strong>'+Number(r.datos.operaciones.length)+' operaciones encontradas</strong><span>'+esc((r.datos.operaciones||[]).map(x=>x.metodo+' '+x.ruta).slice(0,15).join(' · '))+'</span></div>')).fail(e=>notify(e.responseJSON?.mensaje||'OpenAPI inválido','error'));});
     loadIntegrations();
 })(window.jQuery);
 </script>

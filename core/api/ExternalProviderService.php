@@ -26,8 +26,27 @@ final class IzzyExternalProviderService {
         if ($result===false) throw new RuntimeException('No se pudo descifrar la credencial.');
         return $result;
     }
+    public function categories(): array {
+        $r=$this->db->query('SELECT nombre FROM api_external_categories WHERE activo=1 ORDER BY nombre');
+        return array_column($r->fetch_all(MYSQLI_ASSOC),'nombre');
+    }
+    private function validateConfig(string $value): string {
+        $value=trim($value);
+        if($value==='') return '{}';
+        if(strlen($value)>4000) throw new InvalidArgumentException('Los parámetros superan 4000 caracteres.');
+        try { $decoded=json_decode($value,false,32,JSON_THROW_ON_ERROR); } catch (JsonException $e) { throw new InvalidArgumentException('Los parámetros deben ser un objeto JSON válido.'); }
+        if(!($decoded instanceof stdClass)) throw new InvalidArgumentException('Los parámetros deben ser un objeto JSON.');
+        $scan=function($item)use(&$scan){
+            if(!is_array($item) && !($item instanceof stdClass))return;
+            foreach($item as $key=>$val){
+                if(preg_match('/(password|secret|token|api.?key|authorization|credential|private.?key|clave|contrasena)/i',(string)$key))throw new InvalidArgumentException('No guarde secretos en parámetros JSON; use la credencial cifrada.');
+                $scan($val);
+            }
+        };$scan($decoded);
+        return json_encode($decoded,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
+    }
     public function listing(): array {
-        $r=$this->db->query('SELECT id,nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,activo,ultima_prueba,ultimo_resultado,archivado,created_at FROM api_external_connections ORDER BY id DESC');
+        $r=$this->db->query('SELECT id,nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,configuracion_json,activo,ultima_prueba,ultimo_resultado,archivado,created_at FROM api_external_connections ORDER BY id DESC');
         return $r->fetch_all(MYSQLI_ASSOC);
     }
     /** Guarda solo formato editorial básico sin depender de extensiones DOM adicionales. */
@@ -50,7 +69,7 @@ final class IzzyExternalProviderService {
         $id=(int)($input['id']??0);$name=trim((string)($input['nombre']??''));$provider=trim((string)($input['proveedor']??''));
         $category=trim((string)($input['categoria']??''));$description=self::sanitizeDescription((string)($input['descripcion']??''));
         $url=trim((string)($input['url_base']??''));$auth=trim((string)($input['tipo_auth']??''));$channel=trim((string)($input['canal_id']??''));
-        $token=trim((string)($input['token']??''));
+        $token=trim((string)($input['token']??''));$config=$this->validateConfig((string)($input['configuracion_json']??'{}')); 
         if ($name==='' || strlen($name)>100 || strlen($description)>500 || strlen($channel)>120) throw new InvalidArgumentException('Revise los campos de conexión.');
         // Registro genérico seguro: guardar una URL no concede permiso para llamarla desde el servidor.
         // Las pruebas HTTP solo están implementadas para el host ZYNKO fijado más abajo.
@@ -68,13 +87,16 @@ final class IzzyExternalProviderService {
         if ($token!=='' && strlen($token)>4096) throw new InvalidArgumentException('Token demasiado largo.');
         $secret=$token!==''?$this->encrypt($token):($id===0?'':null);
         if ($id>0) {
-            $stmt=$this->db->prepare('UPDATE api_external_connections SET nombre=?,proveedor=?,categoria=?,descripcion=?,url_base=?,tipo_auth=?,canal_id=?,token_cifrado=COALESCE(?,token_cifrado) WHERE id=? AND archivado=0');
-            $stmt->bind_param('ssssssssi',$name,$provider,$category,$description,$url,$auth,$channel,$secret,$id);
+            $stmt=$this->db->prepare('UPDATE api_external_connections SET nombre=?,proveedor=?,categoria=?,descripcion=?,url_base=?,tipo_auth=?,canal_id=?,configuracion_json=?,token_cifrado=COALESCE(?,token_cifrado) WHERE id=? AND archivado=0');
+            $stmt->bind_param('sssssssssi',$name,$provider,$category,$description,$url,$auth,$channel,$config,$secret,$id);
         } else {
-            $stmt=$this->db->prepare('INSERT INTO api_external_connections (nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,token_cifrado) VALUES (?,?,?,?,?,?,?,?)');
-            $stmt->bind_param('ssssssss',$name,$provider,$category,$description,$url,$auth,$channel,$secret);
+            $stmt=$this->db->prepare('INSERT INTO api_external_connections (nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,configuracion_json,token_cifrado) VALUES (?,?,?,?,?,?,?,?,?)');
+            $stmt->bind_param('sssssssss',$name,$provider,$category,$description,$url,$auth,$channel,$config,$secret);
         }
-        $stmt->execute();$result=$id>0?$id:$stmt->insert_id;$stmt->close();return (int)$result;
+        $stmt->execute();$result=$id>0?$id:$stmt->insert_id;$stmt->close();
+        $catStmt=$this->db->prepare('INSERT IGNORE INTO api_external_categories (nombre) VALUES (?)');
+        $catStmt->bind_param('s',$category);$catStmt->execute();$catStmt->close();
+        return (int)$result;
     }
     public function toggle(int $id,bool $on): void {
         if ($id<1) throw new InvalidArgumentException('Conexión inválida.');
@@ -111,6 +133,51 @@ final class IzzyExternalProviderService {
         $stmt->bind_param('isiis',$id,$route,$status,$flag,$logMessage);$stmt->execute();$stmt->close();
         $stmt=$this->db->prepare('UPDATE api_external_connections SET ultima_prueba=NOW(),ultimo_resultado=? WHERE id=?');$stmt->bind_param('si',$logMessage,$id);$stmt->execute();$stmt->close();
         return ['ok'=>$ok,'http_status'=>$status,'respuesta'=>$decoded,'estado'=>'aceptacion_no_es_entrega'];
+    }
+    /** Catálogo declarativo: el registro NO autoriza ejecutar HTTP arbitrario. */
+    public function operations(int $connectionId): array {
+        $this->conn($connectionId);
+        $stmt=$this->db->prepare('SELECT id,connection_id,codigo,nombre,metodo,ruta,parametros_json,respuesta_json,descripcion,activo FROM api_external_operations WHERE connection_id=? ORDER BY id ASC');
+        $stmt->bind_param('i',$connectionId);$stmt->execute();$result=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();return $result;
+    }
+    private static function jsonObject(string $source,string $label): string {
+        if(strlen($source)>12000)throw new InvalidArgumentException($label.' demasiado grande.');
+        try{$v=json_decode($source,false,24,JSON_THROW_ON_ERROR);}catch(JsonException $e){throw new InvalidArgumentException($label.' debe ser JSON válido.');}
+        if(!($v instanceof stdClass))throw new InvalidArgumentException($label.' debe ser un objeto JSON.');
+        $walk=function($obj)use(&$walk){foreach($obj as $k=>$val){if(preg_match('/(token|secret|password|authorization|api.?key|credential|clave|contrasena)/i',(string)$k))throw new InvalidArgumentException('No se permiten secretos en operaciones.');if(is_array($val)||$val instanceof stdClass)$walk($val);}};
+        $walk($v);return json_encode($v,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
+    }
+    public function saveOperation(array $in): int {
+        $connectionId=(int)($in['connection_id']??0);$this->conn($connectionId);
+        $id=(int)($in['operation_id']??0);$code=trim((string)($in['codigo']??''));$name=trim((string)($in['nombre']??''));
+        $method=strtoupper(trim((string)($in['metodo']??'')));$path=trim((string)($in['ruta']??''));$description=trim((string)($in['descripcion']??''));
+        if(!preg_match('/^[a-z][a-z0-9_]{1,79}$/',$code)||$name===''||mb_strlen($name)>120||!in_array($method,['GET','POST','PUT','PATCH','DELETE'],true)||strlen($path)>512||strlen($description)>2000)throw new InvalidArgumentException('Revise la operación API.');
+        // Ruta relativa únicamente; no permite URL completa, escapes, puertos ni path traversal.
+        if($path===''||!in_array($path[0],['/','?'],true)||str_starts_with($path,'//')||preg_match('~(?:\\|\.\.|[\x00-\x1f]|://|@)~',$path))throw new InvalidArgumentException('La ruta debe ser relativa y segura, comenzando con / o ?.');
+        $params=self::jsonObject((string)($in['parametros_json']??'{}'),'Parámetros');$response=self::jsonObject((string)($in['respuesta_json']??'{}'),'Esquema de respuesta');
+        if($id){$stmt=$this->db->prepare('UPDATE api_external_operations SET codigo=?,nombre=?,metodo=?,ruta=?,parametros_json=?,respuesta_json=?,descripcion=? WHERE id=? AND connection_id=?');$stmt->bind_param('sssssssii',$code,$name,$method,$path,$params,$response,$description,$id,$connectionId);}else{$stmt=$this->db->prepare('INSERT INTO api_external_operations(connection_id,codigo,nombre,metodo,ruta,parametros_json,respuesta_json,descripcion,activo) VALUES(?,?,?,?,?,?,?,?,0)');$stmt->bind_param('isssssss',$connectionId,$code,$name,$method,$path,$params,$response,$description);}
+        $stmt->execute();$result=$id?:$stmt->insert_id;$stmt->close();return (int)$result;
+    }
+    public function seedZynkoOperations(int $connectionId): int {
+        $row=$this->conn($connectionId);
+        if(strtoupper(trim((string)$row['proveedor']))!=='ZYNKO'||$row['url_base']!=='https://zynkocloud.app/api.php')throw new DomainException('El catálogo ZYNKO solo corresponde a su conexión oficial.');
+        // GET/POST y rutas conocidas. La API puede utilizar query r, no un path REST.
+        $items=[['channels_read','Consultar canales','GET','?r=v1/channels'],['whatsapp_send','Enviar WhatsApp individual','POST','?r=v1/whatsapp/send'],['whatsapp_status','Consultar estado','GET','?r=v1/whatsapp/status'],['whatsapp_history','Consultar historial','GET','?r=v1/whatsapp/history']];
+        $stmt=$this->db->prepare("INSERT IGNORE INTO api_external_operations(connection_id,codigo,nombre,metodo,ruta,parametros_json,respuesta_json,descripcion,activo) VALUES (?,?,?,?,?,'{}','{}','Ruta preconfigurada. Validar contrato antes de activar.',0)");
+        $count=0;foreach($items as $item){[$code,$name,$method,$route]=$item;$stmt->bind_param('issss',$connectionId,$code,$name,$method,$route);$stmt->execute();$count+=$stmt->affected_rows;}$stmt->close();return $count;
+    }
+    /** Importación OpenAPI 3 JSON únicamente. Se analizan documentos, NO se ejecutan. */
+    public function previewOpenApi(string $source): array {
+        if(strlen($source)>131072)throw new InvalidArgumentException('OpenAPI supera el límite de 128 KiB.');
+        try{$spec=json_decode($source,true,32,JSON_THROW_ON_ERROR);}catch(JsonException $e){throw new InvalidArgumentException('Use OpenAPI JSON válido.');}
+        if(!is_array($spec)||!isset($spec['openapi'])||!preg_match('/^3\./',(string)$spec['openapi'])||!is_array($spec['paths']??null))throw new InvalidArgumentException('Se requiere OpenAPI 3.x en JSON.');
+        $out=[];
+        foreach($spec['paths'] as $path=>$verbs){if(!is_string($path)||!str_starts_with($path,'/')||str_contains($path,'..')||!is_array($verbs))continue;
+            foreach($verbs as $verb=>$def){$method=strtoupper((string)$verb);if(!in_array($method,['GET','POST','PUT','PATCH','DELETE'],true)||!is_array($def))continue;
+                $out[]=['codigo'=>substr(preg_replace('/[^a-z0-9_]/','_',strtolower((string)($def['operationId']??$method.'_'.$path))),0,80),'nombre'=>substr((string)($def['summary']??$method.' '.$path),0,120),'metodo'=>$method,'ruta'=>substr($path,0,512)];if(count($out)>=100)break 2;
+            }
+        }
+        return $out;
     }
     public function checks(int $id): array {
         $stmt=$this->db->prepare('SELECT ruta,http_status,exitoso,descripcion,created_at FROM api_external_checks WHERE connection_id=? ORDER BY id DESC LIMIT 50');$stmt->bind_param('i',$id);$stmt->execute();$rows=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();return $rows;

@@ -585,3 +585,33 @@
 #api_external_modal .api-external-form .select2-selection__rendered{line-height:40px!important;padding:0 32px 0 12px!important;color:#243c52!important}
 #api_external_modal .api-external-form .select2-selection__arrow{right:8px!important;height:40px!important}
 #api_external_modal .select2-dropdown .select2-search__field{height:35px!important;min-height:35px!important;border:1px solid #cddfea!important;border-radius:6px!important}
+
+/* v010: una sola interfaz Select2, incluso con reglas globales para select.
+   El select nativo sigue en el DOM para accesibilidad/formulario, pero invisible. */
+#api_external_modal select.api-enhanced-select.select2-hidden-accessible,
+#api_external_modal select.select2-hidden-accessible {
+  display:none!important;visibility:hidden!important;pointer-events:none!important;
+  position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;
+  min-height:0!important;max-height:1px!important;opacity:0!important;overflow:hidden!important;
+}
+#api_external_modal .select2-container--default {display:block!important;min-width:0!important;}
+#api_external_modal .select2-dropdown {z-index:13000!important;}
+#api_external_modal .api-provider-guide {display:flex;gap:12px;padding:12px 14px;border:1px solid #cfe7f3;border-radius:9px;background:#f0f8fc;color:#214a65;}
+#api_external_modal .api-provider-guide i {color:#168bd0;margin-top:3px;}
+#api_external_modal .api-provider-guide strong {display:block;font-size:13px;}
+#api_external_modal .api-provider-guide small {display:block;font-size:11px;line-height:1.6;}
+#api_external_modal textarea#api_ext_config {display:block;width:100%;box-sizing:border-box;border:1px solid #cddfea;border-radius:8px;padding:10px 12px;background:white;color:#253e52;resize:vertical;min-height:72px;max-height:150px;font:12px/1.5 Consolas,monospace;}
+#api_external_modal textarea#api_ext_config:focus {outline:0;border-color:#168bd0;box-shadow:0 0 0 3px rgba(22,139,208,.14);}
+
+/* v011: editor de operaciones declarativas, con modales limitados al viewport */
+#api_operations_modal .api-modal{display:flex;flex-direction:column;max-height:calc(100dvh - 30px);height:min(760px,calc(100dvh - 30px));overflow:hidden}
+#api_operations_modal .api-operations-scroll{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;padding:18px}
+#api_operations_modal .api-operation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#api_operations_modal .api-operation-grid label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#255472}
+#api_operations_modal .api-operation-grid .api-ext-wide{grid-column:1/-1}
+#api_operations_modal .api-operation-grid input,#api_operations_modal .api-operation-grid select,#api_operations_modal .api-operation-grid textarea,#api_operations_modal .api-operations-import textarea{width:100%;box-sizing:border-box;min-width:0;border:1px solid #cddfea;border-radius:8px;padding:10px;background:#fff;color:#23485f}
+#api_operations_modal .api-operations-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;padding:10px 0}
+#api_operations_modal .api-operations-import{margin-top:16px;padding:14px;border-top:1px solid #d7e6f0}
+#api_operations_modal .api-operations-import p{font-size:12px}
+#api_operations_modal .api-operations-footer{flex-shrink:0;padding:12px 18px;background:#f8fafc;border-top:1px solid #e3eaf0;display:flex;justify-content:flex-end}
+@media(max-width:650px){#api_operations_modal .api-operation-grid{grid-template-columns:1fr}#api_operations_modal .api-modal{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);height:calc(100dvh - 16px)}}

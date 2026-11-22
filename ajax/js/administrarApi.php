@@ -117,7 +117,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
         post({action:'external_list'}).done(r=>{
             const rows=r.datos.conexiones||[];
-            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'">Editar</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'">Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'">Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'Desactivar':'Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'">Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
+            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'"><i class="fas fa-vial"></i> Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'"><i class="fas fa-history"></i> Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'<i class="fas fa-ban"></i> Desactivar':'<i class="fas fa-check-circle"></i> Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'"><i class="fas fa-archive"></i> Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
             $('#api_ext_rows').data('connections',rows);
             apiExternalCategories=Array.from(new Map([...apiDefaultCategories,...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
         }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
@@ -125,14 +125,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $('#api_ext_refresh').on('click',loadExternal);
     $('#api_ext_clear').on('click',()=>{$('#api_ext_id').val(0);$('#api_ext_token').val('');});
     $('#api_ext_form').on('submit',function(e){
-        e.preventDefault();const fields=$(this).serializeArray(),data={action:'external_save'};
+        e.preventDefault();const descriptionHtml=syncExternalDescription();
+        if(descriptionHtml.length>500){notify('La descripción excede los 500 caracteres permitidos.','error');return;}
+        const fields=$(this).serializeArray(),data={action:'external_save'};
         fields.forEach(x=>data[x.name]=x.value);
         post(data).done(r=>{notify(r.mensaje);this.reset();$('#api_ext_id').val(0);closeModal($('#api_external_modal'));loadExternal();}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar','error'));
     });
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
         if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_provider').val(x.proveedor||'');$('#api_ext_url').val(x.url_base||'');$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');setExternalCategory(x.categoria||'');setExtSelect('#api_ext_auth',x.tipo_auth||'');
-        $('#api_ext_form [name="descripcion"]').val(x.descripcion||'');openExternalModal(true);
+        setExternalDescription(x.descripcion||'');openExternalModal(true);
     }).on('click','[data-ext-toggle],[data-ext-test],[data-ext-check],[data-ext-archive]',function(){
         const b=$(this),id=Number(b.attr('data-ext-toggle')||b.attr('data-ext-test')||b.attr('data-ext-check')||b.attr('data-ext-archive'));
         const action=b.is('[data-ext-toggle]')?'external_toggle':b.is('[data-ext-test]')?'external_test':b.is('[data-ext-check]')?'external_checks':'external_archive';
@@ -428,65 +430,116 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if(val && !el.find('option').filter(function(){return this.value===val;}).length)el.append(new Option(val,val,false,false));
         el.val(val).trigger('change');
     }
-    // El selector de categorías es un único combobox accesible; no mezcla el menú nativo y Select2.
-    // Las nuevas categorías se guardan con la conexión y reaparecen cuando se carga el catálogo.
+    // Select2 con tags: categorías existentes + nuevas categorías administrables.
     const apiDefaultCategories=[{value:'whatsapp',label:'WhatsApp'},{value:'sms',label:'SMS'},
         {value:'correo',label:'Correo electrónico'},{value:'divisas',label:'Divisas'},
         {value:'pagos',label:'Pagos'},{value:'otro',label:'Otro'}];
     let apiExternalCategories=apiDefaultCategories.slice();
-    const extCategory=$('#api_ext_category'),extCategoryMenu=$('#api_ext_category_options');
+    const extCategory=$('#api_ext_category');
     function setExternalCategory(value){
-        extCategory.val(value||'');closeExternalCategoryMenu();
+        const v=String(value||'');
+        if(v&&!extCategory.find('option').filter(function(){return this.value===v;}).length)extCategory.append(new Option(v,v,false,false));
+        extCategory.val(v||null).trigger('change');
     }
     function closeExternalCategoryMenu(){
-        extCategoryMenu.prop('hidden',true).empty();
-        extCategory.attr('aria-expanded','false').removeAttr('aria-activedescendant');
+        if(extCategory.hasClass('select2-hidden-accessible'))extCategory.select2('close');
     }
-    function renderExternalCategoryMenu(){
-        const typed=extCategory.val().trim(),normalized=typed.toLocaleLowerCase();
-        const choices=apiExternalCategories.filter(x=>x.label.toLocaleLowerCase().includes(normalized)||x.value.toLocaleLowerCase().includes(normalized));
-        extCategoryMenu.empty();
-        choices.forEach((c,i)=>$('<button type="button" role="option" class="api-ext-category-option">')
-            .attr('id','api_ext_cat_choice_'+i).attr('data-category',c.value).text(c.label).appendTo(extCategoryMenu));
-        const exact=apiExternalCategories.some(x=>x.value.toLocaleLowerCase()===normalized||x.label.toLocaleLowerCase()===normalized);
-        if(typed&&!exact)$('<button type="button" role="option" class="api-ext-category-option api-ext-category-create">')
-            .attr('data-category',typed).text('＋ Crear categoría: '+typed).appendTo(extCategoryMenu);
-        if(!extCategoryMenu.children().length)$('<div class="api-ext-category-empty">').text('Escriba una categoría nueva').appendTo(extCategoryMenu);
-        extCategoryMenu.prop('hidden',false);extCategory.attr('aria-expanded','true');
+    function initExternalCategorySelect(){
+        if(!$.fn.select2)return;
+        if(extCategory.hasClass('select2-hidden-accessible'))extCategory.select2('destroy');
+        const current=extCategory.val();extCategory.empty().append(new Option('','',false,false));
+        const known=new Set();
+        for(const entry of apiExternalCategories){
+            if(!entry.value||known.has(entry.value.toLowerCase()))continue;
+            known.add(entry.value.toLowerCase());extCategory.append(new Option(entry.label,entry.value,false,false));
+        }
+        if(current&&!known.has(String(current).toLowerCase()))extCategory.append(new Option(current,current,false,false));
+        extCategory.val(current||null);
+        extCategory.select2({width:'100%',dropdownParent:$('#api_external_modal .api-external-form'),tags:true,
+            placeholder:'Seleccione o escriba una categoría',allowClear:false,
+            createTag:function(params){const term=String(params.term||'').trim();
+                if(!term||term.length>40)return null;
+                return{id:term,text:term,newTag:true};
+            },language:{noResults:()=> 'Escriba el nombre de una nueva categoría'}});
     }
-    extCategory.on('focus input',renderExternalCategoryMenu);
-    extCategory.on('keydown',function(e){
-        if(e.key==='Escape'){closeExternalCategoryMenu();e.stopPropagation();return;}
-        if(e.key==='ArrowDown'){e.preventDefault();if(extCategoryMenu.prop('hidden'))renderExternalCategoryMenu();extCategoryMenu.find('button').first().trigger('focus');}
-        if(e.key==='Enter'&&!extCategoryMenu.prop('hidden')){e.preventDefault();
-            const exact=apiExternalCategories.find(x=>x.label.toLocaleLowerCase()===extCategory.val().trim().toLocaleLowerCase());
-            if(exact)extCategory.val(exact.value);closeExternalCategoryMenu();}
+    // Editor enriquecido local; el servidor valida el HTML permitiendo solo etiquetas básicas.
+    const extDescriptionEditor=$('#api_ext_description_editor'),extDescriptionHidden=$('#api_ext_description');
+    function setExternalDescription(html){
+        // Parsear sin ejecutar código de descripciones históricas.
+        const parser=new DOMParser();const parsed=parser.parseFromString('<div>'+String(html||'')+'</div>','text/html');
+        const source=parsed.body.firstElementChild, destination=document.createElement('div');
+        const allowed=new Set(['P','BR','STRONG','B','EM','I','UL','OL','LI']);
+        function appendClean(from,to){
+            for(const child of from.childNodes){
+                if(child.nodeType===3){to.appendChild(document.createTextNode(child.textContent));continue;}
+                if(child.nodeType!==1 || ['SCRIPT','STYLE','IFRAME','OBJECT','SVG','IMG','FORM','VIDEO','AUDIO'].includes(child.tagName))continue;
+                if(allowed.has(child.tagName)){const el=document.createElement(child.tagName.toLowerCase());appendClean(child,el);to.appendChild(el);}
+                else appendClean(child,to);
+            }
+        }
+        if(source)appendClean(source,destination);
+        extDescriptionEditor.empty().append(destination.childNodes);syncExternalDescription();
+    }
+    function syncExternalDescription(){
+        // Evita copiar HTML de origen externo con atributos, estilos o scripts.
+        const scratch=$('<div>').html(extDescriptionEditor.html());
+        scratch.find('script,style,iframe,object,embed,svg,form,img,video,audio').remove();
+        scratch.find('*').each(function(){
+            const element=$(this);const tag=this.tagName.toLowerCase();
+            if(!['div','p','br','b','strong','i','em','ul','ol','li'].includes(tag)){element.replaceWith(element.contents());return;}
+            [...this.attributes].forEach(a=>this.removeAttribute(a.name));
+        });
+        let value=scratch.html().replace(/<div>/g,'<p>').replace(/<\/div>/g,'</p>');
+        extDescriptionHidden.val(value);
+        return value;
+    }
+    $('#api_external_modal .api-rich-toolbar').on('mousedown','button',e=>e.preventDefault());
+    $('#api_external_modal .api-rich-toolbar').on('click','[data-api-format]',function(){
+        extDescriptionEditor.trigger('focus');
+        document.execCommand($(this).attr('data-api-format'),false,null);
+        syncExternalDescription();
     });
-    extCategoryMenu.on('keydown','button',function(e){
-        const buttons=extCategoryMenu.find('button'),index=buttons.index(this);
-        if(e.key==='ArrowDown'){e.preventDefault();buttons.eq((index+1)%buttons.length).trigger('focus');}
-        if(e.key==='ArrowUp'){e.preventDefault();buttons.eq((index-1+buttons.length)%buttons.length).trigger('focus');}
-        if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeExternalCategoryMenu();extCategory.trigger('focus');}
+    extDescriptionEditor.on('input blur',syncExternalDescription);
+    extDescriptionEditor.on('paste',function(e){
+        // Pegado en texto plano; formato se aplica solo con controles del editor.
+        const clipboard=e.originalEvent&&e.originalEvent.clipboardData;
+        if(!clipboard)return;
+        e.preventDefault();document.execCommand('insertText',false,clipboard.getData('text/plain'));
     });
-    extCategoryMenu.on('click','button[data-category]',function(){setExternalCategory($(this).attr('data-category'));extCategory.trigger('focus');closeExternalCategoryMenu();});
-    $(document).on('mousedown.apiExternalCategory',function(e){if(!$(e.target).closest('#api_ext_category_combobox').length)closeExternalCategoryMenu();});
+    function closeExternalDropdowns(){
+        if($('#api_ext_auth').hasClass('select2-hidden-accessible'))$('#api_ext_auth').select2('close');
+        closeExternalCategoryMenu();
+    }
     function initExtSelects(){
         // Select2 se conserva exclusivamente para autenticación, con el estilo ya usado en IZZY.
         if(!$.fn.select2)return;
+        initExternalCategorySelect();
         const auth=$('#api_ext_auth');
-        if(!auth.hasClass('select2-hidden-accessible'))auth.select2({width:'100%',dropdownParent:$('#api_external_modal'),minimumResultsForSearch:Infinity,placeholder:'Seleccione autenticación'});
+        if(auth.hasClass('select2-hidden-accessible'))auth.select2('destroy');
+        auth.select2({width:'100%',dropdownParent:$('#api_external_modal .api-external-form'),minimumResultsForSearch:Infinity,placeholder:'Seleccione autenticación',allowClear:false});
     }
     function openExternalModal(edit){
-        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');}
+        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');setExternalDescription('');}
         else $('#api_external_modal_title').text('Editar conexión externa');
         openModal($('#api_external_modal'),'#api_ext_name');initExtSelects();
     }
     $('#api_ext_new').on('click',()=>openExternalModal(false));
-    $('[data-api-external-close]').on('click',()=>closeModal($('#api_external_modal')));
+    $('[data-api-external-close]').on('click',()=>{closeExternalDropdowns();closeModal($('#api_external_modal'));});
     $('#api_ext_clear').off('click').on('click',()=>openExternalModal(false));
+    // Al tocar el fondo, mantener modal abierto y dar confirmación visual suave.
+    $('.api-modal-backdrop').on('click.apiOutsideFeedback',function(e){
+        if(e.target!==this)return;
+        const dialog=$(this).children('.api-modal');
+        dialog.removeClass('api-outside-feedback');void dialog[0].offsetWidth;
+        dialog.addClass('api-outside-feedback');
+    });
     // Evita el efecto de crecimiento incluso cuando Select2 termina de inicializar.
     // Los clics fuera del cuadro NO cierran modales; solo X, Cancelar/Cerrar o Escape.
-    $(document).on('keydown.apiModalEscape',e=>{if(e.key==='Escape' && !$(e.target).closest('.select2-container--open').length){const open=$('.api-modal-backdrop.is-open').last();if(open.length)closeModal(open);}});
+    $(document).on('keydown.apiModalEscape',e=>{
+        if(e.key!=='Escape')return;
+        if($('.select2-container--open').length){closeExternalDropdowns();return;}
+        const open=$('.api-modal-backdrop.is-open').last();if(open.length)closeModal(open);
+    });
     loadIntegrations();
 })(window.jQuery);
 </script>

@@ -30,9 +30,25 @@ final class IzzyExternalProviderService {
         $r=$this->db->query('SELECT id,nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,activo,ultima_prueba,ultimo_resultado,archivado,created_at FROM api_external_connections ORDER BY id DESC');
         return $r->fetch_all(MYSQLI_ASSOC);
     }
+    /** Guarda solo formato editorial básico sin depender de extensiones DOM adicionales. */
+    private static function sanitizeDescription(string $html): string {
+        $html=trim($html);
+        if ($html==='') return '';
+        if (strlen($html)>20000) throw new InvalidArgumentException('Descripción demasiado larga.');
+        // Eliminar bloques peligrosos con contenido completo antes de filtrar etiquetas.
+        $html=preg_replace('~<(script|style|iframe|object|embed|svg|form|video|audio)[^>]*>.*?</\1\s*>~is','',$html);
+        $html=preg_replace('~<(script|style|iframe|object|embed|svg|form|video|audio|img)\b[^>]*\/?\s*>~is','',$html);
+        $html=strip_tags($html,'<p><br><strong><b><em><i><ul><ol><li>');
+        // No conservar atributos HTML, eventos, identificadores, estilos ni URLs.
+        $html=preg_replace_callback('~<\s*(/?)\s*(p|br|strong|b|em|i|ul|ol|li)\b[^>]*>~i',static function($m){
+            $tag=strtolower($m[2]);return $tag==='br'?'<br>':'<'.$m[1].$tag.'>';
+        },$html);
+        if (strlen($html)>500) throw new InvalidArgumentException('La descripción supera los 500 caracteres de almacenamiento.');
+        return $html;
+    }
     public function save(array $input): int {
         $id=(int)($input['id']??0);$name=trim((string)($input['nombre']??''));$provider=trim((string)($input['proveedor']??''));
-        $category=trim((string)($input['categoria']??''));$description=trim((string)($input['descripcion']??''));
+        $category=trim((string)($input['categoria']??''));$description=self::sanitizeDescription((string)($input['descripcion']??''));
         $url=trim((string)($input['url_base']??''));$auth=trim((string)($input['tipo_auth']??''));$channel=trim((string)($input['canal_id']??''));
         $token=trim((string)($input['token']??''));
         if ($name==='' || strlen($name)>100 || strlen($description)>500 || strlen($channel)>120) throw new InvalidArgumentException('Revise los campos de conexión.');

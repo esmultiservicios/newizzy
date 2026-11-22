@@ -47,11 +47,11 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
             <p>Las rutas son comunes para APK e integraciones autorizadas; el token determina la empresa. Solo clientes y proveedores admiten POST y PATCH; facturas, productos, empresa y secuencias continúan como consulta GET. Ninguna lectura de secuencia reserva números fiscales.</p>
         </div>
         <div class="api-results-toolbar" data-api-results="integrations" aria-label="Herramientas de resultados">
-        <div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
-        <label class="api-results-search" aria-label="Buscar integraciones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar integraciones…"></label>
-        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
-        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
-        </div>
+<div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+<div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+<div class="api-results-size-label">Mostrar <div class="api-size-control"><button type="button" class="api-size-toggle" aria-label="Cantidad de registros" aria-haspopup="listbox" aria-expanded="false"><span class="api-size-current">10</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button><div class="api-size-menu" role="listbox" aria-label="Registros por página" hidden><button type="button" role="option" data-size="10" aria-selected="true">10</button><button type="button" role="option" data-size="25">25</button><button type="button" role="option" data-size="50">50</button><button type="button" role="option" data-size="all">Todos (0)</button></div></div> registros</div>
+<label class="api-results-search" aria-label="Buscar integraciones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar integraciones…"></label>
+</div>
         <div class="api-integration-list" id="api_integrations_rows" aria-live="polite"><div class="api-loading">Cargando integraciones…</div></div>
         <nav class="api-results-pagination" data-api-pagination="integrations" aria-label="Paginación de integraciones"></nav>
         <div class="api-footnote"><i class="fas fa-lock"></i> El secreto no se guarda en texto legible. Las rutas protegidas para servidor se habilitarán conforme se publiquen sus endpoints y alcances.</div>
@@ -62,11 +62,11 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         <div class="api-integration-notice"><i class="fas fa-shield-alt"></i><span>Los envíos automáticos de documentos permanecen desactivados. Primero valide credenciales y rutas con el proveedor.</span></div>
         <h3 class="api-route-section-title">Conexiones registradas</h3>
         <div class="api-results-toolbar" data-api-results="ext" aria-label="Herramientas de resultados">
-        <div class="api-results-action"><button type="button" class="btn btn-primary" id="api_ext_new"><i class="fas fa-plus"></i> Nueva conexión</button><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
-        <label class="api-results-search" aria-label="Buscar conexiones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar conexiones…"></label>
-        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
-        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
-        </div>
+<div class="api-results-action"><button type="button" class="btn btn-primary" id="api_ext_new"><i class="fas fa-plus"></i> Nueva conexión</button><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+<div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+<div class="api-results-size-label">Mostrar <div class="api-size-control"><button type="button" class="api-size-toggle" aria-label="Cantidad de registros" aria-haspopup="listbox" aria-expanded="false"><span class="api-size-current">10</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button><div class="api-size-menu" role="listbox" aria-label="Registros por página" hidden><button type="button" role="option" data-size="10" aria-selected="true">10</button><button type="button" role="option" data-size="25">25</button><button type="button" role="option" data-size="50">50</button><button type="button" role="option" data-size="all">Todos (0)</button></div></div> registros</div>
+<label class="api-results-search" aria-label="Buscar conexiones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar conexiones…"></label>
+</div>
         <div id="api_ext_rows" class="api-integration-list" aria-live="polite"><div class="api-loading">Seleccione la pestaña para cargar las conexiones.</div></div>
         <nav class="api-results-pagination" data-api-pagination="ext" aria-label="Paginación de conexiones"></nav>
         <h3 class="api-route-section-title">Historial técnico de comprobaciones</h3>
@@ -82,11 +82,11 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         </div>
         <div class="api-authorizations-count" id="api_authorizations_count" aria-live="polite"></div>
         <div class="api-results-toolbar" data-api-results="authorizations" aria-label="Herramientas de resultados">
-        <div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
-        <label class="api-results-search" aria-label="Buscar empresas"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar empresas…"></label>
-        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
-        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
-        </div>
+<div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+<div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+<div class="api-results-size-label">Mostrar <div class="api-size-control"><button type="button" class="api-size-toggle" aria-label="Cantidad de registros" aria-haspopup="listbox" aria-expanded="false"><span class="api-size-current">10</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button><div class="api-size-menu" role="listbox" aria-label="Registros por página" hidden><button type="button" role="option" data-size="10" aria-selected="true">10</button><button type="button" role="option" data-size="25">25</button><button type="button" role="option" data-size="50">50</button><button type="button" role="option" data-size="all">Todos (0)</button></div></div> registros</div>
+<label class="api-results-search" aria-label="Buscar empresas"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar empresas…"></label>
+</div>
         <div class="api-integration-list" id="api_authorizations_rows"><div class="api-loading">Cargando empresas…</div></div>
         <nav class="api-results-pagination" data-api-pagination="authorizations" aria-label="Paginación de empresas"></nav>
     </section>
@@ -178,11 +178,11 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <div class="api-panel-heading"><div><h2>Sesiones de la aplicación móvil</h2><p>Revocar una sesión también invalida su refresh token asociado.</p></div>
             <button type="button" class="btn btn-primary" id="api_refresh_sessions"><i class="fas fa-sync-alt"></i> Actualizar</button></div>
         <div class="api-results-toolbar" data-api-results="sessions" aria-label="Herramientas de resultados">
-        <div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
-        <label class="api-results-search" aria-label="Buscar sesiones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar sesiones…"></label>
-        <div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
-        <label class="api-results-size-label">Mostrar <select class="api-results-size" aria-label="Registros por página"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="all">Todos (0)</option></select></label>
-        </div>
+<div class="api-results-action"><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
+<div class="api-results-view" role="group" aria-label="Vista"><button type="button" class="api-view-option is-active" data-view="detail" aria-label="Vista detalle" title="Vista detalle"><i class="fas fa-list"></i></button><button type="button" class="api-view-option" data-view="tiles" aria-label="Vista miniaturas" title="Vista miniaturas"><i class="fas fa-th-large"></i></button></div>
+<div class="api-results-size-label">Mostrar <div class="api-size-control"><button type="button" class="api-size-toggle" aria-label="Cantidad de registros" aria-haspopup="listbox" aria-expanded="false"><span class="api-size-current">10</span><i class="fas fa-chevron-down" aria-hidden="true"></i></button><div class="api-size-menu" role="listbox" aria-label="Registros por página" hidden><button type="button" role="option" data-size="10" aria-selected="true">10</button><button type="button" role="option" data-size="25">25</button><button type="button" role="option" data-size="50">50</button><button type="button" role="option" data-size="all">Todos (0)</button></div></div> registros</div>
+<label class="api-results-search" aria-label="Buscar sesiones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input type="search" class="api-results-query" placeholder="Buscar sesiones…"></label>
+</div>
         <div class="api-session-list" id="api_sessions_rows" aria-live="polite"><div class="api-loading">Abra esta pestaña para cargar las sesiones.</div></div>
         <nav class="api-results-pagination" data-api-pagination="sessions" aria-label="Paginación de sesiones"></nav>
         <div class="api-footnote"><i class="fas fa-clock"></i> Se muestran las últimas 100 sesiones emitidas por <code>api/v1/auth/login.php</code>. Revocar aquí invalida también la renovación automática del dispositivo.</div>
@@ -193,15 +193,23 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
             <header><div><span class="api-eyebrow">IZZY → PROVEEDOR EXTERNO</span><h2 id="api_external_modal_title">Nueva conexión externa</h2></div><button type="button" class="api-modal-close" data-api-external-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
         <form id="api_ext_form" class="api-external-form" autocomplete="off">
             <input type="hidden" name="id" id="api_ext_id" value="0">
-            <label>Nombre<input type="text" name="nombre" id="api_ext_name" required maxlength="100" value="ZYNKO"></label>
-            <label>Proveedor<input type="text" name="proveedor" readonly value="ZYNKO"></label>
-            <label>Categoría<input type="text" name="categoria" readonly value="whatsapp"></label>
-            <label>URL HTTPS<input type="url" name="url_base" readonly value="https://zynkocloud.app/api.php"></label>
-            <label>Autenticación<input type="text" name="tipo_auth" readonly value="bearer"></label>
-            <label>Canal WhatsApp autorizado<input type="text" name="canal_id" id="api_ext_channel" maxlength="120" placeholder="ID del canal (validar con ZYNKO)"></label>
+            <label>Nombre<input type="text" name="nombre" id="api_ext_name" required maxlength="100" placeholder="Ej. Proveedor de SMS"></label>
+            <label>Proveedor<input type="text" name="proveedor" id="api_ext_provider" required maxlength="50" placeholder="Ej. ZYNKO, Proveedor SMS"></label>
+            <label>Categoría
+                <span id="api_ext_category_combobox" class="api-ext-category-combobox">
+                    <input type="text" name="categoria" id="api_ext_category" maxlength="40" required
+                        role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false"
+                        aria-controls="api_ext_category_options" autocomplete="off" placeholder="Seleccione o escriba una categoría">
+                    <span class="api-ext-category-chevron" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+                    <span class="api-ext-category-options" id="api_ext_category_options" role="listbox" hidden></span>
+                </span>
+            </label>
+            <label>URL HTTPS<input type="url" name="url_base" id="api_ext_url" required maxlength="255" placeholder="https://api.proveedor.com/v1"></label>
+            <label>Autenticación<select name="tipo_auth" id="api_ext_auth" required><option value="">Seleccione autenticación</option><option value="bearer">Bearer Token</option><option value="api_key">API Key</option><option value="basic">Basic Auth</option><option value="none">Sin autenticación</option></select></label>
+            <label>Canal / identificador (opcional)<input type="text" name="canal_id" id="api_ext_channel" maxlength="120" placeholder="ID del canal (validar con ZYNKO)"></label>
             <label class="api-ext-wide">Descripción<input type="text" name="descripcion" maxlength="500" placeholder="Propósito de esta integración"></label>
-            <label class="api-ext-wide">Bearer Token<input type="password" name="token" id="api_ext_token" autocomplete="new-password" placeholder="Obligatorio para crear; vacío conserva el existente"></label>
-            <div class="api-ext-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar conexión</button><button type="reset" class="btn btn-secondary" id="api_ext_clear">Nueva conexión</button></div>
+            <label class="api-ext-wide">Credencial secreta (según autenticación)<input type="password" name="token" id="api_ext_token" autocomplete="new-password" placeholder="Obligatorio para crear; vacío conserva el existente"></label>
+            <div class="api-ext-actions"><button type="button" class="btn btn-secondary" data-api-external-close>Cancelar</button><button type="button" class="btn btn-secondary" id="api_ext_clear">Limpiar</button><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar conexión</button></div>
         </form>
         </section>
     </div>

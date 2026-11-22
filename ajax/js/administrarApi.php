@@ -119,6 +119,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             const rows=r.datos.conexiones||[];
             $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'">Editar</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'">Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'">Historial</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'Desactivar':'Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'">Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
             $('#api_ext_rows').data('connections',rows);
+            apiExternalCategories=Array.from(new Map([...apiDefaultCategories,...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
         }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
     }
     $('#api_ext_refresh').on('click',loadExternal);
@@ -130,7 +131,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     });
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
-        if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');
+        if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_provider').val(x.proveedor||'');$('#api_ext_url').val(x.url_base||'');$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');setExternalCategory(x.categoria||'');setExtSelect('#api_ext_auth',x.tipo_auth||'');
         $('#api_ext_form [name="descripcion"]').val(x.descripcion||'');openExternalModal(true);
     }).on('click','[data-ext-toggle],[data-ext-test],[data-ext-check],[data-ext-archive]',function(){
         const b=$(this),id=Number(b.attr('data-ext-toggle')||b.attr('data-ext-test')||b.attr('data-ext-check')||b.attr('data-ext-archive'));
@@ -307,7 +308,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $('#api_route_modal_body').empty().append(lead).append($('<div class="api-route-modal-example">').append(source.children())).append(guide);
         openModal(routeModal,'[data-api-route-close]');
     });
-    $(document).on('keydown',event=>{if(event.key==='Escape'){if(routeModal.hasClass('is-open'))closeModal(routeModal);else if(secretModal.hasClass('is-open'))closeModal(secretModal);else if(integrationModal.hasClass('is-open'))closeModal(integrationModal);}});
+    $(document).on('keydown',event=>{if(event.key==='Escape'){if($('#api_external_modal').hasClass('is-open'))return; if(routeModal.hasClass('is-open'))closeModal(routeModal);else if(secretModal.hasClass('is-open'))closeModal(secretModal);else if(integrationModal.hasClass('is-open'))closeModal(integrationModal);}});
     $('#api_integration_form').on('submit',function(event){
         event.preventDefault();if(!$('#api_integration_customer').val()){notify('Primero seleccione una empresa activa y autorizada.','error');return;}const button=$('#api_create_integration');button.prop('disabled',true).html('<i class="fas fa-spinner fa-spin"></i> Creando…');
         const scopes=$('[name="api_scope"]:checked').map(function(){return this.value;}).get();
@@ -347,7 +348,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     // Se aplica después de cada render AJAX mediante MutationObserver, sin modificar los eventos de cada tarjeta.
     const listTargets={integrations:'#api_integrations_rows',ext:'#api_ext_rows',authorizations:'#api_authorizations_rows',sessions:'#api_sessions_rows'};
     const resultState={};
-    Object.keys(listTargets).forEach(k=>{resultState[k]={page:1,limit:'25',view:'detail',busy:false};});
+    Object.keys(listTargets).forEach(k=>{resultState[k]={page:1,limit:'10',view:'detail',busy:false};});
     function exportRows(key){
         const el=$(listTargets[key]);
         const toolbar=$('[data-api-results="'+key+'"]');
@@ -366,22 +367,41 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         const first=(state.page-1)*count;$(records.slice(first,first+count)).show().attr('aria-hidden','false');
         list.toggleClass('api-view-tiles',state.view==='tiles');
         toolbar.find('.api-view-option').removeClass('is-active').filter('[data-view="'+state.view+'"]').addClass('is-active');
-        toolbar.find('.api-results-size option[value="all"]').text('Todos ('+n+')');
+        toolbar.find('.api-size-menu [data-size="all"]').text('Todos ('+n+')');
+        toolbar.find('.api-size-current').text(state.limit==='0'?'Todos ('+n+')':state.limit);
+        toolbar.find('.api-size-menu [data-size]').attr('aria-selected','false').filter('[data-size="'+(state.limit==='0'?'all':state.limit)+'"]').attr('aria-selected','true');
         const pagination=$('[data-api-pagination="'+key+'"]');pagination.empty();
-        pagination.append($('<span class="api-page-summary">').text(n?'Mostrando '+(first+1)+'–'+Math.min(first+count,n)+' de '+n:'0 resultados'));
+        pagination.append($('<span class="api-page-summary">').text(n?'Mostrando '+(first+1)+' a '+Math.min(first+count,n)+' de '+n+' registros':'Mostrando 0 a 0 de 0 registros'));
         const actions=$('<div class="api-page-buttons">');
         const button=(text,page,disabled,selected)=>$('<button type="button">').addClass('api-page-button').toggleClass('is-current',!!selected).attr('data-go-page',page).prop('disabled',disabled).text(text);
-        actions.append(button('‹',state.page-1,state.page===1,false));
+        actions.append(button('« Inicio',1,state.page===1,false));
+        actions.append(button('‹ Anterior',state.page-1,state.page===1,false));
         const start=Math.max(1,Math.min(state.page-2,pages-4)),end=Math.min(pages,start+4);
         for(let i=start;i<=end;i++)actions.append(button(String(i),i,false,i===state.page));
-        actions.append(button('›',state.page+1,state.page===pages,false));pagination.append(actions);
+        actions.append(button('Siguiente ›',state.page+1,state.page===pages,false));
+        actions.append(button('Final »',pages,state.page===pages,false));pagination.append(actions);
         state.busy=false;
     }
     Object.keys(listTargets).forEach(key=>{
         const node=document.querySelector(listTargets[key]);if(!node)return;
         const toolbar=$('[data-api-results="'+key+'"]');
+        // Selector autónomo: evita duplicidad causada por inicializadores globales de Select2.
+        const sizeControl=toolbar.find('.api-size-control');
+        const sizeToggle=sizeControl.find('.api-size-toggle');
+        const sizeMenu=sizeControl.find('.api-size-menu');
+        const closeSizeMenu=()=>{sizeMenu.prop('hidden',true);sizeToggle.attr('aria-expanded','false');};
+        sizeToggle.on('click',function(e){
+            e.stopPropagation();$('.api-size-menu').not(sizeMenu).prop('hidden',true);
+            $('.api-size-toggle').not(sizeToggle).attr('aria-expanded','false');
+            const open=sizeMenu.prop('hidden');sizeMenu.prop('hidden',!open);sizeToggle.attr('aria-expanded',String(open));
+        });
+        sizeControl.on('click','.api-size-menu [data-size]',function(e){
+            e.stopPropagation();const value=String($(this).attr('data-size'));
+            resultState[key].limit=value==='all'?'0':value;resultState[key].page=1;
+            closeSizeMenu();updateResults(key);sizeToggle.trigger('focus');
+        });
+        sizeControl.on('keydown',function(e){if(e.key==='Escape'){closeSizeMenu();sizeToggle.trigger('focus');}});
         toolbar.on('input','.api-results-query',()=>{resultState[key].page=1;updateResults(key);});
-        toolbar.on('change','.api-results-size',function(){resultState[key].limit=$(this).val()==='all'?'0':String($(this).val());resultState[key].page=1;updateResults(key);});
         toolbar.on('click','.api-view-option',function(){resultState[key].view=$(this).attr('data-view')==='tiles'?'tiles':'detail';updateResults(key);});
         $('[data-api-pagination="'+key+'"]').on('click','[data-go-page]',function(){resultState[key].page=Number($(this).attr('data-go-page'))||1;updateResults(key);});
         toolbar.on('click','.api-export-excel',()=>{
@@ -402,17 +422,71 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if(mutations.some(m=>m.type==='childList')){resultState[key].page=1;updateResults(key);}
         });observer.observe(node,{childList:true});updateResults(key);
     });
+    $(document).on('click.apiSizeMenu',function(e){if(!$(e.target).closest('.api-size-control').length){$('.api-size-menu').prop('hidden',true);$('.api-size-toggle').attr('aria-expanded','false');}});
+    function setExtSelect(selector,value){
+        const el=$(selector),val=String(value||'');
+        if(val && !el.find('option').filter(function(){return this.value===val;}).length)el.append(new Option(val,val,false,false));
+        el.val(val).trigger('change');
+    }
+    // El selector de categorías es un único combobox accesible; no mezcla el menú nativo y Select2.
+    // Las nuevas categorías se guardan con la conexión y reaparecen cuando se carga el catálogo.
+    const apiDefaultCategories=[{value:'whatsapp',label:'WhatsApp'},{value:'sms',label:'SMS'},
+        {value:'correo',label:'Correo electrónico'},{value:'divisas',label:'Divisas'},
+        {value:'pagos',label:'Pagos'},{value:'otro',label:'Otro'}];
+    let apiExternalCategories=apiDefaultCategories.slice();
+    const extCategory=$('#api_ext_category'),extCategoryMenu=$('#api_ext_category_options');
+    function setExternalCategory(value){
+        extCategory.val(value||'');closeExternalCategoryMenu();
+    }
+    function closeExternalCategoryMenu(){
+        extCategoryMenu.prop('hidden',true).empty();
+        extCategory.attr('aria-expanded','false').removeAttr('aria-activedescendant');
+    }
+    function renderExternalCategoryMenu(){
+        const typed=extCategory.val().trim(),normalized=typed.toLocaleLowerCase();
+        const choices=apiExternalCategories.filter(x=>x.label.toLocaleLowerCase().includes(normalized)||x.value.toLocaleLowerCase().includes(normalized));
+        extCategoryMenu.empty();
+        choices.forEach((c,i)=>$('<button type="button" role="option" class="api-ext-category-option">')
+            .attr('id','api_ext_cat_choice_'+i).attr('data-category',c.value).text(c.label).appendTo(extCategoryMenu));
+        const exact=apiExternalCategories.some(x=>x.value.toLocaleLowerCase()===normalized||x.label.toLocaleLowerCase()===normalized);
+        if(typed&&!exact)$('<button type="button" role="option" class="api-ext-category-option api-ext-category-create">')
+            .attr('data-category',typed).text('＋ Crear categoría: '+typed).appendTo(extCategoryMenu);
+        if(!extCategoryMenu.children().length)$('<div class="api-ext-category-empty">').text('Escriba una categoría nueva').appendTo(extCategoryMenu);
+        extCategoryMenu.prop('hidden',false);extCategory.attr('aria-expanded','true');
+    }
+    extCategory.on('focus input',renderExternalCategoryMenu);
+    extCategory.on('keydown',function(e){
+        if(e.key==='Escape'){closeExternalCategoryMenu();e.stopPropagation();return;}
+        if(e.key==='ArrowDown'){e.preventDefault();if(extCategoryMenu.prop('hidden'))renderExternalCategoryMenu();extCategoryMenu.find('button').first().trigger('focus');}
+        if(e.key==='Enter'&&!extCategoryMenu.prop('hidden')){e.preventDefault();
+            const exact=apiExternalCategories.find(x=>x.label.toLocaleLowerCase()===extCategory.val().trim().toLocaleLowerCase());
+            if(exact)extCategory.val(exact.value);closeExternalCategoryMenu();}
+    });
+    extCategoryMenu.on('keydown','button',function(e){
+        const buttons=extCategoryMenu.find('button'),index=buttons.index(this);
+        if(e.key==='ArrowDown'){e.preventDefault();buttons.eq((index+1)%buttons.length).trigger('focus');}
+        if(e.key==='ArrowUp'){e.preventDefault();buttons.eq((index-1+buttons.length)%buttons.length).trigger('focus');}
+        if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeExternalCategoryMenu();extCategory.trigger('focus');}
+    });
+    extCategoryMenu.on('click','button[data-category]',function(){setExternalCategory($(this).attr('data-category'));extCategory.trigger('focus');closeExternalCategoryMenu();});
+    $(document).on('mousedown.apiExternalCategory',function(e){if(!$(e.target).closest('#api_ext_category_combobox').length)closeExternalCategoryMenu();});
+    function initExtSelects(){
+        // Select2 se conserva exclusivamente para autenticación, con el estilo ya usado en IZZY.
+        if(!$.fn.select2)return;
+        const auth=$('#api_ext_auth');
+        if(!auth.hasClass('select2-hidden-accessible'))auth.select2({width:'100%',dropdownParent:$('#api_external_modal'),minimumResultsForSearch:Infinity,placeholder:'Seleccione autenticación'});
+    }
     function openExternalModal(edit){
-        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');}
+        if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');}
         else $('#api_external_modal_title').text('Editar conexión externa');
-        openModal($('#api_external_modal'),'#api_ext_name');
+        openModal($('#api_external_modal'),'#api_ext_name');initExtSelects();
     }
     $('#api_ext_new').on('click',()=>openExternalModal(false));
     $('[data-api-external-close]').on('click',()=>closeModal($('#api_external_modal')));
     $('#api_ext_clear').off('click').on('click',()=>openExternalModal(false));
     // Evita el efecto de crecimiento incluso cuando Select2 termina de inicializar.
-    $('.api-modal-backdrop').on('click',function(e){if(e.target===this)closeModal($(this));});
-    $(document).on('keydown.apiModalEscape',e=>{if(e.key==='Escape')$('.api-modal-backdrop.is-open').each(function(){closeModal($(this));});});
+    // Los clics fuera del cuadro NO cierran modales; solo X, Cancelar/Cerrar o Escape.
+    $(document).on('keydown.apiModalEscape',e=>{if(e.key==='Escape' && !$(e.target).closest('.select2-container--open').length){const open=$('.api-modal-backdrop.is-open').last();if(open.length)closeModal(open);}});
     loadIntegrations();
 })(window.jQuery);
 </script>

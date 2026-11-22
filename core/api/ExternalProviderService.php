@@ -36,14 +36,24 @@ final class IzzyExternalProviderService {
         $url=trim((string)($input['url_base']??''));$auth=trim((string)($input['tipo_auth']??''));$channel=trim((string)($input['canal_id']??''));
         $token=trim((string)($input['token']??''));
         if ($name==='' || strlen($name)>100 || strlen($description)>500 || strlen($channel)>120) throw new InvalidArgumentException('Revise los campos de conexión.');
-        // La primera versión permite únicamente un proveedor y destino fijo para prevenir SSRF.
-        if ($provider!=='ZYNKO' || $category!=='whatsapp' || $auth!=='bearer' || $url!=='https://zynkocloud.app/api.php') throw new InvalidArgumentException('En esta fase solamente se permite el endpoint HTTPS oficial de ZYNKO.');
-        if ($id===0 && $token==='') throw new InvalidArgumentException('Ingrese el Bearer Token de ZYNKO.');
+        // Registro genérico seguro: guardar una URL no concede permiso para llamarla desde el servidor.
+        // Las pruebas HTTP solo están implementadas para el host ZYNKO fijado más abajo.
+        if ($provider==='' || strlen($provider)>50 || $category==='' || strlen($category)>40 ||
+            !in_array($auth,['bearer','api_key','basic','none'],true)) throw new InvalidArgumentException('Proveedor, categoría o autenticación inválidos.');
+        $parts=parse_url($url);
+        if (!is_array($parts) || strtolower((string)($parts['scheme']??''))!=='https' || empty($parts['host']) ||
+            isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment']) ||
+            strlen($url)>255 || preg_match('/[\x00-\x1f\x7f]/',$url)) throw new InvalidArgumentException('Introduzca una URL HTTPS válida sin credenciales incrustadas.');
+        // No permitir nombres de host privados/locales en el catálogo administrativo.
+        $host=strtolower(rtrim((string)$parts['host'],'.'));
+        if ($host==='localhost' || str_ends_with($host,'.localhost') || str_ends_with($host,'.local') ||
+            filter_var($host,FILTER_VALIDATE_IP) || strpos($host,'.')===false) throw new InvalidArgumentException('Utilice un dominio HTTPS público.');
+        if ($id===0 && $auth!=='none' && $token==='') throw new InvalidArgumentException('Ingrese la credencial de autenticación.');
         if ($token!=='' && strlen($token)>4096) throw new InvalidArgumentException('Token demasiado largo.');
-        $secret=$token!==''?$this->encrypt($token):null;
+        $secret=$token!==''?$this->encrypt($token):($id===0?'':null);
         if ($id>0) {
-            $stmt=$this->db->prepare('UPDATE api_external_connections SET nombre=?,descripcion=?,canal_id=?,token_cifrado=COALESCE(?,token_cifrado) WHERE id=? AND proveedor=\'ZYNKO\' AND archivado=0');
-            $stmt->bind_param('ssssi',$name,$description,$channel,$secret,$id);
+            $stmt=$this->db->prepare('UPDATE api_external_connections SET nombre=?,proveedor=?,categoria=?,descripcion=?,url_base=?,tipo_auth=?,canal_id=?,token_cifrado=COALESCE(?,token_cifrado) WHERE id=? AND archivado=0');
+            $stmt->bind_param('ssssssssi',$name,$provider,$category,$description,$url,$auth,$channel,$secret,$id);
         } else {
             $stmt=$this->db->prepare('INSERT INTO api_external_connections (nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,token_cifrado) VALUES (?,?,?,?,?,?,?,?)');
             $stmt->bind_param('ssssssss',$name,$provider,$category,$description,$url,$auth,$channel,$secret);
@@ -65,6 +75,7 @@ final class IzzyExternalProviderService {
     /** Respuesta aceptada NO implica entrega en WhatsApp. */
     public function request(int $id,string $route,string $method='GET',?array $payload=null,?string $idempotency=null): array {
         $row=$this->conn($id);
+        if ($row['proveedor']!=='ZYNKO' || $row['tipo_auth']!=='bearer' || $row['url_base']!=='https://zynkocloud.app/api.php') throw new DomainException('Las pruebas de conexión de este proveedor requieren un conector autorizado.');
         if (!(int)$row['activo']) throw new DomainException('La conexión está desactivada.');
         if (!in_array($route,['v1/channels','v1/whatsapp/status','v1/whatsapp/send'],true)) throw new DomainException('Ruta ZYNKO no autorizada.');
         if ($route==='v1/whatsapp/send' && ($method!=='POST' || !$idempotency)) throw new DomainException('Un envío requiere POST e Idempotency-Key.');

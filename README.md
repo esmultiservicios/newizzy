@@ -552,3 +552,25 @@ La v013 ajusta únicamente `vistas/plantilla/css/administrarApi.css`: limita el 
 ### Archivos y pruebas
 
 Solo se entregan los archivos CSS y README completos. **No hay migraciones SQL nuevas ni modificaciones de base de datos**. La clave `.env` debe configurarla quien administra el entorno: no se incluye en el ZIP. Se recomienda verificar en DEVIZZY el guardado, prueba de canales, vista móvil y ausencia de barra de desplazamiento horizontal. La comprobación sintáctica CSS/estructura ZIP no sustituye una prueba de navegador real.
+
+
+## v014 — Guardado y Select2 externo (Laragon)
+
+- Se corrige la posición del desplegable de **Categoría** y **Autenticación**: Select2 lo monta fuera del área con scroll, evitando alterar el ancho del modal. Se cierra el menú al desplazar el formulario. El modal no se cierra al hacer clic fuera.
+- El error `EXTERNAL_KEY_MISSING` / HTTP 503 **no se resuelve con CSS**. Es una dependencia de seguridad: la conexión no puede almacenarse sin cifrar su token.
+- Si usa Laragon y **todavía no existe** la variable, ejecutar desde PowerShell en la raíz del proyecto: `powershell -ExecutionPolicy Bypass -File .\scripts\configurar_clave_api_externa.ps1`. El script solo modifica `C:\credentials\newizzy\.env`, crea una clave aleatoria fuerte y no muestra el secreto. Para otra ruta, agregar `-EnvPath "RUTA\.env"`. Compruebe antes que ese sea el archivo configurado mediante `IZZY_ENV_FILE` o `core/configAPP.php`.
+- Si la clave ya existe, la utilidad la conserva; si es inválida, se detiene para evitar perder credenciales existentes. **Nunca regenerar la clave que cifró conexiones anteriores.** La clave nunca debe entrar en el repositorio. Cada entorno usa su propia clave.
+- Reiniciar servicios de Laragon, recargar, entrar a **Diagnóstico** y comprobar `cifrado_configurado=true`, luego volver a guardar la conexión. La API Key de ZYNKO se escribe exclusivamente en el campo secreto del modal.
+- El 403 de `ajax/miCuentaApi.php` corresponde a la autorización de una empresa y es independiente; no se suprimió su control. No se cambió SQL ni se activaron envíos.
+- Se comprobó sintaxis estática e integridad ZIP; **la interacción visual y el guardado efectivo requieren prueba en DEVIZZY**.
+
+## IZZY v015 — Select2 y aprovisionamiento del cifrado externo
+
+- `ajax/js/administrarApi.php`: menús Select2 en el backdrop del propio modal, sin cierre causado por el evento de desplazamiento interno. Tanto Autenticación como Categoría permiten búsqueda; Categoría admite entradas nuevas.
+- `vistas/plantilla/css/administrarApi.css`: reglas limitadas al modal externo, sin alterar los selectores globales.
+- `ajax/miCuentaApi.php`: la consulta `status` devuelve `habilitada=false` para una sesión que no representa una empresa cliente activa (por ejemplo, el administrador general). Toda acción protegida distinta de `status` conserva el rechazo 403; no se otorgan nuevos permisos.
+- `core/api/ExternalProviderService.php`: si la variable `IZZY_EXTERNAL_API_ENCRYPTION_KEY` existe, se utiliza **sin cambiarla**. Si no existe, PHP crea automáticamente una clave aleatoria AES-256 en `.izzy_external_api_aes.key` dentro de la carpeta privada correspondiente al `.env` de ese entorno, fuera del directorio web. El fichero debe conservarse y respaldarse junto con el `.env` y las bases de datos, ya que perderlo impediría descifrar tokens guardados. No se imprime ni se incluye en Git. Si ya hay tokens cifrados y no se encuentra la clave, el sistema **no** crea otra para no perder acceso. Se necesitan permisos de escritura del usuario PHP sobre el directorio privado para la primera creación.
+- No es necesario ejecutar `configurar_clave_api_externa.ps1` si PHP puede escribir en el directorio protegido. La utilidad v014 puede conservarse localmente, pero no forma parte de esta entrega.
+- No hay SQL nuevo en v015. Mantenga la migración v011 (`api_external_operations`) dentro del único `DB_Cambios.sql` si todavía no fue aplicada.
+- Reemplazar solamente los archivos completos de este ZIP sobre v014 en DEVIZZY. Recargar la pantalla sin caché y comprobar el menú de Categoría, el menú de Autenticación, `Diagnóstico` y el guardado de una conexión **de prueba**. No se han ejecutado pruebas de navegador ni peticiones autenticadas en este entorno de trabajo.
+- Conexión ZYNKO: Nombre `ZYNKO WhatsApp`, Proveedor `ZYNKO`, Categoría `WhatsApp`, URL `https://zynkocloud.app/api.php`, Autenticación `Bearer Token`, Recurso en blanco, JSON `{}` y credencial secreta exclusivamente en el formulario. Los envíos automáticos continúan desactivados.

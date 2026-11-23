@@ -145,11 +145,56 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
         post({action:'external_list'}).done(r=>{
             const rows=r.datos.conexiones||[];
-            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>'<article class="api-record-card"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+' · Canal: '+esc(x.canal_id||'Sin seleccionar')+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions"><span class="api-status '+(Number(x.activo)?'is-active':'is-revoked')+'">'+(Number(x.activo)?'Activa':'Inactiva')+'</span><button class="btn btn-secondary" data-ext-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button><button class="btn btn-secondary" data-ext-operations="' +Number(x.id)+ '"><i class="fas fa-cogs"></i> Operaciones API</button><button class="btn btn-secondary" data-ext-test="'+Number(x.id)+'"><i class="fas fa-vial"></i> Probar conexión</button><button class="btn btn-secondary" data-ext-check="'+Number(x.id)+'"><i class="fas fa-history"></i> Comprobaciones</button><button class="btn btn-secondary" data-ext-read="history" data-id="'+Number(x.id)+'"><i class="fas fa-book"></i> Consultar historial ZYNKO</button><button class="btn btn-primary" data-ext-toggle="'+Number(x.id)+'" data-ext-on="'+(Number(x.activo)?0:1)+'">'+(Number(x.activo)?'<i class="fas fa-ban"></i> Desactivar':'<i class="fas fa-check-circle"></i> Activar')+'</button><button class="btn btn-danger" data-ext-archive="'+Number(x.id)+'"><i class="fas fa-archive"></i> Archivar</button></div></article>').join('')||'<div class="api-empty-state">No hay servicios externos registrados.</div>');
+            $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>{
+                const id=Number(x.id),active=Number(x.activo)===1;
+                const item=(attribute,icon,label,extra='')=>'<button type="button" role="menuitem" class="api-external-action-item '+extra+'" '+attribute+'="'+id+'"><i class="fas '+icon+'" aria-hidden="true"></i><span>'+label+'</span></button>';
+                const actions=[
+                    item('data-ext-edit','fa-edit','Editar','is-edit'),
+                    item('data-ext-operations','fa-cogs','Operaciones API','is-operations'),
+                    item('data-ext-test','fa-vial','Probar conexión','is-test'),
+                    item('data-ext-check','fa-history','Comprobaciones','is-check'),
+                    '<button type="button" role="menuitem" class="api-external-action-item is-history" data-ext-read="history" data-id="'+id+'"><i class="fas fa-book" aria-hidden="true"></i><span>Consultar historial ZYNKO</span></button>',
+                    '<button type="button" role="menuitem" class="api-external-action-item is-toggle" data-ext-toggle="'+id+'" data-ext-on="'+(active?0:1)+'"><i class="fas '+(active?'fa-ban':'fa-check-circle')+'" aria-hidden="true"></i><span>'+(active?'Desactivar':'Activar')+'</span></button>',
+                    item('data-ext-archive','fa-archive','Archivar','is-danger')
+                ].join('');
+                return '<article class="api-record-card api-external-record"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+(x.canal_id?' · Canal: '+esc(x.canal_id):(String(x.proveedor||'').toUpperCase()==='ZYNKO'?' · Canal: verificación pendiente':''))+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions api-external-record-actions"><span class="api-status '+(active?'is-active':'is-revoked')+'">'+(active?'Activa':'Inactiva')+'</span><div class="api-external-actions-dropdown"><button type="button" class="btn btn-primary api-external-actions-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Acciones para '+esc(x.nombre)+'"><i class="fas fa-ellipsis-v" aria-hidden="true"></i> Acciones <i class="fas fa-chevron-down api-external-actions-chevron" aria-hidden="true"></i></button><div class="api-external-actions-menu" role="menu" hidden>'+actions+'</div></div></div></article>';
+            }).join('')||'<div class="api-empty-state"><i class="fas fa-plug"></i><strong>No hay servicios externos registrados</strong><span>Utilice «Nueva conexión» para registrar un proveedor.</span></div>');
             $('#api_ext_rows').data('connections',rows);
             apiExternalCategories=Array.from(new Map([...(r.datos.categorias||[]).map(x=>({value:String(x),label:String(x)})),...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
         }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
     }
+    // Menú de acciones contextual: un solo menú abierto y cierre solo del menú.
+    function closeExternalActionsMenus(){
+        $('#api_ext_rows .api-external-actions-menu').prop('hidden',true);
+        $('#api_ext_rows .api-external-actions-trigger').attr('aria-expanded','false');
+        $('#api_ext_rows .api-external-actions-dropdown').removeClass('is-open is-up');
+        $('#api_ext_rows .api-external-actions-menu').css('max-height','');
+    }
+    $('#api_ext_rows').on('click','.api-external-actions-trigger',function(event){
+        event.preventDefault();event.stopPropagation();
+        const group=$(this).closest('.api-external-actions-dropdown'),open=!group.hasClass('is-open');
+        closeExternalActionsMenus();
+        if(open){
+            const menu=group.find('.api-external-actions-menu');
+            group.addClass('is-open');menu.prop('hidden',false);
+            // Decidir apertura usando espacio real visible y alto del menú ya renderizado.
+            const rect=this.getBoundingClientRect();
+            const menuHeight=menu[0].getBoundingClientRect().height;
+            const spaceBelow=window.innerHeight-rect.bottom-12;
+            const spaceAbove=rect.top-12;
+            const upward=spaceBelow<menuHeight && spaceAbove>spaceBelow;
+            group.toggleClass('is-up',upward);
+            menu.css('max-height',Math.max(100,Math.floor((upward?spaceAbove:spaceBelow)-8))+'px');
+            $(this).attr('aria-expanded','true');
+        }
+    }).on('click','.api-external-actions-menu button',function(){closeExternalActionsMenus();});
+    $(document).on('click.apiExternalActions',function(event){
+        if(!$(event.target).closest('.api-external-actions-dropdown').length)closeExternalActionsMenus();
+    }).on('keydown.apiExternalActions',function(event){
+        if(event.key==='Escape'&&$('#api_ext_rows .api-external-actions-dropdown.is-open').length){
+            closeExternalActionsMenus();event.stopImmediatePropagation();event.preventDefault();
+        }
+    });
     $('#api_ext_refresh').on('click',loadExternal);
     $('#api_ext_diagnostics').on('click',()=>post({action:'external_diagnostics'}).done(r=>{const x=r.datos||{};const failures=Object.entries(x.tablas||{}).filter(([k,v])=>!v).map(([k])=>k);notify(failures.length?'Faltan tablas en DB_MAIN: '+failures.join(', '):(!x.cifrado_configurado?'Falta IZZY_EXTERNAL_API_ENCRYPTION_KEY en el entorno PHP de IZZY.':'Tablas y cifrado preparados; cURL '+(x.curl_disponible?'disponible':'NO disponible')+'.'),failures.length||!x.cifrado_configurado?'error':'success');}).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo diagnosticar la instalación','error')));
 
@@ -160,7 +205,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         const fields=$(this).serializeArray(),data={action:'external_save'};
         fields.forEach(x=>data[x.name]=x.value);
         const submit=$(this).find('[type=submit]').prop('disabled',true);
-        post(data).done(r=>{notify(r.mensaje);this.reset();$('#api_ext_id').val(0);closeModal($('#api_external_modal'));loadExternal();})
+        post(data).done(r=>{
+            notify(r.mensaje);
+            const savedId=Number(r.datos?.id||0);
+            if(savedId>0)$('#api_ext_id').val(savedId);
+            $('#api_ext_token').val('');
+            $('#api_external_modal_title').text('Editar conexión externa');
+            loadExternal();
+            // Conservar el formulario abierto y sus datos para revisar el registro guardado.
+        })
         .fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar (HTTP '+(e.status||'desconocido')+'). Revise diagnóstico de API externas.','error'))
         .always(()=>submit.prop('disabled',false));
     });
@@ -296,7 +349,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
     const integrationModal=$('#api_integration_modal'),secretModal=$('#api_secret_modal'),routeModal=$('#api_route_modal');
     function openModal(modal,focusSelector){modal.addClass('is-open').attr('aria-hidden','false');$('body').addClass('api-modal-open');if(focusSelector)setTimeout(()=>modal.find(focusSelector).trigger('focus'),30);}
-    function closeModal(modal){modal.removeClass('is-open').attr('aria-hidden','true');if(!$('.api-modal-backdrop.is-open').length)$('body').removeClass('api-modal-open');}
+    function closeModal(modal){
+        if(modal.is('#api_external_modal'))closeExternalDropdowns();
+        const focused=document.activeElement;
+        if(focused && modal[0] && modal[0].contains(focused))focused.blur();
+        modal.removeClass('is-open').attr('aria-hidden','true');
+        if(!$('.api-modal-backdrop.is-open').length)$('body').removeClass('api-modal-open');
+    }
     function prepararSelectVencimiento(){
         const select=$('#api_integration_expiry');
         if(!select.length)return;
@@ -492,7 +551,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         if(current&&!known.has(String(current).toLowerCase()))extCategory.append(new Option(current,current,false,false));
         extCategory.val(current||null);
-        extCategory.select2({width:'100%',dropdownParent:$('#api_external_modal'),tags:true,
+        extCategory.select2({width:'100%',dropdownParent:extCategory.parent('label'),tags:true,
             placeholder:'Seleccione o escriba una categoría',allowClear:false,
             createTag:function(params){const term=String(params.term||'').trim();
                 if(!term||term.length>40)return null;
@@ -553,14 +612,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         initExternalCategorySelect();
         const auth=$('#api_ext_auth');
         if(auth.hasClass('select2-hidden-accessible'))auth.select2('destroy');
-        auth.select2({width:'100%',dropdownParent:$('#api_external_modal'),minimumResultsForSearch:0,
+        auth.select2({width:'100%',dropdownParent:auth.parent('label'),minimumResultsForSearch:0,
             dropdownAutoWidth:false,placeholder:'Seleccione autenticación',allowClear:false});
         auth.off('select2:open.apiAuthSearch').on('select2:open.apiAuthSearch',function(){
-            const field=$('#api_external_modal .select2-container--open .select2-search__field');
+            const field=auth.parent('label').find('.select2-container--open .select2-search__field');
             field.attr('placeholder','Buscar autenticación...').prop('disabled',false);
             if(field.length)field.trigger('focus');
         });
     }
+    // No cerrar Select2 en scroll: Select2 provoca desplazamientos internos al abrirse
+    // y ese cierre automático impedía usar categorías o autenticación.
+
     function openExternalModal(edit){
         if(!edit){$('#api_ext_form')[0].reset();$('#api_ext_id').val(0);$('#api_external_modal_title').text('Nueva conexión externa');setExternalCategory('');setExtSelect('#api_ext_auth','');setExternalDescription('');$('#api_ext_config').val('{}');}
         else $('#api_external_modal_title').text('Editar conexión externa');

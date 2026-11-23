@@ -18,16 +18,23 @@ try {
     if (!empty($session['error'])) $reply(401,false,'Sesión vencida.');
     $csrf=(string)($_SERVER['HTTP_X_CSRF_TOKEN']??$_POST['csrf']??'');
     if ($csrf==='' || !hash_equals((string)($_SESSION['csrf_api_cuenta']??''),$csrf)) $reply(419,false,'Recargue la página.');
+    $action=(string)($_POST['action']??'status');
     $id=(int)($_SESSION['server_customers_id']??0);
     $db=(string)($_SESSION['db_cliente']??'');
     $userId=(int)($_SESSION['users_id_sd']??0);
     $privilegeId=(int)($_SESSION['privilegio_sd']??0);
-    if ($id<=0 || $userId<=0 || !preg_match('/^[a-zA-Z0-9_]+$/D',$db)) $reply(403,false,'Empresa no autorizada.');
+    if ($id<=0 || $userId<=0 || !preg_match('/^[a-zA-Z0-9_]+$/D',$db)) {
+        if ($action==='status') $reply(200,true,'Sin empresa cliente activa.',['habilitada'=>false]);
+        $reply(403,false,'Empresa no autorizada.');
+    }
     $main=new mainModel();
     $central=$main->connectionDBLocal(DB_MAIN);
     $stmt=$central->prepare('SELECT db,estado FROM server_customers WHERE server_customers_id=? LIMIT 1');
     $stmt->bind_param('i',$id);$stmt->execute();$customer=$stmt->get_result()->fetch_assoc();$stmt->close();$central->close();
-    if (!$customer || (int)$customer['estado']!==1 || !hash_equals((string)$customer['db'],$db)) $reply(403,false,'Empresa no autorizada.');
+    if (!$customer || (int)$customer['estado']!==1 || !hash_equals((string)$customer['db'],$db)) {
+        if ($action==='status') $reply(200,true,'La empresa no tiene acceso API habilitado.',['habilitada'=>false]);
+        $reply(403,false,'Empresa no autorizada.');
+    }
     $tenant=$main->connectionDBLocal($db);
     $stmt=$tenant->prepare('SELECT p.nombre FROM users u INNER JOIN privilegio p ON p.privilegio_id=u.privilegio_id WHERE u.users_id=? AND u.empresa_id=? AND u.privilegio_id=? AND u.estado=1 LIMIT 1');
     $empresa=(int)($_SESSION['empresa_id_sd']??0);
@@ -36,7 +43,6 @@ try {
     require_once dirname(__DIR__).'/core/api/ApiIntegrationService.php';
     $service=new IzzyApiIntegrationService();
     $allowed=$admin && $service->permitido($id);
-    $action=(string)($_POST['action']??'status');
     if ($action==='status') $reply(200,true,'Estado consultado.',['habilitada'=>$allowed]);
     if (!$allowed) $reply(403,false,'IZZY no ha autorizado esta función para su empresa o usuario.');
     if ($action==='list') $reply(200,true,'Integraciones cargadas.',['integraciones'=>$service->listarCliente($id)]);

@@ -8,10 +8,63 @@ final class IzzyExternalProviderService {
         require_once dirname(__DIR__).'/mainModel.php';
         $this->db=(new mainModel())->connectionDBLocal(DB_MAIN);
     }
+    /**
+     * Autoaprovisionamiento seguro: sin comandos manuales ni secretos en el código.
+     * Usa el mismo directorio EXTERNO al document root del .env seleccionado por IZZY.
+     * Un keyfile existente es inmutable: si está dañado o falta estando ya cifradas
+     * otras conexiones, se bloquea el guardado, nunca se rota automáticamente.
+     */
+    private function protectedKeyPath(): string {
+        $envOverride=trim((string)(getenv('IZZY_ENV_FILE') ?: ($_ENV['IZZY_ENV_FILE']??'')));
+        if ($envOverride!=='') $envFile=$envOverride;
+        elseif (PHP_OS_FAMILY==='Windows') $envFile='C:\\credentials\\newizzy\\.env';
+        else {
+            $host=strtolower((string)($_SERVER['HTTP_HOST']??''));
+            $envFile=($host==='demo.izzycloud.app'||str_starts_with($host,'demo.'))
+                ?'/home/esmultiservicios/credentials/devizzy/.env'
+                :'/home/esmultiservicios/credentials/newizzy/.env';
+        }
+        $folder=realpath(dirname($envFile));
+        if($folder===false || !is_dir($folder) || !is_file($envFile))
+            throw new RuntimeException('EXTERNAL_KEY_MISSING: No se encontró el directorio protegido de credenciales del entorno.');
+        $publicRoot=realpath((string)($_SERVER['DOCUMENT_ROOT']??''));
+        $prefix=$publicRoot!==false?rtrim(str_replace('\\','/',strtolower($publicRoot)),'/').'/':'';
+        $normalized=rtrim(str_replace('\\','/',strtolower($folder)),'/').'/';
+        if($prefix!=='' && str_starts_with($normalized,$prefix))
+            throw new RuntimeException('EXTERNAL_KEY_MISSING: El directorio de credenciales no debe estar dentro de la carpeta pública.');
+        return $folder.DIRECTORY_SEPARATOR.'.izzy_external_api_aes.key';
+    }
     private function key(): string {
         $secret=trim((string)(getenv('IZZY_EXTERNAL_API_ENCRYPTION_KEY') ?: ($_ENV['IZZY_EXTERNAL_API_ENCRYPTION_KEY'] ?? '')));
-        if (!preg_match('/^[a-f0-9]{64}$/i',$secret)) throw new RuntimeException('EXTERNAL_KEY_MISSING: Configure IZZY_EXTERNAL_API_ENCRYPTION_KEY (64 caracteres hexadecimales) en el .env protegido de DEVIZZY/NEWIZZY, según entorno.');
-        return hex2bin($secret);
+        if($secret!=='') {
+            if(!preg_match('/^[a-f0-9]{64}$/i',$secret))
+                throw new RuntimeException('EXTERNAL_KEY_MISSING: La clave existente en el .env es inválida; no fue reemplazada.');
+            return hex2bin($secret);
+        }
+        // Solo se crea el archivo protegido cuando aún no existe ninguna credencial
+        // cifrada. Si lo anterior existe y falta su clave, NO generar otra.
+        $path=$this->protectedKeyPath();
+        if(!is_file($path)){
+            $check=$this->db->query("SELECT COUNT(*) AS n FROM api_external_connections WHERE token_cifrado IS NOT NULL AND token_cifrado<>''");
+            $encryptedCount=(int)($check->fetch_assoc()['n']??0);
+            if($encryptedCount>0)throw new RuntimeException('EXTERNAL_KEY_MISSING: Hay credenciales cifradas existentes. Restaure su clave original; no se generó otra.');
+        }
+        $handle=@fopen($path,'c+b');
+        if($handle===false)throw new RuntimeException('EXTERNAL_KEY_MISSING: PHP no tiene permisos para guardar la clave en el directorio protegido de IZZY.');
+        try {
+            if(!flock($handle,LOCK_EX))throw new RuntimeException('No se pudo bloquear el archivo de cifrado.');
+            rewind($handle);$stored=trim((string)stream_get_contents($handle));
+            if($stored===''){
+                $stored=bin2hex(random_bytes(32));
+                rewind($handle);
+                if(fwrite($handle,$stored."\n")!==65 || !fflush($handle))
+                    throw new RuntimeException('No fue posible persistir la clave de cifrado.');
+                @chmod($path,0600);
+            }
+            if(!preg_match('/^[a-f0-9]{64}$/i',$stored))
+                throw new RuntimeException('EXTERNAL_KEY_MISSING: Archivo de cifrado inválido; se conserva para revisión.');
+            return hex2bin($stored);
+        } finally {flock($handle,LOCK_UN);fclose($handle);}
     }
     private function encrypt(string $value): string {
         $nonce=random_bytes(12);$tag='';
@@ -36,7 +89,10 @@ final class IzzyExternalProviderService {
             $available[$name]=((int)($result['n']??0))===1;
         }
         $secret=(string)(getenv('IZZY_EXTERNAL_API_ENCRYPTION_KEY') ?: ($_ENV['IZZY_EXTERNAL_API_ENCRYPTION_KEY']??''));
-        return ['tablas'=>$available,'cifrado_configurado'=>(bool)preg_match('/^[a-f0-9]{64}$/i',trim($secret)),
+        $keyFileReady=false; $keyAutoReady=false;
+        try { $keyPath=$this->protectedKeyPath(); $keyFileReady=is_file($keyPath) && (bool)preg_match('/^[a-f0-9]{64}$/i',trim((string)@file_get_contents($keyPath))); $keyAutoReady=$keyFileReady || is_writable(dirname($keyPath)); } catch (Throwable $e) {}
+        return ['tablas'=>$available,'cifrado_configurado'=>(bool)preg_match('/^[a-f0-9]{64}$/i',trim($secret)) || $keyFileReady,
+            'cifrado_autoconfigurable'=>$keyAutoReady,
             'curl_disponible'=>function_exists('curl_init'),'openssl_disponible'=>function_exists('openssl_encrypt')];
     }
     private static function safeJsonOk(?array $data): bool {

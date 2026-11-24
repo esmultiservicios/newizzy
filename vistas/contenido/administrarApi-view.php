@@ -69,8 +69,12 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
 </div>
         <div id="api_ext_rows" class="api-integration-list" aria-live="polite"><div class="api-loading">Seleccione la pestaña para cargar las conexiones.</div></div>
         <nav class="api-results-pagination" data-api-pagination="ext" aria-label="Paginación de conexiones"></nav>
-        <h3 class="api-route-section-title">Historial técnico de comprobaciones</h3>
+        <div id="api_ext_checks_section" hidden>
+        <h3 class="api-route-section-title" id="api_ext_checks_heading">Historial técnico de comprobaciones</h3>
+        <div class="api-check-toolbar"><label class="api-results-search" aria-label="Buscar comprobaciones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input id="api_ext_checks_search" type="search" placeholder="Buscar comprobaciones..."></label><label class="api-check-size">Mostrar <select id="api_ext_checks_limit" aria-label="Registros de comprobaciones por página"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="0">Todos</option></select> registros</label></div>
         <div id="api_ext_checks" class="api-integration-list"><div class="api-empty-state"><i class="fas fa-history"></i><strong>Sin comprobaciones registradas</strong><span>Seleccione «Historial» en una conexión para consultar los resultados técnicos.</span></div></div>
+        <nav class="api-results-pagination api-check-pagination" aria-label="Paginación de comprobaciones"><span id="api_ext_checks_count" class="api-page-summary">Mostrando 0 a 0 de 0 registros</span><div id="api_ext_checks_pages" class="api-page-buttons"></div></nav>
+        </div>
     </section>
 
     <section class="api-panel" data-api-panel="authorizations">
@@ -224,7 +228,7 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
     </div>
     <div class="api-modal-backdrop" id="api_operations_modal" aria-hidden="true">
       <section class="api-modal api-external-modal" role="dialog" aria-modal="true" aria-labelledby="api_operations_title">
-        <header><div><span class="api-eyebrow">IZZY → OPERACIONES API</span><h2 id="api_operations_title"><i class="fas fa-cogs"></i> Operaciones del proveedor</h2><p class="api-modal-subtitle">Defina endpoints sin modificar PHP. El registro no ejecuta solicitudes ni activa envíos.</p></div><button class="api-modal-close" type="button" data-api-operations-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
+        <header><div><span class="api-eyebrow">IZZY → OPERACIONES API</span><h2 id="api_operations_title"><i class="fas fa-cogs"></i> Operaciones del proveedor</h2><p class="api-modal-subtitle">Configure las operaciones disponibles del proveedor. Los envíos permanecen desactivados.</p></div><button class="api-modal-close" type="button" data-api-operations-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
         <div class="api-operations-scroll">
           <div id="api_operations_list" class="api-integration-list"><div class="api-empty-state"><i class="fas fa-cogs"></i><strong>Sin operaciones registradas</strong><span>Agregue una operación o cargue un catálogo preconfigurado.</span></div></div>
           <div class="api-operations-actions"><button type="button" class="btn btn-primary" id="api_operations_seed"><i class="fas fa-cloud-download-alt"></i> Cargar operaciones ZYNKO</button></div>

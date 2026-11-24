@@ -781,3 +781,117 @@ body > .select2-container--open .select2-results__option--highlighted[aria-selec
 #api_ext_rows .api-external-action-item.is-toggle i{color:#169f66}
 #api_ext_rows .api-external-action-item.is-toggle[data-ext-on="0"] i{color:#c9872c}
 #api_ext_rows .api-external-action-item.is-danger i{color:#cf3c3c}
+
+/* v020: Operaciones API reutiliza dimensiones y tipografia de Editar conexion externa. */
+#api_operations_modal .api-modal{
+  width:min(900px,calc(100vw - 24px));
+  height:min(760px,calc(100dvh - 24px));
+  max-height:calc(100dvh - 24px);
+  min-height:0;overflow:hidden;
+  animation:none;transition:none;transform:none;
+}
+#api_operations_modal .api-modal>header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  flex:0 0 auto;min-height:88px;padding:12px 19px;
+  background:#152c40;border-bottom:4px solid #18b6ac;color:#fff;
+}
+#api_operations_modal .api-modal>header>div{min-width:0;max-width:calc(100% - 50px)}
+#api_operations_modal .api-modal>header .api-eyebrow{
+  display:block;margin:0;color:#52bdec;font-size:9px;line-height:1.3;
+  font-weight:800;letter-spacing:.09em;
+}
+#api_operations_modal .api-modal>header h2{
+  display:flex;align-items:center;gap:7px;margin:3px 0 0!important;
+  font-size:16px!important;line-height:1.3!important;font-weight:800;color:#fff;
+}
+#api_operations_modal .api-modal>header h2 i{font-size:14px;color:#6adbd4;flex:0 0 auto}
+#api_operations_modal .api-modal>header .api-modal-subtitle{
+  margin:4px 0 0;max-width:100%;font-size:11px!important;
+  line-height:1.4!important;color:#c5d6e4;font-weight:400;
+}
+#api_operations_modal .api-operations-scroll{
+  flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+  padding:18px 20px;background:#fff;
+}
+#api_operations_modal #api_operations_list{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;margin:0;align-items:stretch;
+}
+#api_operations_modal .api-operation-card{
+  min-width:0;min-height:105px;margin:0;padding:12px 13px;
+  display:flex;flex-direction:column;align-items:stretch;
+  justify-content:space-between;gap:10px;text-align:left;
+  border-radius:10px;
+}
+#api_operations_modal .api-operation-card .api-record-title{
+  display:grid;justify-items:start;align-content:start;gap:4px;
+  width:100%;min-width:0;max-width:100%;text-align:left;
+}
+#api_operations_modal .api-operation-card .api-record-title strong{
+  display:block;max-width:100%;font-size:12px;line-height:1.35;
+  font-weight:800;white-space:normal;overflow-wrap:anywhere;
+}
+#api_operations_modal .api-operation-card .api-record-title span,
+#api_operations_modal .api-operation-card .api-record-title small{
+  display:block;width:100%;font-size:10px;line-height:1.4;
+  font-weight:400;white-space:normal;overflow-wrap:anywhere;
+}
+#api_operations_modal .api-operation-card .api-record-title small{color:#667e92}
+#api_operations_modal .api-operation-card .api-record-actions{
+  display:flex;align-items:center;justify-content:flex-end;
+  width:100%;min-width:0;margin:0;
+}
+#api_operations_modal .api-operation-card [data-op-edit]{
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  min-height:32px;padding:6px 12px;border-radius:8px;
+  border:1px solid #f2a31d!important;background:#f2a31d!important;
+  color:#fff!important;font-size:11px;font-weight:700;
+}
+#api_operations_modal .api-operations-actions{margin:10px 0 14px;padding:0}
+#api_operations_modal .api-operation-grid{gap:12px}
+#api_operations_modal .api-operations-import{margin-top:18px;padding:15px 0 0}
+#api_operations_modal .api-operations-import h3{
+  margin:0 0 8px;color:#203a52;font-size:15px;line-height:1.3;
+  font-weight:800;
+}
+#api_operations_modal .api-operations-import h3 i{font-size:14px;color:#168bd0}
+#api_operations_modal .api-operations-import p{margin:0 0 10px;font-size:11px;line-height:1.5}
+#api_operations_modal .api-operations-footer{
+  flex:0 0 auto;align-items:center;justify-content:flex-end;
+  min-height:65px;padding:12px 20px;
+  background:#f8fafc;border-top:1px solid #e3eaf0;
+}
+#api_operations_modal .api-operations-footer .btn-secondary{
+  background:#168bd0!important;border-color:#168bd0!important;
+  color:#fff!important;min-height:38px;border-radius:9px;
+}
+#api_ext_checks .api-check-record{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#api_ext_checks .api-check-record .api-record-title span{overflow-wrap:anywhere;line-height:1.5}
+.api-check-toolbar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin:10px 0}
+.api-check-toolbar .api-results-search{max-width:300px;min-width:190px;margin:0}
+.api-check-size{display:flex;align-items:center;gap:7px;font-size:12px;color:#294b66;white-space:nowrap;margin:0}
+.api-check-size select{height:35px;padding:5px 24px 5px 10px;border:1px solid #cddfea;border-radius:7px;background:#fff;color:#224e6f}
+.api-check-pagination{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:790px){#api_operations_modal #api_operations_list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){#api_operations_modal #api_operations_list{grid-template-columns:1fr}#api_operations_modal .api-modal{width:calc(100vw - 16px);height:calc(100dvh - 16px)}#api_operations_modal .api-operations-scroll{padding:14px}#api_operations_modal .api-modal>header{padding:12px 14px}.api-check-toolbar .api-results-search{flex:1 1 100%;max-width:none}}
+
+/* v021 — Escala visual coherente dentro del modulo API, sin afectar otros modulos. */
+.izzy-api-page .api-page-heading h1{font-size:18px;line-height:1.3}
+.izzy-api-page .api-panel-heading h2{font-size:15px;line-height:1.35}
+.izzy-api-page .api-panel-heading p{font-size:12px;line-height:1.5}
+.izzy-api-page .api-route-section-title{font-size:12px}
+.izzy-api-page .api-integration-directions strong,.izzy-api-page .api-integration-quickstart strong{font-size:11px}
+.izzy-api-page .api-integration-directions span,.izzy-api-page .api-integration-quickstart p{font-size:10px;line-height:1.5}
+#api_integration_modal .api-modal>header h2{font-size:16px!important;line-height:1.3!important}
+#api_integration_modal .api-modal>header .api-modal-subtitle{font-size:11px!important;line-height:1.4!important}
+#api_integration_modal .api-modal-form-body{font-size:12px}
+#api_integration_modal .api-modal-form-body>.api-scopes>label{min-height:48px;padding:7px 10px;gap:8px;border-radius:9px}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>i{flex-basis:30px;width:30px;height:30px;font-size:13px}
+#api_integration_modal .api-modal-form-body>.api-scopes>label>span{font-size:11px}
+#api_integration_modal .api-modal-form-body>.api-scopes input[type=checkbox]{flex-basis:24px;width:24px!important;height:24px!important;min-width:24px!important;min-height:24px!important}
+#api_integration_modal .api-integration-purpose{padding:9px 11px}
+#api_integration_modal .api-integration-purpose strong{font-size:11px}
+#api_integration_modal .api-integration-purpose small{font-size:10px}
+#api_ext_checks_section[hidden]{display:none!important}
+@media(max-width:720px){#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:490px){#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:1fr}}

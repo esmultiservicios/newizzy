@@ -95,11 +95,144 @@ final class IzzyExternalProviderService {
             'cifrado_autoconfigurable'=>$keyAutoReady,
             'curl_disponible'=>function_exists('curl_init'),'openssl_disponible'=>function_exists('openssl_encrypt')];
     }
+    /** El HTTP exitoso se valida contra el indicador del contrato JSON, nunca contra el HTTP 200 aislado. */
     private static function safeJsonOk(?array $data): bool {
         if(!is_array($data))return false;
         if(array_key_exists('ok',$data))return $data['ok']===true;
         if(array_key_exists('success',$data))return $data['success']===true;
         return false;
+    }
+    /** Solo codigos de error con formato restringido; nunca mensajes ni cuerpos del proveedor. */
+    private static function providerCode(?array $data): string {
+        if(!is_array($data))return '';
+        foreach ([$data['error_code']??null, $data['code']??null,
+                  is_array($data['error']??null)?($data['error']['code']??null):null] as $candidate) {
+            if(is_string($candidate) && preg_match('/^[a-zA-Z][a-zA-Z0-9_.-]{0,47}$/D',$candidate))return $candidate;
+        }
+        return '';
+    }
+    /**
+     * Clasifica SOLO frases conocidas de ZYNKO. Nunca registra ni devuelve
+     * el mensaje HTTP recibido: podría contener datos privados o secretos.
+     */
+    private static function classifyAuth401(?array $data): string {
+        if(!is_array($data))return 'respuesta_no_identificada';
+        $messages=[];
+        foreach(['message','mensaje','error','detail','description'] as $field){
+            $value=$data[$field]??null;
+            if(is_string($value))$messages[]=$value;
+            elseif(is_array($value)){
+                foreach(['message','mensaje','detail','description'] as $sub){
+                    if(isset($value[$sub])&&is_string($value[$sub]))$messages[]=$value[$sub];
+                }
+            }
+        }
+        foreach($messages as $message){
+            $lower=strtolower($message);
+            if(str_contains($lower,'falta authorization') ||
+                (str_contains($lower,'authorization') && (str_contains($lower,'bearer') || str_contains($lower,'formato'))))
+                return 'authorization_ausente_o_formato';
+            if(str_contains($lower,'clave api inválida o revocada') || str_contains($lower,'clave api invalida o revocada'))
+                return 'clave_no_encontrada_o_revocada';
+            if(str_contains($lower,'clave api inválida') || str_contains($lower,'clave api invalida'))
+                return 'formato_credencial_invalido';
+        }
+        return 'respuesta_no_identificada';
+    }
+    /**
+     * Clasificación cerrada de rechazos 403 publicados por ZYNKO.
+     * No se devuelve ni persiste el cuerpo JSON, origen, IP, token o encabezados.
+     */
+    private static function classifyAuth403(?array $data): string {
+        if(!is_array($data))return 'rechazo_no_identificado';
+        // ZYNKO v060: preferir códigos estables, sin depender del texto de error.
+        $code=strtoupper(self::providerCode($data));
+        $known=[
+            'IP_NOT_ALLOWED'=>'ip_no_autorizada',
+            'API_KEY_POLICY_DISABLED'=>'politica_desactivada',
+            'ORIGIN_NOT_ALLOWED'=>'origen_no_autorizado',
+            'HTTPS_REQUIRED'=>'https_requerido',
+        ];
+        if(isset($known[$code]))return $known[$code];
+        $messages=[];
+        foreach(['message','mensaje','detail','description','error'] as $field){
+            $value=$data[$field]??null;
+            if(is_string($value))$messages[]=$value;
+            if(is_array($value))foreach(['message','mensaje','detail','description'] as $sub){
+                if(isset($value[$sub]) && is_string($value[$sub]))$messages[]=$value[$sub];
+            }
+        }
+        foreach($messages as $message){
+            $lower=strtolower($message);
+            if(str_contains($lower,'política de acceso') && str_contains($lower,'desactivada'))return 'politica_desactivada';
+            if(str_contains($lower,'dirección ip no está autorizada') || str_contains($lower,'direccion ip no esta autorizada'))return 'ip_no_autorizada';
+            if(str_contains($lower,'origen web no está autorizado') || str_contains($lower,'origen web no esta autorizado'))return 'origen_no_autorizado';
+            if(str_contains($lower,'exige https'))return 'https_requerido';
+            if(str_contains($lower,'ninguno de los permisos requeridos') || str_contains($lower,'no tiene el permiso'))return 'permiso_insuficiente';
+            if(str_contains($lower,'plan') && (str_contains($lower,'api') || str_contains($lower,'suscripci')))return 'plan_sin_acceso_api';
+        }
+        return 'rechazo_no_identificado';
+    }
+    /**
+     * Diagnóstico efímero v060 para el administrador IZZY: únicamente IPs válidas.
+     * No persistir, registrar en logs ni exponer headers, tokens o el JSON original.
+     */
+    private static function safeIpRejection(?array $json,string $code): ?array {
+        if(!is_array($json) || strtoupper($code)!=='IP_NOT_ALLOWED')return null;
+        $data=$json['data']??null;
+        if(!is_array($data))return null;
+        $received=$data['received_ip']??null;
+        $received=is_string($received) && filter_var($received,FILTER_VALIDATE_IP)?$received:null;
+        $candidates=$data['allowed_ips']??null;
+        $allowed=[];
+        if(is_array($candidates))foreach(array_slice($candidates,0,30) as $value){
+            if(!is_string($value) || strlen($value)>50)continue;
+            $valid=(bool)filter_var($value,FILTER_VALIDATE_IP);
+            if(!$valid && str_contains($value,'/')){
+                [$base,$prefix]=array_pad(explode('/',$value,2),2,'');
+                $max=filter_var($base,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4)?32:(filter_var($base,FILTER_VALIDATE_IP,FILTER_FLAG_IPV6)?128:-1);
+                $valid=$max>=0 && ctype_digit($prefix) && (int)$prefix<=$max;
+            }
+            if($valid && !in_array($value,$allowed,true))$allowed[]=$value;
+        }
+        // REMOTE_ADDR es el único origen documentado; no confiar en etiquetas libres.
+        return [
+            'received_ip'=>$received,
+            'allowed_ips'=>$allowed,
+            'source'=>($data['source']??null)==='REMOTE_ADDR'?'REMOTE_ADDR':'no_confirmado',
+            'ip_de_rechazo_disponible'=>$received!==null,
+        ];
+    }
+    private static function auth403Label(string $category): string {
+        return match($category){
+            'politica_desactivada'=>'ZYNKO: política de acceso de la API Key desactivada.',
+            'ip_no_autorizada'=>'ZYNKO: IP de salida de IZZY no autorizada por la política de la API Key.',
+            'origen_no_autorizado'=>'ZYNKO: origen web no autorizado.',
+            'https_requerido'=>'ZYNKO: política HTTPS no satisfecha.',
+            'permiso_insuficiente'=>'ZYNKO: faltan permisos de consulta de canales para esta API Key.',
+            'plan_sin_acceso_api'=>'ZYNKO: el plan o la suscripción no habilita el acceso API.',
+            default=>'ZYNKO: HTTP 403; mensaje no reconocido, requiere diagnóstico del proveedor.'
+        };
+    }
+    /** Solo indicadores booleanos, sin contenido, hash ni longitud del secreto. */
+    private static function credentialShape(string $token): array {
+        return [
+            'descifrado_no_vacio'=>$token!=='',
+            'espacios_extremos'=>$token!==trim($token),
+            'contiene_prefijo_bearer'=>preg_match('/^bearer\s+/i',$token)===1,
+            'comillas_externas'=>strlen($token)>=2 &&
+                ((($token[0]??'')==='"' && substr($token,-1)==='"') || (($token[0]??'')==="'" && substr($token,-1)==="'")),
+            'espacios_internos'=>preg_match('/\s/',$token)===1,
+            'caracteres_control'=>preg_match('/[\x00-\x1f\x7f]/',$token)===1
+        ];
+    }
+    private static function auth401Label(string $reason): string {
+        return match($reason){
+            'authorization_ausente_o_formato'=>'ZYNKO: falta Authorization Bearer o formato del encabezado inválido.',
+            'formato_credencial_invalido'=>'ZYNKO: la API Key no cumple el formato esperado.',
+            'clave_no_encontrada_o_revocada'=>'ZYNKO: no encontró una API Key activa coincidente o fue revocada.',
+            default=>'ZYNKO: HTTP 401 sin categoría reconocible en el JSON.'
+        };
     }
     /** Identifica únicamente un canal WhatsApp; si existen varios evita asignar el incorrecto. */
     private function identifyChannel(int $connectionId,array $decoded): array {
@@ -183,7 +316,7 @@ final class IzzyExternalProviderService {
             $stmt=$this->db->prepare('UPDATE api_external_connections SET nombre=?,proveedor=?,categoria=?,descripcion=?,url_base=?,tipo_auth=?,canal_id=?,configuracion_json=?,token_cifrado=COALESCE(?,token_cifrado) WHERE id=? AND archivado=0');
             $stmt->bind_param('sssssssssi',$name,$provider,$category,$description,$url,$auth,$channel,$config,$secret,$id);
         } else {
-            $stmt=$this->db->prepare('INSERT INTO api_external_connections (nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,configuracion_json,token_cifrado) VALUES (?,?,?,?,?,?,?,?,?)');
+            $stmt=$this->db->prepare('INSERT INTO api_external_connections (nombre,proveedor,categoria,descripcion,url_base,tipo_auth,canal_id,configuracion_json,token_cifrado,activo) VALUES (?,?,?,?,?,?,?,?,?,1)');
             $stmt->bind_param('sssssssss',$name,$provider,$category,$description,$url,$auth,$channel,$config,$secret);
         }
         $stmt->execute();$result=$id>0?$id:$stmt->insert_id;$stmt->close();
@@ -216,26 +349,94 @@ final class IzzyExternalProviderService {
         $url='https://zynkocloud.app/api.php?r='.rawurlencode($route);
         if($route==='v1/whatsapp/history')$url.='&page=1&per_page=20';
         $token=$this->decrypt((string)$row['token_cifrado']);
+        if($token==='' || preg_match('/[\r\n\x00]/',$token)) {
+            throw new DomainException('Credencial descifrada vacía o con caracteres de control. No se realizó la solicitud.');
+        }
+        // No cambiar el token descifrado: diagnosticar su forma sin revelar contenido.
+        $credentialShape=self::credentialShape($token);
+        // La cabecera sale solo desde PHP. No se registra ni se devuelve la credencial.
         $headers=['Authorization: Bearer '.$token,'Accept: application/json'];
         $ch=curl_init($url);
-        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>$headers,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>15,
-            CURLOPT_FOLLOWLOCATION=>false,CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_MAXREDIRS=>0,
-            CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_MAXFILESIZE=>1048576]);
-        $body=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
-        $curlErr=$body===false?curl_errno($ch):0;curl_close($ch);
-        unset($token,$headers);
-        // Evitar procesar o registrar documentos excesivamente grandes.
-        $decoded=is_string($body)&&strlen($body)<=1048576?json_decode($body,true):null;
-        $ok=$curlErr===0 && $status>=200 && $status<300 && self::safeJsonOk(is_array($decoded)?$decoded:null);
+        if($ch===false)throw new RuntimeException('CURL_MISSING: No se pudo inicializar cURL.');
+        $body='';$responseTooLarge=false;
+        curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>false,CURLOPT_HTTPHEADER=>$headers,
+            CURLINFO_HEADER_OUT=>true,
+            CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>15,CURLOPT_FOLLOWLOCATION=>false,
+            CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_MAXREDIRS=>0,
+            CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,
+            CURLOPT_WRITEFUNCTION=>static function($handle,string $chunk)use(&$body,&$responseTooLarge):int {
+                if(strlen($body)+strlen($chunk)>1048576){$responseTooLarge=true;return 0;}
+                $body.=$chunk;return strlen($chunk);
+            }]);
+        $executed=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
+        $curlErr=$executed===false?curl_errno($ch):0;
+        // Inspección TRANSITORIA de los encabezados salientes preparados por cURL.
+        // Contienen el secreto: nunca registrar, devolver ni persistir su contenido.
+        $outgoing=(string)curl_getinfo($ch,CURLINFO_HEADER_OUT);
+        $authorizationLines=[];
+        foreach(preg_split('/\r?\n/', $outgoing) as $line){
+            if(strncasecmp($line,'Authorization:',14)===0)$authorizationLines[]=$line;
+        }
+        $bearerExact=count($authorizationLines)===1 &&
+            hash_equals($headers[0],$authorizationLines[0]);
+        $sentAuthorization=count($authorizationLines)===1;
+        $effectiveUrl=(string)curl_getinfo($ch,CURLINFO_EFFECTIVE_URL);
+        $redirectCount=(int)curl_getinfo($ch,CURLINFO_REDIRECT_COUNT);
+        $effectiveUrlExpected=hash_equals($url,$effectiveUrl);
+        $httpRedirect=$status>=300 && $status<400;
+        $localTransport=[
+            'autorizacion_en_solicitud_curl'=>$sentAuthorization,
+            'bearer_exacto_en_solicitud_curl'=>$bearerExact,
+            'url_efectiva'=>$effectiveUrlExpected?$url:'URL inesperada (no divulgada)',
+            'url_esperada_coincide'=>$effectiveUrlExpected,
+            'redirecciones_seguidas'=>$redirectCount,
+            'seguimiento_redirecciones_habilitado'=>false,
+            'respuesta_redireccion'=>$httpRedirect,
+            'codigo_http'=>$status,
+            'error_curl'=>$curlErr
+        ];
+        $outgoing='';$authorizationLines=[];unset($outgoing,$authorizationLines);
+        curl_close($ch);unset($token,$headers);
+        $decoded=json_decode($body,true,32);
+        $validJson=json_last_error()===JSON_ERROR_NONE && is_array($decoded);
+        $code=self::providerCode($validJson?$decoded:null);
+        $auth401=$status===401?self::classifyAuth401($validJson?$decoded:null):null;
+        $auth403=$status===403?self::classifyAuth403($validJson?$decoded:null):null;
+        // Solo se devuelve al administrador y nunca entra al historial SQL.
+        $ipDiagnostics=($status===403 && $auth403==='ip_no_autorizada')
+            ?self::safeIpRejection($validJson?$decoded:null,$code):null;
+        $ok=$curlErr===0 && $status>=200 && $status<300 && self::safeJsonOk($validJson?$decoded:null);
         $channelInfo=[];
         if($ok&&$route==='v1/channels')$channelInfo=$this->identifyChannel($id,$decoded);
-        $logMessage=$curlErr?'Error de transporte HTTPS (cURL '.$curlErr.')':($status===401?'Credencial rechazada (HTTP 401)':($status===403?'Permisos, IP o canal no autorizado (HTTP 403)':($ok?'Consulta autenticada confirmada':'El proveedor devolvió HTTP '.$status.' o una respuesta no exitosa')));
+        if($responseTooLarge)$logMessage='Respuesta de ZYNKO superior al límite de 1 MiB.';
+        elseif($curlErr)$logMessage='Fallo HTTPS cURL (código '.$curlErr.').';
+        elseif($status===401)$logMessage='HTTP 401: '.self::auth401Label((string)$auth401);
+        elseif($status===403)$logMessage='HTTP 403: '.self::auth403Label((string)$auth403);
+        elseif(!$validJson)$logMessage='HTTP '.$status.': respuesta de ZYNKO no es JSON válido.';
+        elseif($ok)$logMessage='HTTP '.$status.': autenticación y respuesta JSON confirmadas.';
+        else $logMessage='HTTP '.$status.': respuesta JSON no confirmó éxito de la operación.';
+        if($code!=='')$logMessage.=' Código: '.$code.'.';
+        // DB_Cambios.sql: api_external_checks.descripcion VARCHAR(160),
+        // api_external_connections.ultimo_resultado VARCHAR(160).
+        // Un HTTP 401 debe registrarse como error del proveedor, NO provocar
+        // una excepcion SQL 1406 por exceso de longitud del diagnostico.
+        $logMessage=mb_strimwidth($logMessage,0,160,'','UTF-8');
         $stmt=$this->db->prepare('INSERT INTO api_external_checks (connection_id,ruta,http_status,exitoso,descripcion) VALUES (?,?,?,?,?)');
         $flag=$ok?1:0;$stmt->bind_param('isiis',$id,$route,$status,$flag,$logMessage);$stmt->execute();$stmt->close();
-        $stmt=$this->db->prepare('UPDATE api_external_connections SET ultima_prueba=NOW(),ultimo_resultado=? WHERE id=?');
-        $stmt->bind_param('si',$logMessage,$id);$stmt->execute();$stmt->close();
+        if ($route==='v1/channels') {
+            $stmt=$this->db->prepare('UPDATE api_external_connections SET ultima_prueba=NOW(),ultimo_resultado=? WHERE id=?');
+            $stmt->bind_param('si',$logMessage,$id);$stmt->execute();$stmt->close();
+        }
         // Nunca exponer bodies completos: historial y estados pueden incluir teléfonos y documentos.
         return ['ok'=>$ok,'http_status'=>$status,'detalle'=>$logMessage,'canal'=>$channelInfo,
+            'json_valido'=>$validJson,'codigo_proveedor'=>$code,
+            'encabezado_bearer_configurado'=>true,
+            'diagnostico_401'=>$status===401?self::auth401Label((string)$auth401):null,
+            'categoria_rechazo_401'=>$auth401,
+            'categoria_rechazo_403'=>$auth403,
+            'diagnostico_ip'=>$ipDiagnostics,
+            'integridad_credencial'=>$credentialShape,
+            'diagnostico_transporte'=>$localTransport,
             'respuesta_exitosa'=>$ok,'estado'=>'consulta_sin_confirmar_entrega'];
     }
     /** Catálogo declarativo: el registro NO autoriza ejecutar HTTP arbitrario. */

@@ -46,15 +46,26 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if ($action==='external_toggle') { $external->toggle((int)($_POST['id']??0),(string)($_POST['activo']??'0')==='1');$respond(true,'Estado actualizado.'); }
             if ($action==='external_archive') { $external->archive((int)($_POST['id']??0));$respond(true,'Conexión archivada.'); }
             if ($action==='external_test') {
-                // Prueba sin envío de mensajes: consultar solamente los canales.
-                $result=$external->request((int)($_POST['id']??0),'v1/channels');
-                $respond($result['ok'],$result['ok']?'Autenticación y respuesta ZYNKO confirmadas.':$result['detalle'], ['http_status'=>$result['http_status'],'detalle'=>$result['detalle'],'canal'=>$result['canal']],$result['ok']?200:502);
+                // Verificación estrictamente de lectura: primero canales; historial solo si canales valida.
+                $channels=$external->request((int)($_POST['id']??0),'v1/channels');
+                $history=null;
+                if($channels['ok'])$history=$external->request((int)($_POST['id']??0),'v1/whatsapp/history');
+                $passed=$channels['ok'] && $history!==null && $history['ok'];
+                $message=!$channels['ok']?'Canales: '.$channels['detalle'].' No se consultó historial porque falló la primera autenticación.'
+                    : ($passed?'Canales e historial: autenticación y respuestas JSON confirmadas.':
+                       'Canales: HTTP '.$channels['http_status'].' correcto. Historial: '.$history['detalle']);
+                $respond($passed,$message,[
+                    'http_status'=>$history['http_status']??$channels['http_status'],
+                    'canales'=>$channels,'historial'=>$history,
+                    'canal'=>$channels['canal'],
+                    'detalle'=>$message
+                ],$passed?200:502);
             }
             if ($action==='external_read') {
                 $query=(string)($_POST['tipo']??'');
                 if(!in_array($query,['history','status'],true))$respond(false,'Consulta no autorizada.',[],422);
                 $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/'.$query);
-                $respond($result['ok'],$result['detalle'],['http_status'=>$result['http_status'],'canal'=>$result['canal']],$result['ok']?200:502);
+                $respond($result['ok'],$result['detalle'],['http_status'=>$result['http_status'],'canal'=>$result['canal'], 'categoria_rechazo_401'=>$result['categoria_rechazo_401']??null,'categoria_rechazo_403'=>$result['categoria_rechazo_403']??null,'diagnostico_ip'=>$result['diagnostico_ip']??null,'codigo_proveedor'=>$result['codigo_proveedor']??'','integridad_credencial'=>$result['integridad_credencial']??[]],$result['ok']?200:502);
             }
             if ($action==='external_operations') $respond(true,'Operaciones registradas.', ['operaciones'=>$external->operations((int)($_POST['connection_id']??0))]);
             if ($action==='external_operation_save') $respond(true,'Operación guardada desactivada.',['id'=>$external->saveOperation($_POST)]);
@@ -100,7 +111,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $respond(false, $e->getMessage(), [], 422);
     } catch (mysqli_sql_exception $e) {
         error_log('Administración API IZZY (SQL): '.$e->getCode().' / '.$e->getSqlState());
-        $respond(false,'Error SQL de integraciones. Compruebe las tablas de DB_Cambios.sql en DB_MAIN de DEVIZZY (no ZYNKO) y su estructura actual.',[],500);
+        // Codigo SQL seguro para diagnostico; no revelar consultas ni valores privados.
+        $sqlCode=(int)$e->getCode();
+        $message=($sqlCode===1406)
+            ? 'Un resultado técnico excedió la longitud permitida en la base de datos. Compruebe que se instaló el servicio actualizado.'
+            : (($sqlCode===1146||$sqlCode===1054)
+                ? 'La estructura SQL de API externas está incompleta en DB_MAIN. Revise el diagnóstico de tablas y columnas.'
+                : 'No fue posible registrar la comprobación. Consulte el código SQL en los registros del servidor.');
+        $respond(false,$message,['codigo_sql'=>$sqlCode],500);
     } catch (RuntimeException $e) {
         $safe=(string)$e->getMessage();
         if(str_starts_with($safe,'EXTERNAL_KEY_MISSING:')||str_starts_with($safe,'CURL_MISSING:'))$respond(false,$safe,[],503);
@@ -157,7 +175,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     '<button type="button" role="menuitem" class="api-external-action-item is-toggle" data-ext-toggle="'+id+'" data-ext-on="'+(active?0:1)+'"><i class="fas '+(active?'fa-ban':'fa-check-circle')+'" aria-hidden="true"></i><span>'+(active?'Desactivar':'Activar')+'</span></button>',
                     item('data-ext-archive','fa-archive','Archivar','is-danger')
                 ].join('');
-                return '<article class="api-record-card api-external-record"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+(x.canal_id?' · Canal: '+esc(x.canal_id):(String(x.proveedor||'').toUpperCase()==='ZYNKO'?' · Canal: verificación pendiente':''))+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions api-external-record-actions"><span class="api-status '+(active?'is-active':'is-revoked')+'">'+(active?'Activa':'Inactiva')+'</span><div class="api-external-actions-dropdown"><button type="button" class="btn btn-primary api-external-actions-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Acciones para '+esc(x.nombre)+'"><i class="fas fa-ellipsis-v" aria-hidden="true"></i> Acciones <i class="fas fa-chevron-down api-external-actions-chevron" aria-hidden="true"></i></button><div class="api-external-actions-menu" role="menu" hidden>'+actions+'</div></div></div></article>';
+                return '<article class="api-record-card api-external-record"><div class="api-record-main"><span class="api-record-icon"><i class="fas fa-plug"></i></span><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.proveedor)+' · '+esc(x.categoria)+(String(x.proveedor||'').toUpperCase()==='ZYNKO'?'':(x.canal_id?' · Recurso: '+esc(x.canal_id):''))+'</span><span>Última comprobación: '+formatDate(x.ultima_prueba)+' · '+esc(x.ultimo_resultado||'No comprobado')+'</span></div></div><div class="api-record-actions api-external-record-actions"><span class="api-status '+(active?'is-active':'is-revoked')+'">'+(active?'Activa':'Inactiva')+'</span><div class="api-external-actions-dropdown"><button type="button" class="btn btn-primary api-external-actions-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Acciones para '+esc(x.nombre)+'"><i class="fas fa-ellipsis-v" aria-hidden="true"></i> Acciones <i class="fas fa-chevron-down api-external-actions-chevron" aria-hidden="true"></i></button><div class="api-external-actions-menu" role="menu" hidden>'+actions+'</div></div></div></article>';
             }).join('')||'<div class="api-empty-state"><i class="fas fa-plug"></i><strong>No hay servicios externos registrados</strong><span>Utilice «Nueva conexión» para registrar un proveedor.</span></div>');
             $('#api_ext_rows').data('connections',rows);
             apiExternalCategories=Array.from(new Map([...(r.datos.categorias||[]).map(x=>({value:String(x),label:String(x)})),...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
@@ -217,9 +235,109 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         .fail(e=>notify(e.responseJSON?.mensaje||'No se pudo guardar (HTTP '+(e.status||'desconocido')+'). Revise diagnóstico de API externas.','error'))
         .always(()=>submit.prop('disabled',false));
     });
+    const checkState={connectionId:0,rows:[],page:1,limit:10};
+    function renderExternalChecks(){
+        const target=$('#api_ext_checks');
+        const rows=checkState.rows;
+        $('#api_ext_checks_section').prop('hidden',checkState.connectionId<1);
+        const conn=($('#api_ext_rows').data('connections')||[]).find(x=>Number(x.id)===checkState.connectionId);
+        $('#api_ext_checks_heading').text('Historial técnico de comprobaciones'+(conn?' · '+conn.nombre:''));
+        const query=String($('#api_ext_checks_search').val()||'').trim().toLowerCase();
+        const filtered=rows.filter(h=>!query||[h.ruta,h.descripcion,h.http_status,h.created_at].some(v=>String(v||'').toLowerCase().includes(query)));
+        const size=checkState.limit===0?Math.max(1,filtered.length):checkState.limit;
+        const pages=Math.max(1,Math.ceil(filtered.length/size));
+        checkState.page=Math.min(Math.max(1,checkState.page),pages);
+        const start=(checkState.page-1)*size;
+        target.html(filtered.slice(start,start+size).map(h=>{
+            const success=Number(h.exitoso)===1;
+            return '<article class="api-record-card api-check-record"><div class="api-record-main"><span class="api-record-icon"><i class="fas '+(success?'fa-check-circle':'fa-exclamation-triangle')+'"></i></span><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></div><span class="api-status '+(success?'is-active':'is-revoked')+'">'+(success?'Correcta':'Fallida')+'</span></article>';
+        }).join('')||'<div class="api-empty-state"><i class="fas fa-history"></i><strong>'+(rows.length?'Sin resultados para la búsqueda':'Sin comprobaciones registradas')+'</strong><span>'+(rows.length?'Cambie los filtros para consultar las comprobaciones.':'Seleccione «Comprobaciones» en una conexión para consultar su historial técnico.')+'</span></div>');
+        $('#api_ext_checks_count').text('Mostrando '+(filtered.length?start+1:0)+' a '+Math.min(start+size,filtered.length)+' de '+filtered.length+' registros');
+        const controls=$('#api_ext_checks_pages').empty();
+        const append=(label,p,disabled,selected)=>controls.append($('<button type="button" class="api-page-button">').text(label).attr('data-check-page',p).prop('disabled',disabled).toggleClass('is-current',!!selected));
+        append('« Inicio',1,checkState.page===1,false);
+        append('‹ Anterior',checkState.page-1,checkState.page===1,false);
+        const first=Math.max(1,Math.min(checkState.page-2,pages-4));
+        for(let i=first;i<=Math.min(pages,first+4);i++)append(String(i),i,false,i===checkState.page);
+        append('Siguiente ›',checkState.page+1,checkState.page===pages,false);
+        append('Final »',pages,checkState.page===pages,false);
+    }
+    function loadExternalChecks(id,keepPage){
+        if(!id)return;
+        post({action:'external_checks',id}).done(r=>{
+            checkState.connectionId=id;checkState.rows=r.datos.historial||[];
+            if(!keepPage)checkState.page=1;
+            renderExternalChecks();
+        }).fail(e=>notify(e.responseJSON?.mensaje||'No fue posible consultar el historial técnico.','error'));
+    }
+    $('#api_ext_checks_search').on('input',()=>{checkState.page=1;renderExternalChecks();});
+    $('#api_ext_checks_limit').on('change',function(){checkState.limit=Number($(this).val());checkState.page=1;renderExternalChecks();});
+    $('#api_ext_checks_pages').on('click','[data-check-page]',function(){checkState.page=Number($(this).attr('data-check-page'))||1;renderExternalChecks();});
+    function safeAuthDiagnostic(result){
+        if(!result || Number(result.http_status)!==401)return '';
+        const allowed={
+            authorization_ausente_o_formato:'ZYNKO indica que falta el encabezado Authorization Bearer o tiene un formato incorrecto.',
+            formato_credencial_invalido:'ZYNKO indica que el formato de la API Key es inválido.',
+            clave_no_encontrada_o_revocada:'ZYNKO indica que no encontró una API Key activa coincidente o que fue revocada.',
+            respuesta_no_identificada:'ZYNKO respondió 401, pero el JSON no contiene una de las tres causas conocidas.'
+        };
+        const reason=String(result.categoria_rechazo_401||'respuesta_no_identificada');
+        const integrity=result.integridad_credencial||{};
+        const local=[];
+        if(integrity.contiene_prefijo_bearer===true)local.push('la credencial guardada incluye Bearer');
+        if(integrity.comillas_externas===true)local.push('incluye comillas externas');
+        if(integrity.espacios_extremos===true)local.push('tiene espacios al inicio o final');
+        if(integrity.caracteres_control===true)local.push('contiene caracteres de control');
+        if(integrity.espacios_internos===true && integrity.contiene_prefijo_bearer!==true)local.push('contiene espacios internos');
+        if(integrity.descifrado_no_vacio===false)local.push('el descifrado está vacío');
+        const transport=result.diagnostico_transporte||{};
+        const details=[];
+        if(typeof transport.autorizacion_en_solicitud_curl==='boolean')details.push('Authorization en solicitud cURL: '+(transport.autorizacion_en_solicitud_curl?'sí':'no'));
+        if(typeof transport.bearer_exacto_en_solicitud_curl==='boolean')details.push('Bearer exacto en cURL: '+(transport.bearer_exacto_en_solicitud_curl?'sí':'no'));
+        if(typeof transport.url_esperada_coincide==='boolean')details.push('URL efectiva esperada: '+(transport.url_esperada_coincide?'sí':'no'));
+        if(Number.isInteger(transport.redirecciones_seguidas))details.push('Redirecciones seguidas: '+transport.redirecciones_seguidas);
+        if(typeof transport.respuesta_redireccion==='boolean')details.push('Respuesta HTTP de redirección: '+(transport.respuesta_redireccion?'sí':'no'));
+        const base=(allowed[reason]||allowed.respuesta_no_identificada);
+        return base+(local.length?' Revisión local: '+local.join('; ')+'.':'')+(details.length?' Transporte: '+details.join(' · ')+'.':'');
+    }
+    function safeForbiddenDiagnostic(result){
+        if(!result || Number(result.http_status)!==403)return '';
+        const labels={
+            politica_desactivada:'ZYNKO indica que la política de acceso de la API Key está desactivada.',
+            ip_no_autorizada:'ZYNKO rechazó la IP de salida de IZZY. Verificar IP/CIDR registrada, sin modificarla automáticamente.',
+            origen_no_autorizado:'ZYNKO rechazó el origen web registrado.',
+            https_requerido:'ZYNKO exige HTTPS para el origen recibido.',
+            permiso_insuficiente:'ZYNKO indica que faltan permisos para consultar canales.',
+            plan_sin_acceso_api:'ZYNKO indica que el plan o suscripción no habilita el acceso API.',
+            rechazo_no_identificado:'ZYNKO respondió HTTP 403, pero el mensaje JSON no coincide con las causas conocidas.'
+        };
+        const category=String(result.categoria_rechazo_403||'rechazo_no_identificado');
+        let message=labels[category] || labels.rechazo_no_identificado;
+        if(category==='ip_no_autorizada'){
+            const info=result.diagnostico_ip||{};
+            const validIp=v=>typeof v==='string' && v.length<=50 && /^[0-9a-fA-F:.\/]+$/.test(v);
+            const received=validIp(info.received_ip)?info.received_ip:'';
+            const allowed=Array.isArray(info.allowed_ips)?info.allowed_ips.filter(validIp).slice(0,30):[];
+            const source=info.source==='REMOTE_ADDR'?'REMOTE_ADDR':'sin confirmar';
+            if(received)message+=' IP recibida por ZYNKO: '+received+'.';
+            else message+=' ZYNKO no devolvió una IP recibida válida.';
+            message+=' IP/CIDR autorizadas: '+(allowed.length?allowed.join(', '):'no informadas')+'.';
+            message+=' Fuente: '+source+'.';
+            message+=' Compare la IP recibida con las entradas autorizadas; si es una IP distinta, revise la salida real del entorno (Laragon o WEB01).';
+        }
+        return message;
+    }
     $('#api_ext_rows').on('click','[data-ext-read]',function(){
         const id=Number($(this).attr('data-id')),tipo=String($(this).attr('data-ext-read'));
-        post({action:'external_read',id,tipo}).done(r=>notify(r.mensaje)).fail(e=>notify(e.responseJSON?.mensaje||'No se pudo realizar la consulta','error'));
+        post({action:'external_read',id,tipo}).done(r=>{
+            notify(r.mensaje,'success');loadExternalChecks(id,true);
+        }).fail(e=>{
+            const status=Number(e.responseJSON?.datos?.http_status||0);
+            const guidance=status===401?'ZYNKO respondió HTTP 401: solicitud rechazada. Verifique que la API Key pertenezca al entorno consultado, esté vigente, que el encabezado Bearer llegue correctamente y los permisos de lectura de '+(tipo==='history'?'historial':'estados')+'.':status===403?'ZYNKO respondió HTTP 403: revise permisos y restricción IP/CIDR del servidor IZZY.':'';
+            const authDetail=safeAuthDiagnostic(e.responseJSON?.datos) || safeForbiddenDiagnostic(e.responseJSON?.datos);
+            notify(authDetail||guidance||e.responseJSON?.mensaje||'No se pudo consultar ZYNKO','error');
+            loadExternalChecks(id,true);
+        });
     });
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
@@ -230,9 +348,32 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         const action=b.is('[data-ext-toggle]')?'external_toggle':b.is('[data-ext-test]')?'external_test':b.is('[data-ext-check]')?'external_checks':'external_archive';
         if(action==='external_archive'&&!window.confirm('¿Archivar esta conexión? Los datos históricos permanecerán.'))return;
         post({action,id,activo:b.attr('data-ext-on')||0}).done(r=>{
-            if(action==='external_checks')$('#api_ext_checks').html((r.datos.historial||[]).map(h=>'<article class="api-record-card"><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></article>').join('')||'<div class="api-empty-state"><i class="fas fa-history"></i><strong>Sin comprobaciones registradas</strong><span>Esta conexión todavía no tiene pruebas de conectividad.</span></div>');
-            else {notify(r.mensaje);loadExternal();}
-        }).fail(e=>notify(e.responseJSON?.mensaje||'Operación no completada','error'));
+            if(action==='external_checks'){
+                checkState.connectionId=id;
+                checkState.rows=r.datos.historial||[];
+                checkState.page=1;
+                renderExternalChecks();
+            } else {
+                notify(r.mensaje);
+                loadExternal();
+                if(action==='external_test'){
+                    if(r.datos?.canales)notify('Canales: HTTP '+Number(r.datos.canales.http_status)+' · Historial: HTTP '+Number(r.datos.historial?.http_status||0)+'.','success');
+                    if(r.datos?.canal?.canal_detectado)notify('Canal WhatsApp autorizado identificado por ZYNKO.','success');
+                    else if(r.datos?.canal?.motivo)notify('Autenticación verificada; '+r.datos.canal.motivo,'info');
+                    // Persistir comprobación seleccionada y mostrarla de inmediato.
+                    loadExternalChecks(id,true);
+                }
+            }
+        }).fail(e=>{
+            const status=Number(e.responseJSON?.datos?.http_status||0);
+            const info=status===401?'ZYNKO respondió HTTP 401. Verifique la API Key, su vigencia y que corresponda a este entorno.':status===403?'ZYNKO respondió HTTP 403. Compruebe permisos del token e IP de salida autorizada.':'';
+            const tests=e.responseJSON?.datos;
+            const checks=tests?.canales?'Canales HTTP '+Number(tests.canales.http_status)+
+                (tests.historial?' · Historial HTTP '+Number(tests.historial.http_status):' · Historial no consultado')+'. ':' ';
+            const authDetail=action==='external_test'?(safeAuthDiagnostic(tests?.canales) || safeForbiddenDiagnostic(tests?.canales)):'';
+            notify((action==='external_test'&&tests?.canales?checks:'')+(authDetail||info||e.responseJSON?.mensaje||'Operación no completada'),'error');
+            if(action==='external_test')loadExternalChecks(id,true);
+        });
     });
     $('[data-api-tab="external"]').on('click',loadExternal);
     function sessionState(row){
@@ -650,7 +791,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if(!apiOperationConnection)return;
         post({action:'external_operations',connection_id:apiOperationConnection}).done(r=>{
             const rows=r.datos.operaciones||[];
-            $('#api_operations_list').data('operations',rows).html(rows.map(x=>'<article class="api-record-card"><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.metodo)+' '+esc(x.ruta)+' · '+esc(x.codigo)+' · Inactiva para ejecución</span></div><div class="api-record-actions"><button type="button" class="btn btn-secondary" data-op-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button></div></article>').join('')||'<div class="api-empty-state"><i class="fas fa-cogs"></i><strong>Sin operaciones registradas</strong><span>Defina sus operaciones o cargue las conocidas de ZYNKO.</span></div>');
+            $('#api_operations_list').data('operations',rows).html(rows.map(x=>'<article class="api-record-card api-operation-card"><div class="api-record-title"><strong>'+esc(x.nombre)+'</strong><span>'+esc(x.metodo)+' · '+esc(x.ruta)+'</span><small><i class="fas fa-lock"></i> Ejecución desactivada</small></div><div class="api-record-actions"><button type="button" class="btn btn-warning" data-op-edit="'+Number(x.id)+'"><i class="fas fa-edit"></i> Editar</button></div></article>').join('')||'<div class="api-empty-state"><i class="fas fa-cogs"></i><strong>Sin operaciones registradas</strong><span>Defina sus operaciones o cargue las conocidas de ZYNKO.</span></div>');
         }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las operaciones','error'));
     }
     $('#api_ext_rows').on('click','[data-ext-operations]',function(){

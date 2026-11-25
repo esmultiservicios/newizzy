@@ -3975,16 +3975,17 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                                         <input type="number" class="form-control" id="precio_venta" name="precio_venta" placeholder="0.00" step="0.00001" required>
                                     </div>
                                     <small class="form-text text-muted">Precio de venta al público</small>
+                                    <button type="button" class="btn btn-primary btn-sm mt-2" id="btnCalculadoraPrecios" aria-haspopup="dialog"><i class="fas fa-calculator mr-1"></i>Calcular precio</button>
                                 </div>
                                 <div class="col-md-3 mb-3">
-                                    <label for="porcentaje_venta"><i class="fas fa-percentage mr-1"></i>Ganancia</label>
+                                    <label for="porcentaje_venta"><i class="fas fa-coins mr-1"></i>Ganancia monetaria</label>
                                     <div class="input-group">
                                         <div class="input-group-prepend">
-                                            <span class="input-group-text">%</span>
+                                            <span class="input-group-text">L</span>
                                         </div>
                                         <input type="number" class="form-control" id="porcentaje_venta" name="porcentaje_venta" placeholder="0.00" step="0.00001" readonly>
                                     </div>
-                                    <small class="form-text text-muted">Margen de ganancia calculado</small>
+                                    <small class="form-text text-muted">Diferencia entre precio de venta y precio de compra</small>
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="cantidad_mayoreo"><i class="fas fa-boxes mr-1"></i>Cantidad Mayoreo</label>
@@ -4130,6 +4131,107 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
     </div>
 </div>
 <!--FIN MODAL PRODUCTOS-->
+
+<dialog id="modalCalculadoraPrecios" class="izzy-dialog" aria-labelledby="tituloCalculadoraPrecios" aria-describedby="subtituloCalculadoraPrecios">
+    <header class="izzy-dialog__header">
+        <div class="izzy-dialog__heading">
+            <h5 class="izzy-dialog__title" id="tituloCalculadoraPrecios"><i class="fas fa-calculator mr-2" aria-hidden="true"></i>Calculadora de precios</h5>
+            <p class="izzy-dialog__subtitle" id="subtituloCalculadoraPrecios">Estime el precio de venta y su rentabilidad.</p>
+        </div>
+        <button type="button" class="izzy-dialog__close" data-izzy-dialog-close aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
+    </header>
+    <div class="izzy-dialog__body">
+        <div class="izzy-price-calculator">
+            <div>
+                <div class="izzy-price-calculator__fields">
+                    <div class="izzy-field">
+                        <label class="izzy-label" for="calcCosto">Precio de compra</label>
+                        <input type="number" id="calcCosto" class="form-control izzy-input" min="0" step="0.00001" inputmode="decimal" required autofocus>
+                    </div>
+                    <div class="izzy-field">
+                        <label class="izzy-label" for="calcGastos">Gastos por unidad</label>
+                        <input type="number" id="calcGastos" class="form-control izzy-input" min="0" step="0.00001" inputmode="decimal">
+                    </div>
+                    <div class="izzy-field izzy-price-calculator__wide">
+                        <label class="izzy-label" for="calcCostoIncluyeISV">ISV en el precio de compra</label>
+                        <select id="calcCostoIncluyeISV" class="custom-select izzy-select" data-no-empty-option="1">
+                            <option value="sin">No incluido</option>
+                            <option value="no-recuperable">Incluido y no recuperable</option>
+                        </select>
+                    </div>
+                    <div class="izzy-field izzy-price-calculator__wide">
+                        <label class="izzy-label" for="calcMetodo">Método de cálculo</label>
+                        <select id="calcMetodo" class="custom-select izzy-select" data-no-empty-option="1">
+                            <option value="recargo">Recargo sobre costo</option>
+                            <option value="margen">Margen sobre precio de venta</option>
+                        </select>
+                    </div>
+                    <div class="izzy-field izzy-price-calculator__wide">
+                        <label class="izzy-label" for="calcRedondeo">Redondeo del precio sin ISV</label>
+                        <select id="calcRedondeo" class="custom-select izzy-select" data-no-empty-option="1">
+                            <option value="0">Al centavo más cercano</option>
+                            <option value="0.05">Hacia arriba a múltiplos de 0.05</option>
+                            <option value="0.5">Hacia arriba a múltiplos de 0.50</option>
+                            <option value="1">Hacia arriba a múltiplos de 1.00</option>
+                            <option value="5">Hacia arriba a múltiplos de 5.00</option>
+                            <option value="10">Hacia arriba a múltiplos de 10.00</option>
+                        </select>
+                    </div>
+                    <div class="izzy-field izzy-price-calculator__wide">
+                        <label class="izzy-label" for="calcPorcentaje">Ganancia deseada (%)</label>
+                        <div class="izzy-price-calculator__range">
+                            <input type="range" id="calcSlider" class="custom-range" min="0" max="100" step="1" value="25" aria-label="Porcentaje de ganancia">
+                            <input type="number" id="calcPorcentaje" class="form-control izzy-input" min="0" max="100" step="1" inputmode="numeric" value="25" required>
+                        </div>
+                        <div class="izzy-price-calculator__marks small text-muted" aria-hidden="true">
+                            <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                        </div>
+                        <div class="izzy-price-calculator__presets" role="group" aria-label="Porcentajes sugeridos">
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="10" aria-pressed="false">10%</button>
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="15" aria-pressed="false">15%</button>
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="20" aria-pressed="false">20%</button>
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="25" aria-pressed="true">25%</button>
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="30" aria-pressed="false">30%</button>
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="40" aria-pressed="false">40%</button>
+                            <button type="button" class="izzy-button izzy-button--compact" data-calc-porcentaje="50" aria-pressed="false">50%</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="izzy-price-calculator__results">
+                <div class="izzy-price-calculator__highlights">
+                    <div class="izzy-price-calculator__amount izzy-price-calculator__amount--primary">Venta sugerida sin ISV
+                        <strong id="calcResultado">—</strong>
+                    </div>
+                    <div class="izzy-price-calculator__amount">Ganancia bruta
+                        <strong id="calcGanancia">—</strong>
+                    </div>
+                </div>
+                <div class="izzy-price-calculator__breakdown" id="calcComposicion" hidden>
+                    <div class="izzy-price-calculator__bar" aria-hidden="true"><span id="calcBarraGanancia"></span></div>
+                    <div class="izzy-price-calculator__legend small">
+                        <span>Costo efectivo</span><span>Ganancia bruta</span>
+                    </div>
+                </div>
+                <dl class="izzy-price-calculator__totals">
+                    <dt>Precio de compra ingresado</dt><dd id="calcCompra">—</dd>
+                    <dt>Gastos adicionales</dt><dd id="calcGastosTotal">—</dd>
+                    <dt>Costo efectivo</dt><dd id="calcCostoTotal">—</dd>
+                    <dt id="calcEtiquetaISV">ISV de venta</dt><dd id="calcImpuesto">—</dd>
+                    <dt>Precio final al consumidor</dt><dd class="font-weight-bold" id="calcPrecioFinal">—</dd>
+                    <dt>Ganancia sobre costo</dt><dd id="calcRecargoReal">—</dd>
+                    <dt>Margen real sobre venta</dt><dd id="calcMargenReal">—</dd>
+                </dl>
+                <p class="izzy-price-calculator__hint text-muted">Se aplican el costo de adquisición y el precio de venta sin ISV. Los gastos se reflejan en la rentabilidad estimada.</p>
+            </div>
+        </div>
+        <p class="izzy-price-calculator__warning text-danger" id="calcAdvertencia" aria-live="polite"></p>
+    </div>
+    <footer class="izzy-dialog__footer">
+        <button type="button" class="izzy-button" data-izzy-dialog-close><i class="fas fa-times" aria-hidden="true"></i>Cancelar</button>
+        <button type="button" class="izzy-button izzy-button--primary" id="calcAplicar"><i class="fas fa-check" aria-hidden="true"></i>Aplicar precio</button>
+    </footer>
+</dialog>
 
 <!-- Visor de imágenes genérico (Bootstrap 4.6) -->
 <div class="modal fade image-viewer-modal" tabindex="-1" role="dialog" aria-hidden="true" aria-labelledby="imageViewerTitle">

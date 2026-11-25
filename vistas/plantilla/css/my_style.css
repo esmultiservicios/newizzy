@@ -16005,3 +16005,412 @@ button[class*="-acciones-toggle"][aria-expanded="true"] {
     font-size: 9px;
   }
 }
+
+/* Diálogo IZZY reutilizable. El encabezado y las acciones quedan fuera del área de desplazamiento. */
+.izzy-dialog {
+  --izzy-dialog-width: 780px;
+  --izzy-dialog-ink: #172635;
+  --izzy-dialog-border: #dbe4ed;
+  box-sizing: border-box;
+  inset: 0;
+  width: min(var(--izzy-dialog-width), calc(100% - 24px));
+  max-width: none;
+  max-height: calc(100% - 24px);
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--izzy-dialog-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--izzy-dialog-ink);
+  box-shadow: 0 20px 60px rgba(16, 27, 40, .28);
+}
+
+.izzy-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.izzy-dialog::backdrop {
+  background: rgba(16, 27, 40, .55);
+}
+
+.izzy-dialog__header,
+.izzy-dialog__footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+}
+
+.izzy-dialog__header {
+  background: #14202d;
+  color: #fff;
+}
+
+.izzy-dialog__heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.izzy-dialog__title {
+  margin: 0;
+  color: inherit;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.izzy-dialog__subtitle {
+  margin: 4px 0 0;
+  color: #dbe4ed;
+  font-size: .8125rem;
+  line-height: 1.35;
+}
+
+.izzy-dialog__close {
+  display: grid;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #64748b;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.izzy-dialog__close:hover {
+  background: #334155;
+}
+
+.izzy-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px;
+}
+
+.izzy-dialog__footer {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--izzy-dialog-border);
+  background: #f5f8fb;
+}
+
+.izzy-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #475569;
+  color: #fff;
+  font: inherit;
+  font-size: .875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.izzy-button:hover {
+  background: #334155;
+}
+
+.izzy-button--primary {
+  background: #176394;
+}
+
+.izzy-button--primary:hover {
+  background: #124d74;
+}
+
+.izzy-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.izzy-button:focus-visible,
+.izzy-dialog__close:focus-visible {
+  outline: 2px solid #1976aa;
+  outline-offset: 2px;
+}
+
+.izzy-price-calculator {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.izzy-price-calculator__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.izzy-price-calculator__wide {
+  grid-column: 1 / -1;
+}
+
+.izzy-price-calculator__results {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.izzy-price-calculator__highlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.izzy-price-calculator__amount {
+  padding: 10px;
+  border: 1px solid var(--izzy-dialog-border);
+  border-radius: 8px;
+  background: #f5f8fb;
+  font-size: .8125rem;
+  line-height: 1.3;
+}
+
+.izzy-price-calculator__amount--primary {
+  border-color: #234057;
+  background: #234057;
+  color: #fff;
+}
+
+.izzy-price-calculator__amount strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1.125rem;
+}
+
+.izzy-price-calculator__totals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) fit-content(45%);
+  margin: 0;
+  font-size: .8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.izzy-price-calculator__totals dt,
+.izzy-price-calculator__totals dd {
+  min-width: 0;
+  margin: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--izzy-dialog-border);
+}
+
+.izzy-price-calculator__totals dd {
+  padding-left: 8px;
+  text-align: right;
+}
+
+.izzy-price-calculator__hint {
+  margin: 10px 0 0;
+  font-size: .75rem;
+}
+
+.izzy-price-calculator__warning {
+  min-height: 2.5em;
+  margin: 6px 0 0;
+  font-size: .8125rem;
+}
+
+@media (max-width: 680px) {
+  .izzy-price-calculator {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .izzy-dialog__header,
+  .izzy-dialog__body,
+  .izzy-dialog__footer {
+    padding: 12px;
+  }
+
+  .izzy-price-calculator__fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+}
+/* Las clases de campo y botón también funcionan fuera del diálogo. */
+.izzy-field {
+  min-width: 0;
+}
+
+.izzy-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #172635;
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.izzy-input,
+.izzy-select,
+.izzy-textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #b9cad9;
+  border-radius: 8px;
+  color: #172635;
+  font-size: .875rem;
+}
+
+.izzy-input:focus,
+.izzy-select:focus,
+.izzy-textarea:focus,
+.izzy-editor__content:focus {
+  border-color: #1976aa;
+  outline: 2px solid #1976aa;
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.izzy-input[aria-invalid="true"],
+.izzy-select[aria-invalid="true"],
+.izzy-textarea[aria-invalid="true"],
+.izzy-editor__content[aria-invalid="true"] {
+  border-color: #a42632;
+}
+
+.izzy-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.izzy-field-hint {
+  display: block;
+  margin-top: 4px;
+  color: #526479;
+  font-size: .8rem;
+}
+
+.izzy-editor {
+  border: 1px solid #b9cad9;
+  border-radius: 8px;
+  background: #fff;
+  color: #172635;
+}
+
+.izzy-editor__toolbar[hidden] {
+  display: none;
+}
+
+.izzy-editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid #dbe4ed;
+  border-radius: 8px 8px 0 0;
+  background: #f5f8fb;
+}
+
+.izzy-editor__tool {
+  min-width: 38px;
+  min-height: 36px;
+  padding: 4px;
+}
+
+.izzy-editor__content {
+  min-height: 120px;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+}
+
+.izzy-button--compact {
+  min-height: 32px;
+  padding: 4px 8px;
+  border-color: #b9cad9;
+  background: #eef4f9;
+  color: #234057;
+  font-size: .75rem;
+}
+
+.izzy-button--compact:hover,
+.izzy-button--compact[aria-pressed="true"] {
+  border-color: #176394;
+  background: #176394;
+  color: #fff;
+}
+
+.izzy-price-calculator__range {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px;
+  align-items: center;
+  gap: 8px;
+}
+
+.izzy-price-calculator__marks {
+  display: flex;
+  justify-content: space-between;
+  margin-right: 76px;
+}
+
+.izzy-price-calculator__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.izzy-price-calculator__breakdown {
+  margin: 12px 0 8px;
+}
+
+.izzy-price-calculator__bar {
+  display: flex;
+  justify-content: flex-end;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #526479;
+}
+
+.izzy-price-calculator__bar span {
+  background: #147548;
+}
+
+.izzy-price-calculator__legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.izzy-price-calculator__legend span::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #526479;
+  vertical-align: 2px;
+  content: "";
+}
+
+.izzy-price-calculator__legend span:last-child::before {
+  background: #147548;
+}
+
+
+/* Los buscadores de IZZY usan su propio botón para limpiar. */
+input[type="search"]::-webkit-search-cancel-button {
+    display: none !important;
+    -webkit-appearance: none !important;
+}
+
+input[type="search"]::-ms-clear {
+    display: none;
+}

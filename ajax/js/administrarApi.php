@@ -307,7 +307,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             ip_no_autorizada:'ZYNKO rechazó la IP de salida de IZZY. Verificar IP/CIDR registrada, sin modificarla automáticamente.',
             origen_no_autorizado:'ZYNKO rechazó el origen web registrado.',
             https_requerido:'ZYNKO exige HTTPS para el origen recibido.',
-            permiso_insuficiente:'ZYNKO indica que faltan permisos para consultar canales.',
+            permiso_insuficiente:'ZYNKO indica que faltan permisos para esta consulta.',
             plan_sin_acceso_api:'ZYNKO indica que el plan o suscripción no habilita el acceso API.',
             rechazo_no_identificado:'ZYNKO respondió HTTP 403, pero el mensaje JSON no coincide con las causas conocidas.'
         };
@@ -370,7 +370,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             const tests=e.responseJSON?.datos;
             const checks=tests?.canales?'Canales HTTP '+Number(tests.canales.http_status)+
                 (tests.historial?' · Historial HTTP '+Number(tests.historial.http_status):' · Historial no consultado')+'. ':' ';
-            const authDetail=action==='external_test'?(safeAuthDiagnostic(tests?.canales) || safeForbiddenDiagnostic(tests?.canales)):'';
+            const failedTest=tests?.canales?.ok ? tests.historial : tests?.canales;
+            const authDetail=action==='external_test'?(safeAuthDiagnostic(failedTest) || safeForbiddenDiagnostic(failedTest)):'';
             notify((action==='external_test'&&tests?.canales?checks:'')+(authDetail||info||e.responseJSON?.mensaje||'Operación no completada'),'error');
             if(action==='external_test')loadExternalChecks(id,true);
         });
@@ -431,8 +432,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     
     $('#api_authorizations_status').on('change',renderAuthorizations);
     $('#api_authorizations_system').on('change',renderAuthorizations);
-    if($.fn.select2)$('#api_authorizations_status').select2({width:'100%',minimumResultsForSearch:Infinity});
-    if($.fn.select2)$('#api_authorizations_system').select2({width:'100%',minimumResultsForSearch:Infinity});
+    if($.fn.select2)$('#api_authorizations_status').select2({width:'100%',minimumResultsForSearch:0});
+    if($.fn.select2)$('#api_authorizations_system').select2({width:'100%',minimumResultsForSearch:0});
     function confirmAuthorization(title,description,company,enable){
         if(typeof window.swal==='function'){
             return window.swal({title,text:company+' — '+description,icon:'warning',buttons:{cancel:{text:'Cancelar',value:null,visible:true,className:'izzy-swal-cancel'},confirm:{text:enable?'Sí, autorizar':'Sí, suspender',value:true,visible:true,className:enable?'izzy-swal-approve':'izzy-swal-danger'}},dangerMode:!enable,closeOnClickOutside:false,closeOnEsc:true}).then(result=>result===true);
@@ -502,7 +503,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if(!select.length)return;
         if(select.hasClass('select2-hidden-accessible'))select.select2('destroy');
         if($.fn.select2){
-            select.select2({width:'100%',dropdownParent:integrationModal,minimumResultsForSearch:Infinity,allowClear:false,placeholder:'Seleccione vencimiento',language:{noResults:()=> 'No hay opciones disponibles'}});
+            select.select2({width:'100%',dropdownParent:integrationModal,minimumResultsForSearch:0,allowClear:false,placeholder:'Seleccione vencimiento',language:{noResults:()=> 'No hay opciones disponibles'}});
             select.val('90').trigger('change.select2');
         }else{
             select.val('90');

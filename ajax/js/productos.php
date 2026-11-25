@@ -2960,56 +2960,148 @@ function getEmpresaProductos() {
         });
 })();
 
-/* CALCULADORA: solo modifica el campo del formulario al confirmar Aplicar. */
-(function(){
-'use strict';
-var $calc=function(id){return $('#modalCalculadoraPrecios #'+id);};
-var formato=function(n){return 'L '+(Number.isFinite(n)?n:0).toLocaleString('es-HN',{minimumFractionDigits:2,maximumFractionDigits:5});};
-var numero=function(id){var n=Number($calc(id).val());return Number.isFinite(n)?n:0;};
-var estado={neto:null};
-function tasa(){
- var f=$('#formProductos');if(!f.find('#producto_isv_factura').is(':checked'))return 0;
- if(f.find('#producto_isv2').is(':checked'))return Number(fetchISVProductoSync(2))||0;
- if(f.find('#producto_isv1').is(':checked'))return Number(fetchISVProductoSync(1))||0;
- return 0;
-}
-function calcular(){
- var costo=numero('calcCosto'),gastos=numero('calcGastos'),pct=numero('calcPorcentaje');
- var t=tasa(),incluido=$calc('calcCostoIncluyeISV').val()==='con';
- var base=incluido&&t>0?costo/(1+t/100):costo;
- var total=base+gastos,metodo=$calc('calcMetodo').val();
- var invalido=costo<0||gastos<0||pct<0||pct>100||(metodo==='margen'&&pct>=100&&total>0);
- var neto=invalido?NaN:(metodo==='recargo'?total*(1+pct/100):(pct>=100?0:total/(1-pct/100)));
- var redondeo=numero('calcRedondeo');if(redondeo>0&&Number.isFinite(neto))neto=Math.ceil((neto-1e-9)/redondeo)*redondeo;
- if(!Number.isFinite(neto)||neto>999999999999)invalido=true;
- estado.neto=invalido?null:Math.max(0,neto);
- var ganancia=invalido?0:neto-total;
- $calc('calcCostoTotal').text(formato(total));$calc('calcResultado').text(invalido?'No disponible':formato(neto));$calc('calcGanancia').text(invalido?'—':formato(ganancia));
- $calc('calcRentabilidad').text('Rentabilidad sobre venta: '+(!invalido&&neto>0?(ganancia/neto*100).toFixed(2):'0.00')+' % · Recargo: '+(!invalido&&total>0?(ganancia/total*100).toFixed(2):'0.00')+' %');
- $calc('calcPrecioFinal').text('Precio final estimado con ISV ('+t+' %): '+(invalido?'—':formato(neto*(1+t/100))));
- $calc('calcAdvertencia').text(invalido?'Revise los importes. Un margen de 100 % con costo positivo no tiene precio finito.':'');
- $calc('calcMetodoAyuda').text(metodo==='margen'?'Margen sobre venta: ganancia ÷ precio neto de venta.':'Recargo sobre costo: ganancia ÷ costo base con gastos.');
- $calc('calcAplicar').prop('disabled',invalido);
-}
-$(document).off('click.calculadoraIzzy','#btnCalculadoraPrecios').on('click.calculadoraIzzy','#btnCalculadoraPrecios',function(){
- var form=$('#formProductos');
- if(form.find('#precio_venta').prop('readonly')||form.find('#precio_venta').prop('disabled')){showNotify('warning','Precio no editable','Este tipo de producto no permite editar el precio de venta.');return;}
- $calc('calcCosto').val(form.find('#precio_compra').val()||'0');$calc('calcGastos').val(0);$calc('calcMetodo').val('margen');$calc('calcRedondeo').val('0');$calc('calcCostoIncluyeISV').val('sin');
- $calc('calcPorcentaje').val(25);$calc('calcSlider').val(25);
- var t=tasa();$calc('calcImpuesto').val(t+' %'+(t?' (aplicado por IZZY en venta)':' (exento)'));
- calcular();$('#modalCalculadoraPrecios').modal({backdrop:false,keyboard:true,show:true});
+/* Calculadora de precios del formulario de productos. */
+$(function () {
+  const dialog = document.getElementById('modalCalculadoraPrecios');
+  if (!dialog) return;
+
+  const $dialog = $(dialog);
+  const $form = $('#formProductos');
+  const campo = id => dialog.querySelector('#' + id);
+  const compra = campo('calcCosto');
+  const gastos = campo('calcGastos');
+  const porcentaje = campo('calcPorcentaje');
+  const slider = campo('calcSlider');
+  const tratamiento = campo('calcCostoIncluyeISV');
+  const $opciones = $dialog.find('select');
+  const aplicar = campo('calcAplicar');
+  const presets = dialog.querySelectorAll('[data-calc-porcentaje]');
+  const $precioCompra = $form.find('#precio_compra');
+  const $precioVenta = $form.find('#precio_venta');
+  let tasaVenta = 0;
+  let resultado = null;
+  let activador;
+
+  function calcular() {
+    const precioCompra = compra.valueAsNumber;
+    const gasto = gastos.value === '' && !gastos.validity.badInput ? 0 : gastos.valueAsNumber;
+    const gananciaDeseada = porcentaje.valueAsNumber;
+    const margen = campo('calcMetodo').value === 'margen';
+    const redondeo = Number(campo('calcRedondeo').value);
+    const tasaCompraRecuperable = Number(tratamiento.value) || 0;
+    const costoAdquisicion = precioCompra / (1 + tasaCompraRecuperable / 100);
+    const costoEfectivo = costoAdquisicion + gasto;
+    const faltaCompra = compra.value === '' && !compra.validity.badInput;
+    let aviso = '';
+
+    if ((!faltaCompra && !compra.validity.valid) || !gastos.validity.valid || !porcentaje.validity.valid) {
+      aviso = 'Revise los importes y el porcentaje de ganancia.';
+    } else if (margen && gananciaDeseada === 100) {
+      aviso = 'Un margen de 100% no permite calcular un precio de venta.';
+    }
+
+    const precioTeorico = aviso || faltaCompra ? NaN : margen
+      ? costoEfectivo / (1 - gananciaDeseada / 100)
+      : costoEfectivo * (1 + gananciaDeseada / 100);
+    const precioVenta = redondeo
+      ? Math.round(Math.ceil(precioTeorico / redondeo - 1e-9) * redondeo * 100) / 100
+      : Math.round((precioTeorico + Number.EPSILON * precioTeorico) * 100) / 100;
+    if (!aviso && !faltaCompra && (!Number.isFinite(precioVenta) || precioVenta > 999999999999)) {
+      aviso = 'El precio sugerido está fuera del rango admitido.';
+    }
+
+    const isv = Math.round((precioVenta * tasaVenta) * (1 + Number.EPSILON)) / 100;
+    const ganancia = precioVenta - costoEfectivo;
+    resultado = aviso || faltaCompra ? null : { costoAdquisicion, precioVenta };
+    aplicar.disabled = !resultado;
+    campo('calcAdvertencia').textContent = aviso;
+
+    const importes = {
+      calcCompra: precioCompra,
+      calcGastosTotal: gasto,
+      calcCostoTotal: costoEfectivo,
+      calcResultado: aviso ? NaN : precioVenta,
+      calcImpuesto: aviso ? NaN : isv,
+      calcPrecioFinal: aviso ? NaN : precioVenta + isv,
+      calcGanancia: aviso ? NaN : ganancia
+    };
+    Object.entries(importes).forEach(([id, valor]) => {
+      campo(id).textContent = Number.isFinite(valor) ? productosFormatoDinero(valor) : '—';
+    });
+    presets.forEach(button => {
+      button.setAttribute('aria-pressed', String(porcentaje.validity.valid &&
+        Number(button.dataset.calcPorcentaje) === gananciaDeseada));
+    });
+    const mostrarComposicion = !aviso && precioVenta > 0 && ganancia >= 0;
+    campo('calcComposicion').hidden = !mostrarComposicion;
+    campo('calcBarraGanancia').style.width = mostrarComposicion ? (ganancia / precioVenta * 100) + '%' : '0%';
+    campo('calcRecargoReal').textContent = !aviso && costoEfectivo > 0
+      ? (ganancia / costoEfectivo * 100).toFixed(2) + '%' : '—';
+    campo('calcMargenReal').textContent = !aviso && precioVenta > 0
+      ? (ganancia / precioVenta * 100).toFixed(2) + '%' : '—';
+  }
+
+  $form.on('click', '#btnCalculadoraPrecios', function () {
+    if ($precioVenta.prop('readonly') || $precioVenta.prop('disabled')) {
+      showNotify('warning', 'Precio no editable', 'Este tipo de producto no permite editar el precio de venta.');
+      return;
+    }
+
+    activador = this;
+    const gravado = $form.find('#producto_isv_factura').is(':checked');
+    const tipoVenta = $form.find('#producto_isv2').is(':checked') ? 2
+      : ($form.find('#producto_isv1').is(':checked') ? 1 : 0);
+    tasaVenta = gravado && tipoVenta ? fetchISVProductoSync(tipoVenta) : 0;
+    campo('calcEtiquetaISV').textContent = 'ISV de venta (' + tasaVenta + '%)';
+
+    // El catálogo de ISV de IZZY distingue las tasas de compra (3 y 4) de las de venta.
+    $(tratamiento).find('[data-tasa-compra]').remove();
+    const tasasCompra = new Set([fetchISVProductoSync(3), fetchISVProductoSync(4)]);
+    tasasCompra.forEach(tasa => {
+      if (tasa > 0) {
+        const opcion = new Option('Incluido y recuperable (' + tasa + '%)', String(tasa));
+        opcion.dataset.tasaCompra = '';
+        tratamiento.add(opcion);
+      }
+    });
+
+    compra.readOnly = $precioCompra.prop('readonly') || $precioCompra.prop('disabled');
+    compra.value = compra.readOnly ? ($precioCompra.val() || '0') : '';
+    tratamiento.disabled = compra.readOnly;
+    gastos.value = '';
+    tratamiento.value = 'sin';
+    campo('calcMetodo').value = 'recargo';
+    campo('calcRedondeo').value = 0;
+    porcentaje.value = 25;
+    slider.value = 25;
+    calcular();
+    dialog.showModal();
+    izzyRefreshSelect2($opciones);
+  });
+
+  dialog.addEventListener('close', () => {
+    if (activador) activador.focus();
+  });
+  $dialog.on('change', 'select', calcular);
+  $dialog.on('input', 'input', function () {
+    if (this === slider) porcentaje.value = slider.value;
+    if (this === porcentaje && porcentaje.validity.valid) slider.value = porcentaje.value;
+    calcular();
+  });
+  $dialog.on('click', '[data-calc-porcentaje]', function () {
+    slider.value = this.dataset.calcPorcentaje;
+    porcentaje.value = slider.value;
+    calcular();
+  });
+  $dialog.on('click', '#calcAplicar', () => {
+    if (!resultado) return;
+    if (!compra.readOnly) $precioCompra.val(resultado.costoAdquisicion.toFixed(5));
+    // El evento existente actualiza la ganancia monetaria almacenada por el formulario.
+    $precioVenta.val(resultado.precioVenta.toFixed(2)).trigger('keyup');
+    dialog.close();
+  });
 });
-$(document).off('show.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios').on('show.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios',function(){
- $(this).css('z-index',1070);$('#modal_registrar_productos').css('z-index',1060);
-}).off('hidden.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios').on('hidden.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios',function(){
- $('#modal_registrar_productos').css('z-index','');if($('#modal_registrar_productos').hasClass('show'))$('body').addClass('modal-open');
-}).off('shown.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios').on('shown.bs.modal.calculadoraIzzy','#modalCalculadoraPrecios',function(){$calc('calcCosto').trigger('focus');});
-$(document).off('input.calculadoraIzzy','#calcSlider').on('input.calculadoraIzzy','#calcSlider',function(){$calc('calcPorcentaje').val(this.value);calcular();});
-$(document).off('input.calculadoraNum','#calcPorcentaje').on('input.calculadoraNum','#calcPorcentaje',function(){var n=Math.min(100,Math.max(0,Math.round(Number(this.value)||0)));$calc('calcSlider').val(n);calcular();});
-$(document).off('change.calculadoraNum','#calcPorcentaje').on('change.calculadoraNum','#calcPorcentaje',function(){var n=Math.min(100,Math.max(0,Math.round(Number(this.value)||0)));$(this).val(n);$calc('calcSlider').val(n);calcular();});
-$(document).off('input.calculadoraValores change.calculadoraValores','#calcCosto,#calcGastos,#calcMetodo,#calcRedondeo,#calcCostoIncluyeISV').on('input.calculadoraValores change.calculadoraValores','#calcCosto,#calcGastos,#calcMetodo,#calcRedondeo,#calcCostoIncluyeISV',calcular);
-$(document).off('click.calculadoraAplicar','#calcAplicar').on('click.calculadoraAplicar','#calcAplicar',function(){if(estado.neto===null)return;$('#formProductos #precio_venta').val(estado.neto.toFixed(5)).trigger('input').trigger('keyup').trigger('change');$('#modalCalculadoraPrecios').modal('hide');showNotify('success','Precio aplicado','El precio sugerido se colocó en el formulario. Guarde el producto cuando desee confirmar el cambio.');});
-})();
+
 
 /* Genera solo códigos faltantes mediante endpoint con control de empresa. */
 $(document).off('click.productosBarrasMasivo','#btnGenerarBarrasFaltantes').on('click.productosBarrasMasivo','#btnGenerarBarrasFaltantes',function(){

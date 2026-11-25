@@ -152,6 +152,8 @@ final class IzzyExternalProviderService {
             'API_KEY_POLICY_DISABLED'=>'politica_desactivada',
             'ORIGIN_NOT_ALLOWED'=>'origen_no_autorizado',
             'HTTPS_REQUIRED'=>'https_requerido',
+            'API_SCOPE_REQUIRED'=>'permiso_insuficiente',
+            'API_PLAN_REQUIRED'=>'plan_sin_acceso_api',
         ];
         if(isset($known[$code]))return $known[$code];
         $messages=[];
@@ -165,7 +167,8 @@ final class IzzyExternalProviderService {
         foreach($messages as $message){
             $lower=strtolower($message);
             if(str_contains($lower,'política de acceso') && str_contains($lower,'desactivada'))return 'politica_desactivada';
-            if(str_contains($lower,'dirección ip no está autorizada') || str_contains($lower,'direccion ip no esta autorizada'))return 'ip_no_autorizada';
+            if(str_contains($lower,'dirección ip no está autorizada') || str_contains($lower,'direccion ip no esta autorizada') ||
+                str_contains($lower,'ip pública de salida no está autorizada'))return 'ip_no_autorizada';
             if(str_contains($lower,'origen web no está autorizado') || str_contains($lower,'origen web no esta autorizado'))return 'origen_no_autorizado';
             if(str_contains($lower,'exige https'))return 'https_requerido';
             if(str_contains($lower,'ninguno de los permisos requeridos') || str_contains($lower,'no tiene el permiso'))return 'permiso_insuficiente';

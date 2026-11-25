@@ -59,7 +59,7 @@
             $('#izzy-account-api-status').html('<div class="izzy-account-api-denied"><i class="fas fa-exclamation-triangle"></i><span><strong>No fue posible comprobar el permiso API.</strong><br>'+esc(message)+' '+esc(detail)+'</span></div>');
             statusKnown=true;statusAllowed=false;$('#izzy-account-api-form').hide();$('#izzy-account-api-list').html('<div class="izzy-account-api-empty"><i class="fas fa-shield-alt"></i><strong>No hay accesos disponibles</strong><span>No se pueden emitir credenciales sin comprobar primero la autorización. Consulte con soporte IZZY.</span></div>');
         });
-        if($.fn.select2)$('#izzy-account-api-expiry').select2({width:'100%',minimumResultsForSearch:Infinity,dropdownParent:root});
+        if($.fn.select2)$('#izzy-account-api-expiry').select2({width:'100%',minimumResultsForSearch:0,dropdownParent:root});
         root.on('click','[data-izzy-copy]',function(){
             const value=$('#'+$(this).data('izzy-copy')).text();
             if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(value).then(()=>notify('Copiado.','success')).catch(()=>notify('No se pudo copiar.','error'));

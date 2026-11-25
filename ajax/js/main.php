@@ -526,7 +526,7 @@ getProveedoresCXP();
    ========================================================= */
 function izzySelect2EsPageSize($select) {
     var id = String($select.attr('id') || '');
-    return /(?:PageSize|page_size)$/i.test(id);
+    return /(?:PageSize|page_size)$/i.test(id) || $select.is('.fm-page-size-select, .dataTable_length select, .dt-length select');
 }
 
 function izzySelect2Placeholder($select) {
@@ -594,6 +594,7 @@ if (window.jQuery && typeof $.fn.izzySelect2Bridge !== 'function') {
 
         if (action === 'val') {
             if (arguments.length > 1) {
+                izzyInitSelect2($collection);
                 $collection.val(value);
                 izzyRefreshSelect2($collection);
                 return $collection;
@@ -662,44 +663,58 @@ function izzyInitSelect2(target) {
     $selects.each(function () {
         var $select = $(this);
 
-        if (!$select.is('select')) {
+        if (!$select.is('select') || $select.is('[data-izzy-native-select]')) {
             return;
         }
 
         izzySelect2LimpiarEstructuraAnterior($select);
 
-        if ($select.hasClass('select2-hidden-accessible')) {
-            return;
-        }
-
+        var inicializado = $select.hasClass('select2-hidden-accessible');
         var esPageSize = izzySelect2EsPageSize($select);
-
-        /* Opción vacía global para Select2 normales.
-           Se conserva el valor actual y se excluyen paginadores, múltiples
-           y controles que declaren data-no-empty-option="1". */
-        if (!esPageSize && !$select.prop('multiple') && String($select.attr('data-no-empty-option') || '') !== '1') {
-            var valorActual = $select.val();
-            if (!$select.find('option[value=""]').length) {
-                $select.prepend($('<option></option>').attr('value', '').text(''));
-                if (valorActual !== null && valorActual !== undefined) {
-                    $select.val(valorActual);
-                }
+        var select = this;
+        var admiteVacio = !esPageSize && !select.multiple && $select.attr('data-no-empty-option') !== '1';
+        if (admiteVacio) {
+            var seleccion = select.options[select.selectedIndex];
+            var vacio = Array.from(select.options).find(function (opcion) {
+                return opcion.value === '';
+            });
+            if (vacio !== select.options[0] || !vacio) {
+                // Si ya existe un Select2, conserva la selección al reponer opciones por AJAX.
+                var predeterminado = seleccion && (inicializado || seleccion.defaultSelected || select.selectedIndex > 0);
+                vacio = vacio || new Option('', '');
+                select.prepend(vacio);
+                (predeterminado ? seleccion : vacio).selected = true;
+                if (inicializado) $select.trigger('change.select2');
             }
         }
 
-        var $modal = $select.closest('.modal');
+        if (inicializado) {
+            return;
+        }
+
+        var $modal = $select.closest('.modal, dialog');
 
         var config = {
             width: esPageSize ? '86px' : '100%',
-            minimumResultsForSearch: esPageSize ? Infinity : 0,
+            minimumResultsForSearch: 0,
             allowClear: false,
-            placeholder: izzySelect2Placeholder($select),
             language: {
                 noResults: function () { return 'No se encontraron resultados'; },
                 searching: function () { return 'Buscando...'; },
                 inputTooShort: function () { return 'Escriba para buscar'; }
             }
         };
+
+        if (admiteVacio) {
+            // El adaptador base mantiene la opción vacía elegible en la lista.
+            config.placeholder = izzySelect2Placeholder($select);
+            config.resultsAdapter = $.fn.select2.amd.require('select2/results');
+            config.templateResult = function (opcion) {
+                return opcion.id === '' && !String(opcion.text || '').trim() ? 'Sin selección' : opcion.text;
+            };
+        } else if (select.multiple) {
+            config.placeholder = izzySelect2Placeholder($select);
+        }
 
         if ($modal.length) {
             config.dropdownParent = $modal;
@@ -749,11 +764,34 @@ function izzySetSelect2Value(target, value) {
             return;
         }
 
-        $select.val(value);
         izzyInitSelect2($select);
+        $select.val(value);
         $select.trigger('change.select2');
     });
 }
+
+function izzyReponerOpcionesSelect2(selector, html) {
+    var $select = $(selector);
+    var valor = $select.val();
+    $select.html(html);
+    izzySetSelect2Value($select, valor || '');
+}
+
+// Una etiqueta envolvente puede reenviar el clic al select nativo oculto.
+document.addEventListener('click', function (event) {
+    var select = event.target.closest('select.select2-hidden-accessible');
+    if (select) {
+        event.preventDefault();
+        if (!select.disabled) $(select).select2('open');
+        return;
+    }
+
+    var selection = event.target.closest('.select2-selection');
+    var label = selection && selection.closest('label');
+    if (label && label.control && label.control.matches('select.select2-hidden-accessible')) {
+        event.preventDefault();
+    }
+}, true);
 
 $(document)
     .off('shown.bs.modal.izzySelect2')
@@ -769,6 +807,9 @@ $(document)
 
     var observer = new MutationObserver(function (mutations) {
         mutations.forEach(function (mutation) {
+            var select = mutation.target.nodeType === 1 && mutation.target.closest('select');
+            if (select) izzyInitSelect2($(select));
+
             $(mutation.addedNodes || []).each(function () {
                 var $node = $(this);
 
@@ -2266,20 +2307,17 @@ function modal_registrar_productos() {
     $('#formProductos #producto_empresa_id').val(1);
     $('#formProductos #producto_empresa_id').trigger('change.select2');
 
-    $('#formProductos #producto_categoria').val(1);
-    $('#formProductos #producto_categoria').trigger('change.select2');
+    izzySetSelect2Value('#formProductos #producto_categoria', '');
 
     $('#formProductos #almacen').val(1);
     $('#formProductos #almacen').trigger('change.select2');
 
-    $('#formProductos #tipo_producto').val(1);
-    $('#formProductos #tipo_producto').trigger('change.select2');
+    izzySetSelect2Value('#formProductos #tipo_producto', '');
 
     $('#formProductos #buscar_producto_empresa').show();
     $('#formProductos #buscar_producto_categorias').show();
 
-    $('#formProductos #medida').val(1);
-    $('#formProductos #medida').trigger('change.select2');
+    izzySetSelect2Value('#formProductos #medida', '');
 
     $('#formProductos #producto_activo').prop('checked', true);
     $('#formProductos #estado_producto').hide();
@@ -2340,21 +2378,13 @@ function getMedida(count) {
         url: url,
         async: true,
         success: function(data) {
-            $('#formProductos #medida').html("");
-            $('#formProductos #medida').html(data);
-            $('#formProductos #medida').trigger('change.select2');
-
-            $('#formProductos #medida').val(1);
-            $('#formProductos #medida').trigger('change.select2');
+            izzyReponerOpcionesSelect2('#formProductos #medida', data);
 
 
             $('#medidaPurchase_' + count).html(data);
             $('#medidaPurchase_' + count).trigger('change.select2');
             $('#medida_' + count).html(data);
             $('#medida_' + count).trigger('change.select2');
-
-            $('#formProductos #medida').val(1);
-            $('#formProductos #medida').trigger('change.select2');
 
             // Refrescar Select2 después de establecer los valores
             $('select').trigger('change.select2');
@@ -2426,12 +2456,7 @@ function getTipoProducto() {
         url: url,
         async: true,
         success: function(data) {
-            $('#formProductos #tipo_producto').html("");
-            $('#formProductos #tipo_producto').html(data);
-            $('#formProductos #tipo_producto').trigger('change.select2');
-
-            $('#formProductos #tipo_producto').val(1);
-            $('#formProductos #tipo_producto').trigger('change.select2');
+            izzyReponerOpcionesSelect2('#formProductos #tipo_producto', data);
 
             // Refrescar Select2 después de establecer los valores
             $('select').trigger('change.select2');
@@ -2447,12 +2472,8 @@ function getCategoriaProductos() {
         url: url,
         async: true,
         success: function(data) {
-            $('#formProductos #producto_categoria').html("");
-            $('#formProductos #producto_categoria').html(data);
-            $('#formProductos #producto_categoria').trigger('change.select2');
+            izzyReponerOpcionesSelect2('#formProductos #producto_categoria', data);
 
-            $('#formProductos #producto_categoria').val(1);
-            $('#formProductos #producto_categoria').trigger('change.select2');
         }
     });
 }
@@ -2810,20 +2831,17 @@ function modal_productos() {
     $('#formProductos #producto_empresa_id').val(1);
     $('#formProductos #producto_empresa_id').trigger('change.select2');
 
-    $('#formProductos #producto_categoria').val(1);
-    $('#formProductos #producto_categoria').trigger('change.select2');
+    izzySetSelect2Value('#formProductos #producto_categoria', '');
 
     $('#formProductos #almacen').val(1);
     $('#formProductos #almacen').trigger('change.select2');
 
-    $('#formProductos #tipo_producto').val(1);
-    $('#formProductos #tipo_producto').trigger('change.select2');
+    izzySetSelect2Value('#formProductos #tipo_producto', '');
 
     $('#formProductos #buscar_producto_empresa').show();
     $('#formProductos #buscar_producto_categorias').show();
 
-    $('#formProductos #medida').val(1);
-    $('#formProductos #medida').trigger('change.select2');
+    izzySetSelect2Value('#formProductos #medida', '');
 
     $('#formProductos #producto_activo').attr('checked', true);
     $('#formProductos #estado_producto').hide();

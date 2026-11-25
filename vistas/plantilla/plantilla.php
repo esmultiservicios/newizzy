@@ -233,6 +233,7 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
         <i class="fab fa-whatsapp my-float-ws"></i>
     </a>  
 
+    <script defer src="<?php echo $serverUrlSafe; ?>vistas/plantilla/js/izzy-components.js?v=<?php echo rawurlencode($izzyAssetVersion('vistas/plantilla/js/izzy-components.js')); ?>"></script>
 </body>
 
 </html>

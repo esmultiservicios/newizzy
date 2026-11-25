@@ -250,7 +250,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         const start=(checkState.page-1)*size;
         target.html(filtered.slice(start,start+size).map(h=>{
             const success=Number(h.exitoso)===1;
-            return '<article class="api-record-card api-check-record"><div class="api-record-main"><span class="api-record-icon"><i class="fas '+(success?'fa-check-circle':'fa-exclamation-triangle')+'"></i></span><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></div><span class="api-status '+(success?'is-active':'is-revoked')+'">'+(success?'Correcta':'Fallida')+'</span></article>';
+            return '<article class="api-record-card api-check-record"><div class="api-record-main"><span class="api-record-icon '+(success?'is-success':'is-error')+'"><i aria-hidden="true" class="fas '+(success?'fa-check-circle':'fa-exclamation-triangle')+'"></i></span><div class="api-record-title"><strong>'+esc(h.ruta)+' · HTTP '+Number(h.http_status)+'</strong><span>'+formatDate(h.created_at)+' · '+esc(h.descripcion)+'</span></div></div><span class="api-status '+(success?'is-active':'is-revoked')+'">'+(success?'Correcta':'Fallida')+'</span></article>';
         }).join('')||'<div class="api-empty-state"><i class="fas fa-history"></i><strong>'+(rows.length?'Sin resultados para la búsqueda':'Sin comprobaciones registradas')+'</strong><span>'+(rows.length?'Cambie los filtros para consultar las comprobaciones.':'Seleccione «Comprobaciones» en una conexión para consultar su historial técnico.')+'</span></div>');
         $('#api_ext_checks_count').text('Mostrando '+(filtered.length?start+1:0)+' a '+Math.min(start+size,filtered.length)+' de '+filtered.length+' registros');
         const controls=$('#api_ext_checks_pages').empty();
@@ -308,7 +308,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             origen_no_autorizado:'ZYNKO rechazó el origen web registrado.',
             https_requerido:'ZYNKO exige HTTPS para el origen recibido.',
             permiso_insuficiente:'ZYNKO indica que faltan permisos para esta consulta.',
-            plan_sin_acceso_api:'ZYNKO indica que el plan o suscripción no habilita el acceso API.',
+            plan_sin_acceso_api:'El plan asignado en ZYNKO no incluye API. Revise el módulo API del plan de la empresa dueña de esta clave.',
+            suscripcion_sin_asignar:'La empresa dueña de esta clave no tiene suscripción asignada en ZYNKO.',
+            suscripcion_inactiva:'La suscripción de la empresa dueña de esta clave no está vigente en ZYNKO.',
+            plan_inactivo:'El plan asignado a la empresa dueña de esta clave está inactivo o no existe en ZYNKO.',
             rechazo_no_identificado:'ZYNKO respondió HTTP 403, pero el mensaje JSON no coincide con las causas conocidas.'
         };
         const category=String(result.categoria_rechazo_403||'rechazo_no_identificado');

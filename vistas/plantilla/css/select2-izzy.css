@@ -80,3 +80,30 @@ select.select2-hidden-accessible {
     outline: 2px solid #176394;
     outline-offset: 1px;
 }
+
+
+/* Presentación compartida por los controles de cantidad de registros. */
+select.izzy-select2 + .select2-container.izzy-page-size {
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+    flex: 0 0 72px;
+}
+
+.select2-container.izzy-page-size .select2-selection--single {
+    height: 42px !important;
+    border-color: #cbdce8 !important;
+    border-radius: 8px !important;
+    box-shadow: none;
+}
+
+.select2-container.izzy-page-size .select2-selection--single .select2-selection__rendered {
+    padding: 0 22px 0 12px !important;
+    color: #173d56 !important;
+    font-size: 12px;
+}
+
+.select2-container.izzy-page-size .select2-selection--single .select2-selection__arrow {
+    width: 20px !important;
+    right: 8px !important;
+}

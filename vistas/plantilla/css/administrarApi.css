@@ -895,3 +895,63 @@ body > .select2-container--open .select2-results__option--highlighted[aria-selec
 #api_ext_checks_section[hidden]{display:none!important}
 @media(max-width:720px){#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:490px){#api_integration_modal .api-modal-form-body>.api-scopes{grid-template-columns:1fr}}
+
+
+#api_operations_modal #api_operations_list > .api-empty-state {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+#api_ext_checks .api-record-icon.is-error {
+  background: #fce9ea;
+  color: #c12837;
+}
+
+#api_ext_checks .api-record-icon.is-success {
+  background: #e6f5ed;
+  color: #147548;
+}
+
+.izzy-api-page .api-panel-heading p,
+.izzy-api-page .api-record-title > span,
+.izzy-api-page .api-empty-state span,
+.api-modal .api-editor-note,
+.api-modal .api-empty-state span {
+  color: #405a70;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.izzy-api-page .api-record-title > strong,
+.api-modal .api-empty-state strong {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+#api_external_modal .api-external-form label,
+#api_operations_modal .api-operation-grid label {
+  color: #173a54;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#api_external_modal .api-external-form input,
+#api_external_modal .api-external-form textarea,
+#api_operations_modal .api-operation-grid input,
+#api_operations_modal .api-operation-grid textarea,
+#api_operations_modal .api-operation-grid .select2-selection__rendered {
+  font-size: 14px;
+}
+
+#api_external_modal .api-modal-subtitle,
+#api_integration_modal .api-modal-subtitle,
+#api_operations_modal .api-modal-subtitle {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
+
+.api-modal-backdrop,
+.api-modal-backdrop .api-modal {
+  filter: none;
+  backdrop-filter: none;
+}

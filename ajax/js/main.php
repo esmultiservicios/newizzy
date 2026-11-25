@@ -526,7 +526,7 @@ getProveedoresCXP();
    ========================================================= */
 function izzySelect2EsPageSize($select) {
     var id = String($select.attr('id') || '');
-    return /(?:PageSize|page_size)$/i.test(id) || $select.is('.fm-page-size-select, .dataTable_length select, .dt-length select');
+    return /(?:PageSize|page_size)$/i.test(id) || $select.is('.fm-page-size-select, [data-izzy-page-size], .dataTable_length select, .dt-length select');
 }
 
 function izzySelect2Placeholder($select) {
@@ -695,7 +695,7 @@ function izzyInitSelect2(target) {
         var $modal = $select.closest('.modal, dialog');
 
         var config = {
-            width: esPageSize ? '86px' : '100%',
+            width: esPageSize ? '72px' : '100%',
             minimumResultsForSearch: 0,
             allowClear: false,
             language: {
@@ -722,12 +722,7 @@ function izzyInitSelect2(target) {
 
         $select.select2(config);
 
-        if (esPageSize) {
-            $select.next('.select2-container').css({
-                width: '86px',
-                minWidth: '86px'
-            });
-        }
+        if (esPageSize) $select.next('.select2-container').addClass('izzy-page-size');
     });
 }
 

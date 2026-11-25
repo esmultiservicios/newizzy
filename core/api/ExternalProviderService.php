@@ -154,6 +154,9 @@ final class IzzyExternalProviderService {
             'HTTPS_REQUIRED'=>'https_requerido',
             'API_SCOPE_REQUIRED'=>'permiso_insuficiente',
             'API_PLAN_REQUIRED'=>'plan_sin_acceso_api',
+            'API_SUBSCRIPTION_REQUIRED'=>'suscripcion_sin_asignar',
+            'API_SUBSCRIPTION_INACTIVE'=>'suscripcion_inactiva',
+            'API_PLAN_INACTIVE'=>'plan_inactivo',
         ];
         if(isset($known[$code]))return $known[$code];
         $messages=[];
@@ -212,8 +215,11 @@ final class IzzyExternalProviderService {
             'ip_no_autorizada'=>'ZYNKO: IP de salida de IZZY no autorizada por la política de la API Key.',
             'origen_no_autorizado'=>'ZYNKO: origen web no autorizado.',
             'https_requerido'=>'ZYNKO: política HTTPS no satisfecha.',
-            'permiso_insuficiente'=>'ZYNKO: faltan permisos de consulta de canales para esta API Key.',
-            'plan_sin_acceso_api'=>'ZYNKO: el plan o la suscripción no habilita el acceso API.',
+            'permiso_insuficiente'=>'ZYNKO: faltan permisos para esta consulta.',
+            'plan_sin_acceso_api'=>'ZYNKO: el plan asignado no incluye el módulo API.',
+            'suscripcion_sin_asignar'=>'ZYNKO: la empresa de la API Key no tiene una suscripción asignada.',
+            'suscripcion_inactiva'=>'ZYNKO: la suscripción de la empresa de la API Key no está vigente.',
+            'plan_inactivo'=>'ZYNKO: el plan asignado a la empresa está inactivo o no existe.',
             default=>'ZYNKO: HTTP 403; mensaje no reconocido, requiere diagnóstico del proveedor.'
         };
     }
@@ -415,6 +421,7 @@ final class IzzyExternalProviderService {
         elseif($curlErr)$logMessage='Fallo HTTPS cURL (código '.$curlErr.').';
         elseif($status===401)$logMessage='HTTP 401: '.self::auth401Label((string)$auth401);
         elseif($status===403)$logMessage='HTTP 403: '.self::auth403Label((string)$auth403);
+        elseif($status===503 && $code==='API_PLAN_LOOKUP_FAILED')$logMessage='HTTP 503: ZYNKO no pudo verificar la suscripción.';
         elseif(!$validJson)$logMessage='HTTP '.$status.': respuesta de ZYNKO no es JSON válido.';
         elseif($ok)$logMessage='HTTP '.$status.': autenticación y respuesta JSON confirmadas.';
         else $logMessage='HTTP '.$status.': respuesta JSON no confirmó éxito de la operación.';

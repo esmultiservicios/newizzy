@@ -66,7 +66,7 @@
 if (session_status()!==PHP_SESSION_ACTIVE) session_start(['name'=>'SD']);
 if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(random_bytes(32));
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>vistas/plantilla/css/miCuentaApi.css?v=1">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>vistas/plantilla/css/miCuentaApi.css?v=<?php echo (int)filemtime(__DIR__ . '/../../plantilla/css/miCuentaApi.css'); ?>">
 <div class="izzy-account-api-overlay" id="izzy-account-api-overlay" aria-hidden="true" data-csrf="<?php echo htmlspecialchars($_SESSION['csrf_api_cuenta'],ENT_QUOTES,'UTF-8'); ?>" data-url="<?php echo htmlspecialchars(SERVERURL,ENT_QUOTES,'UTF-8'); ?>ajax/miCuentaApi.php" data-base-url="<?php echo htmlspecialchars(rtrim(SERVERURL,'/').'/api/v1/',ENT_QUOTES,'UTF-8'); ?>">
   <section class="izzy-account-api-dialog" role="dialog" aria-modal="true" aria-labelledby="izzy-account-api-title">
     <header><div><small>MI CUENTA · INTEGRACIONES</small><h2 id="izzy-account-api-title">Integraciones API</h2></div><button type="button" class="izzy-account-api-close" aria-label="Cerrar"><i class="fas fa-times"></i></button></header>

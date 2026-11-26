@@ -10,7 +10,7 @@
 .izzy-user-panel .izzy-account-action:hover>.izzy-account-icon{filter:brightness(.94)}
 .izzy-account-api-overlay.is-open{display:flex}
 .izzy-account-api-dialog{display:flex;flex-direction:column;width:min(1040px,100%);height:min(760px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);border:0;border-radius:17px;background:#fff;overflow:hidden;box-shadow:0 24px 80px rgba(0,18,33,.32)}
-.izzy-account-api-dialog{width:min(960px,calc(100vw - 24px));height:auto;max-height:min(720px,calc(100dvh - 24px))}
+.izzy-account-api-dialog{width:min(960px,calc(100vw - 24px));height:min(720px,calc(100dvh - 24px));max-height:calc(100dvh - 24px)}
 .izzy-account-api-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;border-bottom:4px solid #18b6ac;border-radius:17px 17px 0 0;background:#152c40;color:#fff}
 .izzy-account-api-dialog>header small{display:block;color:#5cbaf0;font-size:10px;font-weight:800;letter-spacing:.1em}
 .izzy-account-api-dialog h2{margin:4px 0 0;color:#fff;font-size:19px}

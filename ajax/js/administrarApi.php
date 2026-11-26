@@ -124,6 +124,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         error_log('Administración API IZZY (SQL): '.$e->getCode().' / '.$e->getSqlState());
         // Codigo SQL seguro para diagnostico; no revelar consultas ni valores privados.
         $sqlCode=(int)$e->getCode();
+        if(str_starts_with((string)($action??''),'external_wa_') && in_array($sqlCode,[1146,1054],true)){
+            $respond(false,'Las pruebas de WhatsApp necesitan una actualización de instalación.',[
+                'code'=>$sqlCode===1146?'WA_TEST_STORAGE_REQUIRED':'WA_TEST_STORAGE_INCOMPATIBLE',
+                'migration'=>'scripts/sql/izzy_zynko_envios_prueba_v1.sql',
+            ],503);
+        }
         $message=($sqlCode===1406)
             ? 'Un resultado técnico excedió la longitud permitida en la base de datos. Compruebe que se instaló el servicio actualizado.'
             : (($sqlCode===1146||$sqlCode===1054)
@@ -347,7 +353,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     const $waHistory=$('#api_wa_history');
     const $waFeedback=$('#api_wa_feedback');
     const $waSubmit=$('#api_wa_submit');
-    let waConnection=0, waOperation='', waSending=false, waHistoryVersion=0;
+    let waConnection=0, waOperation='', waSending=false, waHistoryReady=false, waHistoryVersion=0;
 
     const waLabels={
         queued:'En cola', sending:'Enviando', retrying:'Reintentando', sent:'Enviado al proveedor',
@@ -372,11 +378,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
     function loadWaHistory(id){
         const version=++waHistoryVersion;
+        waHistoryReady=false;
+        $waSubmit.prop('disabled',true);
         $waHistory.empty().append($('<p class="api-loading">').text('Cargando envíos…'));
         post({action:'external_wa_list',id}).done(r=>{
             if(id!==waConnection || version!==waHistoryVersion)return;
             $waHistory.empty();
             $('#api_wa_server').text('Servidor PHP de IZZY: '+r.datos.server_host);
+            waHistoryReady=true;
+            $waSubmit.prop('disabled',waSending);
             const operations=r.datos.operations||[];
             if(!operations.length)$waHistory.append($('<p class="api-wa-note">').text('Todavía no hay envíos de prueba.'));
             operations.forEach(op=>{
@@ -407,11 +417,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $waHistory.append(card);
             });
         }).fail(error=>{
-            if(id===waConnection && version===waHistoryVersion)$waHistory.empty().append($('<p class="api-wa-feedback is-error">').text(waError(error)));
+            if(id!==waConnection || version!==waHistoryVersion)return;
+            const setup=error.responseJSON?.datos?.code;
+            const install=setup==='WA_TEST_STORAGE_REQUIRED';
+            const incompatible=setup==='WA_TEST_STORAGE_INCOMPATIBLE';
+            const notice=$('<div class="izzy-dialog__notice">').append(
+                $('<strong>').text(install?'Pruebas pendientes de instalación':incompatible?'Instalación de pruebas incompatible':'No se pudo consultar el historial'),
+                $('<span>').text(install?'Ejecute la migración de pruebas en DB_MAIN y vuelva a comprobar.':incompatible?'Revise con el administrador la estructura de api_zynko_test_sends.':waError(error))
+            );
+            if(install)notice.append($('<code>').text(error.responseJSON.datos.migration));
+            notice.append($('<button type="button" class="izzy-button">').text('Volver a comprobar').on('click',()=>loadWaHistory(id)));
+            $waHistory.empty().append(notice);
         });
     }
     function dispatchWa(data){
-        if(waSending)return;
+        if(waSending||!waHistoryReady)return;
         waSending=true;
         $waSubmit.prop('disabled',true);
         waFeedback('Contactando a ZYNKO…');
@@ -425,7 +445,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
         }).fail(error=>waFeedback(waError(error),true)).always(()=>{
             waSending=false;
-            $waSubmit.prop('disabled',false);
             loadWaHistory(data.id);
         });
     }

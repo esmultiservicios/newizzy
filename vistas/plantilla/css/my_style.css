@@ -16416,3 +16416,49 @@ input[type="search"]::-ms-clear {
 }
 
 .izzy-document-share-offer{position:fixed;z-index:1090;right:16px;bottom:64px;display:flex;gap:6px;max-width:calc(100vw - 32px);padding:8px;background:#f5f8fb;border:1px solid #dbe4ed;border-radius:10px;box-shadow:0 6px 16px rgba(19,42,61,.19)}
+
+
+/* Diálogo reutilizable con un área de trabajo y un panel de apoyo. */
+.izzy-dialog--workspace {
+  height: min(680px, calc(100dvh - 24px));
+}
+
+.izzy-dialog__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.izzy-dialog__panel {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--izzy-dialog-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.izzy-dialog__panel--aside {
+  background: #f5f8fb;
+}
+
+.izzy-dialog__notice {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid #ebd4a2;
+  border-radius: 8px;
+  background: #fff8e9;
+  color: #634116;
+  font-size: .875rem;
+  overflow-wrap: anywhere;
+}
+
+.izzy-dialog__notice button {
+  justify-self: start;
+}
+
+@media(max-width: 680px) {
+  .izzy-dialog__workspace { grid-template-columns: minmax(0, 1fr); }
+  .izzy-dialog__panel { padding: 10px; }
+}

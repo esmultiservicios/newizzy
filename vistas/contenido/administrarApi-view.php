@@ -201,7 +201,7 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <div class="api-footnote"><i class="fas fa-clock"></i> Se muestran las últimas 100 sesiones emitidas por <code>api/v1/auth/login.php</code>. Revocar aquí invalida también la renovación automática del dispositivo.</div>
     </section>
 
-    <dialog id="api_wa_dialog" class="izzy-dialog api-wa-dialog" aria-labelledby="api_wa_title">
+    <dialog id="api_wa_dialog" class="izzy-dialog izzy-dialog--workspace api-wa-dialog" aria-labelledby="api_wa_title">
     <header class="izzy-dialog__header">
         <div class="izzy-dialog__heading">
             <h2 class="izzy-dialog__title" id="api_wa_title"><i class="fab fa-whatsapp mr-2" aria-hidden="true"></i>Prueba de WhatsApp</h2>
@@ -210,9 +210,9 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <button type="button" class="izzy-dialog__close" data-izzy-dialog-close aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
     </header>
     <div class="izzy-dialog__body">
-        <p class="api-wa-note" id="api_wa_server"></p>
-        <p class="api-wa-note">Use solo destinatarios de prueba autorizados en el servidor. Si el resultado es incierto, reintente la misma operación desde el historial para evitar duplicados.</p>
-        <form id="api_wa_form" class="api-wa-form">
+        <p class="api-wa-feedback" id="api_wa_feedback" role="status"></p>
+        <div class="izzy-dialog__workspace">
+        <form id="api_wa_form" class="izzy-dialog__panel api-wa-form">
             <fieldset class="api-wa-mode">
                 <legend class="izzy-label">Modo de envío</legend>
                 <label><input type="radio" name="mode" value="single" checked> Individual</label>
@@ -233,15 +233,17 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
             </div>
             <label class="api-wa-consent"><input type="checkbox" name="consent" value="1" required> Confirmo que todos los destinatarios autorizaron esta prueba de WhatsApp.</label>
         </form>
-        <p class="api-wa-feedback" id="api_wa_feedback" role="status"></p>
-        <section aria-labelledby="api_wa_history_title">
-            <h3 class="api-route-section-title" id="api_wa_history_title">Historial de envíos de prueba</h3>
-            <div class="api-integration-list" id="api_wa_history"></div>
+        <section class="izzy-dialog__panel izzy-dialog__panel--aside" aria-labelledby="api_wa_history_title">
+            <h3 class="api-route-section-title" id="api_wa_history_title">Historial de pruebas</h3>
+            <p class="api-wa-server" id="api_wa_server"></p>
+            <p class="api-wa-note">Reintente desde el historial para conservar la misma operación.</p>
+            <div id="api_wa_history" aria-live="polite"></div>
         </section>
+        </div>
     </div>
     <footer class="izzy-dialog__footer">
         <button type="button" class="izzy-button" data-izzy-dialog-close><i class="fas fa-times" aria-hidden="true"></i>Cerrar</button>
-        <button type="submit" form="api_wa_form" class="izzy-button izzy-button--primary" id="api_wa_submit"><i class="fas fa-paper-plane" aria-hidden="true"></i>Enviar prueba</button>
+        <button type="submit" form="api_wa_form" class="izzy-button izzy-button--primary" id="api_wa_submit" disabled><i class="fas fa-paper-plane" aria-hidden="true"></i>Enviar prueba</button>
     </footer>
 </dialog>
 

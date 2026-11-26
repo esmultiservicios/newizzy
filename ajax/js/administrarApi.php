@@ -63,7 +63,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
             if ($action==='external_read') {
                 if(($_POST['tipo']??'')!=='history')$respond(false,'Consulte el estado desde un envío y su UUID.',[],422);
-                $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/history');
+                $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/history',max(1,min(100000,(int)($_POST['page']??1))));
                 $respond($result['ok'],$result['detalle'],$result,$result['ok']?200:502);
             }
             if ($action==='external_wa_ready') {
@@ -477,17 +477,48 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             ...Object.fromEntries(new FormData(waForm)),recipients});
     });
 
-    $('#api_ext_rows').on('click','[data-ext-read]',function(){
-        const id=Number($(this).attr('data-id')),tipo=String($(this).attr('data-ext-read'));
-        post({action:'external_read',id,tipo}).done(r=>{
-            notify(r.mensaje,'success');loadExternalChecks(id,true);
+    const historyDialog=document.getElementById('api_zynko_history');
+    const historyStatus=$('#api_zynko_history_status');
+    const historyRows=$('#api_zynko_history_rows');
+    const historyPrev=$('#api_zynko_history_prev');
+    const historyNext=$('#api_zynko_history_next');
+    const historyLabels={queued:'En cola',sending:'Enviando',retrying:'Reintentando',sent:'Enviado',
+        delivered:'Entregado',read:'Leído',failed:'Fallido',partial:'Parcial',uncertain:'Incierto',pending:'Pendiente'};
+    let historyConnection=0, historyPage=1, historyRequest=0;
+    function loadZynkoHistory(page){
+        const serial=++historyRequest;
+        historyStatus.text('Consultando el historial de esta clave en ZYNKO…');
+        historyRows.empty();
+        historyPrev.add(historyNext).prop('disabled',true);
+        post({action:'external_read',id:historyConnection,tipo:'history',page}).done(r=>{
+            if(serial!==historyRequest || !historyDialog.open)return;
+            const history=r.datos.history;
+            historyPage=history.page;
+            historyStatus.text(history.total ? history.total+' envíos · Página '+history.page+' de '+history.pages : 'Esta clave todavía no tiene envíos registrados en ZYNKO.');
+            historyPrev.prop('disabled',history.page<=1);
+            historyNext.prop('disabled',history.page>=history.pages || history.page>=100000);
+            for(const item of history.rows){
+                const status=historyLabels[item.status] || item.status || 'Sin estado';
+                const queue=item.queue && item.queue!==item.status ? ' · Cola: '+(historyLabels[item.queue] || item.queue) : '';
+                const main=$('<div class="api-record-title">').append($('<strong>').text(item.recipient || 'Destinatario'),
+                    $('<span>').text((item.date ? formatDate(item.date)+' · ' : '')+'UUID '+item.uuid));
+                historyRows.append($('<article class="api-record-card">').append(main,$('<span class="api-status">').text(status+queue)));
+            }
         }).fail(e=>{
-            const status=Number(e.responseJSON?.datos?.http_status||0);
-            const guidance=status===401?'ZYNKO respondió HTTP 401: solicitud rechazada. Verifique que la API Key pertenezca al entorno consultado, esté vigente, que el encabezado Bearer llegue correctamente y los permisos de lectura de '+(tipo==='history'?'historial':'estados')+'.':status===403?'ZYNKO respondió HTTP 403: revise permisos y restricción IP/CIDR del servidor IZZY.':'';
-            const authDetail=safeAuthDiagnostic(e.responseJSON?.datos) || safeForbiddenDiagnostic(e.responseJSON?.datos);
-            notify(authDetail||guidance||e.responseJSON?.mensaje||'No se pudo consultar ZYNKO','error');
-            loadExternalChecks(id,true);
+            if(serial!==historyRequest || !historyDialog.open)return;
+            const data=e.responseJSON?.datos;
+            historyStatus.text(safeAuthDiagnostic(data) || safeForbiddenDiagnostic(data) || e.responseJSON?.mensaje || 'No se pudo consultar ZYNKO.');
         });
+    }
+    historyDialog.addEventListener('close',()=>{historyRequest++;});
+    historyPrev.on('click',()=>loadZynkoHistory(historyPage-1));
+    historyNext.on('click',()=>loadZynkoHistory(historyPage+1));
+    $('#api_ext_rows').on('click','[data-ext-read]',function(){
+        historyConnection=Number($(this).attr('data-id'));
+        const connection=($('#api_ext_rows').data('connections')||[]).find(x=>Number(x.id)===historyConnection);
+        $('#api_zynko_history_connection').text(connection?.nombre || 'ZYNKO');
+        historyDialog.showModal();
+        loadZynkoHistory(1);
     });
     const pendingConnectionTests=new Set();
     function connectionTestSummary(tests){
@@ -518,7 +549,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 checkState.connectionId=id;
                 checkState.rows=r.datos.historial||[];
                 checkState.page=1;
+                $('#api_ext_checks_search').val('');
                 renderExternalChecks();
+                const heading=document.getElementById('api_ext_checks_heading');
+                heading.focus({preventScroll:true});
+                heading.scrollIntoView({block:'center',behavior:'instant'});
             } else if(isTest){
                 const tests=r.datos;
                 const summary=connectionTestSummary(tests);

@@ -604,17 +604,43 @@ final class IzzyExternalProviderService {
     }
 
 
-    public function request(int $id,string $route): array {
+    public function request(int $id,string $route,?int $historyPage=null): array {
         if(!in_array($route,['v1/channels','v1/whatsapp/history'],true))
             throw new InvalidArgumentException('Consulta de conexión no admitida.');
-        return $this->zynkoTransport($this->zynkoConnection($id),$route);
+        return $this->zynkoTransport($this->zynkoConnection($id),$route,historyPage:$historyPage);
     }
 
-    private function zynkoTransport(array $row,string $route,?string $json=null,?string $idempotency=null,?string $uuid=null): array {
+    private static function historySummary(mixed $data): ?array {
+        if (!is_array($data) || !isset($data['messages']) || !is_array($data['messages']) || !array_is_list($data['messages'])) return null;
+        $numbers = [];
+        foreach (['page'=>1, 'pages'=>1, 'total'=>0] as $field=>$minimum) {
+            $value = filter_var($data[$field]??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>$minimum]]);
+            if ($value===false) return null;
+            $numbers[$field]=$value;
+        }
+        if (count($data['messages'])>20) return null;
+        $rows=[];
+        foreach ($data['messages'] as $message) {
+            if (!is_array($message) || !is_string($message['message_uuid']??null) || !self::validUuid($message['message_uuid'])) return null;
+            $date=is_string($message['created_at']??null) ? $message['created_at'] : '';
+            $digits=preg_replace('/[^0-9]/','',is_string($message['destination']??null) ? $message['destination'] : '');
+            $status=static fn($value) => is_string($value) && preg_match('/^[a-z_]{1,24}$/D',$value) ? $value : '';
+            $rows[]=[
+                'uuid'=>$message['message_uuid'],
+                'recipient'=>strlen($digits)>=4 ? '••••'.substr($digits,-4) : '',
+                'date'=>preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/D',$date) ? $date : '',
+                'status'=>$status($message['status']??null),
+                'queue'=>$status($message['queue_state']??null),
+            ];
+        }
+        return $numbers+['rows'=>$rows];
+    }
+
+    private function zynkoTransport(array $row,string $route,?string $json=null,?string $idempotency=null,?string $uuid=null,?int $historyPage=null): array {
         $id=(int)$row['id'];
         if(!function_exists('curl_init'))throw new RuntimeException('CURL_MISSING: PHP necesita la extensión cURL para realizar conexiones HTTPS.');
         $url='https://zynkocloud.app/api.php?r='.rawurlencode($route);
-        if($route==='v1/whatsapp/history')$url.='&page=1&per_page=20';
+        if($route==='v1/whatsapp/history')$url.='&page='.max(1,min(100000,$historyPage??1)).'&per_page=20';
         if($uuid!==null)$url.='&message_uuid='.rawurlencode($uuid);
         $token=$this->decrypt((string)$row['token_cifrado']);
         if($token==='' || preg_match('/[\r\n\x00]/',$token)) {
@@ -693,6 +719,13 @@ final class IzzyExternalProviderService {
                 in_array($reported,['queued','sending','retrying','sent','delivered','read','failed','partial','uncertain'],true);
             if($ok)$messageStatus=$reported;
         }
+        $history=null;
+        $invalidHistory=false;
+        if ($ok && $route==='v1/whatsapp/history' && $historyPage!==null) {
+            $history=self::historySummary($decoded['data']??null);
+            $invalidHistory=$history===null;
+            $ok=!$invalidHistory;
+        }
         if($responseTooLarge)$logMessage='Respuesta de ZYNKO superior al límite de 1 MiB.';
         elseif($curlErr)$logMessage='Fallo HTTPS cURL (código '.$curlErr.').';
         elseif($status===401)$logMessage='HTTP 401: '.self::auth401Label((string)$auth401);
@@ -703,6 +736,8 @@ final class IzzyExternalProviderService {
         elseif($status===409 && $route==='v1/whatsapp/send')$logMessage='ZYNKO rechazó el canal o encontró un conflicto de idempotencia.';
         elseif($status===404 && $route==='v1/whatsapp/status')$logMessage='ZYNKO no encontró el mensaje para esta clave.';
         elseif($ok && $route==='v1/whatsapp/send')$logMessage='HTTP 202: en cola en ZYNKO.';
+        elseif($invalidHistory)$logMessage='ZYNKO respondió con un formato de historial inesperado.';
+        elseif($ok && $history!==null)$logMessage='Historial de WhatsApp consultado en ZYNKO.';
         elseif($ok)$logMessage='HTTP '.$status.': autenticación y respuesta JSON confirmadas.';
         else $logMessage='HTTP '.$status.': respuesta JSON no confirmó éxito de la operación.';
         if($code!=='')$logMessage.=' Código: '.$code.'.';
@@ -727,7 +762,7 @@ final class IzzyExternalProviderService {
             'diagnostico_ip'=>$ipDiagnostics,
             'integridad_credencial'=>$credentialShape,
             'diagnostico_transporte'=>$localTransport,
-            'messages'=>$messages,'message_status'=>$messageStatus,
+            'messages'=>$messages,'message_status'=>$messageStatus,'history'=>$history,
             'respuesta_exitosa'=>$ok,'estado'=>'consulta_sin_confirmar_entrega'];
     }
     /** Catálogo declarativo: el registro NO autoriza ejecutar HTTP arbitrario. */

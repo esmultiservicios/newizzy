@@ -70,9 +70,9 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
         <div id="api_ext_rows" class="api-integration-list" aria-live="polite"><div class="api-loading">Seleccione la pestaña para cargar las conexiones.</div></div>
         <nav class="api-results-pagination" data-api-pagination="ext" aria-label="Paginación de conexiones"></nav>
         <div id="api_ext_checks_section" hidden>
-        <h3 class="api-route-section-title" id="api_ext_checks_heading">Historial técnico de comprobaciones</h3>
+        <h3 class="api-route-section-title" id="api_ext_checks_heading" tabindex="-1">Historial técnico de comprobaciones</h3>
         <div class="api-check-toolbar"><label class="api-results-search" aria-label="Buscar comprobaciones"><span class="api-search-icon"><i class="fas fa-search"></i></span><input id="api_ext_checks_search" type="search" placeholder="Buscar comprobaciones..."></label><label class="api-check-size">Mostrar <select id="api_ext_checks_limit" data-izzy-page-size aria-label="Registros de comprobaciones por página"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="0">Todos</option></select> registros</label></div>
-        <div id="api_ext_checks" class="api-integration-list"><div class="api-empty-state"><i class="fas fa-history"></i><strong>Sin comprobaciones registradas</strong><span>Seleccione «Historial» en una conexión para consultar los resultados técnicos.</span></div></div>
+        <div id="api_ext_checks" class="api-integration-list"><div class="api-empty-state"><i class="fas fa-history"></i><strong>Sin comprobaciones registradas</strong><span>Seleccione «Comprobaciones» en una conexión para consultar los resultados técnicos.</span></div></div>
         <nav class="api-results-pagination api-check-pagination" aria-label="Paginación de comprobaciones"><span id="api_ext_checks_count" class="api-page-summary">Mostrando 0 a 0 de 0 registros</span><div id="api_ext_checks_pages" class="api-page-buttons"></div></nav>
         </div>
     </section>
@@ -201,7 +201,24 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <div class="api-footnote"><i class="fas fa-clock"></i> Se muestran las últimas 100 sesiones emitidas por <code>api/v1/auth/login.php</code>. Revocar aquí invalida también la renovación automática del dispositivo.</div>
     </section>
 
-    <dialog id="api_wa_dialog" class="izzy-dialog izzy-dialog--console api-wa-dialog" aria-labelledby="api_wa_title">
+    <dialog class="izzy-dialog" id="api_zynko_history" aria-labelledby="api_zynko_history_title">
+    <header class="izzy-dialog__header">
+        <div><h2 class="izzy-dialog__title" id="api_zynko_history_title">Historial de WhatsApp</h2>
+        <p class="izzy-dialog__subtitle" id="api_zynko_history_connection"></p></div>
+        <form method="dialog"><button class="izzy-dialog__close" aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button></form>
+    </header>
+    <div class="izzy-dialog__body">
+        <p id="api_zynko_history_status" role="status"></p>
+        <div class="api-integration-list" id="api_zynko_history_rows"></div>
+    </div>
+    <footer class="izzy-dialog__footer">
+        <button type="button" class="izzy-button" id="api_zynko_history_prev"><i class="fas fa-chevron-left" aria-hidden="true"></i> Anterior</button>
+        <button type="button" class="izzy-button" id="api_zynko_history_next">Siguiente <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        <form method="dialog"><button class="izzy-button izzy-button--primary"><i class="fas fa-times" aria-hidden="true"></i> Cerrar</button></form>
+    </footer>
+</dialog>
+
+<dialog id="api_wa_dialog" class="izzy-dialog izzy-dialog--console api-wa-dialog" aria-labelledby="api_wa_title">
     <header class="izzy-dialog__header">
         <span class="izzy-dialog__emblem" aria-hidden="true"><i class="fab fa-whatsapp"></i></span>
         <div class="izzy-dialog__heading">

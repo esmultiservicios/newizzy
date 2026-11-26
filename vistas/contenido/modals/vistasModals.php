@@ -100,10 +100,16 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
       <section class="izzy-account-api-tab-panel" data-izzy-api-content="modules" aria-label="Módulos de integración">
         <h3><i class="fas fa-database"></i> ¿Qué podrá conectar con IZZY?</h3>
         <p>El catálogo tiene <strong>6 recursos de datos y 8 permisos configurables</strong>: seis permisos de consulta y dos de escritura (clientes y proveedores). Aquí se muestran todas las operaciones que puede autorizar su empresa.</p>
-        <div class="izzy-account-api-modules">
-          <?php
-          require_once dirname(__DIR__, 3).'/core/api/ApiModuleCatalog.php';
-          foreach (IzzyApiModuleCatalog::items() as $apiModule):
+        <?php
+        require_once dirname(__DIR__, 3).'/core/api/ApiModuleCatalog.php';
+        $moduleGroups=['Contactos'=>['clientes','proveedores'],'Catálogo'=>['productos'],'Facturación'=>['facturas','secuencias'],'Empresa'=>['empresa']];
+        foreach ($moduleGroups as $groupName=>$groupKeys):
+        ?>
+        <details class="izzy-account-api-module-group">
+          <summary><?=htmlspecialchars($groupName,ENT_QUOTES,'UTF-8')?></summary>
+          <div class="izzy-account-api-modules">
+          <?php foreach (IzzyApiModuleCatalog::items() as $apiModule):
+              if (!in_array($apiModule['clave'],$groupKeys,true)) continue;
           ?>
           <article>
             <i class="<?php echo htmlspecialchars($apiModule['icono'], ENT_QUOTES, 'UTF-8'); ?>"></i>
@@ -124,7 +130,7 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
           </article>
           <?php endif; ?>
           <?php endforeach; ?>
-        </div>
+        </div></details><?php endforeach; ?>
         <aside class="izzy-account-api-module-promo"><i class="fas fa-shield-alt"></i><div><strong>IZZY API · Una sola conexión, datos protegidos</strong><p>Conecte sus herramientas con clientes, proveedores y catálogos autorizados. Cada acceso queda vinculado a su empresa y puede revocarse cuando lo necesite. Las operaciones nuevas respetan los permisos concedidos.</p></div></aside>
         <div class="izzy-account-api-warning"><i class="fas fa-shield-alt"></i><span>La API no acepta un nombre de base de datos proporcionado por el cliente. Cada credencial identifica exclusivamente su empresa. Solo puede utilizar las operaciones y permisos que autorice.</span></div>
       </section>

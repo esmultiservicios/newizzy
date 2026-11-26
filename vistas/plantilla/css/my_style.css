@@ -16414,3 +16414,5 @@ input[type="search"]::-webkit-search-cancel-button {
 input[type="search"]::-ms-clear {
     display: none;
 }
+
+.izzy-document-share-offer{position:fixed;z-index:1090;right:16px;bottom:64px;display:flex;gap:6px;max-width:calc(100vw - 32px);padding:8px;background:#f5f8fb;border:1px solid #dbe4ed;border-radius:10px;box-shadow:0 6px 16px rgba(19,42,61,.19)}

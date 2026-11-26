@@ -10,7 +10,7 @@
 .izzy-user-panel .izzy-account-action:hover>.izzy-account-icon{filter:brightness(.94)}
 .izzy-account-api-overlay.is-open{display:flex}
 .izzy-account-api-dialog{display:flex;flex-direction:column;width:min(1040px,100%);height:min(760px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);border:0;border-radius:17px;background:#fff;overflow:hidden;box-shadow:0 24px 80px rgba(0,18,33,.32)}
-.izzy-account-api-dialog{width:min(1200px,calc(100vw - 24px));height:calc(100dvh - 24px);max-height:calc(100dvh - 24px)}
+.izzy-account-api-dialog{width:min(960px,calc(100vw - 24px));height:auto;max-height:min(720px,calc(100dvh - 24px))}
 .izzy-account-api-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;border-bottom:4px solid #18b6ac;border-radius:17px 17px 0 0;background:#152c40;color:#fff}
 .izzy-account-api-dialog>header small{display:block;color:#5cbaf0;font-size:10px;font-weight:800;letter-spacing:.1em}
 .izzy-account-api-dialog h2{margin:4px 0 0;color:#fff;font-size:19px}
@@ -37,7 +37,7 @@
 .izzy-account-api-module-promo p{font-size:12px;line-height:1.7;margin:4px 0 0;color:#53738c}
 .izzy-account-api-detail-overlay{display:none;position:fixed;inset:0;z-index:14000;align-items:center;justify-content:center;padding:12px;background:rgba(9,28,44,.69)}
 .izzy-account-api-detail-overlay.is-open{display:flex}
-.izzy-account-api-detail-dialog{display:flex;flex-direction:column;width:min(930px,100%);height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);overflow:hidden;border-radius:16px;background:#fff;box-shadow:0 22px 65px rgba(0,12,27,.33)}
+.izzy-account-api-detail-dialog{display:flex;flex-direction:column;width:min(850px,100%);height:auto;max-height:min(680px,calc(100dvh - 24px));overflow:hidden;border-radius:16px;background:#fff;box-shadow:0 22px 65px rgba(0,12,27,.33)}
 .izzy-account-api-detail-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;background:#152f45;border-bottom:4px solid #18b6ac;color:#fff}
 .izzy-account-api-detail-dialog>header small{color:#80c9eb;font-size:10px;font-weight:800}
 .izzy-account-api-detail-dialog>header h2{margin:3px 0 0;color:#fff;font-size:18px}
@@ -178,3 +178,8 @@
 @media(max-width:575px){.izzy-account-api-scopes{grid-template-columns:1fr}.izzy-account-api-guide{padding:12px}.izzy-account-api-guide-head{align-items:flex-start;flex-direction:column}}
 @media(max-width:680px){.izzy-account-api-fields{grid-template-columns:1fr}.izzy-account-api-dialog{width:100%}.izzy-account-api-guide>summary>span{display:none}}
 @media(max-width:680px){.izzy-account-api-modules{grid-template-columns:1fr}.izzy-account-api-tabs button{flex:1 1 auto}}
+
+.izzy-account-api-dialog>header,.izzy-account-api-dialog>footer{flex:0 0 auto}
+.izzy-account-api-module-group{margin:8px 0;border:1px solid #d5e3ed;border-radius:9px}
+.izzy-account-api-module-group>summary{cursor:pointer;padding:10px 12px;font-weight:700}
+.izzy-account-api-module-group>.izzy-account-api-modules{padding:0 12px 12px}

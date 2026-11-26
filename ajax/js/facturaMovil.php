@@ -1110,6 +1110,7 @@ $(() => {
           } else {
             // Crédito → NO llama pago
             showNotify("success", "Éxito", "Factura al crédito registrada correctamente");
+            window.izzyOfferDocumentShare?.('factura',response.factura_id,'facturaMovil');
             resetearFormulario();
             cargarClientes();                // deja “Consumidor Final” (ID 1)
           }
@@ -1165,6 +1166,8 @@ $(() => {
         if (response.success) {
           $('#pagoModal').modal('hide');
           showNotify("success", "Éxito", "Pago registrado correctamente");
+
+          window.izzyOfferDocumentShare?.('factura',response.factura_id || datos.facturaId,'facturaMovil');
 
           // imprimir si es contado
           if (response.imprimir && response.factura_id) {

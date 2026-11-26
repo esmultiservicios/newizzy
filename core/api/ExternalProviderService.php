@@ -326,6 +326,22 @@ final class IzzyExternalProviderService {
             filter_var($host,FILTER_VALIDATE_IP) || strpos($host,'.')===false) throw new InvalidArgumentException('Utilice un dominio HTTPS público.');
         if ($id===0 && $auth!=='none' && $token==='') throw new InvalidArgumentException('Ingrese la credencial de autenticación.');
         if ($token!=='' && strlen($token)>4096) throw new InvalidArgumentException('Token demasiado largo.');
+        $options=json_decode($config,true,32,JSON_THROW_ON_ERROR);
+        unset($options['izzy_document_sharing']);
+        if(strtoupper($provider)==='ZYNKO' && $auth==='bearer' && $url==='https://zynkocloud.app/api.php'){
+            $types=[];
+            foreach(['factura','cotizacion'] as $type)
+                if(($input['zin_doc_'.$type]??'')==='1')$types[]=$type;
+            if($types){
+                $tenant=(new mainModel())->connection();
+                $database=(string)$tenant->query('SELECT DATABASE()')->fetch_row()[0];
+                $tenant->close();
+                $company=(int)($_SESSION['empresa_id_sd']??0);
+                if($database===''||$company<1)throw new DomainException('Empresa de envíos no verificada.');
+                $options['izzy_document_sharing']=['database'=>$database,'company'=>$company,'types'=>$types];
+            }
+        }
+        $config=json_encode((object)$options,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
         $secret=$token!==''?$this->encrypt($token):($id===0?'':null);
         if ($id>0) {
             $stmt=$this->db->prepare('UPDATE api_external_connections SET nombre=?,proveedor=?,categoria=?,descripcion=?,url_base=?,tipo_auth=?,canal_id=?,configuracion_json=?,token_cifrado=COALESCE(?,token_cifrado) WHERE id=? AND archivado=0');
@@ -511,6 +527,62 @@ final class IzzyExternalProviderService {
         if (!(int)$row['activo']) throw new DomainException('Active primero la conexión para comprobarla.');
         return $row;
     }
+
+    public function documentConnection(string $database,int $company,string $type): ?array {
+        $rows=$this->db->query("SELECT * FROM api_external_connections WHERE activo=1 AND archivado=0
+            AND UPPER(TRIM(proveedor))='ZYNKO' AND tipo_auth='bearer' AND url_base='https://zynkocloud.app/api.php'");
+        $match=null;
+        while($row=$rows->fetch_assoc()){
+            $scope=json_decode($row['configuracion_json'],true)['izzy_document_sharing']??[];
+            if(($scope['database']??null)!==$database || ($scope['company']??null)!==$company ||
+                !in_array($type,(array)($scope['types']??[]),true))continue;
+            if($match)throw new DomainException('Hay varias conexiones habilitadas. Deje una sola para este documento.');
+            $match=$row;
+        }
+        return $match;
+    }
+
+    public function dispatchDocument(array $connection,string $database,int $company,string $type,int $id,
+        int $actor,string $phone,string $url): array {
+        $connectionId=(int)$connection['id'];
+        $key=hash('sha256',json_encode([$database,$company,$type,$id],JSON_THROW_ON_ERROR));
+        $credential=hash('sha256',(string)$connection['token_cifrado']);
+        $load=function()use($key): ?array {
+            $stmt=$this->db->prepare('SELECT * FROM api_zynko_document_dispatch WHERE dispatch_key=?');
+            $stmt->bind_param('s',$key);$stmt->execute();$row=$stmt->get_result()->fetch_assoc();$stmt->close();
+            return $row;
+        };
+        $previous=$load();
+        if(!$previous){
+            $probe=$this->zynkoTransport($connection,'v1/channels');
+            if(!$probe['ok']||empty($probe['canal']['canal_detectado']))
+                throw new DomainException($probe['canal']['motivo']??$probe['detalle']);
+            $label=$type==='factura'?'factura':'cotización';
+            $encrypted=$this->encrypt(json_encode([
+                'channel_id'=>(int)$probe['canal']['canal_id'],'to'=>$phone,
+                'message'=>'Su '.$label.' de IZZY está disponible: '.$url
+            ],JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+            $stmt=$this->db->prepare('INSERT INTO api_zynko_document_dispatch
+                (dispatch_key,connection_id,actor_id,credential_ref,payload_cifrado) VALUES (?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE dispatch_key=dispatch_key');
+            $stmt->bind_param('siiss',$key,$connectionId,$actor,$credential,$encrypted);
+            $stmt->execute();$stmt->close();
+            $previous=$load();
+        }
+        if(!empty($previous['message_uuid']))return ['ok'=>true,'detail'=>'ZYNKO ya aceptó este documento. UUID: '.$previous['message_uuid']];
+        if((int)$previous['connection_id']!==$connectionId || !hash_equals($previous['credential_ref'],$credential))
+            throw new DomainException('La conexión cambió desde el primer intento. Revise el historial de ZYNKO.');
+        $json=$this->decrypt($previous['payload_cifrado']);
+        if(json_decode($json,true,16,JSON_THROW_ON_ERROR)['to']!==$phone)
+            throw new DomainException('El teléfono cambió desde el primer intento. Revise el historial de ZYNKO.');
+        $result=$this->zynkoTransport($connection,'v1/whatsapp/send',$json,'izzy-doc-'.$key);
+        if(!$result['ok'])return ['ok'=>false,'detail'=>$result['detalle'],'code'=>$result['codigo_proveedor']];
+        $uuid=$result['messages'][0]['uuid'];
+        $stmt=$this->db->prepare('UPDATE api_zynko_document_dispatch SET message_uuid=? WHERE dispatch_key=?');
+        $stmt->bind_param('ss',$uuid,$key);$stmt->execute();$stmt->close();
+        return ['ok'=>true,'detail'=>'Documento en cola en ZYNKO. UUID: '.$uuid];
+    }
+
 
     public function request(int $id,string $route): array {
         if(!in_array($route,['v1/channels','v1/whatsapp/history'],true))

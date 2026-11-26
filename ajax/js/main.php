@@ -1,5 +1,59 @@
 <script>
 <?php
+if(session_status()===PHP_SESSION_ACTIVE && !empty($_SESSION['users_id_sd']) && empty($_SESSION['csrf_izzy_document_share']))
+    $_SESSION['csrf_izzy_document_share']=bin2hex(random_bytes(32));
+?>
+(function(){
+    const token=<?php echo json_encode($_SESSION['csrf_izzy_document_share']??''); ?>;
+    const endpoint=<?php echo json_encode(SERVERURL.'core/api/shareDocument.php'); ?>;
+    if(!token)return;
+    function request(data){
+        return $.ajax({url:endpoint,method:'POST',dataType:'json',headers:{'X-CSRF-Token':token},data});
+    }
+    function showFailure(xhr){
+        const data=xhr.responseJSON;
+        showNotify('warning','WhatsApp', (data?.message || 'No se pudo confirmar el envío.')+(data?.code?' Código: '+data.code:''));
+    }
+    function send(document){
+        request({...document,action:'check'}).done(result=>{
+            if(!result.available){showNotify('info','WhatsApp',result.message);return;}
+            swal({title:'Enviar por WhatsApp',text:'Confirme que el cliente '+result.recipient+' autorizó recibir el enlace de este documento.',
+                icon:'info',buttons:{cancel:{text:'Cancelar',visible:true},confirm:{text:'Confirmo y envío'}},closeOnClickOutside:false})
+            .then(confirmed=>{
+                if(!confirmed)return;
+                request({...document,action:'send',consent:'1',confirmation:result.confirmation})
+                    .done(response=>showNotify(response.available===false?'info':'success','WhatsApp',response.message))
+                    .fail(showFailure);
+            });
+        }).fail(showFailure);
+    }
+    window.izzySendDocument=(type,id,view)=>send({type,id,view});
+    let offerGeneration=0;
+    window.izzyOfferDocumentShare=(type,id,view)=>{
+        if(!Number.isSafeInteger(Number(id))||Number(id)<1)return;
+        const document={type,id,view};
+        const generation=++offerGeneration;
+        jQuery('#izzy-document-share-offer').remove();
+        request({...document,action:'check'}).done(result=>{
+            if(!result.available||generation!==offerGeneration)return;
+            $('#izzy-document-share-offer').remove();
+            const offer=$('<aside id="izzy-document-share-offer" class="izzy-document-share-offer" aria-label="Compartir documento">');
+            const open=$('<button type="button" class="izzy-button izzy-button--primary">')
+                .append($('<i class="fab fa-whatsapp" aria-hidden="true">')).append(' Compartir '+(type==='factura'?'factura':'cotización'))
+                .on('click',()=>send(document));
+            const close=$('<button type="button" class="izzy-button" aria-label="Cerrar opción de compartir">')
+                .append($('<i class="fas fa-times" aria-hidden="true">')).on('click',()=>offer.remove());
+            offer.append(open,close).appendTo('body');
+        });
+    };
+    $(document).on('click.izzyDocumentShare','[data-izzy-share-id]',function(event){
+        event.preventDefault();
+        send({id:this.dataset.izzyShareId,type:this.dataset.izzyShareType,view:this.dataset.izzyShareView});
+    });
+})();
+
+
+<?php
 /*
  * Fallback seguro para variables usadas en los reportes IIS.
  * Evita warnings cuando configGenerales.php no dejó cargado $GLOBALS['SISTEMA_PRUEBA']
@@ -11082,11 +11136,14 @@ function buildConfirmSummary() {
       }
 
       var finishOk = function (resp) {
+        const shareId=CURRENT_FACTURA_ID;
+        const offerShare=resp?.status && /\/facturas\/?$/i.test(location.pathname);
         handleServerResponse(resp || {
           status: true,
           title: 'Éxito',
           message: 'Pago registrado.'
         });
+        if(offerShare)window.izzyOfferDocumentShare?.('factura',shareId,'facturas');
       };
 
       var finishErr = function (resp) {

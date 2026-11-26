@@ -472,7 +472,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
         if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_provider').val(x.proveedor||'');$('#api_ext_url').val(x.url_base||'');$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');$('#api_ext_config').val(x.configuracion_json||'{}');setExternalCategory(x.categoria||'');setExtSelect('#api_ext_auth',x.tipo_auth||'');
-        setExternalDescription(x.descripcion||'');openExternalModal(true);
+        setExternalDescription(x.descripcion||'');
+        const documentTypes=(()=>{try{return JSON.parse(x.configuracion_json||'{}').izzy_document_sharing?.types||[];}catch(_){return [];}})();
+        ['factura','cotizacion'].forEach(type=>$('#api_doc_'+type).prop('checked',documentTypes.includes(type)));
+        openExternalModal(true);
     }).on('click','[data-ext-toggle],[data-ext-test],[data-ext-check],[data-ext-archive]',function(){
         const b=$(this),id=Number(b.attr('data-ext-toggle')||b.attr('data-ext-test')||b.attr('data-ext-check')||b.attr('data-ext-archive'));
         const action=b.is('[data-ext-toggle]')?'external_toggle':b.is('[data-ext-test]')?'external_test':b.is('[data-ext-check]')?'external_checks':'external_archive';

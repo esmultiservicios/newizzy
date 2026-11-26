@@ -4986,6 +4986,7 @@ function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m=>({ '&':'&a
     contexto.finalizado=true;
     // Para llevar se envía a preparación DESPUÉS de confirmar el pago.
     // Así no aparece una orden en Cocina si el cliente abandona/cancela el pago.
+    window.izzyOfferDocumentShare?.('factura',contexto.factura_id,'facturasRestaurante');
     await registrarComandaPostPago(contexto);
     const imprimirPorCobro = debeImprimirTicketComanda() && (
       momentoTicketOperacion()==='cobrar' ||

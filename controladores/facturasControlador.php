@@ -1400,7 +1400,7 @@ class facturasControlador extends facturasModelo {
         * FACTURA NORMAL CRÉDITO:
         * Solo imprime.
         */
-        return $base."printBill({$facturas_id});".$funcion_pagos.$resetTipo;
+        return $base."printBill({$facturas_id});window.izzyOfferDocumentShare?.('factura',{$facturas_id},'facturas');".$funcion_pagos.$resetTipo;
     }
 
     /* ===========================

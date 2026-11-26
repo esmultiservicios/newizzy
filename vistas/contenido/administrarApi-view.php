@@ -59,7 +59,7 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
 
     <section class="api-panel" data-api-panel="external">
         <div class="api-panel-heading"><div><h2>Servicios API externos</h2><p>Conexiones salientes de IZZY. Exclusivas del administrador principal; los tokens nunca se muestran en pantalla.</p></div><button type="button" class="btn btn-secondary" id="api_ext_diagnostics" title="Comprueba tablas y cifrado, sin exponer secretos"><i class="fas fa-stethoscope"></i> Diagnóstico</button><button type="button" class="btn btn-primary" id="api_ext_refresh"><i class="fas fa-sync"></i> Actualizar</button></div>
-        <div class="api-integration-notice"><i class="fas fa-shield-alt"></i><span>Los envíos automáticos de documentos permanecen desactivados. Primero valide credenciales y rutas con el proveedor.</span></div>
+        <div class="api-integration-notice"><i class="fas fa-shield-alt"></i><span>Active los documentos que desea compartir por WhatsApp al editar la conexión ZYNKO. Cada envío se confirma desde el documento o el reporte.</span></div>
         <h3 class="api-route-section-title">Conexiones registradas</h3>
         <div class="api-results-toolbar" data-api-results="ext" aria-label="Herramientas de resultados">
 <div class="api-results-action"><button type="button" class="btn btn-primary" id="api_ext_new"><i class="fas fa-plus"></i> Nueva conexión</button><button type="button" class="btn btn-secondary api-export-excel" title="Exportar resultados a Excel"><i class="fas fa-file-excel"></i> Excel</button><button type="button" class="btn btn-secondary api-export-pdf" title="Visualizar PDF"><i class="fas fa-file-pdf"></i> PDF</button></div>
@@ -103,8 +103,8 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
             <div><i class="fas fa-key"></i><span>Access token<strong>60 minutos</strong></span></div>
             <div><i class="fas fa-sync-alt"></i><span>Refresh token<strong>30 días, con rotación</strong></span></div>
             <div><i class="fas fa-database"></i><span>Almacenamiento<strong>Solo hash en DB_MAIN</strong></span></div>
-        </div>
-        <h3 class="api-route-section-title"><i class="fas fa-mobile-alt"></i> Autenticación y navegación de la APK</h3>
+        </div></details>
+        <details class="api-route-group"><summary><i class="fas fa-mobile-alt"></i> Autenticación y navegación de la APK</summary>
         <div class="api-route-grid">
             <article class="api-route-card api-route-detail">
                 <div class="api-route-top"><span class="api-method method-post">POST</span><strong>/auth/login.php</strong><button type="button" class="api-auth-tag auth-public" data-api-info="No necesita un token previo: valida las credenciales de usuario para iniciar sesión. La conexión siempre debe usar HTTPS.">Pública · HTTPS</button></div>
@@ -138,17 +138,24 @@ $apiBase = rtrim(SERVERURL, '/') . '/api/v1/';
                 <small>Devuelve menús, submenús y nivel 2 permitidos por plan y privilegio.</small>
                 <details><summary>Ver encabezado y reglas</summary><pre>Authorization: Bearer &lt;access_token&gt;</pre><p>El móvil puede usar la respuesta para dibujar la navegación; el servidor debe volver a validar los permisos en cada endpoint funcional.</p></details>
             </article>
-        </div>
-        <h3 class="api-route-section-title"><i class="fas fa-plug"></i> Autenticación de integraciones externas</h3>
+        </div></details>
+        <details class="api-route-group"><summary><i class="fas fa-plug"></i> Autenticación de integraciones externas</summary>
         <div class="api-route-grid">
             <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-post">POST</span><strong>/integrations/token.php</strong><span class="api-auth-tag auth-public">Client ID + Secret</span></div><small>Genera el Bearer para un servidor externo autorizado. El secreto no se incluye en la APK.</small><details class="api-route-write-example"><summary>Ver solicitud y respuesta</summary><p>Solo debe llamarse desde un servidor seguro de la integración.</p><pre>{"client_id":"SU_CLIENT_ID","client_secret":"SU_CLIENT_SECRET"}</pre><p>Enviar <code>Content-Type: application/json</code>. Conserve el token obtenido en el servidor; nunca publique el secreto en una APK.</p></details></article>
             <article class="api-route-card api-resource-card"><div class="api-route-top"><span class="api-method method-get">GET</span><strong>/integrations/me.php</strong><span class="api-auth-tag auth-bearer">Bearer externo</span></div><small>Comprueba la integración, empresa vinculada y sus alcances vigentes.</small><details class="api-route-write-example"><summary>Ver encabezado y permisos</summary><pre>Authorization: Bearer TOKEN_DE_INTEGRACION</pre><p>La respuesta identifica la integración, su empresa autorizada y los alcances concedidos. Los alcances <code>clientes:write</code> y <code>proveedores:write</code> son independientes de los permisos de consulta.</p></details></article>
-        </div>
-        <h3 class="api-route-section-title"><i class="fas fa-database"></i> Recursos de datos para APK e integraciones</h3>
+        </div></details>
+        <details class="api-route-group"><summary><i class="fas fa-database"></i> Recursos de datos para APK e integraciones</summary>
         <div class="api-route-grid">
             <?php
             require_once dirname(__DIR__, 2).'/core/api/ApiModuleCatalog.php';
-            foreach (IzzyApiModuleCatalog::items() as $apiModule):
+            $apiGroups=['Contactos'=>['clientes','proveedores'],'Catálogo'=>['productos'],'Facturación fiscal'=>['facturas','secuencias'],'Empresa'=>['empresa']];
+            foreach ($apiGroups as $groupName=>$keys):
+            ?>
+            <section class="api-route-resource-group">
+            <h4><?=htmlspecialchars($groupName,ENT_QUOTES,'UTF-8')?></h4>
+            <div class="api-route-grid">
+            <?php foreach (IzzyApiModuleCatalog::items() as $apiModule):
+                if (!in_array($apiModule['clave'],$keys,true)) continue;
             ?>
             <article class="api-route-card api-resource-card">
                 <div class="api-route-top"><span class="api-method method-get">GET</span><strong>/data/<?php echo htmlspecialchars($apiModule['clave'], ENT_QUOTES, 'UTF-8'); ?>.php</strong><span class="api-auth-tag auth-bearer">Bearer + permisos</span></div>
@@ -164,7 +171,9 @@ Content-Type: application/json
 Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</code>. Se aplica el permiso <code><?php echo htmlspecialchars($apiModule['clave'],ENT_QUOTES,'UTF-8'); ?>:read</code>. La respuesta JSON incluye <code>ok</code>, <code>mensaje</code> y <code>data</code>. No se permite escritura en este módulo.</p></details><?php endif; ?>
             </article>
             <?php endforeach; ?>
-        </div>
+            </div></section>
+            <?php endforeach; ?>
+        </div></details>
         <section class="api-mobile-flow" aria-labelledby="api_mobile_flow_title">
             <div><span class="api-eyebrow">ORDEN DE CONSUMO</span><h3 id="api_mobile_flow_title">Flujo recomendado para la app</h3>
                 <p>La aplicación conserva los tokens de forma segura en el dispositivo y solicita cada recurso protegido con el access token vigente.</p></div>
@@ -252,6 +261,12 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
             <label>Autenticación<select name="tipo_auth" id="api_ext_auth" class="api-enhanced-select" required><option value="">Seleccione autenticación</option><option value="bearer">Bearer Token</option><option value="api_key">API Key</option><option value="basic">Basic Auth</option><option value="none">Sin autenticación</option></select></label>
             <label id="api_ext_channel_group">Identificador del recurso (solo cuando sea necesario)<input type="text" name="canal_id" id="api_ext_channel" maxlength="120" placeholder="Opcional, si el proveedor no permite descubrirlo"></label>
             <div class="api-ext-wide api-provider-guide"><i class="fas fa-shield-alt"></i><div><strong>Parámetros del proveedor</strong><small>Las operaciones se administran por conexión en «Operaciones API». ZYNKO utiliza su canal asociado a la credencial y se consulta mediante <code>v1/channels</code>, sin introducir un ID manual. Nunca guarde secretos en parámetros JSON.</small></div></div>
+            <fieldset class="api-ext-wide api-document-toggles">
+                <legend>Envío por WhatsApp con ZYNKO</legend>
+                <label><input type="checkbox" name="zin_doc_factura" id="api_doc_factura" value="1"> Facturas</label>
+                <label><input type="checkbox" name="zin_doc_cotizacion" id="api_doc_cotizacion" value="1"> Cotizaciones</label>
+                <small>Aplica a la empresa activa. Cada envío se confirma antes de salir.</small>
+            </fieldset>
             <label class="api-ext-wide">Parámetros adicionales (JSON, sin secretos)<textarea name="configuracion_json" id="api_ext_config" rows="3" maxlength="4000" spellcheck="false" placeholder='{"sender_id":"ejemplo","region":"hn"}'>{}</textarea><small class="api-editor-note">Opcional. Solo configuraciones públicas/no secretas; las operaciones declarativas se configuran por separado. No se ejecutan automáticamente.</small></label>
             <div class="api-ext-wide api-ext-editor-field"><label for="api_ext_description_editor">Descripción</label>
                 <div class="api-rich-editor" role="group" aria-label="Editor enriquecido de descripción">

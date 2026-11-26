@@ -975,3 +975,20 @@ body > .select2-container--open .select2-results__option--highlighted[aria-selec
 @media(max-width:480px) {
   .api-wa-result > div { flex-basis:100%; }
 }
+
+
+.api-document-toggles{margin:0;padding:12px;border:1px solid #cbdce8;border-radius:9px;display:grid;gap:6px}
+.api-document-toggles legend{font-size:14px;font-weight:700;width:auto;margin:0;padding:0 5px}
+#api_external_modal .api-document-toggles label{display:flex;flex-direction:row;align-items:center;gap:7px}
+#api_external_modal .api-document-toggles input[type=checkbox]{width:16px;height:16px;min-height:0;padding:0;accent-color:#176394}
+.api-route-group{margin:10px 0;border:1px solid #d5e3ed;border-radius:10px;background:#fff}
+.api-route-group>summary{padding:12px 14px;font-weight:700;cursor:pointer;color:#173a54}
+.api-route-group>summary i{margin:0 6px;color:#176394}
+.api-route-group[open]>summary{border-bottom:1px solid #d5e3ed}
+.api-route-group>.api-route-grid{padding:12px;align-items:start}
+.api-route-group>.api-route-grid>.api-route-card{min-height:0;height:auto}
+
+.api-route-resource-group{grid-column:1/-1;min-width:0}
+.api-route-resource-group h4{margin:0 0 8px;font-size:14px;font-weight:700;color:#173a54}
+.api-route-resource-group .api-route-grid{align-items:start}
+.api-route-resource-group .api-route-grid>.api-route-card{min-height:0;height:auto}

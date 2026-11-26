@@ -192,7 +192,51 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <div class="api-footnote"><i class="fas fa-clock"></i> Se muestran las últimas 100 sesiones emitidas por <code>api/v1/auth/login.php</code>. Revocar aquí invalida también la renovación automática del dispositivo.</div>
     </section>
 
-    <div class="api-modal-backdrop" id="api_external_modal" aria-hidden="true">
+    <dialog id="api_wa_dialog" class="izzy-dialog api-wa-dialog" aria-labelledby="api_wa_title">
+    <header class="izzy-dialog__header">
+        <div class="izzy-dialog__heading">
+            <h2 class="izzy-dialog__title" id="api_wa_title"><i class="fab fa-whatsapp mr-2" aria-hidden="true"></i>Prueba de WhatsApp</h2>
+            <p class="izzy-dialog__subtitle" id="api_wa_connection"></p>
+        </div>
+        <button type="button" class="izzy-dialog__close" data-izzy-dialog-close aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
+    </header>
+    <div class="izzy-dialog__body">
+        <p class="api-wa-note" id="api_wa_server"></p>
+        <p class="api-wa-note">Use solo destinatarios de prueba autorizados en el servidor. Si el resultado es incierto, reintente la misma operación desde el historial para evitar duplicados.</p>
+        <form id="api_wa_form" class="api-wa-form">
+            <fieldset class="api-wa-mode">
+                <legend class="izzy-label">Modo de envío</legend>
+                <label><input type="radio" name="mode" value="single" checked> Individual</label>
+                <label><input type="radio" name="mode" value="bulk"> Masivo</label>
+            </fieldset>
+            <div class="izzy-field">
+                <label class="izzy-label" for="api_wa_recipients">Destinatarios internacionales</label>
+                <textarea class="form-control izzy-textarea" id="api_wa_recipients" name="recipients" rows="2" maxlength="1900" aria-describedby="api_wa_recipients_hint" required></textarea>
+                <small class="izzy-field-hint" id="api_wa_recipients_hint">Ingrese un número completo con código de país.</small>
+            </div>
+            <div class="izzy-field">
+                <label class="izzy-label" for="api_wa_message">Mensaje</label>
+                <textarea class="form-control izzy-textarea" id="api_wa_message" name="message" rows="3" maxlength="4096" required></textarea>
+            </div>
+            <div class="izzy-field">
+                <label class="izzy-label" for="api_wa_consent_reference">Referencia de autorización de los destinatarios</label>
+                <input class="form-control izzy-input" id="api_wa_consent_reference" name="consent_reference" maxlength="200" placeholder="Ej. Referencia del registro interno de autorizaciones" required>
+            </div>
+            <label class="api-wa-consent"><input type="checkbox" name="consent" value="1" required> Confirmo que todos los destinatarios autorizaron esta prueba de WhatsApp.</label>
+        </form>
+        <p class="api-wa-feedback" id="api_wa_feedback" role="status"></p>
+        <section aria-labelledby="api_wa_history_title">
+            <h3 class="api-route-section-title" id="api_wa_history_title">Historial de envíos de prueba</h3>
+            <div class="api-integration-list" id="api_wa_history"></div>
+        </section>
+    </div>
+    <footer class="izzy-dialog__footer">
+        <button type="button" class="izzy-button" data-izzy-dialog-close><i class="fas fa-times" aria-hidden="true"></i>Cerrar</button>
+        <button type="submit" form="api_wa_form" class="izzy-button izzy-button--primary" id="api_wa_submit"><i class="fas fa-paper-plane" aria-hidden="true"></i>Enviar prueba</button>
+    </footer>
+</dialog>
+
+<div class="api-modal-backdrop" id="api_external_modal" aria-hidden="true">
         <section class="api-modal api-external-modal" role="dialog" aria-modal="true" aria-labelledby="api_external_modal_title">
             <header><div><span class="api-eyebrow">IZZY → PROVEEDOR EXTERNO</span><h2 id="api_external_modal_title"><i class="fas fa-plug"></i> Nueva conexión externa</h2><p class="api-modal-subtitle">Configure una conexión saliente protegida con un proveedor externo.</p></div><button type="button" class="api-modal-close" data-api-external-close aria-label="Cerrar"><i class="fas fa-times"></i></button></header>
         <form id="api_ext_form" class="api-external-form" autocomplete="off">

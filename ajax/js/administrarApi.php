@@ -62,10 +62,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 ],$passed?200:502);
             }
             if ($action==='external_read') {
-                $query=(string)($_POST['tipo']??'');
-                if(!in_array($query,['history','status'],true))$respond(false,'Consulta no autorizada.',[],422);
-                $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/'.$query);
-                $respond($result['ok'],$result['detalle'],['http_status'=>$result['http_status'],'canal'=>$result['canal'], 'categoria_rechazo_401'=>$result['categoria_rechazo_401']??null,'categoria_rechazo_403'=>$result['categoria_rechazo_403']??null,'diagnostico_ip'=>$result['diagnostico_ip']??null,'codigo_proveedor'=>$result['codigo_proveedor']??'','integridad_credencial'=>$result['integridad_credencial']??[]],$result['ok']?200:502);
+                if(($_POST['tipo']??'')!=='history')$respond(false,'Consulte el estado desde un envío y su UUID.',[],422);
+                $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/history');
+                $respond($result['ok'],$result['detalle'],$result,$result['ok']?200:502);
+            }
+            if ($action==='external_wa_list') {
+                $respond(true,'Envíos de prueba.', ['operations'=>$external->whatsappTests((int)($_POST['id']??0)), 'server_host'=>gethostname() ?: 'No disponible']);
+            }
+            if ($action==='external_wa_send' || $action==='external_wa_retry') {
+                $result=$external->sendWhatsappTest((int)($_POST['id']??0),(string)($_POST['operation']??''),
+                    (int)($_SESSION['users_id_sd']??0),$action==='external_wa_send'?$_POST:null);
+                $respond(true,$result['detail'] ?: 'Operación registrada.',$result);
+            }
+            if ($action==='external_wa_status') {
+                $result=$external->whatsappTestStatus((int)($_POST['id']??0),(string)($_POST['operation']??''),(string)($_POST['uuid']??''));
+                $respond($result['ok'],$result['detalle'],$result,$result['ok']?200:502);
             }
             if ($action==='external_operations') $respond(true,'Operaciones registradas.', ['operaciones'=>$external->operations((int)($_POST['connection_id']??0))]);
             if ($action==='external_operation_save') $respond(true,'Operación guardada desactivada.',['id'=>$external->saveOperation($_POST)]);
@@ -127,7 +138,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     } catch (DomainException $e) {
         $respond(false, $e->getMessage(), [], 403);
     } catch (Throwable $e) {
-        error_log('Administración API IZZY: ' . $e->getMessage());
+        error_log('Administración API IZZY: ' . get_class($e));
         $message = in_array((string)($action ?? ''), ['list_integrations', 'create_integration', 'revoke_integration'], true)
             ? 'No se pudo completar la operación. Verifique en DB_MAIN la tabla api_integrations del script DB_Cambios.sql.'
             : 'No se pudo completar la operación. Verifique la instalación de las tablas de autenticación.';
@@ -148,7 +159,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     function notify(message,type){
         if(typeof window.showNotify==='function')window.showNotify(type||'success',type==='error'?'Error':'API',message);
         else if(window.izzyNotifyPremium)window.izzyNotifyPremium.show(type||'success',type==='error'?'Error':'API',message);
-        else if(typeof window.swal==='function')window.swal({title:type==='error'?'Error':'API',text:message,icon:type==='error'?'error':'success',button:'Entendido'});
+        else if(typeof window.swal==='function')window.swal({title:type==='error'?'Error':'API',text:message,icon:type||'success',button:'Entendido'});
         else console.error(message);
     }
     function post(data){
@@ -159,8 +170,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         });
     }
     // UI de conexiones salientes; nunca se devuelve ni se recupera el token guardado.
-    function loadExternal(){
-        $('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
+    function loadExternal(silent=false){
+        if(silent!==true)$('#api_ext_rows').html('<div class="api-loading">Cargando conexiones…</div>');
         post({action:'external_list'}).done(r=>{
             const rows=r.datos.conexiones||[];
             $('#api_ext_rows').html(rows.filter(x=>Number(x.archivado)!==1).map(x=>{
@@ -170,6 +181,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     item('data-ext-edit','fa-edit','Editar','is-edit'),
                     item('data-ext-operations','fa-cogs','Operaciones API','is-operations'),
                     item('data-ext-test','fa-vial','Probar conexión','is-test'),
+                    ...(active && String(x.proveedor).trim().toUpperCase()==='ZYNKO' ? [item('data-ext-whatsapp','fa-paper-plane','Prueba de WhatsApp','is-test')] : []),
                     item('data-ext-check','fa-history','Comprobaciones','is-check'),
                     '<button type="button" role="menuitem" class="api-external-action-item is-history" data-ext-read="history" data-id="'+id+'"><i class="fas fa-book" aria-hidden="true"></i><span>Consultar historial ZYNKO</span></button>',
                     '<button type="button" role="menuitem" class="api-external-action-item is-toggle" data-ext-toggle="'+id+'" data-ext-on="'+(active?0:1)+'"><i class="fas '+(active?'fa-ban':'fa-check-circle')+'" aria-hidden="true"></i><span>'+(active?'Desactivar':'Activar')+'</span></button>',
@@ -179,7 +191,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }).join('')||'<div class="api-empty-state"><i class="fas fa-plug"></i><strong>No hay servicios externos registrados</strong><span>Utilice «Nueva conexión» para registrar un proveedor.</span></div>');
             $('#api_ext_rows').data('connections',rows);
             apiExternalCategories=Array.from(new Map([...(r.datos.categorias||[]).map(x=>({value:String(x),label:String(x)})),...rows.map(x=>({value:String(x.categoria||''),label:String(x.categoria||'')}))].filter(x=>x.value).map(x=>[x.value.toLocaleLowerCase(),x])).values());
-        }).fail(e=>notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error'));
+        }).fail(e=>{if(silent!==true)notify(e.responseJSON?.mensaje||'No se pudieron cargar las conexiones','error');});
     }
     // Menú de acciones contextual: un solo menú abierto y cierre solo del menú.
     function closeExternalActionsMenus(){
@@ -262,13 +274,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         append('Siguiente ›',checkState.page+1,checkState.page===pages,false);
         append('Final »',pages,checkState.page===pages,false);
     }
-    function loadExternalChecks(id,keepPage){
+    function loadExternalChecks(id,keepPage,silent=false){
         if(!id)return;
         post({action:'external_checks',id}).done(r=>{
             checkState.connectionId=id;checkState.rows=r.datos.historial||[];
             if(!keepPage)checkState.page=1;
             renderExternalChecks();
-        }).fail(e=>notify(e.responseJSON?.mensaje||'No fue posible consultar el historial técnico.','error'));
+        }).fail(e=>{if(!silent)notify(e.responseJSON?.mensaje||'No fue posible consultar el historial técnico.','error');});
     }
     $('#api_ext_checks_search').on('input',()=>{checkState.page=1;renderExternalChecks();});
     $('#api_ext_checks_limit').on('change',function(){checkState.limit=Number($(this).val());checkState.page=1;renderExternalChecks();});
@@ -330,6 +342,114 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         return message;
     }
+    const waDialog=document.getElementById('api_wa_dialog');
+    const waForm=document.getElementById('api_wa_form');
+    const $waHistory=$('#api_wa_history');
+    const $waFeedback=$('#api_wa_feedback');
+    const $waSubmit=$('#api_wa_submit');
+    let waConnection=0, waOperation='', waSending=false, waHistoryVersion=0;
+
+    const waLabels={
+        queued:'En cola', sending:'Enviando', retrying:'Reintentando', sent:'Enviado al proveedor',
+        delivered:'Entregado', read:'Leído', failed:'Fallido', partial:'Parcial', uncertain:'Sin confirmar'
+    };
+    function newWaOperation(){
+        const hex=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+        return hex.replace(/^(........)(....)(....)(....)(............)$/,'$1-$2-$3-$4-$5');
+    }
+    function waFeedback(message,error=false){
+        $waFeedback.text(message).toggleClass('is-error',error);
+    }
+    function waError(error){
+        const data=error.responseJSON?.datos;
+        return safeAuthDiagnostic(data) || safeForbiddenDiagnostic(data) ||
+            error.responseJSON?.mensaje || 'No se pudo confirmar el resultado. Consulte el historial antes de repetir.';
+    }
+    function updateWaMode(){
+        $('#api_wa_recipients_hint').text(waForm.elements.mode.value==='bulk'?
+            'Ingrese entre 2 y 100 números, uno por línea, con código de país.':
+            'Ingrese un número completo con código de país.');
+    }
+    function loadWaHistory(id){
+        const version=++waHistoryVersion;
+        $waHistory.empty().append($('<p class="api-loading">').text('Cargando envíos…'));
+        post({action:'external_wa_list',id}).done(r=>{
+            if(id!==waConnection || version!==waHistoryVersion)return;
+            $waHistory.empty();
+            $('#api_wa_server').text('Servidor PHP de IZZY: '+r.datos.server_host);
+            const operations=r.datos.operations||[];
+            if(!operations.length)$waHistory.append($('<p class="api-wa-note">').text('Todavía no hay envíos de prueba.'));
+            operations.forEach(op=>{
+                const label=op.mode==='bulk'?'Masivo':'Individual';
+                const summary=op.state==='accepted'?'Aceptado por ZYNKO':'Sin confirmación';
+                const card=$('<article class="api-wa-history-card">').append(
+                    $('<strong>').text(label+' · '+summary),
+                    $('<p>').text(formatDate(op.created_at)+(op.detail?' · '+op.detail:''))
+                );
+                if(op.state==='pending')card.append(
+                    $('<button type="button" class="btn btn-secondary">').text('Reintentar misma operación').on('click',()=>dispatchWa({action:'external_wa_retry',id,operation:op.id}))
+                );
+                (op.messages||[]).forEach(message=>{
+                    const label=$('<span class="api-wa-message-state">').text(waLabels[message.status]||'Sin confirmar');
+                    const button=$('<button type="button" class="btn btn-secondary">').text('Consultar estado');
+                    button.on('click',()=>{
+                        button.prop('disabled',true);
+                        post({action:'external_wa_status',id,operation:op.id,uuid:message.uuid}).done(r=>{
+                            label.text(waLabels[r.datos.message_status]||'Sin confirmar');
+                        }).fail(error=>{if(id===waConnection)waFeedback(waError(error),true);})
+                        .always(()=>button.prop('disabled',false));
+                    });
+                    card.append($('<div class="api-wa-result">').append(
+                        $('<div>').append($('<strong>').text(message.recipient),$('<code>').text(message.uuid)),
+                        label,button
+                    ));
+                });
+                $waHistory.append(card);
+            });
+        }).fail(error=>{
+            if(id===waConnection && version===waHistoryVersion)$waHistory.empty().append($('<p class="api-wa-feedback is-error">').text(waError(error)));
+        });
+    }
+    function dispatchWa(data){
+        if(waSending)return;
+        waSending=true;
+        $waSubmit.prop('disabled',true);
+        waFeedback('Contactando a ZYNKO…');
+        post(data).done(r=>{
+            const op=r.datos;
+            if(op.state==='accepted'){
+                waFeedback('En cola. Consulte el estado de cada destinatario para confirmar la entrega.');
+                if(waOperation===op.id){waForm.reset();waOperation=newWaOperation();updateWaMode();}
+            }else{
+                waFeedback(op.detail+' Reintente esta misma operación desde el historial.',true);
+            }
+        }).fail(error=>waFeedback(waError(error),true)).always(()=>{
+            waSending=false;
+            $waSubmit.prop('disabled',false);
+            loadWaHistory(data.id);
+        });
+    }
+    $('#api_ext_rows').on('click','[data-ext-whatsapp]',function(){
+        if(waSending){notify('Todavía hay un envío en proceso.','info');return;}
+        const record=($('#api_ext_rows').data('connections')||[]).find(row=>Number(row.id)===Number(this.dataset.extWhatsapp));
+        if(!record)return;
+        waConnection=Number(record.id);
+        waOperation=newWaOperation();
+        waForm.reset();
+        updateWaMode();
+        $('#api_wa_connection').text(record.nombre);
+        $('#api_wa_server').empty();
+        waFeedback('');
+        closeExternalActionsMenus();
+        waDialog.showModal();
+        loadWaHistory(waConnection);
+    });
+    $(waForm).on('change','[name="mode"]',updateWaMode).on('submit',function(event){
+        event.preventDefault();
+        dispatchWa({action:'external_wa_send',id:waConnection,operation:waOperation,...Object.fromEntries(new FormData(waForm))});
+    });
+
+
     $('#api_ext_rows').on('click','[data-ext-read]',function(){
         const id=Number($(this).attr('data-id')),tipo=String($(this).attr('data-ext-read'));
         post({action:'external_read',id,tipo}).done(r=>{
@@ -342,6 +462,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             loadExternalChecks(id,true);
         });
     });
+    const pendingConnectionTests=new Set();
+    function connectionTestSummary(tests){
+        if(!tests?.canales)return '';
+        const history=tests.historial?'Historial HTTP '+Number(tests.historial.http_status):'Historial no consultado';
+        return 'Canales HTTP '+Number(tests.canales.http_status)+' · '+history+'. ';
+    }
+
     $('#api_ext_rows').on('click','[data-ext-edit]',function(){
         const id=Number($(this).data('ext-edit')),x=($('#api_ext_rows').data('connections')||[]).find(r=>Number(r.id)===id);
         if (!x)return;$('#api_ext_id').val(id);$('#api_ext_name').val(x.nombre);$('#api_ext_provider').val(x.proveedor||'');$('#api_ext_url').val(x.url_base||'');$('#api_ext_channel').val(x.canal_id||'');$('#api_ext_token').val('');$('#api_ext_config').val(x.configuracion_json||'{}');setExternalCategory(x.categoria||'');setExtSelect('#api_ext_auth',x.tipo_auth||'');
@@ -350,33 +477,44 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         const b=$(this),id=Number(b.attr('data-ext-toggle')||b.attr('data-ext-test')||b.attr('data-ext-check')||b.attr('data-ext-archive'));
         const action=b.is('[data-ext-toggle]')?'external_toggle':b.is('[data-ext-test]')?'external_test':b.is('[data-ext-check]')?'external_checks':'external_archive';
         if(action==='external_archive'&&!window.confirm('¿Archivar esta conexión? Los datos históricos permanecerán.'))return;
+        const isTest=action==='external_test';
+        if(isTest){
+            if(pendingConnectionTests.has(id))return;
+            pendingConnectionTests.add(id);
+            b.prop('disabled',true);
+        }
         post({action,id,activo:b.attr('data-ext-on')||0}).done(r=>{
             if(action==='external_checks'){
                 checkState.connectionId=id;
                 checkState.rows=r.datos.historial||[];
                 checkState.page=1;
                 renderExternalChecks();
+            } else if(isTest){
+                const tests=r.datos;
+                const summary=connectionTestSummary(tests);
+                if(tests?.canal?.canal_detectado){
+                    notify(summary+'Canal WhatsApp conectado.', 'success');
+                } else {
+                    notify(summary+(tests?.canal?.motivo || 'Conviene comprobar el canal WhatsApp antes de enviar.'), 'warning');
+                }
+                loadExternal(true);
+                loadExternalChecks(id,true,true);
             } else {
                 notify(r.mensaje);
                 loadExternal();
-                if(action==='external_test'){
-                    if(r.datos?.canales)notify('Canales: HTTP '+Number(r.datos.canales.http_status)+' · Historial: HTTP '+Number(r.datos.historial?.http_status||0)+'.','success');
-                    if(r.datos?.canal?.canal_detectado)notify('Canal WhatsApp autorizado identificado por ZYNKO.','success');
-                    else if(r.datos?.canal?.motivo)notify('Autenticación verificada; '+r.datos.canal.motivo,'info');
-                    // Persistir comprobación seleccionada y mostrarla de inmediato.
-                    loadExternalChecks(id,true);
-                }
             }
         }).fail(e=>{
-            const status=Number(e.responseJSON?.datos?.http_status||0);
-            const info=status===401?'ZYNKO respondió HTTP 401. Verifique la API Key, su vigencia y que corresponda a este entorno.':status===403?'ZYNKO respondió HTTP 403. Compruebe permisos del token e IP de salida autorizada.':'';
             const tests=e.responseJSON?.datos;
-            const checks=tests?.canales?'Canales HTTP '+Number(tests.canales.http_status)+
-                (tests.historial?' · Historial HTTP '+Number(tests.historial.http_status):' · Historial no consultado')+'. ':' ';
             const failedTest=tests?.canales?.ok ? tests.historial : tests?.canales;
-            const authDetail=action==='external_test'?(safeAuthDiagnostic(failedTest) || safeForbiddenDiagnostic(failedTest)):'';
-            notify((action==='external_test'&&tests?.canales?checks:'')+(authDetail||info||e.responseJSON?.mensaje||'Operación no completada'),'error');
-            if(action==='external_test')loadExternalChecks(id,true);
+            const diagnosis=isTest?(safeAuthDiagnostic(failedTest) || safeForbiddenDiagnostic(failedTest)):'';
+            const message=diagnosis || failedTest?.detalle || e.responseJSON?.mensaje || 'Operación no completada.';
+            notify((isTest?connectionTestSummary(tests):'')+message,'error');
+            if(isTest)loadExternalChecks(id,true,true);
+        }).always(()=>{
+            if(isTest){
+                pendingConnectionTests.delete(id);
+                b.prop('disabled',false);
+            }
         });
     });
     $('[data-api-tab="external"]').on('click',loadExternal);

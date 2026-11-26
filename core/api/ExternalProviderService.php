@@ -243,23 +243,29 @@ final class IzzyExternalProviderService {
             default=>'ZYNKO: HTTP 401 sin categoría reconocible en el JSON.'
         };
     }
-    /** Identifica únicamente un canal WhatsApp; si existen varios evita asignar el incorrecto. */
-    private function identifyChannel(int $connectionId,array $decoded): array {
-        $channels=$decoded['data']['channels']??$decoded['channels']??null;
+    /** Conserva la selección explícita y verifica que el canal esté conectado. */
+    private function identifyChannel(array $connection,array $decoded): array {
+        $channels=$decoded['data']['channels']??null;
         if(!is_array($channels))return ['canal_detectado'=>false,'motivo'=>'La respuesta no contiene data.channels.'];
         $matching=[];
         foreach($channels as $channel){
-            if(!is_array($channel))continue;
-            $type=strtolower((string)($channel['type']??$channel['channel']??''));
-            if($type==='whatsapp' && isset($channel['id']) && is_scalar($channel['id']))$matching[]=trim((string)$channel['id']);
+            if(!is_array($channel) || ($channel['type']??null)!=='whatsapp' || ($channel['status']??null)!=='connected')continue;
+            $candidate=(string)($channel['id']??'');
+            if(preg_match('/^[1-9][0-9]*$/D',$candidate))$matching[]=$candidate;
         }
-        $matching=array_values(array_unique(array_filter($matching,static fn($v)=>$v!=='')));
-        if(count($matching)!==1)return ['canal_detectado'=>false,'canales_whatsapp'=>count($matching),
-            'motivo'=>count($matching)>1?'Hay varios canales WhatsApp autorizados; no se asignó ninguno automáticamente.':'No se encontró un canal WhatsApp identificable.'];
-        $id=$matching[0];
-        $stmt=$this->db->prepare('UPDATE api_external_connections SET canal_id=? WHERE id=? AND archivado=0');
-        $stmt->bind_param('si',$id,$connectionId);$stmt->execute();$stmt->close();
-        return ['canal_detectado'=>true,'canales_whatsapp'=>1,'canal_id'=>$id];
+        $matching=array_values(array_unique($matching));
+        $selected=trim((string)$connection['canal_id']);
+        if($selected!=='' && !in_array($selected,$matching,true))
+            return ['canal_detectado'=>false,'motivo'=>'El canal configurado no está conectado o esta clave no tiene acceso. IDs conectados: '.($matching?implode(', ',array_slice($matching,0,15)):'ninguno').'.'];
+        if($selected===''){
+            if(count($matching)!==1)return ['canal_detectado'=>false,'canales_whatsapp'=>count($matching),
+                'motivo'=>$matching?'Configure el ID de uno de los canales WhatsApp conectados: '.implode(', ',array_slice($matching,0,15)).'.':'No hay un canal WhatsApp conectado para esta clave.'];
+            $selected=$matching[0];
+            $connectionId=(int)$connection['id'];$key=(string)$connection['token_cifrado'];
+            $stmt=$this->db->prepare("UPDATE api_external_connections SET canal_id=? WHERE id=? AND archivado=0 AND canal_id='' AND token_cifrado=?");
+            $stmt->bind_param('sis',$selected,$connectionId,$key);$stmt->execute();$stmt->close();
+        }
+        return ['canal_detectado'=>true,'canales_whatsapp'=>count($matching),'canal_id'=>$selected];
     }
     public function categories(): array {
         $r=$this->db->query('SELECT nombre FROM api_external_categories WHERE activo=1 ORDER BY nombre');
@@ -345,18 +351,179 @@ final class IzzyExternalProviderService {
         $stmt=$this->db->prepare('SELECT * FROM api_external_connections WHERE id=? AND archivado=0 LIMIT 1');$stmt->bind_param('i',$id);$stmt->execute();$row=$stmt->get_result()->fetch_assoc();$stmt->close();
         if (!$row) throw new DomainException('Conexión no encontrada.');return $row;
     }
-    /** Solo lectura de recursos ZYNKO documentados. Los envíos requieren contrato verificado. */
-    public function request(int $id,string $route,string $method='GET',?array $payload=null,?string $idempotency=null): array {
+    /** Envía únicamente a destinatarios de prueba autorizados en el entorno PHP. */
+    private static function testRecipients(string $input, string $mode, string $allowed): array {
+        if (!in_array($mode,['single','bulk'],true)) throw new InvalidArgumentException('Modo de envío no válido.');
+        $numbers=preg_split('/[\r\n,;]+/',trim($input),-1,PREG_SPLIT_NO_EMPTY);
+        $allowlist=preg_split('/[\s,;]+/',trim($allowed),-1,PREG_SPLIT_NO_EMPTY);
+        $allowlist=array_map(static fn($number)=>ltrim($number,'+'),$allowlist);
+        if (!$allowlist) throw new DomainException('Falta configurar IZZY_ZYNKO_TEST_NUMBERS en el servidor de IZZY.');
+        $normalized=[];
+        foreach($numbers as $number){
+            $number=trim($number);
+            if(!preg_match('/^\+?[1-9][0-9]{6,14}$/D',$number)) throw new InvalidArgumentException('Use números internacionales completos, uno por línea.');
+            $number=ltrim($number,'+');
+            if(!in_array($number,$allowlist,true)) throw new DomainException('Hay un destinatario fuera de la lista de pruebas autorizadas.');
+            if(in_array($number,$normalized,true)) throw new InvalidArgumentException('Hay destinatarios repetidos.');
+            $normalized[]=$number;
+        }
+        $count=count($normalized);
+        if(($mode==='single' && $count!==1)||($mode==='bulk' && ($count<2||$count>100)))
+            throw new InvalidArgumentException('El envío individual requiere un destinatario y el masivo entre 2 y 100.');
+        return $normalized;
+    }
+
+    private static function testAllowlist(): string {
+        return (string)(getenv('IZZY_ZYNKO_TEST_NUMBERS') ?: ($_ENV['IZZY_ZYNKO_TEST_NUMBERS']??''));
+    }
+
+    private static function validUuid(string $value): bool {
+        return preg_match('/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D',$value)===1;
+    }
+
+    private function whatsappTestRow(int $id, string $operation): ?array {
+        if(!self::validUuid($operation)) throw new InvalidArgumentException('Operación no válida.');
+        $stmt=$this->db->prepare('SELECT * FROM api_zynko_test_sends WHERE connection_id=? AND operation_id=?');
+        $stmt->bind_param('is',$id,$operation);$stmt->execute();
+        $row=$stmt->get_result()->fetch_assoc();$stmt->close();
+        return $row;
+    }
+
+    private static function testSummary(array $row): array {
+        return [
+            'id'=>$row['operation_id'], 'mode'=>$row['mode'], 'state'=>$row['state'],
+            'http_status'=>(int)$row['http_status'], 'code'=>$row['provider_code'],
+            'detail'=>$row['detail'], 'created_at'=>$row['created_at'],
+            'messages'=>json_decode((string)$row['results_json'],true) ?: [],
+        ];
+    }
+
+    public function whatsappTests(int $id): array {
+        $this->conn($id);
+        $stmt=$this->db->prepare('SELECT * FROM api_zynko_test_sends WHERE connection_id=? ORDER BY created_at DESC,operation_id DESC LIMIT 30');
+        $stmt->bind_param('i',$id);$stmt->execute();
+        $rows=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();
+        return array_map([self::class,'testSummary'],$rows);
+    }
+
+    public function sendWhatsappTest(int $id, string $operation, int $actor, ?array $input): array {
+        if($actor<1) throw new DomainException('No se pudo identificar al operador.');
+        $connection=$this->zynkoConnection($id);
+        $operationRow=$this->whatsappTestRow($id,$operation);
+        $credential=hash('sha256',(string)$connection['token_cifrado']);
+        if(!$operationRow && $input===null) throw new DomainException('No se encontró la operación de envío.');
+
+        if($input!==null){
+            $mode=(string)($input['mode']??'');
+            $numbers=self::testRecipients((string)($input['recipients']??''),$mode,self::testAllowlist());
+            $message=trim((string)($input['message']??''));
+            $reference=trim((string)($input['consent_reference']??''));
+            if($message==='' || mb_strlen($message,'UTF-8')>4096) throw new InvalidArgumentException('Escriba un mensaje de 1 a 4096 caracteres.');
+            if(($input['consent']??'')!=='1' || $reference==='' || mb_strlen($reference,'UTF-8')>200)
+                throw new InvalidArgumentException('Confirme la autorización de todos los destinatarios e indique su referencia.');
+            if(!preg_match('/^[1-9][0-9]*$/D',(string)$connection['canal_id']))
+                throw new DomainException('Primero ejecute Probar conexión y confirme el canal WhatsApp conectado.');
+            $payload=['channel_id'=>(int)$connection['canal_id'],'to'=>$mode==='single'?$numbers[0]:$numbers,'message'=>$message];
+            if($mode==='bulk')$payload['consent_confirmed']=true;
+            $json=json_encode($payload,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+
+            if(!$operationRow){
+                $probe=$this->zynkoTransport($connection,'v1/channels');
+                if(!$probe['ok'] || empty($probe['canal']['canal_detectado'])){
+                    throw new DomainException($probe['ok']?($probe['canal']['motivo']??'Canal WhatsApp no disponible.'):$probe['detalle']);
+                }
+                if((string)$payload['channel_id']!==$probe['canal']['canal_id'])
+                    throw new DomainException('El canal cambió. Vuelva a revisar la conexión antes de enviar.');
+                $encrypted=$this->encrypt($json);
+                $evidence=$this->encrypt($reference);
+                $stmt=$this->db->prepare('INSERT INTO api_zynko_test_sends
+                    (connection_id,operation_id,actor_id,mode,credential_ref,payload_cifrado,consent_ref_cifrada)
+                    VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE operation_id=operation_id');
+                $stmt->bind_param('isissss',$id,$operation,$actor,$mode,$credential,$encrypted,$evidence);
+                $stmt->execute();$stmt->close();
+                $operationRow=$this->whatsappTestRow($id,$operation);
+            }
+
+            if(!hash_equals($this->decrypt($operationRow['payload_cifrado']),$json) ||
+                !hash_equals($this->decrypt($operationRow['consent_ref_cifrada']),$reference))
+                throw new InvalidArgumentException('La operación ya existe con otro contenido. Consulte su historial antes de crear una nueva.');
+        }
+
+        if((int)$operationRow['actor_id']!==$actor) throw new DomainException('Solo el operador original puede reintentar este envío.');
+        if($operationRow['state']==='accepted') return self::testSummary($operationRow);
+        if(!hash_equals($operationRow['credential_ref'],$credential))
+            throw new DomainException('La clave de esta conexión cambió. Reintentar con otra clave podría duplicar el envío.');
+
+        $json=$this->decrypt($operationRow['payload_cifrado']);
+        $payload=json_decode($json,true,16,JSON_THROW_ON_ERROR);
+        self::testRecipients(implode("\n",(array)$payload['to']),$operationRow['mode'],self::testAllowlist());
+        $response=$this->zynkoTransport($connection,'v1/whatsapp/send',$json,'izzy-test-'.$operation);
+        $state=$response['ok']?'accepted':'pending';
+        $http=$response['http_status'];$code=$response['codigo_proveedor'];$detail=$response['detalle'];
+        $results=json_encode($response['messages']??[],JSON_THROW_ON_ERROR);
+        $stmt=$this->db->prepare("UPDATE api_zynko_test_sends SET state=?,http_status=?,provider_code=?,detail=?,results_json=?
+            WHERE connection_id=? AND operation_id=? AND state='pending'");
+        $stmt->bind_param('sisssis',$state,$http,$code,$detail,$results,$id,$operation);
+        $stmt->execute();$stmt->close();
+        return self::testSummary($this->whatsappTestRow($id,$operation));
+    }
+
+    public function whatsappTestStatus(int $id,string $operation,string $uuid): array {
+        $connection=$this->zynkoConnection($id);
+        $row=$this->whatsappTestRow($id,$operation);
+        if(!$row || $row['state']!=='accepted' || !self::validUuid($uuid)) throw new DomainException('Envío o UUID no disponible.');
+        if(!hash_equals($row['credential_ref'],hash('sha256',(string)$connection['token_cifrado'])))
+            throw new DomainException('El estado requiere la misma API Key que registró el envío.');
+        $messages=self::testSummary($row)['messages'];
+        foreach($messages as $index=>$message){
+            if($message['uuid']!==$uuid)continue;
+            $response=$this->zynkoTransport($connection,'v1/whatsapp/status',null,null,$uuid);
+            if($response['ok']){
+                $path='$['.$index.'].status';$status=$response['message_status'];
+                $stmt=$this->db->prepare('UPDATE api_zynko_test_sends SET results_json=JSON_SET(results_json,?,?)
+                    WHERE connection_id=? AND operation_id=? AND JSON_UNQUOTE(JSON_EXTRACT(results_json,?))=?');
+                $stmt->bind_param('ssisss',$path,$status,$id,$operation,$path,$message['status']);
+                $stmt->execute();$stmt->close();
+            }
+            return $response;
+        }
+        throw new DomainException('El UUID no pertenece a esta operación.');
+    }
+
+    private static function queuedMessages(?array $decoded,array $expected): ?array {
+        $messages=$decoded['data']['messages']??null;
+        if(!is_array($messages)||count($messages)!==count($expected))return null;
+        $results=[];$used=[];
+        foreach($messages as $record){
+            $to=is_array($record)?(string)($record['to']??''):'';
+            $uuid=is_array($record)?(string)($record['message_uuid']??''):'';
+            if(!in_array($to,$expected,true)||isset($results[$to])||isset($used[$uuid])||!self::validUuid($uuid))return null;
+            $used[$uuid]=true;
+            $results[$to]=['recipient'=>'••••'.substr($to,-4),'uuid'=>$uuid,'status'=>'queued'];
+        }
+        return array_values($results);
+    }
+
+    private function zynkoConnection(int $id): array {
         $row=$this->conn($id);
         if (strtoupper(trim((string)$row['proveedor']))!=='ZYNKO' || $row['tipo_auth']!=='bearer' || $row['url_base']!=='https://zynkocloud.app/api.php')
             throw new DomainException('Conector ZYNKO no autorizado para esta conexión.');
         if (!(int)$row['activo']) throw new DomainException('Active primero la conexión para comprobarla.');
-        $allowed=['v1/channels','v1/whatsapp/history','v1/whatsapp/status'];
-        if($method!=='GET'||!in_array($route,$allowed,true)||$payload!==null||$idempotency!==null)
-            throw new DomainException('Solo se permiten consultas de lectura autorizadas. No se han activado envíos.');
+        return $row;
+    }
+
+    public function request(int $id,string $route): array {
+        if(!in_array($route,['v1/channels','v1/whatsapp/history'],true))
+            throw new InvalidArgumentException('Consulta de conexión no admitida.');
+        return $this->zynkoTransport($this->zynkoConnection($id),$route);
+    }
+
+    private function zynkoTransport(array $row,string $route,?string $json=null,?string $idempotency=null,?string $uuid=null): array {
+        $id=(int)$row['id'];
         if(!function_exists('curl_init'))throw new RuntimeException('CURL_MISSING: PHP necesita la extensión cURL para realizar conexiones HTTPS.');
         $url='https://zynkocloud.app/api.php?r='.rawurlencode($route);
         if($route==='v1/whatsapp/history')$url.='&page=1&per_page=20';
+        if($uuid!==null)$url.='&message_uuid='.rawurlencode($uuid);
         $token=$this->decrypt((string)$row['token_cifrado']);
         if($token==='' || preg_match('/[\r\n\x00]/',$token)) {
             throw new DomainException('Credencial descifrada vacía o con caracteres de control. No se realizó la solicitud.');
@@ -365,6 +532,10 @@ final class IzzyExternalProviderService {
         $credentialShape=self::credentialShape($token);
         // La cabecera sale solo desde PHP. No se registra ni se devuelve la credencial.
         $headers=['Authorization: Bearer '.$token,'Accept: application/json'];
+        if($json!==null){
+            $headers[]='Content-Type: application/json';
+            $headers[]='Idempotency-Key: '.$idempotency;
+        }
         $ch=curl_init($url);
         if($ch===false)throw new RuntimeException('CURL_MISSING: No se pudo inicializar cURL.');
         $body='';$responseTooLarge=false;
@@ -377,6 +548,7 @@ final class IzzyExternalProviderService {
                 if(strlen($body)+strlen($chunk)>1048576){$responseTooLarge=true;return 0;}
                 $body.=$chunk;return strlen($chunk);
             }]);
+        if($json!==null)curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$json]);
         $executed=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
         $curlErr=$executed===false?curl_errno($ch):0;
         // Inspección TRANSITORIA de los encabezados salientes preparados por cURL.
@@ -415,14 +587,30 @@ final class IzzyExternalProviderService {
         $ipDiagnostics=($status===403 && $auth403==='ip_no_autorizada')
             ?self::safeIpRejection($validJson?$decoded:null,$code):null;
         $ok=$curlErr===0 && $status>=200 && $status<300 && self::safeJsonOk($validJson?$decoded:null);
-        $channelInfo=[];
-        if($ok&&$route==='v1/channels')$channelInfo=$this->identifyChannel($id,$decoded);
+        $channelInfo=[];$messages=[];$messageStatus=null;
+        if($ok&&$route==='v1/channels')$channelInfo=$this->identifyChannel($row,$decoded);
+        if($route==='v1/whatsapp/send'){
+            $expected=(array)(json_decode((string)$json,true,16,JSON_THROW_ON_ERROR)['to']??[]);
+            $queued=$ok && $status===202 ? self::queuedMessages($decoded,$expected):null;
+            $ok=$queued!==null;
+            $messages=$queued??[];
+        }
+        if($route==='v1/whatsapp/status' && $ok){
+            $reported=$decoded['data']['status']??null;
+            $ok=($decoded['data']['message_uuid']??null)===$uuid && is_string($reported) &&
+                in_array($reported,['queued','sending','retrying','sent','delivered','read','failed','partial','uncertain'],true);
+            if($ok)$messageStatus=$reported;
+        }
         if($responseTooLarge)$logMessage='Respuesta de ZYNKO superior al límite de 1 MiB.';
         elseif($curlErr)$logMessage='Fallo HTTPS cURL (código '.$curlErr.').';
         elseif($status===401)$logMessage='HTTP 401: '.self::auth401Label((string)$auth401);
         elseif($status===403)$logMessage='HTTP 403: '.self::auth403Label((string)$auth403);
         elseif($status===503 && $code==='API_PLAN_LOOKUP_FAILED')$logMessage='HTTP 503: ZYNKO no pudo verificar la suscripción.';
         elseif(!$validJson)$logMessage='HTTP '.$status.': respuesta de ZYNKO no es JSON válido.';
+        elseif($status===404 && $route==='v1/whatsapp/send')$logMessage='ZYNKO no encontró el canal WhatsApp para esta clave.';
+        elseif($status===409 && $route==='v1/whatsapp/send')$logMessage='ZYNKO rechazó el canal o encontró un conflicto de idempotencia.';
+        elseif($status===404 && $route==='v1/whatsapp/status')$logMessage='ZYNKO no encontró el mensaje para esta clave.';
+        elseif($ok && $route==='v1/whatsapp/send')$logMessage='HTTP 202: en cola en ZYNKO.';
         elseif($ok)$logMessage='HTTP '.$status.': autenticación y respuesta JSON confirmadas.';
         else $logMessage='HTTP '.$status.': respuesta JSON no confirmó éxito de la operación.';
         if($code!=='')$logMessage.=' Código: '.$code.'.';
@@ -447,6 +635,7 @@ final class IzzyExternalProviderService {
             'diagnostico_ip'=>$ipDiagnostics,
             'integridad_credencial'=>$credentialShape,
             'diagnostico_transporte'=>$localTransport,
+            'messages'=>$messages,'message_status'=>$messageStatus,
             'respuesta_exitosa'=>$ok,'estado'=>'consulta_sin_confirmar_entrega'];
     }
     /** Catálogo declarativo: el registro NO autoriza ejecutar HTTP arbitrario. */

@@ -955,3 +955,23 @@ body > .select2-container--open .select2-results__option--highlighted[aria-selec
   filter: none;
   backdrop-filter: none;
 }
+
+
+.api-wa-dialog { --izzy-dialog-width: 780px; }
+.api-wa-form { display:grid; gap:12px; }
+.api-wa-mode { display:flex; flex-wrap:wrap; gap:8px 18px; margin:0; padding:0; border:0; }
+.api-wa-mode label,.api-wa-consent { display:flex; align-items:flex-start; gap:7px; margin:0; }
+.api-wa-mode input,.api-wa-consent input { flex:none; margin-top:.25em; accent-color:#176394; }
+.api-wa-note,.api-wa-history-card p { color:#405a70; font-size:.875rem; }
+.api-wa-feedback { margin:12px 0; font-size:.875rem; font-weight:600; }
+.api-wa-feedback:empty { display:none; }
+.api-wa-feedback.is-error { color:#a42632; }
+.api-wa-history-card { padding:12px; border:1px solid #dbe4ed; border-radius:9px; }
+.api-wa-history-card p { margin:4px 0 8px; }
+.api-wa-result { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin-top:8px; padding:8px 0; border-top:1px solid #dbe4ed; }
+.api-wa-result > div { flex:1 1 14rem; min-width:0; }
+.api-wa-result code { display:block; word-break:break-all; }
+.api-wa-message-state { color:#174e71; font-weight:600; }
+@media(max-width:480px) {
+  .api-wa-result > div { flex-basis:100%; }
+}

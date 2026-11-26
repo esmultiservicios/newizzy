@@ -7,7 +7,16 @@ require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
 require_once __DIR__ . '/sendEmail.php';
 
-header("Content-Type: text/html;charset=utf-8");
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, private');
+
+$reply = static function (array $result): never {
+    echo json_encode([
+        'ok' => ($result['type'] ?? '') === 'success',
+        'message' => $result['text'] ?? 'No se pudo enviar el documento.',
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+};
 
 $insMainModel = new mainModel();
 
@@ -15,14 +24,20 @@ if (method_exists($insMainModel, 'validarSesion')) {
     $validacion = $insMainModel->validarSesion();
 
     if (!empty($validacion['error'])) {
-        echo $insMainModel->showNotification([
+        $reply([
             "title" => "Error de sesión",
             "text" => $validacion['mensaje'] ?? 'Sesión inválida',
             "type" => "error",
-            "funcion" => "window.location.href = '".($validacion['redireccion'] ?? '')."'"
         ]);
-        exit;
     }
+}
+
+$csrf = (string)($_SESSION['csrf_izzy_document_share'] ?? '');
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || $csrf === ''
+    || !hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))
+    || ($_SESSION['modo_solo_lectura_pago'] ?? '') === 'SI') {
+    http_response_code(403);
+    $reply(['text' => 'La sesión actual no permite enviar el documento.']);
 }
 
 $sendEmail = new sendEmail();
@@ -32,7 +47,7 @@ date_default_timezone_set('America/Tegucigalpa');
 $cotizacion_id = isset($_POST['cotizacion_id']) ? (int)$_POST['cotizacion_id'] : 0;
 
 if ($cotizacion_id <= 0) {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Cotización inválida",
         "text" => "No se recibió una cotización válida.",
         "type" => "error"
@@ -44,13 +59,15 @@ $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'
 $users_id = isset($_SESSION['users_id_sd']) ? (int)$_SESSION['users_id_sd'] : 0;
 
 if ($empresa_id <= 0 || $users_id <= 0) {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Sesión inválida",
         "text" => "No se pudo identificar la empresa o el usuario de la sesión.",
         "type" => "error"
     ]);
     exit;
 }
+
+if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 
 /* =========================================================
    CONSULTAR DATOS DE LA COTIZACIÓN
@@ -61,48 +78,35 @@ $para = "";
 $numero = "";
 $numero_documento = "";
 
-if (method_exists($insMainModel, 'getCotizacionCorreo')) {
-    $result_cotizacion = $insMainModel->getCotizacionCorreo($cotizacion_id);
+$sqlCotizacion = "
+    SELECT 
+        c.cotizacion_id,
+        cl.nombre AS cliente,
+        cl.correo,
+        c.number AS numero
+    FROM cotizacion c
+    INNER JOIN clientes cl ON c.clientes_id = cl.clientes_id
+    WHERE c.cotizacion_id = '$cotizacion_id'
+      AND c.empresa_id = '$empresa_id'
+      AND c.estado = 1
+    LIMIT 1
+";
 
-    if ($result_cotizacion && $result_cotizacion->num_rows > 0) {
-        $cotizacion = $result_cotizacion->fetch_assoc();
+$result_cotizacion = $insMainModel->ejecutar_consulta_simple($sqlCotizacion);
 
-        $nombre = isset($cotizacion['cliente']) ? trim($cotizacion['cliente']) : "";
-        $para = isset($cotizacion['correo']) ? trim($cotizacion['correo']) : "";
-        $numero = isset($cotizacion['numero']) ? $cotizacion['numero'] : "";
+if ($result_cotizacion && $result_cotizacion->num_rows > 0) {
+    $cotizacion = $result_cotizacion->fetch_assoc();
 
-        $numero_documento = "COT-" . str_pad($numero, 8, "0", STR_PAD_LEFT);
-    }
-} else {
-    $sqlCotizacion = "
-        SELECT 
-            c.cotizacion_id,
-            cl.nombre AS cliente,
-            cl.correo,
-            c.number AS numero
-        FROM cotizacion c
-        INNER JOIN clientes cl ON c.clientes_id = cl.clientes_id
-        WHERE c.cotizacion_id = '$cotizacion_id'
-          AND c.empresa_id = '$empresa_id'
-        LIMIT 1
-    ";
+    $nombre = isset($cotizacion['cliente']) ? trim($cotizacion['cliente']) : "";
+    $para = isset($cotizacion['correo']) ? trim($cotizacion['correo']) : "";
+    $numero = isset($cotizacion['numero']) ? $cotizacion['numero'] : "";
 
-    $result_cotizacion = $insMainModel->ejecutar_consulta_simple($sqlCotizacion);
-
-    if ($result_cotizacion && $result_cotizacion->num_rows > 0) {
-        $cotizacion = $result_cotizacion->fetch_assoc();
-
-        $nombre = isset($cotizacion['cliente']) ? trim($cotizacion['cliente']) : "";
-        $para = isset($cotizacion['correo']) ? trim($cotizacion['correo']) : "";
-        $numero = isset($cotizacion['numero']) ? $cotizacion['numero'] : "";
-
-        $numero_documento = "COT-" . str_pad($numero, 8, "0", STR_PAD_LEFT);
-    }
+    $numero_documento = "COT-" . str_pad($numero, 8, "0", STR_PAD_LEFT);
 }
 
 /* Un documento sin correo del cliente no genera avisos de envío. */
 if ($numero_documento === "") {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Cotización no encontrada",
         "text" => "No se encontraron los datos de la cotización para enviar el correo.",
         "type" => "error"
@@ -157,7 +161,7 @@ if ($resultadoDb && $resultadoDb->num_rows > 0) {
 }
 
 if ($db_actual == "") {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Base de datos no identificada",
         "text" => "No se pudo identificar la base de datos actual para generar el enlace de la cotización.",
         "type" => "error"
@@ -304,7 +308,7 @@ try {
 }
 
 if ((int)$resultadoEnvio === 1) {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Correo enviado",
         "text" => "La cotización " . $numero_documento . " se envió correctamente al cliente.",
         "type" => "success"
@@ -317,7 +321,7 @@ if ($salidaServicio !== '') {
     error_log('IZZY correo cotización ' . $numero_documento . ': ' . $salidaServicio);
 }
 
-echo $insMainModel->showNotification([
+$reply([
     "title" => "No se pudo enviar",
     "text" => "No fue posible enviar la cotización por correo. Revise la configuración y vuelva a intentarlo.",
     "type" => "error"

@@ -1,33 +1,14 @@
 <?php
 $peticionAjax = true;
-require_once "../core/configGenerales.php";
+require_once __DIR__ . '/../core/configGenerales.php';
+require_once __DIR__ . '/../controladores/clientesControlador.php';
 
-header('Content-Type: application/json'); // Asegura que la respuesta sea JSON
-
-// Lista de campos obligatorios y sus nombres para mostrar
-$camposObligatorios = [
-    'user_empresa' => 'Empresa',
-    'user_name' => 'Nombre',
-    'user_telefono' => 'Teléfono',
-    'email' => 'Correo electrónico',
-];
-
-$missingFields = [];
-
-// Verificar cada campo obligatorio
-foreach ($camposObligatorios as $campo => $nombre) {
-    if (!isset($_POST[$campo]) || empty(trim($_POST[$campo]))) {
-        $missingFields[] = $nombre;
-    }
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST');
+    http_response_code(405);
+    echo json_encode(['estado' => false, 'type' => 'error', 'title' => 'Registro', 'mensaje' => 'Utilice el formulario de registro.']);
+    exit;
 }
-
-// Si no faltan campos, procesar el registro
-if (empty($missingFields)) {
-    require_once "../controladores/clientesControlador.php";
-    $insVarios = new clientesControlador();
-    echo json_encode($insVarios->registrar_cliente_autonomo_controlador());
-} else {
-    echo "<script>
-        showNotify('error', 'Error', 'Faltan campos obligatorios: " . implode(", ", $missingFields) . "');
-    </script>";
-}
+(new clientesControlador())->registrar_cliente_autonomo_controlador();

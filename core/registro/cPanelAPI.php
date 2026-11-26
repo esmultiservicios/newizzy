@@ -11,8 +11,6 @@ require_once dirname(__DIR__) . "/mainModel.php";
 class cPanelAPI {
     private $token;
     private $baseUrl;
-    private $username;
-    private $password;
     private $cpanelUser;
     private $timeout;
     private $verifySSL;
@@ -25,9 +23,7 @@ class cPanelAPI {
     public function __construct() {
         $this->token = CPANEL_TOKEN;
         $this->cpanelUser = CPANEL_USERNAME;
-        $this->baseUrl = "https://".CPANEL_HOST.":".CPANEL_PORT."/cpsess{$this->token}/execute/";
-        $this->username = CPANEL_USERNAME;
-        $this->password = CPANEL_PASSWORD;
+        $this->baseUrl = "https://".CPANEL_HOST.":".CPANEL_PORT."/execute/";
         $this->timeout = API_TIMEOUT;
         $this->verifySSL = SSL_VERIFICATION;
     }
@@ -42,6 +38,9 @@ class cPanelAPI {
      * @throws Exception Si ocurre un error en la conexión, HTTP o formato JSON
      */
     private function executeApiCall($module, $function, $params = []) {
+        if ($this->cpanelUser === '' || $this->token === '') {
+            throw new RuntimeException('Configure CPANEL_USERNAME y CPANEL_TOKEN.');
+        }
         $url = $this->baseUrl . $module . '/' . $function;
         
         if (!empty($params)) {
@@ -52,12 +51,11 @@ class cPanelAPI {
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-            CURLOPT_USERPWD => "$this->username:$this->password",
+
             CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
-            CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0,
-            CURLOPT_HTTPHEADER => ['Accept: application/json']
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'Authorization: cpanel '.$this->cpanelUser.':'.$this->token]
         ]);
 
         $response = curl_exec($ch);
@@ -79,7 +77,11 @@ class cPanelAPI {
             throw new Exception("JSON Error: " . json_last_error_msg());
         }
 
-        return $data;
+        $result = $data['result'] ?? null;
+        if (!is_array($result) || !isset($result['status'])) {
+            throw new RuntimeException('Respuesta UAPI no reconocida.');
+        }
+        return $result;
     }
 
     /**************************************/
@@ -105,7 +107,6 @@ class cPanelAPI {
                 'name' => $dbName
             ]);
             
-            error_log("Respuesta de cPanel: ".json_encode($result));
             
             if ($result['status'] == 1) {
                 return [

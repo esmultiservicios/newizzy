@@ -348,9 +348,7 @@ var listar_reporte_ventas = function () {
                                 '<span class="accion-label">Enviar por correo</span>' +
                             '</button>';
 
-                        if (Number(row.documento_id)!==4) acciones += '<button type="button" class="dropdown-item accion-item table_reportes" data-izzy-share-id="' +
-                            Number(row.facturas_id) + '" data-izzy-share-type="factura" data-izzy-share-view="reporteVentas">' +
-                            '<span class="accion-icon accion-icon-success"><i class="fab fa-whatsapp"></i></span><span class="accion-label">Enviar por WhatsApp</span></button>';
+                        if (Number(row.documento_id)!==4) acciones += window.izzyDocumentShareItems?.('factura',row.facturas_id,'reporteVentas') || '';
 
                         acciones +=
                             '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar cancelar_factura">' +
@@ -1483,7 +1481,7 @@ function getClientesPagos(){
       '<button type="button" class="dropdown-item accion-item table_reportes rv-action" data-action="comprobante" data-index="'+index+'"><span class="accion-icon accion-icon-success"><i class="far fa-file-pdf"></i></span><span class="accion-label">Comprobante</span></button>';
     if(!anulada){
 
-      if(Number(r.documento_id)!==4)html+='<button type="button" class="dropdown-item accion-item table_reportes" data-izzy-share-id="'+Number(r.facturas_id)+'" data-izzy-share-type="factura" data-izzy-share-view="reporteVentas"><span class="accion-icon accion-icon-success"><i class="fab fa-whatsapp"></i></span><span class="accion-label">Enviar por WhatsApp</span></button>';
+      if(Number(r.documento_id)!==4)html+=window.izzyDocumentShareItems?.('factura',r.facturas_id,'reporteVentas') || '';
       html+='<button type="button" class="dropdown-item accion-item table_reportes rv-action" data-action="email" data-index="'+index+'"><span class="accion-icon accion-icon-secondary"><i class="fas fa-paper-plane"></i></span><span class="accion-label">Enviar por correo</span></button>'+
       '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar rv-action" data-action="anular" data-index="'+index+'"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-ban"></i></span><span class="accion-label">Anular</span></button>';
     }

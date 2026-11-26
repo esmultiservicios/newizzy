@@ -397,7 +397,7 @@
                                 <span class="auth-input-icon"><i class="fas fa-building" aria-hidden="true"></i></span>
                                 <input type="text" id="user_empresa" name="user_empresa"
                                        placeholder="Nombre de tu negocio o tu nombre"
-                                       required autofocus tabindex="1" autocomplete="organization">
+                                       required maxlength="100" autofocus tabindex="1" autocomplete="organization">
                             </span>
                         </label>
 
@@ -407,7 +407,7 @@
                                 <span class="auth-input-icon"><i class="fas fa-user" aria-hidden="true"></i></span>
                                 <input type="text" id="user_name" name="user_name"
                                        placeholder="Tu nombre"
-                                       required tabindex="2" autocomplete="name">
+                                       required maxlength="100" tabindex="2" autocomplete="name">
                             </span>
                         </label>
 
@@ -417,7 +417,7 @@
                                 <span class="auth-input-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
                                 <input type="tel" id="user_telefono" name="user_telefono"
                                        placeholder="8-12 dígitos"
-                                       required tabindex="3" autocomplete="tel" inputmode="numeric">
+                                       required minlength="8" maxlength="12" tabindex="3" autocomplete="tel" inputmode="numeric">
                             </span>
                         </label>
 
@@ -427,7 +427,7 @@
                                 <span class="auth-input-icon"><i class="fas fa-at" aria-hidden="true"></i></span>
                                 <input type="email" id="mail" name="email"
                                        placeholder="tu@correo.com"
-                                       required tabindex="4" autocomplete="email">
+                                       required maxlength="45" tabindex="4" autocomplete="email">
                             </span>
                         </label>
 
@@ -435,9 +435,9 @@
                             <span class="auth-control-label">Contraseña<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input has-action">
                                 <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
-                                <input type="password" id="user-pass" name="user-pass"
+                                <input type="password" id="user-pass" name="user_pass"
                                        placeholder="Mínimo 8 caracteres"
-                                       required tabindex="5" autocomplete="new-password">
+                                       required minlength="8" maxlength="120" tabindex="5" autocomplete="new-password">
                                 <button id="show_password1" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
                                     <span id="icon1" class="fa fa-eye-slash icon" aria-hidden="true"></span>
                                 </button>
@@ -448,9 +448,9 @@
                             <span class="auth-control-label">Confirmar contraseña<span class="auth-required-mark" aria-hidden="true">*</span></span>
                             <span class="auth-input has-action">
                                 <span class="auth-input-icon"><i class="fas fa-lock" aria-hidden="true"></i></span>
-                                <input type="password" id="user-repeatpass"
+                                <input type="password" id="user-repeatpass" name="user_repeatpass"
                                        placeholder="Repite tu contraseña"
-                                       required tabindex="6" autocomplete="new-password">
+                                       required minlength="8" maxlength="120" tabindex="6" autocomplete="new-password">
                                 <button id="show_password2" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
                                     <span id="icon2" class="fa fa-eye-slash icon" aria-hidden="true"></span>
                                 </button>

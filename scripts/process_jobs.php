@@ -125,7 +125,7 @@ class JobProcessor {
             FROM jobs_queue
             WHERE status = 'pending'
               AND attempts < max_attempts
-            ORDER BY created_at ASC
+            ORDER BY created_at ASC, id ASC
             LIMIT 5
         ";
 
@@ -153,8 +153,8 @@ class JobProcessor {
 
                 Todo viene dentro del JSON data, creado desde clientesControlador.php.
             */
-            $row['db_user'] = isset($data['db_user']) ? trim((string)$data['db_user']) : '';
-            $row['db_password'] = isset($data['db_password']) ? trim((string)$data['db_password']) : '';
+            $row['db_user'] = trim((string)($data['db_user'] ?? CPANEL_DB_USERNAME));
+            $row['db_password'] = (string)(CPANEL_DB_PASSWORD ?: ($data['db_password'] ?? ''));
             $row['notify_email'] = isset($data['notify_email']) ? trim((string)$data['notify_email']) : '';
 
             $row['colaborador_data'] = [];
@@ -171,7 +171,6 @@ class JobProcessor {
                 if (
                     empty($row['data']['server_customers_id']) ||
                     empty($row['data']['db_name']) ||
-                    empty($row['data']['sql_file']) ||
                     empty($row['db_user']) ||
                     empty($row['db_password'])
                 ) {
@@ -205,7 +204,7 @@ class JobProcessor {
         }
 
         $dbName = trim($job['data']['db_name']);
-        $sqlFile = trim($job['data']['sql_file']);
+        $sqlFile = APP_ROOT . '/plantilla/plantilla_izzy.sql';
 
         if (!file_exists($sqlFile)) {
             throw new Exception('No existe el archivo SQL de plantilla: ' . $sqlFile);
@@ -222,7 +221,7 @@ class JobProcessor {
         }
         // db_main.server_customers es la referencia canónica de la cuenta.
         // Nunca aprovisionar si el usuario principal no apunta a esa cuenta.
-        $this->verifyMainRegistration($job);
+        $job = $this->verifyMainRegistration($job);
         if ((int)$source['db_imported'] === 1) {
             // El proceso principal ya está finalizado: recuperar notificación pendiente.
             $this->enqueueAccessEmails($job);
@@ -252,6 +251,9 @@ class JobProcessor {
                 $missing=array_diff($expectedTables,$available);
                 if ($missing) throw new Exception('Importación incompleta: faltan '.count($missing).' tablas. No se borrará información.');
                 // Reanudación idempotente tras importar la estructura pero fallar una inserción.
+                if (!in_array('v_promos_vigentes_producto', $available, true)) {
+                    throw new RuntimeException('La plantilla no completó la importación.');
+                }
                 $skipImport=true;
             }
         } finally { $preflightConn->close(); }
@@ -278,19 +280,28 @@ class JobProcessor {
         }
 
         try {
+            $newDbConn->begin_transaction();
             // Los IDs de usuarios y colaboradores pertenecen a cada base por separado.
             $localColaboradorId = $this->syncTenantColaborador($newDbConn, $job);
             $this->syncTenantCompany($newDbConn, $job, $localColaboradorId);
             $this->syncTenantUser($newDbConn, $job, $localColaboradorId);
-            $this->verifyTenantIdentity($newDbConn, $job, $localColaboradorId);
             // La cuenta principal puede haber cambiado mientras se importaba.
-            $this->verifyMainRegistration($job);
+            $job = $this->verifyMainRegistration($job);
+            $this->verifyTenantIdentity($newDbConn, $job, $localColaboradorId);
 
             ProvisioningSync::sync($this->conexion, $newDbConn, (int)$job['data']['server_customers_id']);
-            $this->markDatabaseAsImported($job['data']['server_customers_id']);
+            $newDbConn->commit();
 
-            $this->enqueueAccessEmails($job);
-            $this->clearTemporaryPassword($job);
+            $this->conexion->begin_transaction();
+            try {
+                $this->markDatabaseAsImported($job['data']['server_customers_id']);
+                $this->enqueueAccessEmails($job);
+                $this->clearTemporaryPassword($job);
+                $this->conexion->commit();
+            } catch (Throwable $e) {
+                $this->conexion->rollback();
+                throw $e;
+            }
 
             return true;
 
@@ -322,13 +333,13 @@ class JobProcessor {
         $url = (string)($data['login_url'] ?? SERVERURL.'login/');
         $company = (string)($data['empresa_nombre'] ?? '');
         $code = $this->getCodigoCliente($id);
-        $plain = (string)($data['password_temporal'] ?? '');
-        $html = '<p>Tu acceso a IZZY está habilitado.</p><p>Plan asignado: <b>Gratis</b>.</p>'
-          .'<p>Empresa: '.htmlspecialchars($company,ENT_QUOTES,'UTF-8').'</p>'
-          .'<p>Usuario: '.htmlspecialchars((string)($data['usuario_data']['username'] ?? $to),ENT_QUOTES,'UTF-8').'</p>'
-          .($plain !== '' ? '<p>Contraseña inicial: '.htmlspecialchars($plain,ENT_QUOTES,'UTF-8').'</p>' : '<p>Usa la contraseña elegida durante tu registro.</p>')
-          .'<p>Código: '.htmlspecialchars($code,ENT_QUOTES,'UTF-8').'</p>'
-          .'<p><a href="'.htmlspecialchars($url,ENT_QUOTES,'UTF-8').'">Entrar a IZZY</a></p>';
+        $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        $html = '<p>Hola, '.$escape($name).':</p>'
+          .'<p>Su espacio de trabajo <strong>'.$escape($company).'</strong> ya está listo en el plan Gratis de IZZY.</p>'
+          .'<p><strong>Correo de acceso:</strong> '.$escape($to).'<br><strong>Código de cliente:</strong> '.$escape($code).'</p>'
+          .'<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita establecer otra, utilice «Recuperar contraseña» en el inicio de sesión.</p>'
+          .'<p><a href="'.$escape($url).'">Iniciar sesión en IZZY</a></p>'
+          .'<p>Bienvenido a IZZY.<br>Equipo de IZZY · ES MULTISERVICIOS</p>';
         $this->enqueueEmail('access_email','access_user_'.$id,[$to=>$name], 'IZZY | Acceso habilitado', $html);
         if ($internal) {
             $internalHtml = '<p>Acceso habilitado: '.htmlspecialchars($company,ENT_QUOTES,'UTF-8').'</p><p>Cliente ID: '.$id.'</p><p>Plan Gratis (ID 6).</p>';
@@ -416,16 +427,17 @@ class JobProcessor {
             if ($row) return (int)$row['colaboradores_id'];
         }
         $stmt=$connection->prepare('INSERT INTO colaboradores
-            (puestos_id,nombre,identidad,estado,telefono,empresa_id,fecha_registro,fecha_ingreso,fecha_egreso)
-            VALUES (?,?,?,?,?,1,?,?,?)');
+            (colaboradores_id,puestos_id,nombre,identidad,estado,telefono,empresa_id,fecha_registro,fecha_ingreso,fecha_egreso)
+            VALUES (?,?,?,?,?,?,1,?,?,?)');
         if (!$stmt) throw new RuntimeException('No se pudo preparar colaborador: '.$connection->error);
         $puesto=(int)$source['puestos_id']; $nombre=(string)$source['nombre'];
         $estado=(int)$source['estado']; $tel=(string)$source['telefono'];
         $registro=(string)$source['fecha_registro']; $ingreso=(string)$source['fecha_ingreso'];
         $egreso=$source['fecha_egreso'];
-        $stmt->bind_param('ississss',$puesto,$nombre,$identity,$estado,$tel,$registro,$ingreso,$egreso);
+        $id = (int)$connection->query('SELECT GREATEST(1,COALESCE(MAX(colaboradores_id),0))+1 FROM colaboradores')->fetch_row()[0];
+        $stmt->bind_param('iississss',$id,$puesto,$nombre,$identity,$estado,$tel,$registro,$ingreso,$egreso);
         if (!$stmt->execute()) throw new RuntimeException('No se pudo crear colaborador local: '.$stmt->error);
-        $id=(int)$connection->insert_id; $stmt->close();
+        $stmt->close();
         return $id;
     }
 
@@ -447,9 +459,10 @@ class JobProcessor {
             $stmt->bind_param('iisssiisii',$colaboradorId,$privilegio,$username,$password,$email,$tipo,$estado,$fecha,$id,$customerId);
         } else {
             // No introducir el ID de db_main; MySQL asigna el ID local disponible.
-            $stmt=$connection->prepare('INSERT INTO users (colaboradores_id,privilegio_id,username,password,email,tipo_user_id,estado,fecha_registro,empresa_id,server_customers_id) VALUES (?,?,?,?,?,?,?, ?,1,?)');
+            $stmt=$connection->prepare('INSERT INTO users (users_id,colaboradores_id,privilegio_id,username,password,email,tipo_user_id,estado,fecha_registro,empresa_id,server_customers_id) VALUES (?,?,?,?,?,?,?,?,?,1,?)');
             if (!$stmt) throw new RuntimeException('No se pudo preparar inserción de usuario local: '.$connection->error);
-            $stmt->bind_param('iisssiisi',$colaboradorId,$privilegio,$username,$password,$email,$tipo,$estado,$fecha,$customerId);
+            $localId = (int)$connection->query('SELECT GREATEST(1,COALESCE(MAX(users_id),0))+1 FROM users')->fetch_row()[0];
+            $stmt->bind_param('iiisssiisi',$localId,$colaboradorId,$privilegio,$username,$password,$email,$tipo,$estado,$fecha,$customerId);
         }
         if (!$stmt->execute()) throw new RuntimeException('No se pudo guardar usuario local: '.$stmt->error);
         $stmt->close();
@@ -459,13 +472,12 @@ class JobProcessor {
      * La referencia entre bases es el ID central de server_customers,
      * no los IDs locales de usuarios o colaboradores.
      */
-    private function verifyMainRegistration(array $job): void {
+    private function verifyMainRegistration(array $job): array {
         $customerId = (int)($job['data']['server_customers_id'] ?? 0);
         $expected = $job['usuario_data'] ?? [];
         if ($customerId <= 0 || !is_array($expected) ||
             trim((string)($expected['username'] ?? '')) === '' ||
-            trim((string)($expected['email'] ?? '')) === '' ||
-            (string)($expected['password'] ?? '') === '') {
+            trim((string)($expected['email'] ?? '')) === '') {
             throw new RuntimeException('Identidad de registro central incompleta.');
         }
         $stmt = $this->conexion->prepare(
@@ -489,7 +501,10 @@ class JobProcessor {
             (int)$row['colaboradores_id'] <= 0 ||
             (string)$row['username'] !== (string)$expected['username'] ||
             strcasecmp((string)$row['email'], (string)$expected['email']) !== 0 ||
-            !hash_equals((string)$row['password'], (string)$expected['password'])) {
+            (string)$row['password'] === '' ||
+            (int)$row['users_id'] !== (int)($expected['users_id'] ?? 0) ||
+            (int)$row['colaboradores_id'] !== (int)($job['colaborador_data']['colaboradores_id'] ?? 0) ||
+            (isset($expected['password']) && !hash_equals((string)$row['password'], (string)$expected['password']))) {
             throw new RuntimeException('El usuario central no coincide con la cuenta registrada; aprovisionamiento detenido.');
         }
         $stmt = $this->conexion->prepare('SELECT colaboradores_id FROM colaboradores WHERE colaboradores_id=? LIMIT 1');
@@ -500,6 +515,8 @@ class JobProcessor {
         $exists = $stmt->get_result()->num_rows === 1;
         $stmt->close();
         if (!$exists) throw new RuntimeException('El colaborador central asociado no existe.');
+        $job['usuario_data']['password'] = $row['password'];
+        return $job;
     }
 
     private function verifyTenantIdentity(mysqli $connection, array $job, int $localColaboradorId): void {
@@ -649,103 +666,6 @@ class JobProcessor {
         $stmt->close();
     }
 
-    private function sendAccessReadyEmail($job) {
-        try {
-            $to = trim((string)$job['notify_email']);
-
-            if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
-                return false;
-            }
-
-            $nombre = $job['colaborador_data']['nombre'] ?? 'Usuario';
-            $empresa = $job['data']['empresa_nombre'] ?? 'Su empresa';
-            $dbName = $job['data']['db_name'] ?? '';
-            $loginUrl = $job['data']['login_url'] ?? (SERVERURL . 'login/');
-            $passwordTemporal = $job['data']['password_temporal'] ?? '';
-            $codigoCliente = '';
-
-            if (!empty($job['data']['server_customers_id'])) {
-                $codigoCliente = $this->getCodigoCliente((int)$job['data']['server_customers_id']);
-            }
-
-            $asunto = 'Su acceso a IZZY ya está listo';
-
-            $passwordHtml = '';
-
-            if ($passwordTemporal !== '') {
-                $passwordHtml = '<li><strong>Contraseña:</strong> '.$passwordTemporal.'</li>';
-            }
-
-            $codigoHtml = '';
-
-            if ($codigoCliente !== '') {
-                $codigoHtml = '<li><strong>Código de cliente:</strong> '.$codigoCliente.'</li>';
-            }
-
-            $mensaje = '
-                <div style="padding: 20px;">
-                    <p style="margin-bottom: 10px;">¡Hola '.$nombre.'!</p>
-
-                    <p>
-                        Su cuenta ya fue configurada correctamente. La base de datos del sistema fue preparada y su acceso ya está disponible.
-                    </p>
-
-                    <p><strong>Detalles de acceso:</strong></p>
-
-                    <ul>
-                        <li><strong>Empresa:</strong> '.$empresa.'</li>
-                        <li><strong>Correo de acceso:</strong> '.$to.'</li>
-                        '.$passwordHtml.'
-                        '.$codigoHtml.'
-                        <li><strong>Base asignada:</strong> '.$dbName.'</li>
-                    </ul>
-
-                    <p style="text-align: center; margin: 25px 0;">
-                        <a href="'.$loginUrl.'" target="_blank"
-                            style="
-                                display: inline-block;
-                                background: #0d6efd;
-                                color: #ffffff;
-                                padding: 12px 22px;
-                                border-radius: 7px;
-                                text-decoration: none;
-                                font-weight: bold;
-                            ">
-                            Acceder al Sistema
-                        </a>
-                    </p>
-
-                    <p>
-                        Por seguridad, recomendamos cambiar su contraseña después del primer acceso.
-                    </p>
-
-                    <p>
-                        Atentamente,<br>
-                        <strong>El equipo de ES MULTISERVICIOS</strong>
-                    </p>
-                </div>
-            ';
-
-            $sendEmail = new sendEmail();
-
-            $sent = $sendEmail->enviarCorreo(
-                [$to => $nombre],
-                [],
-                $asunto,
-                $mensaje,
-                1,
-                1,
-                []
-            );
-
-            return $sent === 1;
-
-        } catch (Exception $e) {
-            error_log('Error al enviar correo de acceso listo: ' . $e->getMessage());
-            return false;
-        }
-    }
-
     private function getCodigoCliente($server_customers_id) {
         $stmt = $this->conexion->prepare("SELECT codigo_cliente FROM server_customers WHERE server_customers_id = ? LIMIT 1");
 
@@ -774,8 +694,7 @@ class JobProcessor {
         }
 
         $data = $job['data'];
-        $data['password_temporal'] = '';
-        $data['db_password'] = '';
+        unset($data['password_temporal'], $data['db_password'], $data['usuario_data']['password']);
 
         $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE);
 

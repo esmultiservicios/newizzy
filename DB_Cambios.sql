@@ -1593,3 +1593,94 @@ CREATE TABLE IF NOT EXISTS api_external_operations (
  KEY idx_external_operations_connection (connection_id),
  CONSTRAINT fk_external_operations_connection FOREIGN KEY (connection_id) REFERENCES api_external_connections(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Registro de cuentas IZZY. Aplicar antes de publicar el formulario.
+-- Ejecutar este bloque en DB_MAIN y en las bases de clientes existentes.
+-- Solo amplía campos presentes y convierte las tablas del alta si corresponde.
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clientes' AND COLUMN_NAME='telefono' AND CHARACTER_MAXIMUM_LENGTH<12),
+    'ALTER TABLE clientes MODIFY telefono VARCHAR(12) COLLATE utf8mb4_spanish_ci NOT NULL', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clientes' AND COLUMN_NAME='empresa' AND CHARACTER_MAXIMUM_LENGTH<100),
+    'ALTER TABLE clientes MODIFY empresa VARCHAR(100) COLLATE utf8mb4_spanish_ci NOT NULL', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='colaboradores' AND COLUMN_NAME='telefono' AND CHARACTER_MAXIMUM_LENGTH<12),
+    'ALTER TABLE colaboradores MODIFY telefono VARCHAR(12) COLLATE utf8mb4_spanish_ci NOT NULL', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='empresa' AND COLUMN_NAME='telefono' AND CHARACTER_MAXIMUM_LENGTH<12),
+    'ALTER TABLE empresa MODIFY telefono VARCHAR(12) COLLATE utf8mb4_spanish_ci NOT NULL', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='empresa' AND COLUMN_NAME='celular' AND CHARACTER_MAXIMUM_LENGTH<12),
+    'ALTER TABLE empresa MODIFY celular VARCHAR(12) COLLATE utf8mb4_spanish_ci NOT NULL', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='password' AND CHARACTER_MAXIMUM_LENGTH<255),
+    'ALTER TABLE users MODIFY password VARCHAR(255) COLLATE utf8mb4_spanish_ci NOT NULL', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clientes' AND ENGINE='MyISAM'),
+    'ALTER TABLE clientes ENGINE=InnoDB', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='colaboradores' AND ENGINE='MyISAM'),
+    'ALTER TABLE colaboradores ENGINE=InnoDB', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND ENGINE='MyISAM'),
+    'ALTER TABLE users ENGINE=InnoDB', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='server_customers' AND ENGINE='MyISAM'),
+    'ALTER TABLE server_customers ENGINE=InnoDB', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.TABLES
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='jobs_queue' AND ENGINE='MyISAM'),
+    'ALTER TABLE jobs_queue ENGINE=InnoDB', 'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
+-- Limpieza de credenciales de los trabajos del flujo anterior en DB_MAIN.
+-- El worker consulta la credencial del usuario al aprovisionar.
+SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='jobs_queue' AND COLUMN_NAME='data'),
+    'UPDATE jobs_queue SET data=JSON_REMOVE(data,''$.password_temporal'',''$.db_password'',''$.usuario_data.password'') WHERE job_type=''db_import'' AND JSON_VALID(data)',
+    'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;

@@ -10,36 +10,108 @@ if(session_status()===PHP_SESSION_ACTIVE && !empty($_SESSION['users_id_sd']) && 
     function request(data){
         return $.ajax({url:endpoint,method:'POST',dataType:'json',headers:{'X-CSRF-Token':token},data});
     }
-    function showFailure(xhr){
-        const data=xhr.responseJSON;
-        showNotify('warning','WhatsApp', (data?.message || 'No se pudo confirmar el envío.')+(data?.code?' Código: '+data.code:''));
-    }
-    function send(document){
-        request({...document,action:'check'}).done(result=>{
-            if(!result.available){showNotify('info','WhatsApp',result.message);return;}
-            swal({title:'Enviar por WhatsApp',text:'Confirme que el cliente '+result.recipient+' autorizó recibir el enlace de este documento.',
-                icon:'info',buttons:{cancel:{text:'Cancelar',visible:true},confirm:{text:'Confirmo y envío'}},closeOnClickOutside:false})
-            .then(confirmed=>{
-                if(!confirmed)return;
-                request({...document,action:'send',consent:'1',confirmation:result.confirmation})
-                    .done(response=>showNotify(response.available===false?'info':'success','WhatsApp',response.message))
-                    .fail(showFailure);
+    const autoEmail=<?php echo json_encode(!defined('IZZY_DOCUMENT_AUTO_EMAIL') || IZZY_DOCUMENT_AUTO_EMAIL); ?>;
+    const emailEndpoints={
+        factura: <?php echo json_encode(SERVERURL.'core/correo/sendFactura.php'); ?>,
+        cotizacion: <?php echo json_encode(SERVERURL.'core/correo/sendCotizacion.php'); ?>
+    };
+    const emailPending=new Set();
+    const issuedEmail=new Set();
+    const sharePending=new Set();
+    const errorMessage=xhr=>xhr.responseJSON?.message || 'No se pudo confirmar el envío.';
+
+    async function email(document){
+        if(!emailEndpoints[document.type] || !Number.isSafeInteger(document.id) || document.id<1)
+            return {ok:false,message:'Documento inválido.'};
+        const key=document.type+':'+document.id;
+        if(emailPending.has(key))return {ok:false,message:'El correo ya se está enviando.'};
+        emailPending.add(key);
+        try {
+            return await $.ajax({
+                url:emailEndpoints[document.type],method:'POST',dataType:'json',
+                headers:{'X-CSRF-Token':token},
+                data:{[document.type==='factura'?'facturas_id':'cotizacion_id']:document.id,automatic:document.automatic?'1':'0'}
             });
-        }).fail(showFailure);
+        } catch(xhr) {
+            return {ok:false,message:errorMessage(xhr)};
+        } finally {
+            emailPending.delete(key);
+        }
     }
-    window.izzySendDocument=(type,id,view)=>send({type,id,view});
+    function notifyEmail(result){
+        if(result.skip)return;
+        showNotify(result.ok?'success':'warning','Correo',result.message);
+    }
+    window.izzyEmailDocument=(type,id)=>email({type,id}).then(notifyEmail);
+
+    async function send(document,both=false){
+        const key=document.type+':'+document.id;
+        if(sharePending.has(key))return;
+        sharePending.add(key);
+        try {
+            let check;
+            try {
+                check=await request({...document,action:'check'});
+            } catch(xhr) {
+                check={available:false,message:errorMessage(xhr)};
+            }
+            if(!check.available){
+                if(!both){showNotify('warning','WhatsApp',check.message);return;}
+                const emailOnly=await swal({title:'WhatsApp no disponible',text:check.message+' ¿Desea enviar el correo?',
+                    icon:'warning',buttons:['Cancelar','Enviar correo']});
+                if(emailOnly)notifyEmail(await email(document));
+                return;
+            }
+            const confirmed=await swal({
+                title:both?'Enviar por correo y WhatsApp':'Enviar por WhatsApp',
+                text:'Confirme que el cliente '+check.recipient+' autorizó recibir el enlace por WhatsApp.',
+                icon:'info',buttons:['Cancelar','Confirmar y enviar'],closeOnClickOutside:false
+            });
+            if(!confirmed)return;
+            const whatsapp=request({...document,action:'send',consent:'1',confirmation:check.confirmation}).then(
+                response=>({ok:response.ok && response.available!==false,message:response.message}),
+                xhr=>({ok:false,message:errorMessage(xhr)})
+            );
+            if(!both){
+                const result=await whatsapp;
+                showNotify(result.ok?'success':'warning','WhatsApp',result.message);
+                return;
+            }
+            const [emailResult,whatsappResult]=await Promise.all([email(document),whatsapp]);
+            showNotify(emailResult.ok && whatsappResult.ok?'success':'warning','Envío de documento',
+                'Correo: '+emailResult.message+' · WhatsApp: '+whatsappResult.message);
+        } finally {
+            sharePending.delete(key);
+        }
+    }
+
+    window.izzySendDocument=(type,id,view,both=false)=>send({type,id,view},both);
+    window.izzyDocumentShareItems=(type,id,view)=>{
+        id=Number(id);
+        if(!Number.isSafeInteger(id)||id<1)return '';
+        const attrs=' data-izzy-share-id="'+id+'" data-izzy-share-type="'+type+'" data-izzy-share-view="'+view+'"';
+        const button=(icon,style,label,extra='')=>'<button type="button" class="dropdown-item accion-item table_reportes"'+attrs+extra+'><span class="accion-icon '+style+'"><i class="'+icon+'" aria-hidden="true"></i></span><span class="accion-label">'+label+'</span></button>';
+        return button('fab fa-whatsapp','accion-icon-success','Enviar por WhatsApp')+
+            button('fas fa-share-alt','accion-icon-primary','Enviar por ambos',' data-izzy-share-both="1"');
+    };
+
     let offerGeneration=0;
     window.izzyOfferDocumentShare=(type,id,view)=>{
-        if(!Number.isSafeInteger(Number(id))||Number(id)<1)return;
+        id=Number(id);
+        if(!Number.isSafeInteger(id)||id<1)return;
         const document={type,id,view};
+        const key=type+':'+id;
+        if(autoEmail && !issuedEmail.has(key)){
+            issuedEmail.add(key);
+            email({...document,automatic:true}).then(notifyEmail);
+        }
         const generation=++offerGeneration;
         jQuery('#izzy-document-share-offer').remove();
         request({...document,action:'check'}).done(result=>{
             if(!result.available||generation!==offerGeneration)return;
-            $('#izzy-document-share-offer').remove();
             const offer=$('<aside id="izzy-document-share-offer" class="izzy-document-share-offer" aria-label="Compartir documento">');
             const open=$('<button type="button" class="izzy-button izzy-button--primary">')
-                .append($('<i class="fab fa-whatsapp" aria-hidden="true">')).append(' Compartir '+(type==='factura'?'factura':'cotización'))
+                .append($('<i class="fab fa-whatsapp" aria-hidden="true">')).append(' Enviar por WhatsApp')
                 .on('click',()=>send(document));
             const close=$('<button type="button" class="izzy-button" aria-label="Cerrar opción de compartir">')
                 .append($('<i class="fas fa-times" aria-hidden="true">')).on('click',()=>offer.remove());
@@ -48,7 +120,8 @@ if(session_status()===PHP_SESSION_ACTIVE && !empty($_SESSION['users_id_sd']) && 
     };
     $(document).on('click.izzyDocumentShare','[data-izzy-share-id]',function(event){
         event.preventDefault();
-        send({id:this.dataset.izzyShareId,type:this.dataset.izzyShareType,view:this.dataset.izzyShareView});
+        window.izzySendDocument(this.dataset.izzyShareType,Number(this.dataset.izzyShareId),
+            this.dataset.izzyShareView,this.dataset.izzyShareBoth==='1');
     });
 })();
 
@@ -3647,106 +3720,8 @@ function printPurchase(compras_id) {
 //INICIO ENVIAR COTIZACION POR CORREO ELECTRONICO
 //INICIO ENVIAR COTIZACION POR CORREO ELECTRONICO
 function mailQuote(cotizacion_id) {
-    cotizacion_id = parseInt(cotizacion_id || 0, 10);
-
-    if (cotizacion_id <= 0) {
-        showNotify('error', 'Error', 'No se recibió una cotización válida para enviar por correo.');
-        return false;
-    }
-
-    // Evita doble envío accidental si la función se dispara dos veces seguidas
-    if (!window.__mailQuoteEnProceso) {
-        window.__mailQuoteEnProceso = {};
-    }
-
-    if (window.__mailQuoteEnProceso[cotizacion_id]) {
-        showNotify('warning', 'En proceso', 'Esta cotización ya se está enviando. Espere un momento.');
-        return false;
-    }
-
-    window.__mailQuoteEnProceso[cotizacion_id] = true;
-
-    showNotify('info', 'Enviando', 'Enviando cotización por correo, por favor espere...');
-
-    sendQuote(cotizacion_id);
+    return window.izzyEmailDocument?.('cotizacion',Number(cotizacion_id));
 }
-
-function sendQuote(cotizacion_id) {
-    cotizacion_id = parseInt(cotizacion_id || 0, 10);
-
-    if (cotizacion_id <= 0) {
-        showNotify('error', 'Error', 'No se pudo identificar la cotización a enviar.');
-        return false;
-    }
-
-    var url = '<?php echo SERVERURL; ?>core/correo/sendCotizacion.php';
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        async: true,
-        cache: false,
-        data: {
-            cotizacion_id: cotizacion_id
-        },
-        success: function(data) {
-            var respuesta = $.trim(data || '');
-
-            var $respuestaAjax = $('<div class="RespuestaAjax d-none"></div>');
-            $('body').append($respuestaAjax);
-            $respuestaAjax.html(respuesta);
-
-            $respuestaAjax.find('script').each(function() {
-              var codigo = this.text || this.textContent || this.innerHTML || '';
-
-              if ($.trim(codigo) !== '') {
-                  try {
-                      $.globalEval(codigo);
-                  } catch (e) {
-                      showNotify(
-                          'error',
-                          'Error',
-                          'No se pudo completar el envío de la cotización.'
-                      );
-                  }
-              }
-          });
-
-            if (
-                respuesta.indexOf("showNotify('success'") === -1 &&
-                respuesta.indexOf('showNotify("success"') === -1 &&
-                respuesta.indexOf("showNotify('error'") === -1 &&
-                respuesta.indexOf('showNotify("error"') === -1 &&
-                respuesta.indexOf("showNotify('warning'") === -1 &&
-                respuesta.indexOf('showNotify("warning"') === -1
-            ) {
-                showNotify('success', 'Cotización enviada', 'La cotización fue enviada correctamente por correo.');
-            }
-
-            setTimeout(function() {
-                $respuestaAjax.remove();
-
-                if (window.__mailQuoteEnProceso && window.__mailQuoteEnProceso[cotizacion_id]) {
-                    delete window.__mailQuoteEnProceso[cotizacion_id];
-                }
-            }, 2000);
-        },
-        error: function(xhr) {
-            showNotify(
-                'error',
-                'Error',
-                xhr.responseText || 'No se pudo enviar la cotización por correo.'
-            );
-
-            if (window.__mailQuoteEnProceso && window.__mailQuoteEnProceso[cotizacion_id]) {
-                delete window.__mailQuoteEnProceso[cotizacion_id];
-            }
-        }
-    });
-
-    return true;
-}
-//FIN ENVIAR COTIZACION POR CORREO ELECTRONICO
 
 function getNumeroCotizacion(cotizacion_id) {
     var url = '<?php echo SERVERURL; ?>core/getNoCotizacion.php';
@@ -3768,62 +3743,7 @@ function getNumeroCotizacion(cotizacion_id) {
 
 //INICIO ENVIAR FACTURA POR CORREO ELECTRONICO
 function mailBill(facturas_id) {
-    facturas_id = parseInt(facturas_id || 0);
-
-    if (facturas_id <= 0) {
-      showNotify(
-          'warning',
-          'Factura no válida',
-          'No se encontró una factura válida para enviar por correo.'
-      );
-      return;
-  }
-
-    // Evita doble envío accidental si la función se dispara dos veces seguidas
-    if (!window.__mailBillEnProceso) {
-        window.__mailBillEnProceso = {};
-    }
-
-    if (window.__mailBillEnProceso[facturas_id]) {
-        return;
-    }
-
-    window.__mailBillEnProceso[facturas_id] = true;
-
-    setTimeout(function () {
-        if (typeof sendMail === 'function') {
-            sendMail(facturas_id);
-        } else {
-            showNotify(
-                'error',
-                'Error',
-                'No se pudo iniciar el envío del correo.'
-            );
-        }
-
-        setTimeout(function () {
-            delete window.__mailBillEnProceso[facturas_id];
-        }, 3000);
-    }, 300);
-}
-
-function sendMail(facturas_id) {
-    var url = '<?php echo SERVERURL; ?>core/correo/sendFactura.php';
-    var bill = '';
-
-    $.ajax({
-        type: 'POST',
-        url: url,
-        async: false,
-        data: 'facturas_id=' + facturas_id,
-        success: function(data) {
-            bill = data;
-            if (bill == 1) {
-                showNotify('success', 'Success', 'La factura ha sido enviada por correo satisfactoriamente');
-            }
-        }
-    });
-    return bill;
+    return window.izzyEmailDocument?.('factura',Number(facturas_id));
 }
 
 function getNumeroFactura(facturas_id) {

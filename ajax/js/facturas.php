@@ -7361,8 +7361,10 @@ var listar_busqueda_bill = function() {
                             '<span class="accion-icon accion-icon-primary">' +
                                 '<i class="fas fa-paper-plane"></i>' +
                             '</span>' +
-                            '<span class="accion-label">Enviar</span>' +
+                            '<span class="accion-label">Enviar por correo</span>' +
                         '</button>';
+
+                    if(Number(row.documento_id)!==4) accionesBill += window.izzyDocumentShareItems?.('factura',row.facturas_id,'facturas') || '';
 
                     accionesBill +=
                         '<button type="button" class="dropdown-item accion-item accion-nota-credito nota_credito_factura">' +
@@ -10841,7 +10843,8 @@ $('#modalConfigFactura')
             var items=[
                 fmActionItem('accion-factura table_reportes print_factura','fas fa-file-download','accion-icon-danger','Factura'),
                 fmActionItem('accion-comprobante table_reportes print_comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'),
-                fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar'),
+                fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar por correo'),
+                Number(r.documento_id)!==4 ? (window.izzyDocumentShareItems?.('factura',r.facturas_id,'facturas') || '') : '',
                 fmActionItem('accion-nota-credito nota_credito_factura','fas fa-file-invoice-dollar','accion-icon-credito','Nota de Crédito'),
                 fmActionItem('accion-comentario editar_comentario_factura','fas fa-comment-dots','accion-icon-primary','Editar comentario'),
                 fmActionItem('accion-cliente cambiar_cliente_factura','fas fa-user-edit','accion-icon-primary','Cambiar cliente'),
@@ -10866,7 +10869,8 @@ $('#modalConfigFactura')
             var items=[
                 fmActionItem('accion-factura table_reportes print_factura','fas fa-file-download','accion-icon-danger','Factura'),
                 fmActionItem('accion-comprobante table_reportes print_comprobante','far fa-file-pdf','accion-icon-danger','Comprobante'),
-                fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar'),
+                fmActionItem('accion-enviar table_reportes email_factura','fas fa-paper-plane','accion-icon-primary','Enviar por correo'),
+                Number(r.documento_id)!==4 ? (window.izzyDocumentShareItems?.('factura',r.facturas_id,'facturas') || '') : '',
                 fmActionItem('accion-nota-credito nota_credito_factura','fas fa-file-invoice-dollar','accion-icon-credito','Nota de Crédito'),
                 fmActionItem('accion-comentario editar_comentario_factura','fas fa-comment-dots','accion-icon-primary','Editar comentario'),
                 fmActionItem('accion-cliente cambiar_cliente_factura','fas fa-user-edit','accion-icon-primary','Cambiar cliente'),

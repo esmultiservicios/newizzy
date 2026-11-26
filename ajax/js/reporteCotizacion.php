@@ -194,7 +194,7 @@ function rcDropdown(row, index) {
         '<div class="dropdown-menu dropdown-menu-right acciones-menu">' +
         '<button type="button" class="dropdown-item accion-item table_reportes rc-action" data-action="print" data-index="' + index + '"><span class="accion-icon accion-icon-success"><i class="fas fa-file-download"></i></span><span class="accion-label">Cotización</span></button>' +
         '<button type="button" class="dropdown-item accion-item table_reportes rc-action" data-action="email" data-index="' + index + '"><span class="accion-icon accion-icon-secondary"><i class="fas fa-paper-plane"></i></span><span class="accion-label">Enviar por correo</span></button>' +
-        '<button type="button" class="dropdown-item accion-item table_reportes rc-action" data-action="whatsapp" data-index="' + index + '"><span class="accion-icon accion-icon-success"><i class="fab fa-whatsapp"></i></span><span class="accion-label">Enviar por WhatsApp</span></button>' +
+        (window.izzyDocumentShareItems?.('cotizacion',row.cotizacion_id,'reporteCotizacion') || '') +
         '<button type="button" class="dropdown-item accion-item accion-eliminar table_cancelar rc-action" data-action="anular" data-index="' + index + '"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-ban"></i></span><span class="accion-label">Anular</span></button>' +
         '</div></div>';
 }
@@ -205,10 +205,6 @@ function ejecutarAccionReporteCotizacion(action, data) {
         return;
     }
     if (action === 'print') { printQuote(data.cotizacion_id); return; }
-    if (action === 'whatsapp') {
-        window.izzySendDocument('cotizacion',data.cotizacion_id,'reporteCotizacion');
-        return;
-    }
     if (action === 'email') {
         swal({ title: 'Enviar cotización', text: '¿Desea enviar esta cotización por correo electrónico?', icon: 'warning', buttons: { cancel: { text: 'Cancelar', visible: true, closeModal: true }, confirm: { text: 'Sí, enviar', closeModal: true } }, dangerMode: false, closeOnEsc: false, closeOnClickOutside: false })
         .then(function(confirmado) { if (confirmado) mailQuote(data.cotizacion_id); });

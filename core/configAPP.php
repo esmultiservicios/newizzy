@@ -190,22 +190,18 @@ define('DB_MAIN', izzyEnv('DB_MAIN'));
 define('DB_PRUEBA', izzyEnv('DB_PRUEBA'));
 
 /* =========================================================
-   MYSQL ROOT
-   ========================================================= */
-define('MYSQL_USER', izzyEnv('MYSQL_USER'));
-define('MYSQL_PASS', izzyEnv('MYSQL_PASS'));
-
-/* =========================================================
    CPANEL
    ========================================================= */
 define('CPANEL_TOKEN', izzyEnv('CPANEL_TOKEN'));
 define('CPANEL_USERNAME', izzyEnv('CPANEL_USERNAME'));
-define('CPANEL_PASSWORD', izzyEnv('CPANEL_PASSWORD'));
 define('CPANEL_HOST', izzyEnv('CPANEL_HOST'));
 define('CPANEL_PORT', izzyEnv('CPANEL_PORT', '2083'));
+// El token provisiona la base. La aplicación y el importador se conectan por MySQL.
 define('CPANEL_DB_USERNAME', USER);
 define('CPANEL_DB_PASSWORD', PASS);
 define('CPANEL_DOMINIO', izzyEnv('CPANEL_DOMINIO'));
+
+define('IZZY_DOCUMENT_AUTO_EMAIL', izzyEnvBool('IZZY_DOCUMENT_AUTO_EMAIL', true));
 
 /* =========================================================
    WHM

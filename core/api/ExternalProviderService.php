@@ -367,19 +367,15 @@ final class IzzyExternalProviderService {
         $stmt=$this->db->prepare('SELECT * FROM api_external_connections WHERE id=? AND archivado=0 LIMIT 1');$stmt->bind_param('i',$id);$stmt->execute();$row=$stmt->get_result()->fetch_assoc();$stmt->close();
         if (!$row) throw new DomainException('Conexión no encontrada.');return $row;
     }
-    /** Envía únicamente a destinatarios de prueba autorizados en el entorno PHP. */
-    private static function testRecipients(string $input, string $mode, string $allowed): array {
+    /** Valida y normaliza los destinatarios ingresados en la prueba. */
+    private static function testRecipients(string $input, string $mode): array {
         if (!in_array($mode,['single','bulk'],true)) throw new InvalidArgumentException('Modo de envío no válido.');
         $numbers=preg_split('/[\r\n,;]+/',trim($input),-1,PREG_SPLIT_NO_EMPTY);
-        $allowlist=preg_split('/[\s,;]+/',trim($allowed),-1,PREG_SPLIT_NO_EMPTY);
-        $allowlist=array_map(static fn($number)=>ltrim($number,'+'),$allowlist);
-        if (!$allowlist) throw new DomainException('Falta configurar IZZY_ZYNKO_TEST_NUMBERS en el servidor de IZZY.');
         $normalized=[];
         foreach($numbers as $number){
             $number=trim($number);
             if(!preg_match('/^\+?[1-9][0-9]{6,14}$/D',$number)) throw new InvalidArgumentException('Use números internacionales completos, uno por línea.');
             $number=ltrim($number,'+');
-            if(!in_array($number,$allowlist,true)) throw new DomainException('Hay un destinatario fuera de la lista de pruebas autorizadas.');
             if(in_array($number,$normalized,true)) throw new InvalidArgumentException('Hay destinatarios repetidos.');
             $normalized[]=$number;
         }
@@ -387,10 +383,6 @@ final class IzzyExternalProviderService {
         if(($mode==='single' && $count!==1)||($mode==='bulk' && ($count<2||$count>100)))
             throw new InvalidArgumentException('El envío individual requiere un destinatario y el masivo entre 2 y 100.');
         return $normalized;
-    }
-
-    private static function testAllowlist(): string {
-        return (string)(getenv('IZZY_ZYNKO_TEST_NUMBERS') ?: ($_ENV['IZZY_ZYNKO_TEST_NUMBERS']??''));
     }
 
     private static function validUuid(string $value): bool {
@@ -419,7 +411,6 @@ final class IzzyExternalProviderService {
         $this->db->query('SELECT operation_id, connection_id, credential_ref, payload_cifrado,
             consent_ref_cifrada, actor_id, mode, state, http_status, provider_code, detail, results_json, created_at
             FROM api_zynko_test_sends LIMIT 0')->free();
-        if(trim(self::testAllowlist())==='') throw new DomainException('El servidor todavía no tiene números de prueba autorizados.');
     }
 
     public function whatsappTests(int $id): array {
@@ -439,25 +430,28 @@ final class IzzyExternalProviderService {
 
         if($input!==null){
             $mode=(string)($input['mode']??'');
-            $numbers=self::testRecipients((string)($input['recipients']??''),$mode,self::testAllowlist());
+            $numbers=self::testRecipients((string)($input['recipients']??''),$mode);
             $message=trim((string)($input['message']??''));
             $reference=trim((string)($input['consent_reference']??''));
             if($message==='' || mb_strlen($message,'UTF-8')>4096) throw new InvalidArgumentException('Escriba un mensaje de 1 a 4096 caracteres.');
             if(($input['consent']??'')!=='1' || $reference==='' || mb_strlen($reference,'UTF-8')>200)
                 throw new InvalidArgumentException('Confirme la autorización de todos los destinatarios e indique su referencia.');
-            if(!preg_match('/^[1-9][0-9]*$/D',(string)$connection['canal_id']))
-                throw new DomainException('Primero ejecute Probar conexión y confirme el canal WhatsApp conectado.');
-            $payload=['channel_id'=>(int)$connection['canal_id'],'to'=>$mode==='single'?$numbers[0]:$numbers,'message'=>$message];
-            if($mode==='bulk')$payload['consent_confirmed']=true;
-            $json=json_encode($payload,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
-
-            if(!$operationRow){
-                $probe=$this->zynkoTransport($connection,'v1/channels');
-                if(!$probe['ok'] || empty($probe['canal']['canal_detectado'])){
-                    throw new DomainException($probe['ok']?($probe['canal']['motivo']??'Canal WhatsApp no disponible.'):$probe['detalle']);
+            if ($operationRow) {
+                $savedPayload = json_decode($this->decrypt($operationRow['payload_cifrado']), true, 16, JSON_THROW_ON_ERROR);
+                $channelId = (int)$savedPayload['channel_id'];
+            } else {
+                $probe = $this->zynkoTransport($connection, 'v1/channels');
+                if (!$probe['ok'] || empty($probe['canal']['canal_detectado'])) {
+                    throw new DomainException($probe['ok'] ? ($probe['canal']['motivo'] ?? 'Canal WhatsApp no disponible.') : $probe['detalle']);
                 }
-                if((string)$payload['channel_id']!==$probe['canal']['canal_id'])
-                    throw new DomainException('El canal cambió. Vuelva a revisar la conexión antes de enviar.');
+                $channelId = (int)$probe['canal']['canal_id'];
+            }
+
+            $payload = ['channel_id'=>$channelId, 'to'=>$mode==='single' ? $numbers[0] : $numbers, 'message'=>$message];
+            if ($mode==='bulk') $payload['consent_confirmed'] = true;
+            $json = json_encode($payload, JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);
+
+            if (!$operationRow) {
                 $encrypted=$this->encrypt($json);
                 $evidence=$this->encrypt($reference);
                 $stmt=$this->db->prepare('INSERT INTO api_zynko_test_sends
@@ -480,7 +474,7 @@ final class IzzyExternalProviderService {
 
         $json=$this->decrypt($operationRow['payload_cifrado']);
         $payload=json_decode($json,true,16,JSON_THROW_ON_ERROR);
-        self::testRecipients(implode("\n",(array)$payload['to']),$operationRow['mode'],self::testAllowlist());
+        self::testRecipients(implode("\n",(array)$payload['to']),$operationRow['mode']);
         $response=$this->zynkoTransport($connection,'v1/whatsapp/send',$json,'izzy-test-'.$operation);
         $state=$response['ok']?'accepted':'pending';
         $http=$response['http_status'];$code=$response['codigo_proveedor'];$detail=$response['detalle'];

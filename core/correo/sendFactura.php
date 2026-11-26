@@ -7,7 +7,17 @@ require_once __DIR__ . '/../configGenerales.php';
 require_once __DIR__ . '/../mainModel.php';
 require_once __DIR__ . '/sendEmail.php';
 
-header("Content-Type: text/html;charset=utf-8");
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, private');
+
+$reply = static function (array $result): never {
+    echo json_encode([
+        'ok' => ($result['type'] ?? '') === 'success',
+        'skip' => (bool)($result['skip'] ?? false),
+        'message' => $result['text'] ?? 'No se pudo enviar el documento.',
+    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+};
 
 $insMainModel = new mainModel();
 
@@ -15,24 +25,35 @@ if (method_exists($insMainModel, 'validarSesion')) {
     $validacion = $insMainModel->validarSesion();
 
     if (!empty($validacion['error'])) {
-        echo $insMainModel->showNotification([
+        $reply([
             "title" => "Error de sesión",
             "text" => $validacion['mensaje'] ?? 'Sesión inválida',
             "type" => "error",
-            "funcion" => "window.location.href = '".($validacion['redireccion'] ?? '')."'"
         ]);
-        exit;
     }
+}
+
+$csrf = (string)($_SESSION['csrf_izzy_document_share'] ?? '');
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || $csrf === ''
+    || !hash_equals($csrf, (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))
+    || ($_SESSION['modo_solo_lectura_pago'] ?? '') === 'SI') {
+    http_response_code(403);
+    $reply(['text' => 'La sesión actual no permite enviar el documento.']);
 }
 
 $sendEmail = new sendEmail();
 
 date_default_timezone_set('America/Tegucigalpa');
 
+$automatic = ($_POST['automatic'] ?? '') === '1';
+if ($automatic && defined('IZZY_DOCUMENT_AUTO_EMAIL') && !IZZY_DOCUMENT_AUTO_EMAIL) {
+    $reply(['type'=>'success','text'=>'Correo automático desactivado.','skip'=>true]);
+}
+
 $facturas_id = isset($_POST['facturas_id']) ? (int)$_POST['facturas_id'] : 0;
 
 if ($facturas_id <= 0) {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Factura inválida",
         "text" => "No se recibió una factura válida.",
         "type" => "error"
@@ -44,13 +65,15 @@ $empresa_id = isset($_SESSION['empresa_id_sd']) ? (int)$_SESSION['empresa_id_sd'
 $users_id = isset($_SESSION['users_id_sd']) ? (int)$_SESSION['users_id_sd'] : 0;
 
 if ($empresa_id <= 0 || $users_id <= 0) {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Sesión inválida",
         "text" => "No se pudo identificar la empresa o el usuario de la sesión.",
         "type" => "error"
     ]);
     exit;
 }
+
+if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 
 /* =========================================================
    CONSULTAR DATOS DE LA FACTURA
@@ -62,57 +85,46 @@ $no_factura = "";
 $prefijo = "";
 $numero_documento = "";
 
-if (method_exists($insMainModel, 'geFacturaCorreo')) {
-    $result_factura = $insMainModel->geFacturaCorreo($facturas_id);
+$sqlFactura = "
+    SELECT 
+        f.facturas_id,
+        c.nombre AS cliente,
+        c.correo,
+        f.number AS numero,
+        sf.relleno,
+        sf.prefijo
+    FROM facturas f
+    INNER JOIN clientes c ON f.clientes_id = c.clientes_id
+    INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
+    WHERE f.facturas_id = '$facturas_id'
+      AND f.empresa_id = '$empresa_id'
+      AND f.estado IN (2,3) AND f.number > 0
+      " . ($automatic ? 'AND sf.documento_id <> 4' : '') . "
+    LIMIT 1
+";
 
-    if ($result_factura && $result_factura->num_rows > 0) {
-        $factura = $result_factura->fetch_assoc();
+$result_factura = $insMainModel->ejecutar_consulta_simple($sqlFactura);
 
-        $nombre = isset($factura['cliente']) ? trim($factura['cliente']) : "";
-        $para = isset($factura['correo']) ? trim($factura['correo']) : "";
-        $numero = isset($factura['numero']) ? $factura['numero'] : "";
-        $relleno = isset($factura['relleno']) ? (int)$factura['relleno'] : 8;
-        $prefijo = isset($factura['prefijo']) ? trim($factura['prefijo']) : "";
+if ($automatic && $result_factura && $result_factura->num_rows === 0) {
+    $reply(['type'=>'success','text'=>'Documento fuera del envío automático.','skip'=>true]);
+}
 
-        $no_factura = str_pad($numero, $relleno, "0", STR_PAD_LEFT);
-        $numero_documento = $prefijo . $no_factura;
-    }
-} else {
-    $sqlFactura = "
-        SELECT 
-            f.facturas_id,
-            c.nombre AS cliente,
-            c.correo,
-            f.number AS numero,
-            sf.relleno,
-            sf.prefijo
-        FROM facturas f
-        INNER JOIN clientes c ON f.clientes_id = c.clientes_id
-        INNER JOIN secuencia_facturacion sf ON f.secuencia_facturacion_id = sf.secuencia_facturacion_id
-        WHERE f.facturas_id = '$facturas_id'
-          AND f.empresa_id = '$empresa_id'
-        LIMIT 1
-    ";
+if ($result_factura && $result_factura->num_rows > 0) {
+    $factura = $result_factura->fetch_assoc();
 
-    $result_factura = $insMainModel->ejecutar_consulta_simple($sqlFactura);
+    $nombre = isset($factura['cliente']) ? trim($factura['cliente']) : "";
+    $para = isset($factura['correo']) ? trim($factura['correo']) : "";
+    $numero = isset($factura['numero']) ? $factura['numero'] : "";
+    $relleno = isset($factura['relleno']) ? (int)$factura['relleno'] : 8;
+    $prefijo = isset($factura['prefijo']) ? trim($factura['prefijo']) : "";
 
-    if ($result_factura && $result_factura->num_rows > 0) {
-        $factura = $result_factura->fetch_assoc();
-
-        $nombre = isset($factura['cliente']) ? trim($factura['cliente']) : "";
-        $para = isset($factura['correo']) ? trim($factura['correo']) : "";
-        $numero = isset($factura['numero']) ? $factura['numero'] : "";
-        $relleno = isset($factura['relleno']) ? (int)$factura['relleno'] : 8;
-        $prefijo = isset($factura['prefijo']) ? trim($factura['prefijo']) : "";
-
-        $no_factura = str_pad($numero, $relleno, "0", STR_PAD_LEFT);
-        $numero_documento = $prefijo . $no_factura;
-    }
+    $no_factura = str_pad($numero, $relleno, "0", STR_PAD_LEFT);
+    $numero_documento = $prefijo . $no_factura;
 }
 
 /* Un documento sin correo del cliente no genera avisos de envío. */
 if ($numero_documento === "") {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Factura no encontrada",
         "text" => "No se encontraron los datos de la factura para enviar el correo.",
         "type" => "error"
@@ -167,7 +179,7 @@ if ($resultadoDb && $resultadoDb->num_rows > 0) {
 }
 
 if ($db_actual == "") {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Base de datos no identificada",
         "text" => "No se pudo identificar la base de datos actual para generar el enlace de la factura.",
         "type" => "error"
@@ -318,7 +330,7 @@ try {
 }
 
 if ((int)$resultadoEnvio === 1) {
-    echo $insMainModel->showNotification([
+    $reply([
         "title" => "Correo enviado",
         "text" => "La factura " . $numero_documento . " se envió correctamente al cliente.",
         "type" => "success"
@@ -331,7 +343,7 @@ if ($salidaServicio !== '') {
     error_log('IZZY correo factura ' . $numero_documento . ': ' . $salidaServicio);
 }
 
-echo $insMainModel->showNotification([
+$reply([
     "title" => "No se pudo enviar",
     "text" => "No fue posible enviar la factura por correo. Revise la configuración y vuelva a intentarlo.",
     "type" => "error"

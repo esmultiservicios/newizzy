@@ -215,7 +215,7 @@ class cotizacionControlador extends cotizacionModelo
             "title" => "Registro exitoso",
             "text" => "La cotización se ha registrado correctamente",
             "form" => "quoteForm",
-            "funcion" => "limpiarTablaQuote();printQuote(" . $cotizacion_id . ");mailQuote(" . $cotizacion_id . ");window.izzyOfferDocumentShare?.('cotizacion'," . $cotizacion_id . ",'cotizacion');getConsumidorFinal();getCajero();cleanFooterValueQuote();resetRow();"
+            "funcion" => "limpiarTablaQuote();printQuote(" . $cotizacion_id . ");window.izzyOfferDocumentShare?.('cotizacion'," . $cotizacion_id . ",'cotizacion');getConsumidorFinal();getCajero();cleanFooterValueQuote();resetRow();"
         ]);
     }
 

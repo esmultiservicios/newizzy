@@ -607,6 +607,7 @@ function procesarRegistroIzzy() {
             user_telefono: telefono,
             email: email,
             user_pass: pass1,
+            user_repeatpass: pass2,
             sistema_id: sistema_id,
             planes_id: planes_id,
             eslogan: eslogan,

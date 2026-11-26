@@ -7,9 +7,9 @@ if ($peticionAjax) {
 
 class clientesModelo extends mainModel
 {
-    protected function agregar_clientes_modelo($datos)
+    protected function agregar_clientes_modelo($datos, ?mysqli $transaccion = null)
     {
-        $conexion = mainModel::connection();
+        $conexion = $transaccion ?? mainModel::connection();
         $stmt = null;
 
         try {
@@ -17,9 +17,10 @@ class clientesModelo extends mainModel
                 throw new Exception("Nombre vacío");
             }
 
-            $conexion->autocommit(false);
+            if (!$transaccion) $conexion->autocommit(false);
 
-            $cliente_id = mainModel::correlativo("clientes_id", "clientes");
+            $cliente_id = $transaccion ? (int)$conexion->query("SELECT COALESCE(MAX(clientes_id),0)+1 FROM clientes")->fetch_row()[0]
+                : mainModel::correlativo("clientes_id", "clientes");
 
             $sql = "
                 INSERT INTO clientes
@@ -41,7 +42,7 @@ class clientesModelo extends mainModel
                     otra_informacion,
                     whatsapp
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', '', '')
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', '')
             ";
 
             $stmt = $conexion->prepare($sql);
@@ -50,8 +51,9 @@ class clientesModelo extends mainModel
                 throw new Exception($conexion->error);
             }
 
+            $datos['empresa'] = $transaccion ? $datos['empresa'] : '';
             $stmt->bind_param(
-                "isssiisssiis",
+                "isssiisssiiss",
                 $cliente_id,
                 $datos['nombre'],
                 $datos['rtn'],
@@ -63,19 +65,21 @@ class clientesModelo extends mainModel
                 $datos['correo'],
                 $datos['estado_clientes'],
                 $datos['colaborador_id'],
-                $datos['fecha_registro']
+                $datos['fecha_registro'],
+                $datos['empresa']
             );
 
             if (!$stmt->execute()) {
                 throw new Exception($stmt->error);
             }
 
-            $conexion->commit();
+            if (!$transaccion) $conexion->commit();
 
             return $cliente_id;
 
         } catch (Exception $e) {
-            if ($conexion) {
+            if ($transaccion) throw $e;
+            if (!$transaccion) {
                 $conexion->rollback();
             }
 
@@ -87,21 +91,22 @@ class clientesModelo extends mainModel
                 $stmt->close();
             }
 
-            if ($conexion) {
+            if (!$transaccion) {
                 $conexion->autocommit(true);
             }
         }
     }
 
-    protected function agregar_colaboradores_modelo($datos)
+    protected function agregar_colaboradores_modelo($datos, ?mysqli $transaccion = null)
     {
-        $conexion = mainModel::connection();
+        $conexion = $transaccion ?? mainModel::connection();
         $stmt = null;
 
         try {
-            $conexion->autocommit(false);
+            if (!$transaccion) $conexion->autocommit(false);
 
-            $colaborador_id = mainModel::correlativo("colaboradores_id", "colaboradores");
+            $colaborador_id = $transaccion ? (int)$conexion->query("SELECT COALESCE(MAX(colaboradores_id),0)+1 FROM colaboradores")->fetch_row()[0]
+                : mainModel::correlativo("colaboradores_id", "colaboradores");
 
             $sql = "
                 INSERT INTO colaboradores
@@ -129,7 +134,7 @@ class clientesModelo extends mainModel
             $fecha_egreso = isset($datos['fecha_egreso']) ? $datos['fecha_egreso'] : '';
 
             $stmt->bind_param(
-                "iissiissss",
+                "iissisisss",
                 $colaborador_id,
                 $datos['puestos_id'],
                 $datos['nombre'],
@@ -146,12 +151,13 @@ class clientesModelo extends mainModel
                 throw new Exception($stmt->error);
             }
 
-            $conexion->commit();
+            if (!$transaccion) $conexion->commit();
 
             return $colaborador_id;
 
         } catch (Exception $e) {
-            if ($conexion) {
+            if ($transaccion) throw $e;
+            if (!$transaccion) {
                 $conexion->rollback();
             }
 
@@ -163,7 +169,7 @@ class clientesModelo extends mainModel
                 $stmt->close();
             }
 
-            if ($conexion) {
+            if (!$transaccion) {
                 $conexion->autocommit(true);
             }
         }

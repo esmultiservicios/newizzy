@@ -214,7 +214,7 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <div id="api_wa_setup" class="izzy-dialog__notice api-wa-setup" role="status"></div>
         <form id="api_wa_form" class="izzy-dialog__panel api-wa-form" aria-labelledby="api_wa_form_title">
             <h3 class="izzy-dialog__section-title" id="api_wa_form_title"><i class="fas fa-paper-plane" aria-hidden="true"></i> Preparar envío</h3>
-            <p class="api-wa-purpose">Probá la conexión con ZYNKO enviando un mensaje a números autorizados.</p>
+            <p class="api-wa-purpose">El mensaje sale del número de WhatsApp conectado en ZYNKO. Ingresá los destinatarios autorizados y el mensaje de prueba.</p>
             <fieldset class="api-wa-mode">
                 <legend class="izzy-label">Modo de envío</legend>
                 <label><input type="radio" name="mode" value="single" checked><i class="fas fa-user" aria-hidden="true"></i> Individual</label>

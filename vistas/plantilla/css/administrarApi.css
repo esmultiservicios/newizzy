@@ -1004,3 +1004,60 @@ body > .select2-container--open .select2-results__option--highlighted[aria-selec
 .api-wa-dialog #api_wa_history { display:grid; gap:8px; }
 .api-wa-dialog #api_wa_history .api-wa-note { margin:0; }
 .api-wa-dialog .api-wa-feedback { margin:0 0 12px; }
+
+
+.api-wa-dialog .api-wa-mode label { gap:6px; min-height:38px; background:#fff; }
+.api-wa-dialog .api-wa-mode label:has(input:checked) { background:#e8f5f2; border-color:#168375; color:#174b40; }
+.api-wa-dialog .api-wa-mode label i { color:#176394; font-size:.8rem; }
+.api-wa-dialog .api-wa-form { gap:10px; }
+.api-wa-dialog .api-wa-server:empty { display:none; }
+.api-wa-dialog .api-wa-server { margin:8px 0; }
+.api-wa-dialog .api-wa-note { margin:8px 0 12px; }
+.api-wa-dialog .izzy-dialog__notice { font-size:.8125rem; }
+.api-wa-dialog .izzy-dialog__footer { scrollbar-gutter:auto; }
+
+
+.api-wa-dialog { --izzy-dialog-width: 800px; }
+.api-wa-dialog .izzy-dialog__body { padding: 12px 18px; }
+.api-wa-dialog .api-wa-form { gap: 8px; padding: 12px 14px; }
+.api-wa-dialog .api-wa-purpose { margin:0 0 2px; color:#405a70; font-size:.875rem; }
+.api-wa-dialog .api-wa-setup { margin:0 0 8px; padding:8px 10px; gap:2px; }
+.api-wa-dialog .api-wa-setup:empty { display:none; }
+.api-wa-dialog .api-wa-mode label { align-items:center; line-height:1.1; min-height:34px; }
+.api-wa-dialog .api-wa-mode input { margin:0; }
+.api-wa-dialog .api-wa-mode i { display:inline-grid; width:16px; height:16px; place-items:center; }
+.api-wa-dialog .api-wa-recipients { padding:8px 11px; max-height:80px; min-height:38px; overflow:auto; background:#fff; white-space:pre-wrap; overflow-wrap:anywhere; }
+.api-wa-dialog .api-wa-recipients:empty::before { content:attr(data-placeholder); color:#526479; pointer-events:none; }
+.api-wa-dialog .izzy-textarea { height:60px; resize:vertical; }
+.api-wa-dialog .izzy-dialog__footer { padding-block:10px; }
+@media(max-width:680px) {
+  .api-wa-dialog .izzy-dialog__body { padding:10px; }
+}
+
+
+.api-wa-message-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.api-wa-message-heading .izzy-label { margin: 0; }
+
+.api-wa-message-counter {
+  flex: 0 0 auto;
+  border: 1px solid #d8e4ee;
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: #eef5fa;
+  color: #31546e;
+  font-size: .75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.api-wa-message-counter.is-near-limit { background: #fff4dd; color: #754a12; }
+.api-wa-message-counter.is-over-limit { background: #fce9ea; color: #a42632; border-color: #ebc1c6; }
+.api-wa-message-limit { color: #a42632; }
+.api-wa-message-limit[hidden] { display: none; }

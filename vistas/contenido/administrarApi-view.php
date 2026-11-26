@@ -201,47 +201,49 @@ Authorization: Bearer TOKEN</pre><p>Para consultar un registro use <code>?id=N</
         <div class="api-footnote"><i class="fas fa-clock"></i> Se muestran las últimas 100 sesiones emitidas por <code>api/v1/auth/login.php</code>. Revocar aquí invalida también la renovación automática del dispositivo.</div>
     </section>
 
-    <dialog id="api_wa_dialog" class="izzy-dialog izzy-dialog--workspace api-wa-dialog" aria-labelledby="api_wa_title">
+    <dialog id="api_wa_dialog" class="izzy-dialog izzy-dialog--console api-wa-dialog" aria-labelledby="api_wa_title">
     <header class="izzy-dialog__header">
+        <span class="izzy-dialog__emblem" aria-hidden="true"><i class="fab fa-whatsapp"></i></span>
         <div class="izzy-dialog__heading">
-            <h2 class="izzy-dialog__title" id="api_wa_title"><i class="fab fa-whatsapp mr-2" aria-hidden="true"></i>Prueba de WhatsApp</h2>
+            <h2 class="izzy-dialog__title" id="api_wa_title">Prueba de WhatsApp</h2>
             <p class="izzy-dialog__subtitle" id="api_wa_connection"></p>
         </div>
-        <button type="button" class="izzy-dialog__close" data-izzy-dialog-close aria-label="Cerrar"><i class="fas fa-times" aria-hidden="true"></i></button>
+        <button type="button" class="izzy-dialog__close" data-izzy-dialog-close aria-label="Cerrar" autofocus><i class="fas fa-times" aria-hidden="true"></i></button>
     </header>
     <div class="izzy-dialog__body">
-        <p class="api-wa-feedback" id="api_wa_feedback" role="status"></p>
-        <div class="izzy-dialog__workspace">
-        <form id="api_wa_form" class="izzy-dialog__panel api-wa-form">
+        <div id="api_wa_setup" class="izzy-dialog__notice api-wa-setup" role="status"></div>
+        <form id="api_wa_form" class="izzy-dialog__panel api-wa-form" aria-labelledby="api_wa_form_title">
+            <h3 class="izzy-dialog__section-title" id="api_wa_form_title"><i class="fas fa-paper-plane" aria-hidden="true"></i> Preparar envío</h3>
+            <p class="api-wa-purpose">Probá la conexión con ZYNKO enviando un mensaje a números autorizados.</p>
             <fieldset class="api-wa-mode">
                 <legend class="izzy-label">Modo de envío</legend>
-                <label><input type="radio" name="mode" value="single" checked> Individual</label>
-                <label><input type="radio" name="mode" value="bulk"> Masivo</label>
+                <label><input type="radio" name="mode" value="single" checked><i class="fas fa-user" aria-hidden="true"></i> Individual</label>
+                <label><input type="radio" name="mode" value="bulk"><i class="fas fa-users" aria-hidden="true"></i> Masivo</label>
             </fieldset>
             <div class="izzy-field">
-                <label class="izzy-label" for="api_wa_recipients">Destinatarios internacionales</label>
-                <textarea class="form-control izzy-textarea" id="api_wa_recipients" name="recipients" rows="2" maxlength="1900" aria-describedby="api_wa_recipients_hint" required></textarea>
+                <label class="izzy-label" id="api_wa_recipients_label" for="api_wa_recipients">Destinatarios internacionales</label>
+                <div class="izzy-input api-wa-recipients" id="api_wa_recipients" contenteditable="plaintext-only" role="textbox" aria-multiline="true" aria-required="true" aria-labelledby="api_wa_recipients_label" aria-describedby="api_wa_recipients_hint" data-placeholder="Escribí o pegá los números" spellcheck="false"></div>
                 <small class="izzy-field-hint" id="api_wa_recipients_hint">Ingrese un número completo con código de país.</small>
             </div>
             <div class="izzy-field">
-                <label class="izzy-label" for="api_wa_message">Mensaje</label>
-                <textarea class="form-control izzy-textarea" id="api_wa_message" name="message" rows="3" maxlength="4096" required></textarea>
+                <div class="api-wa-message-heading">
+                    <label class="izzy-label" for="api_wa_message">Mensaje</label>
+                    <output class="api-wa-message-counter" id="api_wa_message_count" for="api_wa_message" aria-live="off">0 de 4096</output>
+                </div>
+                <textarea class="form-control izzy-textarea" id="api_wa_message" name="message" rows="2"
+                          data-limit="4096" aria-describedby="api_wa_message_count api_wa_message_limit" required></textarea>
+                <small class="izzy-field-hint api-wa-message-limit" id="api_wa_message_limit" hidden>El mensaje supera el límite de 4096 caracteres.</small>
             </div>
             <div class="izzy-field">
-                <label class="izzy-label" for="api_wa_consent_reference">Referencia de autorización de los destinatarios</label>
-                <input class="form-control izzy-input" id="api_wa_consent_reference" name="consent_reference" maxlength="200" placeholder="Ej. Referencia del registro interno de autorizaciones" required>
+                <label class="izzy-label" for="api_wa_consent_reference">Referencia del consentimiento</label>
+                <input class="form-control izzy-input" id="api_wa_consent_reference" name="consent_reference" maxlength="200" placeholder="Ej. Correo de autorización del 25/11" aria-describedby="api_wa_consent_hint" required>
+                <small class="izzy-field-hint" id="api_wa_consent_hint">Indicá dónde quedó registrada la autorización. Usá la referencia del correo, formulario o ticket que corresponda a todos los números.</small>
             </div>
             <label class="api-wa-consent"><input type="checkbox" name="consent" value="1" required> Confirmo que todos los destinatarios autorizaron esta prueba de WhatsApp.</label>
         </form>
-        <section class="izzy-dialog__panel izzy-dialog__panel--aside" aria-labelledby="api_wa_history_title">
-            <h3 class="api-route-section-title" id="api_wa_history_title">Historial de pruebas</h3>
-            <p class="api-wa-server" id="api_wa_server"></p>
-            <p class="api-wa-note">Reintente desde el historial para conservar la misma operación.</p>
-            <div id="api_wa_history" aria-live="polite"></div>
-        </section>
-        </div>
     </div>
     <footer class="izzy-dialog__footer">
+        <p class="izzy-dialog__feedback api-wa-feedback" id="api_wa_feedback" role="status"></p>
         <button type="button" class="izzy-button" data-izzy-dialog-close><i class="fas fa-times" aria-hidden="true"></i>Cerrar</button>
         <button type="submit" form="api_wa_form" class="izzy-button izzy-button--primary" id="api_wa_submit" disabled><i class="fas fa-paper-plane" aria-hidden="true"></i>Enviar prueba</button>
     </footer>

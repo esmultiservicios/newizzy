@@ -414,6 +414,14 @@ final class IzzyExternalProviderService {
         ];
     }
 
+    public function assertWhatsappTestReady(int $id): void {
+        $this->zynkoConnection($id);
+        $this->db->query('SELECT operation_id, connection_id, credential_ref, payload_cifrado,
+            consent_ref_cifrada, actor_id, mode, state, http_status, provider_code, detail, results_json, created_at
+            FROM api_zynko_test_sends LIMIT 0')->free();
+        if(trim(self::testAllowlist())==='') throw new DomainException('El servidor todavía no tiene números de prueba autorizados.');
+    }
+
     public function whatsappTests(int $id): array {
         $this->conn($id);
         $stmt=$this->db->prepare('SELECT * FROM api_zynko_test_sends WHERE connection_id=? ORDER BY created_at DESC,operation_id DESC LIMIT 30');

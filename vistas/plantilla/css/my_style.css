@@ -16462,3 +16462,88 @@ input[type="search"]::-ms-clear {
   .izzy-dialog__workspace { grid-template-columns: minmax(0, 1fr); }
   .izzy-dialog__panel { padding: 10px; }
 }
+
+
+/* Variante reutilizable para diálogos con formulario, panel lateral y pie fijo. */
+.izzy-dialog--console {
+  --izzy-dialog-width: 920px;
+  border-radius: 16px;
+  animation: none;
+  transition: none;
+}
+
+.izzy-dialog--console .izzy-dialog__header {
+  gap: 13px;
+  padding: 14px 18px;
+  border-bottom: 3px solid #168375;
+  background: #14283a;
+}
+
+.izzy-dialog__emblem {
+  display: grid;
+  flex: 0 0 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 11px;
+  background: #204a4f;
+  color: #97ebce;
+  font-size: 21px;
+}
+
+.izzy-dialog--console .izzy-dialog__body {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  background: #f2f6fa;
+}
+
+.izzy-dialog--console .izzy-dialog__panel {
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.izzy-dialog--console .izzy-dialog__panel--aside {
+  background: #fff;
+}
+
+.izzy-dialog__section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #173a54;
+  font-size: .9375rem;
+  font-weight: 700;
+}
+
+.izzy-dialog__section-title i {
+  color: #176394;
+}
+
+.izzy-dialog__empty {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 22px 10px;
+  border: 1px dashed #bed0df;
+  border-radius: 10px;
+  color: #3d5d74;
+  font-size: .875rem;
+}
+
+.izzy-dialog--console .izzy-dialog__feedback {
+  flex: 1 1 0;
+  min-width: 0;
+  max-height: 3em;
+  margin: 0 auto 0 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  color: #23634f;
+}
+
+.izzy-dialog--console .izzy-dialog__feedback.is-error { color:#a42632; }
+
+@media(max-width:680px) {
+  .izzy-dialog--console .izzy-dialog__panel { padding:12px; }
+  .izzy-dialog--console .izzy-dialog__footer { gap:8px; }
+  .izzy-dialog--console .izzy-dialog__feedback { flex-basis:100%; }
+}

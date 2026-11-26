@@ -66,6 +66,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $result=$external->request((int)($_POST['id']??0),'v1/whatsapp/history');
                 $respond($result['ok'],$result['detalle'],$result,$result['ok']?200:502);
             }
+            if ($action==='external_wa_ready') {
+                $external->assertWhatsappTestReady((int)($_POST['id']??0));
+                $respond(true,'Pruebas disponibles.');
+            }
             if ($action==='external_wa_list') {
                 $respond(true,'Envíos de prueba.', ['operations'=>$external->whatsappTests((int)($_POST['id']??0)), 'server_host'=>gethostname() ?: 'No disponible']);
             }
@@ -127,7 +131,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         if(str_starts_with((string)($action??''),'external_wa_') && in_array($sqlCode,[1146,1054],true)){
             $respond(false,'Las pruebas de WhatsApp necesitan una actualización de instalación.',[
                 'code'=>$sqlCode===1146?'WA_TEST_STORAGE_REQUIRED':'WA_TEST_STORAGE_INCOMPATIBLE',
-                'migration'=>'scripts/sql/izzy_zynko_envios_prueba_v1.sql',
+                'migration'=>'DB_Cambios.sql',
             ],503);
         }
         $message=($sqlCode===1406)
@@ -350,15 +354,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
     const waDialog=document.getElementById('api_wa_dialog');
     const waForm=document.getElementById('api_wa_form');
-    const $waHistory=$('#api_wa_history');
+    const waRecipients=document.getElementById('api_wa_recipients');
+    const waMessage=document.getElementById('api_wa_message');
+    const waCounter=document.getElementById('api_wa_message_count');
+    const waMessageLimit=document.getElementById('api_wa_message_limit');
+    const $waSetup=$('#api_wa_setup');
     const $waFeedback=$('#api_wa_feedback');
     const $waSubmit=$('#api_wa_submit');
-    let waConnection=0, waOperation='', waSending=false, waHistoryReady=false, waHistoryVersion=0;
+    let waConnection=0, waOperation='', waSending=false, waReady=false, waOpening=false;
+    let waReturnFocus=null;
 
-    const waLabels={
-        queued:'En cola', sending:'Enviando', retrying:'Reintentando', sent:'Enviado al proveedor',
-        delivered:'Entregado', read:'Leído', failed:'Fallido', partial:'Parcial', uncertain:'Sin confirmar'
-    };
     function newWaOperation(){
         const hex=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
         return hex.replace(/^(........)(....)(....)(....)(............)$/,'$1-$2-$3-$4-$5');
@@ -369,86 +374,68 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     function waError(error){
         const data=error.responseJSON?.datos;
         return safeAuthDiagnostic(data) || safeForbiddenDiagnostic(data) ||
-            error.responseJSON?.mensaje || 'No se pudo confirmar el resultado. Consulte el historial antes de repetir.';
+            error.responseJSON?.mensaje || 'No se pudo confirmar el resultado. Vuelva a pulsar Enviar prueba con los mismos datos.';
     }
     function updateWaMode(){
         $('#api_wa_recipients_hint').text(waForm.elements.mode.value==='bulk'?
             'Ingrese entre 2 y 100 números, uno por línea, con código de país.':
             'Ingrese un número completo con código de país.');
     }
-    function loadWaHistory(id){
-        const version=++waHistoryVersion;
-        waHistoryReady=false;
+    function updateWaMessageCount(){
+        const length=Array.from(waMessage.value).length;
+        const limit=Number(waMessage.dataset.limit);
+        const tooLong=length>limit;
+        waCounter.textContent=length+' de '+limit;
+        waCounter.classList.toggle('is-near-limit',length>=limit*0.9 && !tooLong);
+        waCounter.classList.toggle('is-over-limit',tooLong);
+        waMessageLimit.hidden=!tooLong;
+        if(tooLong)waMessage.setAttribute('aria-invalid','true');
+        else waMessage.removeAttribute('aria-invalid');
+        waMessage.setCustomValidity(tooLong?waMessageLimit.textContent:'');
+        $waSubmit.prop('disabled',!waReady||waSending||tooLong);
+        return !tooLong;
+    }
+    waMessage.addEventListener('input',updateWaMessageCount);
+
+    function checkWaSetup(id){
+        waReady=false;
         $waSubmit.prop('disabled',true);
-        $waHistory.empty().append($('<p class="api-loading">').text('Cargando envíos…'));
-        post({action:'external_wa_list',id}).done(r=>{
-            if(id!==waConnection || version!==waHistoryVersion)return;
-            $waHistory.empty();
-            $('#api_wa_server').text('Servidor PHP de IZZY: '+r.datos.server_host);
-            waHistoryReady=true;
-            $waSubmit.prop('disabled',waSending);
-            const operations=r.datos.operations||[];
-            if(!operations.length)$waHistory.append($('<p class="api-wa-note">').text('Todavía no hay envíos de prueba.'));
-            operations.forEach(op=>{
-                const label=op.mode==='bulk'?'Masivo':'Individual';
-                const summary=op.state==='accepted'?'Aceptado por ZYNKO':'Sin confirmación';
-                const card=$('<article class="api-wa-history-card">').append(
-                    $('<strong>').text(label+' · '+summary),
-                    $('<p>').text(formatDate(op.created_at)+(op.detail?' · '+op.detail:''))
-                );
-                if(op.state==='pending')card.append(
-                    $('<button type="button" class="btn btn-secondary">').text('Reintentar misma operación').on('click',()=>dispatchWa({action:'external_wa_retry',id,operation:op.id}))
-                );
-                (op.messages||[]).forEach(message=>{
-                    const label=$('<span class="api-wa-message-state">').text(waLabels[message.status]||'Sin confirmar');
-                    const button=$('<button type="button" class="btn btn-secondary">').text('Consultar estado');
-                    button.on('click',()=>{
-                        button.prop('disabled',true);
-                        post({action:'external_wa_status',id,operation:op.id,uuid:message.uuid}).done(r=>{
-                            label.text(waLabels[r.datos.message_status]||'Sin confirmar');
-                        }).fail(error=>{if(id===waConnection)waFeedback(waError(error),true);})
-                        .always(()=>button.prop('disabled',false));
-                    });
-                    card.append($('<div class="api-wa-result">').append(
-                        $('<div>').append($('<strong>').text(message.recipient),$('<code>').text(message.uuid)),
-                        label,button
-                    ));
-                });
-                $waHistory.append(card);
-            });
+        $waSetup.empty();
+        return post({action:'external_wa_ready',id}).done(()=>{
+            waReady=true;
+            updateWaMessageCount();
         }).fail(error=>{
-            if(id!==waConnection || version!==waHistoryVersion)return;
             const setup=error.responseJSON?.datos?.code;
-            const install=setup==='WA_TEST_STORAGE_REQUIRED';
-            const incompatible=setup==='WA_TEST_STORAGE_INCOMPATIBLE';
-            const notice=$('<div class="izzy-dialog__notice">').append(
-                $('<strong>').text(install?'Pruebas pendientes de instalación':incompatible?'Instalación de pruebas incompatible':'No se pudo consultar el historial'),
-                $('<span>').text(install?'Ejecute la migración de pruebas en DB_MAIN y vuelva a comprobar.':incompatible?'Revise con el administrador la estructura de api_zynko_test_sends.':waError(error))
+            const needsMigration=setup==='WA_TEST_STORAGE_REQUIRED';
+            $waSetup.append(
+                $('<strong>').text(needsMigration?'Activación pendiente':'Pruebas no disponibles'),
+                $('<span>').text(needsMigration?'Falta la tabla que guarda los envíos de prueba y evita duplicados. Ejecutá el bloque ZYNKO WhatsApp de DB_Cambios.sql en la base principal de IZZY (DB_MAIN). Después, volvé a abrir este modal.':waError(error))
             );
-            if(install)notice.append($('<code>').text(error.responseJSON.datos.migration));
-            notice.append($('<button type="button" class="izzy-button">').text('Volver a comprobar').on('click',()=>loadWaHistory(id)));
-            $waHistory.empty().append(notice);
+            if(needsMigration)$waSetup.append(
+                $('<small>').text('DB_Cambios.sql · bloque ZYNKO WhatsApp')
+            );
         });
     }
     function dispatchWa(data){
-        if(waSending||!waHistoryReady)return;
+        if(waSending||!waReady)return;
         waSending=true;
         $waSubmit.prop('disabled',true);
         waFeedback('Contactando a ZYNKO…');
         post(data).done(r=>{
             const op=r.datos;
             if(op.state==='accepted'){
-                waFeedback('En cola. Consulte el estado de cada destinatario para confirmar la entrega.');
-                if(waOperation===op.id){waForm.reset();waOperation=newWaOperation();updateWaMode();}
+                waFeedback('En cola en ZYNKO.');
+                if(waOperation===op.id){waForm.reset();waRecipients.textContent='';waOperation=newWaOperation();updateWaMode();}
             }else{
-                waFeedback(op.detail+' Reintente esta misma operación desde el historial.',true);
+                waFeedback(op.detail+' Para reintentar, vuelva a pulsar Enviar prueba con los mismos datos.',true);
             }
         }).fail(error=>waFeedback(waError(error),true)).always(()=>{
             waSending=false;
-            loadWaHistory(data.id);
+            updateWaMessageCount();
         });
     }
     $('#api_ext_rows').on('click','[data-ext-whatsapp]',function(){
+        if(waOpening)return;
         if(waSending){notify('Todavía hay un envío en proceso.','info');return;}
         const record=($('#api_ext_rows').data('connections')||[]).find(row=>Number(row.id)===Number(this.dataset.extWhatsapp));
         if(!record)return;
@@ -456,18 +443,39 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         waOperation=newWaOperation();
         waForm.reset();
         updateWaMode();
+        updateWaMessageCount();
         $('#api_wa_connection').text(record.nombre);
-        $('#api_wa_server').empty();
+        waRecipients.textContent='';
         waFeedback('');
-        closeExternalActionsMenus();
-        waDialog.showModal();
-        loadWaHistory(waConnection);
+        waOpening=true;
+        const trigger=this;
+        trigger.disabled=true;
+        trigger.setAttribute('aria-busy','true');
+        waReturnFocus=trigger.closest('.api-external-actions-dropdown')?.querySelector('.api-external-actions-trigger') || trigger;
+        checkWaSetup(waConnection).always(()=>{
+            waOpening=false;
+            trigger.disabled=false;
+            trigger.removeAttribute('aria-busy');
+            if(waDialog.open || !trigger.isConnected)return;
+            closeExternalActionsMenus();
+            waDialog.showModal();
+        });
     });
+    waDialog.addEventListener('close',()=>waReturnFocus?.focus({preventScroll:true}));
+    waRecipients.addEventListener('input',()=>waRecipients.removeAttribute('aria-invalid'));
     $(waForm).on('change','[name="mode"]',updateWaMode).on('submit',function(event){
         event.preventDefault();
-        dispatchWa({action:'external_wa_send',id:waConnection,operation:waOperation,...Object.fromEntries(new FormData(waForm))});
+        if(!updateWaMessageCount())return;
+        const recipients=waRecipients.innerText.trim();
+        if(!recipients || recipients.length>1900){
+            waFeedback(recipients?'La lista de números es demasiado larga.':'Ingresá al menos un número internacional.',true);
+            waRecipients.setAttribute('aria-invalid','true');
+            waRecipients.focus();
+            return;
+        }
+        dispatchWa({action:'external_wa_send',id:waConnection,operation:waOperation,
+            ...Object.fromEntries(new FormData(waForm)),recipients});
     });
-
 
     $('#api_ext_rows').on('click','[data-ext-read]',function(){
         const id=Number($(this).attr('data-id')),tipo=String($(this).attr('data-ext-read'));

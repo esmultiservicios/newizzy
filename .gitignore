@@ -5,6 +5,9 @@
 # Entorno y credenciales
 .env
 .env.*
+!/.env.example
+.izzy_external_api_aes.key
+.external-key-*
 credentials/
 secrets/
 

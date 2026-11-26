@@ -203,8 +203,10 @@ class DynamicNavbar {
             }
         }
         
-        $prefixes = DB_PREFIX . "_";
-        $nombre_db_final = str_replace($prefixes, "", $GLOBALS['db']);
+        $nombre_db_final = (string)$GLOBALS['db'];
+        if (DB_PREFIX !== null && str_starts_with($nombre_db_final, DB_PREFIX . "_")) {
+            $nombre_db_final = substr($nombre_db_final, strlen(DB_PREFIX) + 1);
+        }
         
         // Variables para WhatsApp
         $telefono_ws = "50489136844";

@@ -1384,6 +1384,65 @@ function moneyCell(data, type) {
   };
 })();
 
+/* Exportación contable. El worker devuelve los bytes sin convertirlos a Base64. */
+window.izzyGenerateAccountingPdf = function ({kind, rows, filters, loadLogo, button, workerUrl}) {
+    if (!button || button.disabled) return;
+    if (typeof Worker !== 'function' || typeof window.abrirModalPdfPublico !== 'function') {
+        showNotify('error', 'PDF no disponible', 'No está disponible el visor de reportes.');
+        return;
+    }
+
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    const original = button.innerHTML;
+    button.textContent = 'Generando PDF…';
+    let worker;
+    let finished = false;
+    const timeout = setTimeout(() => finish(true), 120000);
+
+    function finish(failed) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        if (worker) worker.terminate();
+        button.innerHTML = original;
+        button.removeAttribute('aria-busy');
+        button.disabled = false;
+        if (failed) showNotify('error', 'PDF no disponible', 'No se pudo generar el reporte PDF. Intente de nuevo.');
+    }
+
+    try {
+        worker = new Worker(workerUrl);
+        worker.onerror = () => finish(true);
+        worker.onmessageerror = () => finish(true);
+        worker.onmessage = ({data}) => {
+            if (!(data.pdf instanceof ArrayBuffer)) {
+                finish(true);
+                return;
+            }
+            const title = kind === 'ingresos' ? 'Ingresos' : 'Egresos';
+            const url = URL.createObjectURL(new Blob([data.pdf], {type: 'application/pdf'}));
+            let opened = false;
+            try {
+                opened = window.abrirModalPdfPublico(url, 'Reporte de ' + title, 'Reporte_' + title + '.pdf');
+            } finally {
+                if (!opened) URL.revokeObjectURL(url);
+                finish(!opened);
+            }
+        };
+        loadLogo(logo => {
+            if (finished) return;
+            try {
+                worker.postMessage({kind, rows, filters, logo});
+            } catch (error) {
+                finish(true);
+            }
+        });
+    } catch (error) {
+        finish(true);
+    }
+};
+
 /* =========================================================
    MODAL PDF PUBLICO / REUTILIZABLE
    Requiere que vistasModals.php contenga #modal_pdf_publico.
@@ -1439,9 +1498,7 @@ function moneyCell(data, type) {
         }
 
         $('#titulo_pdf_publico').text(titulo || 'Vista previa del PDF');
-        $('#visor_pdf_publico')
-            .attr('src', 'about:blank')
-            .attr('src', pdfPublicoUrlConZoom(url, zoom));
+        $('#visor_pdf_publico').attr('src', pdfPublicoUrlConZoom(url, zoom));
 
         $('#btn_descargar_pdf_publico')
             .attr('href', url)

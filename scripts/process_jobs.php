@@ -37,12 +37,23 @@ class JobProcessor {
 
     public function __construct() {
         $this->mainModel = new mainModel();
-        $this->conexion = $this->mainModel->connection();
+        $this->conexion = $this->mainModel->connectionDBLocal(DB_MAIN);
         $this->dbSetup = new DatabaseSetup();
 
         if ($this->conexion->connect_error) {
             throw new Exception('Error de conexión: ' . $this->conexion->connect_error);
         }
+    }
+
+    public function checkRequirements(): void {
+        if (!is_readable(APP_ROOT . '/plantilla/plantilla_izzy.sql') || filesize(APP_ROOT . '/plantilla/plantilla_izzy.sql') < 1) {
+            throw new RuntimeException('No se puede leer plantilla/plantilla_izzy.sql.');
+        }
+        $this->conexion->query('SELECT id,job_type,data,status,attempts,max_attempts,created_at,processed_at,error_message FROM jobs_queue LIMIT 0')->free();
+        $this->conexion->query('SELECT server_customers_id,db,db_imported FROM server_customers LIMIT 0')->free();
+        if (!function_exists('exec')) throw new RuntimeException('PHP CLI tiene exec deshabilitado.');
+        exec('mysql --version 2>&1', $output, $status);
+        if ($status !== 0) throw new RuntimeException('El cron no encuentra mysql en su PATH.');
     }
 
     public function processPendingJobs() {
@@ -70,7 +81,7 @@ class JobProcessor {
                         $this->handleJobFailure($job['id'], 'Error desconocido al procesar el job');
                         $failed++;
                     }
-                } catch (Exception $e) {
+                } catch (Throwable $e) {
                     $this->handleJobFailure($job['id'], $e->getMessage());
                     $failed++;
                     error_log('Error procesando job ID ' . $job['id'] . ': ' . $e->getMessage());
@@ -87,7 +98,7 @@ class JobProcessor {
                 $this->conexion->query("SELECT RELEASE_LOCK('izzy_registration_jobs')");
             }
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             error_log('Error en processPendingJobs: ' . $e->getMessage());
 
             return [
@@ -734,6 +745,11 @@ class JobProcessor {
 if (php_sapi_name() === 'cli') {
     try {
         $processor = new JobProcessor();
+        if (in_array('--check', $argv, true)) {
+            $processor->checkRequirements();
+            echo "DB_MAIN, cola, plantilla y cliente MySQL disponibles. No se procesaron registros.\n";
+            exit(0);
+        }
         $result = $processor->processPendingJobs();
 
         if ($result['success']) {
@@ -744,7 +760,7 @@ if (php_sapi_name() === 'cli') {
         echo "Error en el procesamiento: {$result['error']}\n";
         exit(1);
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log('Error fatal en JobProcessor: ' . $e->getMessage());
         echo 'Error fatal: ' . $e->getMessage() . "\n";
         exit(1);

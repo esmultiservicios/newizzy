@@ -34,14 +34,15 @@ class DatabaseSetup {
             if ($credentials === false) throw new Exception('No se pudo crear archivo temporal de autenticación.');
             chmod($credentials, 0600);
             $escape = static function ($value) {
-                return str_replace(["\\", "\n", "\r"], ["\\\\", "\\n", "\\r"], (string)$value);
+                return '"' . str_replace(["\\", "\"", "\n", "\r", "\t"], ["\\\\", "\\\"", "\\n", "\\r", "\\t"], (string)$value) . '"';
             };
             $contents = "[client]\nuser=".$escape($dbUser)."\npassword=".$escape($dbPassword)."\nhost=".$escape($this->dbHost)."\n";
-            if (file_put_contents($credentials, $contents) === false) {
+            if (file_put_contents($credentials, $contents) !== strlen($contents)) {
                 @unlink($credentials);
                 throw new Exception('No se pudieron escribir las credenciales temporales MySQL.');
             }
             try {
+                if (!function_exists('exec')) throw new RuntimeException('PHP CLI tiene exec deshabilitado.');
                 $command = 'mysql --defaults-extra-file='.escapeshellarg($credentials).' '.escapeshellarg($dbName).' < '.escapeshellarg($sqlFile).' 2>&1';
                 $output = [];$returnVar = 1;
                 exec($command, $output, $returnVar);

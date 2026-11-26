@@ -996,21 +996,26 @@ function ingresosObtenerLogoPdf(callback){
   $.ajax({type:'GET',url:'<?php echo SERVERURL;?>core/get_image.php',dataType:'text',timeout:15000}).done(function(url){url=$.trim(url||'');if(!url){callback(null);return;}var img=new Image();img.crossOrigin='Anonymous';img.onload=function(){try{var c=document.createElement('canvas');c.width=img.naturalWidth||img.width;c.height=img.naturalHeight||img.height;c.getContext('2d').drawImage(img,0,0);imagen=c.toDataURL('image/png');callback(imagen);}catch(e){callback(null);}};img.onerror=function(){callback(null);};img.src=url;}).fail(function(){callback(null);});
 }
 
-function ingresosGenerarPdf(){
-  var rows=ingresosUI.filtered||[];if(!rows.length){showNotify('warning','Sin información','No hay ingresos para mostrar en PDF.');return;}if(typeof pdfMake==='undefined'||typeof abrirModalPdfPublico!=='function'){showNotify('error','PDF no disponible','No están disponibles los componentes del PDF.');return;}
-  ingresosObtenerLogoPdf(function(logo){
-    var subtotal=0,impuesto=0,descuento=0,total=0;rows.forEach(function(r){subtotal+=toNumber(r.subtotal);impuesto+=toNumber(r.impuesto);descuento+=toNumber(r.descuento);total+=toNumber(r.total);});
-    var body=[[{text:'FECHA',style:'th'},{text:'TIPO',style:'th'},{text:'INGRESO #',style:'th'},{text:'FECHA FACT.',style:'th'},{text:'FORMA PAGO',style:'th'},{text:'RECIBÍ DE',style:'th'},{text:'FACTURA',style:'th'},{text:'SUBTOTAL',style:'th'},{text:'IMPUESTO',style:'th'},{text:'DESCUENTO',style:'th'},{text:'TOTAL',style:'th'}]];
-    rows.forEach(function(r,i){var fill=i%2===0?'#FFFFFF':'#F7F9FC';body.push([{text:String(r.fecha_registro||''),style:'td',fillColor:fill},{text:String(r.tipo_ingreso||''),style:'td',fillColor:fill},{text:String(r.ingresos_id||''),style:'td',fillColor:fill},{text:String(r.fecha||''),style:'td',fillColor:fill},{text:String(r.nombre||''),style:'td',fillColor:fill},{text:String(r.cliente||''),style:'td',fillColor:fill},{text:String(r.factura||''),style:'td',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.subtotal)),style:'tdn',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.impuesto)),style:'tdn',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.descuento)),style:'tdn',fillColor:fill},{text:'L. '+formatMoney(toNumber(r.total)),style:'tdn',fillColor:fill,bold:true,color:'#14804A'}]);});
-    body.push([{text:'TOTALES',colSpan:7,style:'totalLabel',fillColor:'#EAF1F7'},{},{},{},{},{},{},{text:'L. '+formatMoney(subtotal),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L. '+formatMoney(impuesto),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L. '+formatMoney(descuento),style:'totalMoney',fillColor:'#EAF1F7'},{text:'L. '+formatMoney(total),style:'totalMoneyCurrent',fillColor:'#EAF1F7'}]);
-    var logoCell=logo?{table:{widths:['*'],body:[[{image:logo,fit:[74,44],alignment:'center',margin:[7,5,7,5],fillColor:'#FFFFFF'}]]},layout:'noBorders',fillColor:'#17324D',margin:[8,7,8,7]}:{text:'IZZY',bold:true,fontSize:18,color:'#17324D',alignment:'center',fillColor:'#FFFFFF',margin:[8,14,8,14]};
-    var doc={pageSize:'LEGAL',pageOrientation:'landscape',pageMargins:[28,28,28,34],header:function(){return{margin:[28,12,28,0],canvas:[{type:'line',x1:0,y1:0,x2:952,y2:0,lineWidth:2,lineColor:'#0EA5A8'}]};},footer:function(page,pages){return{margin:[28,8,28,0],columns:[{text:'IZZY • Reporte de Ingresos',fontSize:7,color:'#7A869A'},{text:'Página '+page+' de '+pages,fontSize:7,color:'#7A869A',alignment:'right'}]};},content:[
-      {table:{widths:[110,'*',165],body:[[logoCell,{stack:[{text:'REPORTE DE INGRESOS',bold:true,fontSize:16,color:'#FFFFFF'},{text:'Registro contable de ingresos por período',fontSize:8,color:'#D8E5F0',margin:[0,2,0,0]}],fillColor:'#17324D',margin:[0,10,0,10]},{stack:[{text:'REPORTE EJECUTIVO',bold:true,fontSize:6.5,color:'#72E2E5',alignment:'right'},{text:new Date().toLocaleDateString('es-HN'),bold:true,fontSize:9,color:'#FFFFFF',alignment:'right'},{text:rows.length+' registro(s)',fontSize:6.5,color:'#D8E5F0',alignment:'right'}],fillColor:'#17324D',margin:[0,10,12,10]}]]},layout:'noBorders',margin:[0,0,0,10]},
-      {table:{widths:['*'],body:[[{text:'Estado: '+($('#estado_ingresos option:selected').text()||'Todos')+'   |   Período: '+($('#fechai').val()||'')+' a '+($('#fechaf').val()||'')+'   |   Búsqueda: '+($.trim($('#buscarIngresosListado').val())||'Sin búsqueda'),fontSize:7,color:'#52627A',fillColor:'#F7F9FC',margin:[8,6,8,6]}]]},layout:'lightHorizontalLines',margin:[0,0,0,10]},
-      {table:{widths:['*','*','*','*'],body:[[{stack:[{text:'REGISTROS',fontSize:6.2,bold:true,color:'#6B778C'},{text:String(rows.length),fontSize:12,bold:true,color:'#17324D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'SUBTOTAL',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L. '+formatMoney(subtotal),fontSize:11,bold:true,color:'#17324D'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'IMPUESTO',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L. '+formatMoney(impuesto),fontSize:11,bold:true,color:'#0EA5A8'}],fillColor:'#F7F9FC',margin:[8,7,8,7]},{stack:[{text:'TOTAL',fontSize:6.2,bold:true,color:'#6B778C'},{text:'L. '+formatMoney(total),fontSize:11,bold:true,color:'#14804A'}],fillColor:'#F7F9FC',margin:[8,7,8,7]}]]},layout:{hLineColor:function(){return'#DDE3EA';},vLineColor:function(){return'#DDE3EA';},hLineWidth:function(){return .5;},vLineWidth:function(){return .5;}},margin:[0,0,0,10]},
-      {table:{headerRows:1,widths:[74,68,56,66,88,112,88,78,76,76,82],body:body},margin:[0,0,0,0],layout:{hLineColor:function(){return'#DDE3EA';},vLineColor:function(){return'#DDE3EA';},hLineWidth:function(){return .55;},vLineWidth:function(){return .55;},paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 5;},paddingBottom:function(){return 5;}}}
-    ],styles:{th:{fontSize:5.9,bold:true,color:'#FFFFFF',fillColor:'#17324D',alignment:'center'},td:{fontSize:6.1,color:'#253858',noWrap:false},tdn:{fontSize:6.1,color:'#253858',alignment:'right',noWrap:false},totalLabel:{fontSize:6.4,bold:true,color:'#17324D'},totalMoney:{fontSize:6.4,bold:true,color:'#17324D',alignment:'right'},totalMoneyCurrent:{fontSize:6.4,bold:true,color:'#14804A',alignment:'right'}}};
-    pdfMake.createPdf(doc).getDataUrl(function(url){abrirModalPdfPublico(url,'Reporte de Ingresos','Reporte_Ingresos.pdf');});
+function ingresosGenerarPdf() {
+  const rows = ingresosUI.filtered || [];
+  if (!rows.length) {
+    showNotify('warning', 'Sin información', 'No hay ingresos para mostrar en PDF.');
+    return;
+  }
+  if (typeof window.izzyGenerateAccountingPdf !== 'function') {
+    showNotify('error', 'PDF no disponible', 'No está disponible el generador de PDF.');
+    return;
+  }
+  const filters = {
+    estado: $('#estado_ingresos option:selected').text() || 'Todos',
+    desde: $('#fechai').val() || '',
+    hasta: $('#fechaf').val() || '',
+    busqueda: $.trim($('#buscarIngresosListado').val()) || 'Sin búsqueda'
+  };
+  window.izzyGenerateAccountingPdf({
+    kind: 'ingresos', rows, filters, loadLogo: ingresosObtenerLogoPdf,
+    button: document.getElementById('btnIngresosPdf'),
+    workerUrl: <?php echo json_encode(SERVERURL.'ajax/js/reportesContablesPdf.worker.js'); ?>
   });
 }
 

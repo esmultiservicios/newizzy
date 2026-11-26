@@ -214,6 +214,7 @@ class clientesControlador extends clientesModelo {
                 $this->responderError('Contraseña inválida', 'Use al menos 8 caracteres y un máximo de 120 bytes.');
             }
 
+            izzyRequireAdministrativeConfig('cPanel');
             if (!is_readable(dirname(__DIR__) . '/plantilla/plantilla_izzy.sql')) {
                 throw new RuntimeException('Plantilla de aprovisionamiento no disponible.');
             }
@@ -297,6 +298,10 @@ class clientesControlador extends clientesModelo {
             if ($cn) {
                 $cn->rollback();
                 $cn->close();
+            }
+            if ($e instanceof IzzyAdministrativeConfigurationException) {
+                error_log('IZZY alta: ' . $e->getMessage());
+                $this->responderError('Registro temporalmente no disponible', 'El servicio de alta requiere configuración. Contacte al equipo de IZZY.', 503);
             }
             error_log('IZZY registro: '.get_class($e).' ['.$e->getCode().']');
             $this->responderError('Registro no completado', 'No pudimos completar el registro. Intente nuevamente o comuníquese con soporte.', 500);

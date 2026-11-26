@@ -1833,7 +1833,8 @@ ALTER TABLE `isv_tipo`
   ADD PRIMARY KEY (`isv_tipo_id`);
 
 ALTER TABLE `jobs_queue`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_jobs_pending` (`status`,`created_at`,`id`);
 
 ALTER TABLE `lotes`
   ADD PRIMARY KEY (`lote_id`),

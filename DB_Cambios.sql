@@ -1684,3 +1684,16 @@ SET @izzy_ddl=IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS
 PREPARE izzy_stmt FROM @izzy_ddl;
 EXECUTE izzy_stmt;
 DEALLOCATE PREPARE izzy_stmt;
+
+-- Cola de altas IZZY. Índice para el cron de procesado de pendientes.
+SET @izzy_ddl=IF(
+    (SELECT COUNT(*) FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='jobs_queue'
+       AND COLUMN_NAME IN ('status','created_at','id'))=3
+    AND NOT EXISTS(SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='jobs_queue' AND INDEX_NAME='idx_jobs_pending'),
+    'ALTER TABLE jobs_queue ADD INDEX idx_jobs_pending (status, created_at, id)',
+    'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;

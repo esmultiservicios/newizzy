@@ -13,7 +13,6 @@ class cPanelAPI {
     private $baseUrl;
     private $cpanelUser;
     private $timeout;
-    private $verifySSL;
 
     /**
      * Constructor de la clase cPanelAPI
@@ -25,7 +24,6 @@ class cPanelAPI {
         $this->cpanelUser = CPANEL_USERNAME;
         $this->baseUrl = "https://".CPANEL_HOST.":".CPANEL_PORT."/execute/";
         $this->timeout = API_TIMEOUT;
-        $this->verifySSL = SSL_VERIFICATION;
     }
 
     /**
@@ -38,9 +36,7 @@ class cPanelAPI {
      * @throws Exception Si ocurre un error en la conexión, HTTP o formato JSON
      */
     private function executeApiCall($module, $function, $params = []) {
-        if ($this->cpanelUser === '' || $this->token === '') {
-            throw new RuntimeException('Configure CPANEL_USERNAME y CPANEL_TOKEN.');
-        }
+        izzyRequireAdministrativeConfig($module === 'SubDomain' ? 'Subdominios cPanel' : 'cPanel');
         $url = $this->baseUrl . $module . '/' . $function;
         
         if (!empty($params)) {
@@ -59,12 +55,12 @@ class cPanelAPI {
         ]);
 
         $response = curl_exec($ch);
-        $error = curl_error($ch);
+        $error = curl_errno($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($error) {
-            throw new Exception("cURL Error: $error");
+            throw new RuntimeException("Error de transporte cPanel (cURL $error).");
         }
 
         if ($httpCode !== 200) {
@@ -470,9 +466,9 @@ class cPanelAPI {
      * (Método privado para uso interno)
      */
     private function executeWhmApiCall($function, $params = []) {
+        izzyRequireAdministrativeConfig('WHM');
         $url = "https://".WHM_HOST.":".WHM_PORT."/json-api/$function";
         
-        // Usar token si está configurado, de lo contrario usar autenticación básica
         $headers = [
             'Authorization: whm '.WHM_USERNAME.':'.WHM_TOKEN,
             'Accept: application/json'
@@ -484,17 +480,17 @@ class cPanelAPI {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_TIMEOUT => WHM_TIMEOUT,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
-            CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2
         ]);
 
         $response = curl_exec($ch);
-        $error = curl_error($ch);
+        $error = curl_errno($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($error) {
-            throw new Exception("WHM cURL Error: $error");
+            throw new RuntimeException("Error de transporte WHM (cURL $error).");
         }
 
         if ($httpCode !== 200) {
@@ -509,7 +505,7 @@ class cPanelAPI {
 
         // Verificar si la API devolvió un error
         if (isset($data['metadata']['result']) && $data['metadata']['result'] == 0) {
-            throw new Exception("WHM API Error: " . ($data['metadata']['reason'] ?? 'Unknown error'));
+            throw new RuntimeException("WHM rechazó la operación. Revise los permisos de la cuenta y los parámetros.");
         }
 
         return $data;
@@ -839,12 +835,12 @@ class cPanelAPI {
      * @return string Mensaje de error formateado
      */
     private function parseError($response) {
-        if (isset($response['errors'])) {
-            return is_array($response['errors']) 
-                ? implode('; ', $response['errors']) 
-                : $response['errors'];
+        foreach ((array)($response['errors'] ?? $response['message'] ?? []) as $error) {
+            if (is_string($error) && stripos($error, 'already exists') !== false) {
+                return 'El recurso ya existe (already exists).';
+            }
         }
-        return $response['message'] ?? 'Unknown cPanel API error';
+        return 'cPanel rechazó la operación. Revise los permisos de la cuenta y los parámetros.';
     }
 }
 

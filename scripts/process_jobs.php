@@ -27,6 +27,7 @@ define('APP_ROOT', dirname(__DIR__));
 require_once APP_ROOT . '/core/configGenerales.php';
 require_once APP_ROOT . '/core/mainModel.php';
 require_once APP_ROOT . '/core/registro/DatabaseSetup.php';
+require_once APP_ROOT . '/core/registro/cPanelAPI.php';
 require_once APP_ROOT . '/core/correo/sendEmail.php';
 require_once APP_ROOT . '/core/registro/ProvisioningSync.php';
 
@@ -250,6 +251,28 @@ class JobProcessor {
         preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-zA-Z0-9_]+)`?/i', $sqlSchema, $expectedMatches);
         $expectedTables = array_unique($expectedMatches[1]);
         if (count($expectedTables) < 10) throw new Exception('Plantilla SQL incompleta: faltan tablas del sistema.');
+        if (!empty($job['data']['provision_database'])) {
+            $cpanel = new cPanelAPI();
+            $resume = !empty($job['data']['provision_started']);
+            if (!$resume) {
+                if ($cpanel->databaseListed($dbName)) {
+                    throw new RuntimeException('Ya existe una base con el nombre reservado. Se requiere revisión del alta.');
+                }
+                $job['data']['provision_started'] = true;
+                $data = json_encode($job['data'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                $jobId = (int)$job['id'];
+                $stmt = $this->conexion->prepare('UPDATE jobs_queue SET data=? WHERE id=?');
+                $stmt->bind_param('si', $data, $jobId);
+                $stmt->execute();
+                $stmt->close();
+            }
+            $cpanel->setupCompleteDatabase([
+                'db_name' => $dbName,
+                'db_user' => $job['db_user'],
+                'db_password' => $job['db_password'],
+            ], $resume);
+        }
+
         $skipImport = false;
         $preflightConn = $this->dbSetup->connectToDatabase($dbName, $job['db_user'], $job['db_password']);
         if (!$preflightConn) throw new Exception('Base de datos todavía no disponible.');

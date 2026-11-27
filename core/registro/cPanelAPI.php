@@ -73,11 +73,25 @@ class cPanelAPI {
             throw new Exception("JSON Error: " . json_last_error_msg());
         }
 
-        $result = $data['result'] ?? null;
-        if (!is_array($result) || !isset($result['status'])) {
-            throw new RuntimeException('Respuesta UAPI no reconocida.');
+        return self::normalizeUapiResult($data, $module, $function);
+    }
+
+    private static function normalizeUapiResult($data, string $module, string $function): array {
+        $result = is_array($data) ? ($data['result'] ?? $data['cpanelresult']['result'] ?? null) : null;
+        if ($result === null && is_array($data) && !array_key_exists('result', $data) && !array_key_exists('cpanelresult', $data)
+            && (array_key_exists('data', $data) || array_key_exists('errors', $data))) {
+            $result = $data;
         }
-        return $result;
+        if (is_array($result) && in_array($result['status'] ?? null, [0, 1, '0', '1'], true)) {
+            $result['status'] = (int)$result['status'];
+            return $result;
+        }
+
+        $fields = ['result', 'cpanelresult', 'status', 'data', 'error', 'errors', 'message', 'metadata'];
+        $present = is_array($data) ? array_intersect($fields, array_keys($data)) : [];
+        error_log(sprintf('IZZY UAPI %s/%s HTTP 200 formato=%s campos=%s',
+            $module, $function, gettype($data), implode(',', $present)));
+        throw new RuntimeException('cPanel devolvió una respuesta sin confirmación válida de la operación.');
     }
 
     /**************************************/
@@ -263,10 +277,23 @@ class cPanelAPI {
      *     'db_password' => 'micontraseñaSegura123'
      * ]);
      */
-    public function setupCompleteDatabase($dbConfig) {
+    public function databaseListed(string $name): bool {
+        $result = $this->executeApiCall('Mysql', 'list_databases');
+        if ($result['status'] !== 1 || !is_array($result['data'] ?? null)) {
+            throw new RuntimeException('cPanel no confirmó la lista de bases de esta cuenta.');
+        }
+        foreach ($result['data'] as $item) {
+            if (is_array($item) && ($item['database'] ?? null) === $name) return true;
+        }
+        return false;
+    }
+
+    public function setupCompleteDatabase($dbConfig, bool $resume = false) {
         try {
             // 1. Crear base de datos
-            $dbResult = $this->createDatabase($dbConfig['db_name']);
+            $dbResult = $resume && $this->databaseListed($dbConfig['db_name'])
+                ? ['success' => true, 'db_name' => $dbConfig['db_name']]
+                : $this->createDatabase($dbConfig['db_name']);
             // 2. Crear usuario
             //$userResult = $this->createDatabaseUser($dbConfig['db_user'], $dbConfig['db_password']);
             // 3. Asignar privilegios

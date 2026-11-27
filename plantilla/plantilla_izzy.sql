@@ -58,7 +58,7 @@ CREATE TABLE `api_auth_rate_limits` (
   `identifier_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `window_start` datetime NOT NULL,
   `attempts` int UNSIGNED NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `api_auth_refresh_tokens` (
   `id` bigint UNSIGNED NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE `api_auth_refresh_tokens` (
   `expires_at` datetime NOT NULL,
   `revoked_at` datetime DEFAULT NULL,
   `rotated_at` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `api_auth_tokens` (
   `id` bigint UNSIGNED NOT NULL,
@@ -85,7 +85,7 @@ CREATE TABLE `api_auth_tokens` (
   `expires_at` datetime NOT NULL,
   `revoked_at` datetime DEFAULT NULL,
   `refresh_family_id` char(32) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `api_document_notifications` (
   `id` bigint UNSIGNED NOT NULL,
@@ -202,7 +202,7 @@ CREATE TABLE `api_zynko_document_dispatch` (
   `payload_cifrado` mediumtext NOT NULL,
   `message_uuid` char(36) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `api_zynko_test_sends` (
   `connection_id` bigint UNSIGNED NOT NULL,

@@ -46,13 +46,26 @@ class DatabaseSetup {
                 $command = 'mysql --defaults-extra-file='.escapeshellarg($credentials).' '.escapeshellarg($dbName).' < '.escapeshellarg($sqlFile).' 2>&1';
                 $output = [];$returnVar = 1;
                 exec($command, $output, $returnVar);
-                if ($returnVar !== 0) throw new Exception('Importación SQL fallida (código '.$returnVar.').');
+                if ($returnVar !== 0) {
+                    $detail = 'Importación SQL fallida (salida '.$returnVar.').';
+                    if ($returnVar === 127) {
+                        $detail = 'El cron no encuentra el cliente mysql en PATH.';
+                    }
+                    foreach ($output as $line) {
+                        if (preg_match('/^ERROR ([0-9]+)(?: \([A-Z0-9]+\))?(?: at line ([0-9]+))?/D', $line, $match)) {
+                            $detail = 'Importación SQL fallida. MySQL '.$match[1]
+                                .(isset($match[2]) ? ' en línea '.$match[2] : '').'.';
+                            break;
+                        }
+                    }
+                    throw new RuntimeException($detail);
+                }
             } finally { @unlink($credentials); }
 
             return true;
         } catch (Exception $e) {
             error_log("Error en importDatabase: " . $e->getMessage());
-            return false;
+            throw $e;
         }
     }
 

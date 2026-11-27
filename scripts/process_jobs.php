@@ -67,6 +67,7 @@ class JobProcessor {
             }
             try {
             $this->recoverStaleJobs();
+            $this->retryInterruptedImports();
             $jobs = $this->getPendingJobs();
             $processed = 0;
             $failed = 0;
@@ -115,6 +116,15 @@ class JobProcessor {
                 $this->conexion->close();
             }
         }
+    }
+
+    private function retryInterruptedImports(): void {
+        $this->conexion->query("UPDATE jobs_queue
+            SET data=JSON_SET(data,'$.resume_schema_v1',1), status='pending', attempts=0, processed_at=NULL
+            WHERE job_type='db_import' AND status='failed' AND JSON_VALID(data)
+              AND JSON_EXTRACT(data,'$.provision_database')=true
+              AND JSON_EXTRACT(data,'$.resume_schema_v1') IS NULL
+              AND error_message LIKE 'Importación incompleta: faltan %'");
     }
 
     private function recoverStaleJobs() {
@@ -210,6 +220,25 @@ class JobProcessor {
         }
     }
 
+    private function resumeInitialSchema(mysqli $db, string $template, array $expected, array $available): ?string {
+        $prefix = array_slice($expected, 0, count($available));
+        if (array_diff($prefix, $available) || array_diff($available, $prefix)) return null;
+
+        // Reanudar únicamente en la primera fase de CREATE TABLE, antes de cargar datos e índices.
+        $boundary = strpos($template, 'CREATE TABLE `'.$expected[count($prefix)].'`');
+        $firstTable = strpos($template, 'CREATE TABLE');
+        if ($boundary === false || $firstTable === false
+            || preg_match('/^\h*(ALTER|INSERT|CREATE\s+VIEW|DROP)\b/im', substr($template, $firstTable, $boundary - $firstTable))) {
+            return null;
+        }
+        foreach ($prefix as $table) {
+            if ($db->query('SELECT 1 FROM `'.$table.'` LIMIT 1')->num_rows > 0) return null;
+            $indexes = $db->query('SHOW INDEX FROM `'.$table.'`');
+            if ($indexes->num_rows > 0) return null;
+        }
+        return substr($template, 0, $firstTable).substr($template, $boundary);
+    }
+
     private function processDbImportJob($job) {
         if (empty($job['db_user']) || empty($job['db_password'])) {
             throw new Exception('Credenciales de base de datos incompletas.');
@@ -274,6 +303,7 @@ class JobProcessor {
         }
 
         $skipImport = false;
+        $resumeSql = null;
         $preflightConn = $this->dbSetup->connectToDatabase($dbName, $job['db_user'], $job['db_password']);
         if (!$preflightConn) throw new Exception('Base de datos todavía no disponible.');
         try {
@@ -283,21 +313,37 @@ class JobProcessor {
                 $available=[];
                 while ($r=$tables->fetch_row()) $available[]=$r[0];
                 $missing=array_diff($expectedTables,$available);
-                if ($missing) throw new Exception('Importación incompleta: faltan '.count($missing).' tablas. No se borrará información.');
-                // Reanudación idempotente tras importar la estructura pero fallar una inserción.
-                if (!in_array('v_promos_vigentes_producto', $available, true)) {
-                    throw new RuntimeException('La plantilla no completó la importación.');
+                if ($missing) {
+                    $resumeSql = $this->resumeInitialSchema($preflightConn, $sqlSchema, array_values($expectedTables), $available);
+                    if ($resumeSql === null) {
+                        throw new RuntimeException('Importación incompleta: faltan '.count($missing).' tablas. La base requiere revisión.');
+                    }
+                } else {
+                    if (!in_array('v_promos_vigentes_producto', $available, true)) {
+                        throw new RuntimeException('La plantilla no completó la importación.');
+                    }
+                    $skipImport = true;
                 }
-                $skipImport=true;
             }
         } finally { $preflightConn->close(); }
 
-        $imported = $skipImport || $this->dbSetup->importDatabase(
-            $dbName,
-            $job['db_user'],
-            $job['db_password'],
-            $sqlFile
-        );
+        $temporarySql = null;
+        try {
+            if ($resumeSql !== null) {
+                $temporarySql = tempnam(sys_get_temp_dir(), 'izzy_schema_');
+                if ($temporarySql === false || file_put_contents($temporarySql, $resumeSql) !== strlen($resumeSql)) {
+                    throw new RuntimeException('No se pudo preparar la reanudación de la plantilla.');
+                }
+            }
+            $imported = $skipImport || $this->dbSetup->importDatabase(
+                $dbName,
+                $job['db_user'],
+                $job['db_password'],
+                $temporarySql ?: $sqlFile
+            );
+        } finally {
+            if ($temporarySql) @unlink($temporarySql);
+        }
 
         if (!$imported) {
             throw new Exception('Error al importar la base de datos.');

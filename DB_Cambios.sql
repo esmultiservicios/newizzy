@@ -1685,6 +1685,18 @@ PREPARE izzy_stmt FROM @izzy_ddl;
 EXECUTE izzy_stmt;
 DEALLOCATE PREPARE izzy_stmt;
 
+-- Alta de empresas IZZY | estado de importación de la base
+SET @izzy_ddl=IF(
+    EXISTS(SELECT 1 FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='server_customers')
+    AND NOT EXISTS(SELECT 1 FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='server_customers' AND COLUMN_NAME='db_imported'),
+    'ALTER TABLE server_customers ADD COLUMN db_imported INT NOT NULL DEFAULT 0',
+    'SELECT 1');
+PREPARE izzy_stmt FROM @izzy_ddl;
+EXECUTE izzy_stmt;
+DEALLOCATE PREPARE izzy_stmt;
+
 -- Cola de altas IZZY. Índice para el cron de procesado de pendientes.
 SET @izzy_ddl=IF(
     (SELECT COUNT(*) FROM information_schema.COLUMNS

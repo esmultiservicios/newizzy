@@ -1422,7 +1422,7 @@ CREATE TABLE `server_customers` (
   `sistema_id` int NOT NULL,
   `validar` int NOT NULL COMMENT '1 Sí 2. No',
   `estado` int NOT NULL COMMENT '1. Activo 0. Inactivo',
-  `db_imported` int NOT NULL
+  `db_imported` int NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 CREATE TABLE `sistema` (

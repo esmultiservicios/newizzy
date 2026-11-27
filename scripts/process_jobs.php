@@ -412,10 +412,15 @@ class JobProcessor {
         $internal = $this->internalRecipients();
         $url = (string)($data['login_url'] ?? SERVERURL.'login/');
         $company = (string)($data['empresa_nombre'] ?? '');
+        $stmt = $this->conexion->prepare('SELECT p.nombre FROM planes p JOIN server_customers sc USING (planes_id) WHERE sc.server_customers_id=?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $plan = (string)($stmt->get_result()->fetch_row()[0] ?? 'Gratis');
+        $stmt->close();
         $code = $this->getCodigoCliente($id);
         $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
         $html = '<p>Hola, '.$escape($name).':</p>'
-          .'<p>Su espacio de trabajo <strong>'.$escape($company).'</strong> ya está listo en el plan Gratis de IZZY.</p>'
+          .'<p>Su espacio de trabajo <strong>'.$escape($company).'</strong> ya está listo en el plan '.$escape($plan).' de IZZY.</p>'
           .'<p><strong>Correo de acceso:</strong> '.$escape($to).'<br><strong>Código de cliente:</strong> '.$escape($code).'</p>'
           .'<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita establecer otra, utilice «Recuperar contraseña» en el inicio de sesión.</p>'
           .'<p><a href="'.$escape($url).'">Iniciar sesión en IZZY</a></p>'
@@ -446,8 +451,17 @@ class JobProcessor {
         $recipients=$data['recipients'] ?? [];
         if (!$recipients || !is_array($recipients)) throw new Exception('Correo sin destinatarios.');
         $mailer=new sendEmail();
-        $result=$mailer->enviarCorreo($recipients,[],(string)($data['subject']??''),(string)($data['html']??''),1,1,[]);
-        if ($result !== 1) throw new Exception('No fue posible enviar el correo; se reintentará.');
+        $failureCode = null;
+        ob_start();
+        try {
+            $result = $mailer->enviarCorreo($recipients, [], (string)($data['subject'] ?? ''),
+                (string)($data['html'] ?? ''), 1, 1, [], 'info', $failureCode);
+        } finally {
+            ob_end_clean();
+        }
+        if ($result !== 1) {
+            throw new RuntimeException('No fue posible enviar el correo. Diagnóstico: '.($failureCode ?? 'error_de_envio').'.');
+        }
         // Borra la contraseña del contenido de correo después de enviarlo.
         $data['html']='';
         $json=json_encode($data,JSON_UNESCAPED_UNICODE);

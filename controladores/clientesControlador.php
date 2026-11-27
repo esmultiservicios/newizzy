@@ -14,7 +14,6 @@ if($peticionAjax){
 
     require_once "../core/registro/cPanelAPI.php";
 
-    require_once "../core/registro/DatabaseSetup.php";    
 
 }else{
 
@@ -26,7 +25,6 @@ if($peticionAjax){
 
     require_once "./core/registro/cPanelAPI.php";
 
-    require_once "./core/registro/DatabaseSetup.php";    
 
 }
 

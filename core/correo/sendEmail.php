@@ -623,7 +623,8 @@ class sendEmail {
         return "Sistema";
     }
 
-    public function enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $empresa_id, $archivos_adjuntos = [], $templateType = 'info') {
+    public function enviarCorreo($destinatarios, $bccDestinatarios, $asunto, $mensaje, $correo_tipo_id, $empresa_id, $archivos_adjuntos = [], $templateType = 'info', ?string &$failureCode = null) {
+        $failureCode = null;
         ini_set('max_execution_time', 300);
 
         $destinatarios = is_array($destinatarios) ? $destinatarios : [];
@@ -648,6 +649,7 @@ class sendEmail {
         }
 
         if (!$destinatarios) {
+            $failureCode = 'sin_destinatarios_validos';
             // Si solo había destinatarios genéricos @izzycloud.app, salir
             // silenciosamente sin generar un falso error de envío.
             if (!$validacionDestinatarios['rechazados']) {
@@ -667,6 +669,7 @@ class sendEmail {
         $configResult = $this->obtenerConfiguracionCorreo($correo_tipo_id);
 
         if (!$configResult["success"]) {
+            $failureCode = "remitente_notificaciones_no_configurado";
             echo $configResult["message"];
             return 0;
         }
@@ -690,6 +693,7 @@ class sendEmail {
                 return 1;
             }
 
+            $failureCode = "rechazo_graph";
             echo $resultado["message"];
             return 0;
         }
@@ -708,6 +712,7 @@ class sendEmail {
             return 1;
         }
 
+        $failureCode = "fallo_smtp";
         echo $resultado["message"];
         return 0;
     }

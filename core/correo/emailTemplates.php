@@ -47,9 +47,9 @@ class emailTemplates {
 
         $logoHtml = '';
         if ($urlLogo !== '') {
-            $logoHtml = '<img src="'.$this->esc($urlLogo).'" alt="'.$nombreEmpresaHtml.'" width="142" style="display:block;width:142px;max-width:142px;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">';
+            $logoHtml = '<img src="'.$this->esc($urlLogo).'" alt="'.$nombreEmpresaHtml.'" width="104" style="display:block;width:104px;max-width:104px;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">';
         } else {
-            $logoHtml = '<div style="font-family:Arial Black,Arial,Helvetica,sans-serif;font-size:38px;line-height:1.1;font-weight:900;letter-spacing:-2px;color:#1477EF;text-align:center;">IZZY.</div>';
+            $logoHtml = '<div style="font-family:Arial Black,Arial,Helvetica,sans-serif;font-size:30px;line-height:1.1;font-weight:900;letter-spacing:-2px;color:#1477EF;text-align:center;">IZZY.</div>';
         }
 
         $contactos = array();
@@ -88,8 +88,9 @@ class emailTemplates {
 </style>
 </head>
 <body style="margin:0;padding:0;background:#F7F9FC;font-family:Arial,Helvetica,sans-serif;color:#172B4D;-webkit-text-size-adjust:100%;">
-<div style="width:100%;margin:0;padding:8px 5px;box-sizing:border-box;background:#F7F9FC;">
-<div class="izzy-shell" style="width:100%;max-width:600px;margin:0 auto;box-sizing:border-box;background:#FFFFFF;border:1px solid #DDE3EA;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#F7F9FC;"><tr><td align="center" style="padding:12px 8px;">
+<!--[if mso]><table role="presentation" width="560" align="center"><tr><td><![endif]-->
+<table role="presentation" class="izzy-shell" cellspacing="0" cellpadding="0" align="center" width="100%" style="width:100%;max-width:560px;table-layout:fixed;background:#FFFFFF;border:1px solid #DDE3EA;"><tr><td align="left">
 <div class="izzy-logo-wrap" style="padding:16px 14px 14px;text-align:center;border-bottom:1px solid #DDE3EA;">'.$logoHtml.'</div>
 <div style="height:4px;background:'.$accent.';font-size:0;line-height:0;">&nbsp;</div>
 <div class="izzy-pad" style="padding:16px 16px 5px;box-sizing:border-box;">
@@ -105,8 +106,9 @@ class emailTemplates {
 <div style="margin-top:12px;color:#6B778C;">Este es un mensaje automático. Por favor, no responda directamente a este correo.</div>
 <div style="margin-top:8px;color:#6B778C;">© '.$year.' '.$nombreEmpresaHtml.' · Todos los derechos reservados</div>
 </div>
-</div>
-</div>
+</td></tr></table>
+<!--[if mso]></td></tr></table><![endif]-->
+</td></tr></table>
 </body>
 </html>';
     }

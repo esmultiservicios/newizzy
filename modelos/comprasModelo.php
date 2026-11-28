@@ -448,7 +448,7 @@ class comprasModelo extends mainModel{
         }
     }	
     
-    protected function getTotalComprasRegistradas() {
+    public function getTotalComprasRegistradas() {
         try {
             $conexion = $this->connection();
             $primerDiaMes = date('Y-m-01');

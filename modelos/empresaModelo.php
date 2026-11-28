@@ -146,7 +146,7 @@ class empresaModelo extends mainModel
 	}
 
 	// Método para obtener el total de perfiles registrados en la empresa
-	protected function getTotalEmpresasRegistradas()
+	public function getTotalEmpresasRegistradas()
 	{
 		try {
 			// Obtener conexión a la base de datos

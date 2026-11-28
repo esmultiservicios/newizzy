@@ -750,7 +750,12 @@ class mainModel
         
         if($sql->num_rows > 0){
             $row = $sql->fetch_assoc();
-            return json_decode($row['configuraciones'], true);
+            $config = json_decode($row['configuraciones'], true);
+            if (!is_array($config)) return [];
+            if (!isset($config['secuencias']) && isset($config['secuencia'])) {
+                $config['secuencias'] = $config['secuencia'];
+            }
+            return $config;
         }
         
         return [];
@@ -8103,7 +8108,7 @@ class mainModel
 
 				FROM clientes
 
-				ORDER BY clientes_id ASC LIMIT 1";
+				WHERE clientes_id = 1 AND nombre = 'Consumidor Final' LIMIT 1";
 
 		$result = self::connection()->query($query);
 

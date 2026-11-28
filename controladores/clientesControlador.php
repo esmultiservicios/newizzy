@@ -324,7 +324,8 @@ class clientesControlador extends clientesModelo {
 
         $fields = ['user_empresa', 'user_name', 'user_telefono', 'email', 'user_pass',
 
-            'user_repeatpass', 'clientes_id', 'sistema_id', 'validar', 'rtn'];
+            'user_repeatpass', 'clientes_id', 'sistema_id', 'planes_id', 'validar', 'rtn',
+            'eslogan', 'otra_informacion', 'celular', 'ubicacion'];
 
         foreach ($fields as $field) {
 
@@ -353,6 +354,8 @@ class clientesControlador extends clientesModelo {
         $publicRegistration = $clientesId === 0;
 
         $sistema = 1;
+        $planId = 6;
+        $planName = '';
 
         $validar = 1;
 
@@ -381,6 +384,11 @@ class clientesControlador extends clientesModelo {
                 }
 
                 $sistema = (int)($_POST['sistema_id'] ?? 1);
+                $planId = (int)($_POST['planes_id'] ?? 0);
+                if ($clientesId === 1 || $sistema !== 1 || $planId <= 0) {
+                    $this->responderError('Datos inválidos', 'Seleccione un cliente comercial y un plan de IZZY.');
+                }
+                if ($empresa === '') $empresa = $nombre;
 
                 $validar = (int)($_POST['validar'] ?? 1) === 2 ? 2 : 1;
 
@@ -414,7 +422,7 @@ class clientesControlador extends clientesModelo {
 
             }
 
-            if (!preg_match('/^\\d{8,12}$/D', $telefono)) {
+            if (($publicRegistration || $telefono !== '') && !preg_match('/^\\d{8,12}$/D', $telefono)) {
 
                 $this->responderError('Teléfono inválido', 'El teléfono debe tener entre 8 y 12 dígitos.');
 
@@ -475,6 +483,15 @@ class clientesControlador extends clientesModelo {
             $faseRegistro = 'registro_cliente';
 
             $cn->begin_transaction();
+            $stmt = $cn->prepare('SELECT nombre FROM planes WHERE planes_id=? AND estado=1 LIMIT 1');
+            $stmt->bind_param('i', $planId);
+            $stmt->execute();
+            $planName = (string)($stmt->get_result()->fetch_row()[0] ?? '');
+            $stmt->close();
+            if ($planName === '') {
+                $cn->rollback();
+                $this->responderError('Plan no disponible', 'Seleccione un plan activo.');
+            }
 
             $stmt = $cn->prepare('SELECT EXISTS(SELECT 1 FROM users WHERE email=?) OR EXISTS(SELECT 1 FROM clientes WHERE correo=? AND clientes_id<>?)');
 
@@ -556,29 +573,32 @@ class clientesControlador extends clientesModelo {
             $faseRegistro = 'registro_usuario';
             $user = $this->registrarUsuario($clientesId, $accountId, $nombre, $correo, $password, $colaboradorId, $cn);
             $faseRegistro = 'registro_cuenta';
-            $account = $this->registrarServerCustomer($clientesId, random_int(10000000, 99999999), $database, $validar, 6, $sistema, $cn, $accountId);
+            $account = $this->registrarServerCustomer($clientesId, random_int(10000000, 99999999), $database, $validar, $planId, $sistema, $cn, $accountId);
             $customerCode = (int)$account['codigo_cliente'];
             $safeName = htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8');
 
             $safeCompany = htmlspecialchars($empresa, ENT_QUOTES, 'UTF-8');
 
+            $safePlan = htmlspecialchars($planName, ENT_QUOTES, 'UTF-8');
+            $safeEmail = htmlspecialchars($correo, ENT_QUOTES, 'UTF-8');
+            $origin = $publicRegistration ? 'Registro público' : 'Alta desde Clientes';
             $faseRegistro = 'cola_correo';
 
             $this->encolarCorreoRegistro('registro_user_'.$accountId, [$correo => $nombre],
 
                 'IZZY | Confirmación de registro',
 
-                "<p>Hola, <strong>{$safeName}</strong>.</p><p>Recibimos el registro de <strong>{$safeCompany}</strong> en el <strong>plan Gratis de IZZY</strong>.</p><p><strong>Código de cliente {$customerCode}</strong>. Guárdelo como referencia para soporte.</p>"
+                "<p>Hola, <strong>{$safeName}</strong>.</p><p>Recibimos el registro de <strong>{$safeCompany}</strong> en el <strong>plan {$safePlan} de IZZY</strong>.</p><p><strong>Código de cliente {$customerCode}</strong>. Guárdelo como referencia para soporte.</p>"
                 . '<p><span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span></p>'
-                . '<p>Estamos configurando el espacio de trabajo y la cuenta de acceso. Cuando estén listos, recibirá otro correo con el enlace y las instrucciones para iniciar sesión.</p>'
-                . '<p>Por ahora puede cerrar el formulario y guardar la contraseña que eligió.</p>'
-                . '<p>Equipo de IZZY · ES MULTISERVICIOS</p>', $cn);
+                . '<p>Estamos configurando el espacio de trabajo y la cuenta de acceso. Normalmente toma alrededor de dos minutos. El tiempo puede variar. Cuando esté listo, recibirá un correo con las instrucciones para ingresar.</p>'
+                . ($publicRegistration ? '<p>Puede cerrar el formulario y guardar la contraseña que eligió.</p>' : '<p>El siguiente correo le indicará cómo establecer su contraseña.</p>')
+                . '<p><strong>Equipo de IZZY · ES MULTISERVICIOS</strong><br><a href="https://izzycloud.app">izzycloud.app</a></p>', $cn);
 
             $this->encolarCorreoRegistro('registro_admin_'.$accountId, $this->destinatariosRegistro($cn),
 
                 'IZZY | Nuevo cliente registrado',
 
-                "<p>Cuenta {$accountId}: {$safeCompany}. Aprovisionamiento pendiente.</p>", $cn);
+                "<p><strong>En preparación</strong> · {$origin}</p><p>Empresa: <strong>{$safeCompany}</strong><br>Titular: {$safeName}<br>Correo: {$safeEmail}<br>Plan: {$safePlan}<br>Código: {$customerCode}<br>Cuenta: {$accountId}</p><p>La empresa se activará al terminar la importación.</p>", $cn);
 
             $faseRegistro = 'cola_importacion';
 
@@ -667,6 +687,12 @@ class clientesControlador extends clientesModelo {
 
 
         $clientes_id = isset($_POST['clientes_id']) ? (int)mainModel::cleanString($_POST['clientes_id']) : 0;
+        if ($clientes_id === 1) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'title' => 'Cliente protegido',
+                'message' => 'Consumidor Final conserva sus datos predeterminados.']);
+            exit();
+        }
 
         $nombre = isset($_POST['nombre_clientes']) ? mainModel::cleanStringConverterCase($_POST['nombre_clientes']) : "";
 
@@ -915,6 +941,13 @@ class clientesControlador extends clientesModelo {
         }
 
 
+
+        if ($clientes_id === 1) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'title' => 'Cliente protegido',
+                'message' => 'Consumidor Final es el cliente predeterminado y debe conservarse.']);
+            exit();
+        }
 
         $cliente = mainModel::consultar_tabla('clientes', ['nombre', 'rtn'], "clientes_id = {$clientes_id}");
 
@@ -1569,7 +1602,12 @@ class clientesControlador extends clientesModelo {
 
                 'rtn' => $rtn,
 
-                'login_url' => SERVERURL . 'login/'
+                'login_url' => SERVERURL . 'login/',
+                'managed_registration' => (int)($_POST['clientes_id'] ?? 0) > 0,
+                'eslogan' => mb_substr(trim($_POST['eslogan'] ?? ''), 0, 50),
+                'otra_informacion' => mb_substr(trim($_POST['otra_informacion'] ?? ''), 0, 50),
+                'celular' => mb_substr(trim($_POST['celular'] ?? ''), 0, 12),
+                'ubicacion' => mb_substr(trim($_POST['ubicacion'] ?? ''), 0, 100)
 
             ];
 

@@ -1107,7 +1107,7 @@ class facturasModelo extends mainModel{
         return ($result && $row = $result->fetch_assoc()) ? $row['saldo'] : 0;
     }    
 
-    protected function getTotalFacturasRegistradas() {
+    public function getTotalFacturasRegistradas() {
         try {
             $conexion = $this->connection();
             $primerDiaMes = date('Y-m-01');

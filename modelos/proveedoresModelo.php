@@ -105,7 +105,7 @@
 			return $sql;				
 		}
 
-		protected function getTotalProveedoresRegistrados() {
+		public function getTotalProveedoresRegistrados() {
 			try {
 				// Obtener conexión a la base de datos
 				$conexion = $this->connection();

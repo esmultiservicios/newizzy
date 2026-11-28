@@ -208,7 +208,7 @@ class secuenciaFacturacionModelo extends mainModel{
         return $stmt->get_result();
     }
 
-    protected function getTotalSecuenciaRegistradas(){
+    public function getTotalSecuenciaRegistradas(){
         try{
             $conexion = mainModel::connection();
             $resultado = $conexion->query("SELECT COUNT(secuencia_facturacion_id) AS total FROM secuencia_facturacion WHERE activo = 1");

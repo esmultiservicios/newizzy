@@ -53,7 +53,7 @@
 			return $sql;			
 		}	
 		
-		protected function getTotalAlmacenesRegistrados() {
+		public function getTotalAlmacenesRegistrados() {
 			try {
 				// Obtener conexión a la base de datos
 				$conexion = $this->connection();

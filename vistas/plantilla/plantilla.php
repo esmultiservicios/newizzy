@@ -173,6 +173,7 @@ if (!$esRutaPublicaInicial && !$sesionValida) {
 
             <main>
                 <?php 			
+                require "./vistas/plantilla/modulos/cupoPlan.php";
                 require_once htmlspecialchars($vistasR, ENT_QUOTES, 'UTF-8');
                 ?>
 

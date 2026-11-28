@@ -424,12 +424,17 @@ class JobProcessor {
           .'<p>Antes: <span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span>'
           .' &nbsp; Ahora: <span style="display:inline-block;border-radius:20px;background:#e6f6ed;color:#146443;padding:5px 12px;font-weight:bold">Acceso habilitado</span></p>'
           .'<p><strong>Correo de acceso:</strong> '.$escape($to).'</p><p><strong>Código de cliente '.$escape($code).'</strong>. Guárdelo como referencia para soporte.</p>'
-          .'<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita establecer otra, utilice «Recuperar contraseña» en el inicio de sesión.</p>'
+          .(!empty($data['managed_registration'])
+            ? '<p>Use «Recuperar contraseña» en la pantalla de acceso para establecer su contraseña con el correo indicado.</p>'
+            : '<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita cambiarla, utilice «Recuperar contraseña».</p>')
           .'<p><a href="'.$escape($url).'">Iniciar sesión en IZZY</a></p>'
-          .'<p>Bienvenido a IZZY.<br>Equipo de IZZY · ES MULTISERVICIOS</p>';
+          .'<p>Bienvenido a IZZY.<br><strong>Equipo de IZZY · ES MULTISERVICIOS</strong><br><a href="https://izzycloud.app">izzycloud.app</a></p>';
         $this->enqueueEmail('access_email','access_user_'.$id,[$to=>$name], 'IZZY | Acceso habilitado', $html);
         if ($internal) {
-            $internalHtml = '<p>Acceso habilitado: '.htmlspecialchars($company,ENT_QUOTES,'UTF-8').'</p><p>Cliente ID: '.$id.'</p><p>Plan Gratis (ID 6).</p>';
+            $internalHtml = '<p><strong>Acceso habilitado</strong>. Se importó la base y se activó la cuenta.</p>'
+                .'<p>Empresa: <strong>'.$escape($company).'</strong><br>Titular: '.$escape($name)
+                .'<br>Correo: '.$escape($to).'<br>Plan: '.$escape($plan).'<br>Código: '.$escape($code)
+                .'<br>Cuenta: '.$id.'</p>';
             $this->enqueueEmail('access_email','access_admin_'.$id,$internal,'IZZY | Nuevo acceso habilitado',$internalHtml);
         }
     }
@@ -479,6 +484,10 @@ class JobProcessor {
         $correo = trim((string)($data['correo'] ?? ''));
         $telefono = trim((string)($data['telefono'] ?? ''));
         $rtn = trim((string)($data['rtn'] ?? ''));
+        $eslogan = (string)($data['eslogan'] ?? '');
+        $informacion = (string)($data['otra_informacion'] ?? '');
+        $celular = trim((string)($data['celular'] ?? '')) ?: $telefono;
+        $ubicacion = (string)($data['ubicacion'] ?? '');
         if ($nombre === '') throw new RuntimeException('Falta el nombre de empresa en el registro.');
         $stmt = $connection->prepare('SELECT empresa_id FROM empresa WHERE empresa_id = 1 LIMIT 1');
         if (!$stmt) throw new RuntimeException('No existe la estructura empresa en la plantilla.');
@@ -488,9 +497,9 @@ class JobProcessor {
             (empresa_id, razon_social, nombre, otra_informacion, eslogan, celular,
             telefono, correo, logotipo, rtn, ubicacion, facebook, sitioweb,
             horario, estado, colaboradores_id, fecha_registro, firma_documento, MostrarFirma)
-            VALUES (1, ?, ?, '', '', ?, ?, ?, ?, '', '', '', '', '', 1, ?, NOW(), '', 0)");
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, '', ?, ?, '', '', '', 1, ?, NOW(), '', 0)");
         if (!$stmt) throw new RuntimeException('No se pudo preparar empresa del cliente: '.$connection->error);
-        $stmt->bind_param('ssssssi', $nombre, $nombre, $telefono, $telefono, $correo, $rtn, $localColaboradorId);
+        $stmt->bind_param('sssssssssi', $nombre, $nombre, $informacion, $eslogan, $celular, $telefono, $correo, $rtn, $ubicacion, $localColaboradorId);
         if (!$stmt->execute()) throw new RuntimeException('No se pudo guardar empresa del cliente: '.$stmt->error);
         $stmt->close();
     }

@@ -154,7 +154,7 @@ class productosModelo extends mainModel{
         return $result;			
     }	
     
-    protected function getTotalProductosRegistrados() {
+    public function getTotalProductosRegistrados() {
         try {
             // Obtener conexión a la base de datos
             $conexion = $this->connection();

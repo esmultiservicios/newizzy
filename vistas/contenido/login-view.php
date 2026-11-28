@@ -141,7 +141,7 @@
                                        value="<?php echo htmlspecialchars($demoUser, ENT_QUOTES, 'UTF-8'); ?>"
                                        placeholder="tu@correo.com"
                                        required autofocus tabindex="1"
-                                       autocomplete="username">
+                                       autocomplete="username" <?php if ($isDemoLogin) echo 'readonly'; ?>>
                             </span>
                         </label>
 
@@ -154,7 +154,7 @@
                                            value="<?php echo htmlspecialchars($demoPass, ENT_QUOTES, 'UTF-8'); ?>"
                                            placeholder="Ingresa tu contraseña"
                                            required tabindex="2"
-                                           autocomplete="current-password">
+                                           autocomplete="current-password" <?php if ($isDemoLogin) echo 'readonly'; ?>>
                                     <button id="show_password" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
                                         <span id="icon" class="fa fa-eye-slash icon" aria-hidden="true"></span>
                                     </button>
@@ -190,6 +190,7 @@
                             <span>Iniciar sesión</span>
                         </button>
 
+                        <?php if (!$isDemoLogin): ?>
                         <div class="auth-link-row">
                             <a href="#" id="forgot_pswd" tabindex="6" class="auth-forgot-link">
                                 <span class="auth-forgot-icon"><i class="fas fa-key" aria-hidden="true"></i></span>
@@ -199,8 +200,10 @@
                                 </span>
                             </a>
                         </div>
+                        <?php endif; ?>
                     </div>
 
+                    <?php if (!$isDemoLogin): ?>
                     <div class="auth-account-block">
                         <div class="auth-divider"><span>¿Aún no tienes cuenta?</span></div>
 
@@ -209,6 +212,10 @@
                             <span>Crear mi cuenta IZZY</span>
                         </button>
                     </div>
+
+                    <?php else: ?>
+                    <p class="auth-account-block">Entra con los datos de demostración para recorrer el panel y los módulos de IZZY.</p>
+                    <?php endif; ?>
 
                     <div class="auth-extra-actions">
                         <a class="auth-extra-card demo" href="https://demo.izzycloud.app/" target="_blank" rel="noopener">
@@ -325,7 +332,8 @@
                 </form>
 
                 <!-- RECUPERACIÓN -->
-                <form class="form-reset auth-view" id="forgot_form" novalidate autocomplete="off">
+                <?php if (!$isDemoLogin): ?>
+<form class="form-reset auth-view" id="forgot_form" novalidate autocomplete="off">
                     <div class="auth-view-symbol" aria-hidden="true">
                         <span><i class="fas fa-unlock-alt"></i></span>
                         <div><strong>Recupera tu acceso</strong><small>Proceso seguro de recuperación IZZY</small></div>
@@ -495,6 +503,7 @@
                         </a>
                     </div>
                 </form>
+                <?php endif; ?>
 
                 <div class="auth-footer-mobile">
                     <span>© 2020 - <?php echo date("Y"); ?> IZZY</span>

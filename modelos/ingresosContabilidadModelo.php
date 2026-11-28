@@ -190,7 +190,7 @@
 			return $sql;			
 		}
 
-		protected function getTotalIngresosRegistrados() {
+		public function getTotalIngresosRegistrados() {
 			try {
 				$conexion = $this->connection();
 				

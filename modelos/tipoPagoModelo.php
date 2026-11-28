@@ -51,7 +51,7 @@
 			return $sql;			
 		}
 
-		protected function getTotalTipoPagoRegistrados() {
+		public function getTotalTipoPagoRegistrados() {
 			try {
 				// Obtener conexión a la base de datos
 				$conexion = $this->connection();

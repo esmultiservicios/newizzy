@@ -161,7 +161,7 @@ class colaboradorModelo extends mainModel{
 		}
 	}
 
-	protected function getTotalColaboradoresRegistrados() {
+	public function getTotalColaboradoresRegistrados() {
 		try {
 			// Obtener conexión a la base de datos
 			$conexion = $this->connection();

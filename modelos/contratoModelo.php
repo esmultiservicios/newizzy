@@ -174,7 +174,7 @@ class contratoModelo extends mainModel
         return $sql->get_result();
     }
 
-    protected function getTotalContratosRegistrados()
+    public function getTotalContratosRegistrados()
     {
         try {
             $conn = $this->connection();

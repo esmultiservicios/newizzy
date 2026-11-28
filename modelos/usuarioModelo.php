@@ -305,7 +305,7 @@ class usuarioModelo extends mainModel{
     }
 
     /*----------- Modelo para obtener el total de usuarios extras -----------*/
-    protected function getTotalUsuariosExtras(){
+    public function getTotalUsuariosExtras(){
         $conexion = mainModel::connection();
         
         try {
@@ -319,7 +319,7 @@ class usuarioModelo extends mainModel{
     }	
 
     /*----------- Modelo para contar usuarios activos -----------*/
-    protected function getTotalUsuarios($server_customers_id = null){
+    public function getTotalUsuarios($server_customers_id = null){
         $conexion = mainModel::connection();
 
         try {

@@ -79,7 +79,7 @@ class cuentaContabilidadModelo extends mainModel{
         return $sql;
     }
 
-    protected function getTotalCuentasRegistradas() {
+    public function getTotalCuentasRegistradas() {
         try {
             $conexion = $this->connection();
 

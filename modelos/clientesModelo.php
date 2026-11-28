@@ -317,7 +317,7 @@ class clientesModelo extends mainModel
         }
     }
 
-    protected function getTotalClientesRegistrados()
+    public function getTotalClientesRegistrados()
     {
         $conexion = mainModel::connection();
 

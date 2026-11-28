@@ -237,7 +237,7 @@ class egresosContabilidadModelo extends mainModel{
 		return $sql;
 	}		
 
-    protected function getTotalEgresosRegistrados() {
+    public function getTotalEgresosRegistrados() {
         try {
             $conexion = $this->connection();
             

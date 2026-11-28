@@ -7504,15 +7504,16 @@ function clientesUIPuedeGenerar() {
     return [1,2,3].indexOf(p)!==-1 && db===DB_MAIN;
 }
 
-function clientesUIAcciones() {
-    var generar=clientesUIPuedeGenerar()
+function clientesUIAcciones(row) {
+    const consumidorFinal = Number(row.clientes_id) === 1;
+    var generar=!consumidorFinal && clientesUIPuedeGenerar()
       ? '<button type="button" class="dropdown-item accion-item table_crear generar clientes-generar-action"><span class="accion-icon accion-icon-primary"><i class="fab fa-centos"></i></span><span class="accion-label">Generar</span></button>'
       : '';
     return '<div class="dropdown clientes-actions-dropdown">'+
       '<button type="button" class="btn btn-sm btn-acciones clientes-acciones-toggle" aria-haspopup="true" aria-expanded="false"><i class="fas fa-cog"></i><span>Acciones</span></button>'+
       '<div class="dropdown-menu acciones-menu">'+generar+
       '<button type="button" class="dropdown-item accion-item accion-editar table_editar ocultar clientes-editar-action"><span class="accion-icon accion-icon-editar"><i class="fas fa-edit"></i></span><span class="accion-label">Editar</span></button>'+
-      '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar clientes-eliminar-action"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span><span class="accion-label">Eliminar</span></button>'+
+      (consumidorFinal ? '<span class="dropdown-item-text text-muted">Cliente predeterminado</span>' : '<button type="button" class="dropdown-item accion-item accion-eliminar table_eliminar ocultar clientes-eliminar-action"><span class="accion-icon accion-icon-eliminar"><i class="fas fa-trash-alt"></i></span><span class="accion-label">Eliminar</span></button>')+
       '</div></div>';
 }
 
@@ -7529,7 +7530,7 @@ function clientesUIDataIndex(row){ return ' data-client-index="'+clientesUIRowIn
 function clientesUIRenderDetalle(row) {
     var sistema=(IZZY_DB_ACTUAL===''?DB_MAIN:IZZY_DB_ACTUAL)===DB_MAIN;
     return '<article class="clientes-detail-row"'+clientesUIDataIndex(row)+'>'+
-      '<div class="clientes-detail-cell clientes-actions-cell">'+clientesUIAcciones()+'</div>'+
+      '<div class="clientes-detail-cell clientes-actions-cell">'+clientesUIAcciones(row)+'</div>'+
       '<div class="clientes-detail-cell clientes-name-cell"><div class="clientes-avatar"><i class="fas fa-user"></i></div><div><strong>'+clientesUIEscape(row.cliente||'Sin nombre')+'</strong><small>RTN: '+clientesUIEscape(row.rtn||'No registrado')+'</small></div></div>'+
       '<div class="clientes-detail-cell">'+clientesUIEscape(row.telefono||'No registrado')+'</div>'+
       '<div class="clientes-detail-cell">'+clientesUIEscape(row.correo||'No registrado')+'</div>'+
@@ -7550,7 +7551,7 @@ function clientesUIRenderMiniatura(row) {
       '<div class="clientes-mini-field"><span>Municipio</span><strong>'+clientesUIEscape(row.municipio||'No registrado')+'</strong></div>'+
       (sistema?'<div class="clientes-mini-field"><span>Sistema</span><strong>'+clientesUISistemaBadge(row)+'</strong></div>':'')+
       (clientesUIState.mostrarPuntos?'<div class="clientes-mini-field"><span>Puntos</span><strong class="clientes-points-value">'+Number(row.puntos||0).toFixed(2)+' <button type="button" class="btn btn-sm btn-info clientes-ver-historial"><i class="fas fa-history"></i></button></strong></div>':'')+
-      '</div><div class="clientes-mini-footer">'+clientesUIAcciones()+'</div></article>';
+      '</div><div class="clientes-mini-footer">'+clientesUIAcciones(row)+'</div></article>';
 }
 
 function clientesUIActualizarKPIs() {
@@ -7633,16 +7634,16 @@ function clientesUIObtenerRow(el) {
 }
 
 function clientesUIGenerar(row) {
-    if(!row)return;
+    if (!row || Number(row.clientes_id) === 1) return;
     $('#formGenerarSistema')[0].reset();$('#formGenerarSistema #clientes_id').val(row.clientes_id);listar_generar_clientes();
     $('#formGenerarSistema #cliente').val(row.cliente);$('#formGenerarSistema #rtn').val(row.rtn);
     $('#formGenerarSistema #clientes_telefono').val(row.telefono);$('#formGenerarSistema #clientes_correo').val(row.correo);
     $('#formGenerarSistema #clientes_ubicacion').val(row.ubicacion);$('#formGenerarSistema #empresa').val(row.empresa);
     $('#formGenerarSistema #eslogan').val(row.eslogan);$('#formGenerarSistema #otra_informacion').val(row.otra_informacion);
-    $('#formGenerarSistema #whatsApp').val(row.whatsapp);$('#formGenerarSistema #sistema').val(row.sistema_id).trigger('change.select2');
+    $('#formGenerarSistema #whatsApp').val(row.whatsapp);$('#formGenerarSistema #sistema').val(1);
     $('#formGenerarSistema #plan').val(row.planes_id).trigger('change.select2');
     $('#formGenerarSistema #cliente, #formGenerarSistema #rtn').attr('disabled',true);
-    $('#formGenerarSistema #proceso_GenerarSistema').val('Generar Sistema');getValidarFacturacion();
+    $('#formGenerarSistema #proceso_GenerarSistema').val('Generar Sistema');
     if(row.correo===''){showNotify('error','Correo requerido','El cliente no tiene correo registrado. Agregue uno en su perfil antes de continuar');$('#reg_generarSitema').attr('disabled',true);}
     else $('#reg_generarSitema').attr('disabled',false);
     $('#modal_generar_sistema').modal({show:true,keyboard:false,backdrop:'static'});
@@ -8908,13 +8909,13 @@ $("#reg_generarSitema").click(function(e) {
     e.preventDefault();
 
     var clientes_id = $("#formGenerarSistema #clientes_id").val();
-    var validar = $("#formGenerarSistema #validar").val();
+    var validar = $("#formGenerarSistema input[name=validar]:checked").val();
     var sistema_id = $("#formGenerarSistema #sistema").val();
     var planes_id = $("#formGenerarSistema #plan").val();
 
     var cliente = $("#formGenerarSistema #cliente").val();
     var rtn = $("#formGenerarSistema #rtn").val();
-    var empresa = $("#formGenerarSistema #empresa").val();
+    var empresa = $("#formGenerarSistema #empresa").val().trim() || cliente.trim();
     var correo = $("#formGenerarSistema #clientes_correo").val();
     var telefono = $("#formGenerarSistema #clientes_telefono").val();
     var eslogan = $("#formGenerarSistema #eslogan").val();

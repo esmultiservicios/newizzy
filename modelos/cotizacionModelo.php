@@ -381,7 +381,7 @@ class cotizacionModelo extends mainModel
         return mainModel::getISVEstadoProducto($productos_id);
     }
 
-    protected function getTotalCotizacionesRegistradas()
+    public function getTotalCotizacionesRegistradas()
     {
         try {
             $conexion = $this->connection();

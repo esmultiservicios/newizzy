@@ -52,7 +52,7 @@
 			return $sql;			
 		}	
 		
-		protected function getTotalCategoriasRegistrados() {
+		public function getTotalCategoriasRegistrados() {
 			try {
 				// Obtener conexión a la base de datos
 				$conexion = $this->connection();

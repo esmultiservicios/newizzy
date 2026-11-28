@@ -49,7 +49,7 @@
 			return $sql;			
 		}	
 		
-		protected function getTotalUbicacionesRegistrados() {
+		public function getTotalUbicacionesRegistrados() {
 			try {
 				// Obtener conexión a la base de datos
 				$conexion = $this->connection();

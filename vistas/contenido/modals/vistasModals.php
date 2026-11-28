@@ -4921,7 +4921,7 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h4 class="modal-title"><i class="fas fa-cogs mr-2"></i>Generar Sistema</h4>
+                <h4 class="modal-title"><i class="fas fa-cogs mr-2"></i>Crear cuenta para el cliente</h4>
                 <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -4936,7 +4936,7 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                     <!-- Sección Información Cliente -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Información del Cliente</h5>
+                            <h5 class="mb-0"><i class="fas fa-user-tie mr-2"></i>Datos de la cuenta</h5>
                         </div>
                         <div class="card-body">                           
                             <div class="form-row">
@@ -4952,8 +4952,8 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="empresa"><i class="fas fa-building mr-1"></i>Empresa <span class="priority">*</span></label>
-                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Empresa" required maxlength="30">
-                                    <small class="form-text text-muted">Nombre de la empresa</small>
+                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Usar nombre del cliente" maxlength="100">
+                                    <small class="form-text text-muted">Si se deja vacío, se usa el nombre del cliente.</small>
                                 </div>
                             </div>
                             
@@ -4980,14 +4980,13 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                     <!-- Sección Configuración Sistema -->
                     <div class="card border-primary mb-4">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-server mr-2"></i>Configuración del Sistema</h5>
+                            <h5 class="mb-0"><i class="fas fa-server mr-2"></i>Plan y facturación</h5>
                         </div>
                         <div class="card-body">
                             <div class="form-row">
                                 <div class="col-md-4 mb-3">
                                     <label for="sistema"><i class="fas fa-cube mr-1"></i>Sistema</label>
-                                    <select class="form-control izzy-select2" id="sistema" name="sistema" title="Seleccione Sistema" data-placeholder="Seleccione Sistema">
-                                    </select>
+                                    <div class="form-control bg-light">IZZY</div><input type="hidden" id="sistema" name="sistema" value="1">
                                     <small class="form-text text-muted">Tipo de sistema a generar</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
@@ -4997,9 +4996,11 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                                     <small class="form-text text-muted">Plan de servicio</small>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <label for="validar"><i class="fas fa-check-circle mr-1"></i>Validar Facturación</label>
-                                    <select class="form-control izzy-select2" id="validar" name="validar" title="Seleccione Validación" data-placeholder="Seleccione Validación">
-                                    </select>
+                                    <fieldset><legend class="col-form-label pt-0"><i class="fas fa-check-circle mr-1"></i>Validar facturación</legend>
+                                    <div class="btn-group-toggle">
+                                        <label class="btn btn-outline-primary"><input type="radio" name="validar" value="1" checked> Sí</label>
+                                        <label class="btn btn-outline-secondary"><input type="radio" name="validar" value="2"> No</label>
+                                    </div></fieldset>
                                     <small class="form-text text-muted">Configuración de validación</small>
                                 </div>
                             </div>
@@ -5009,7 +5010,7 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                     <!-- Sección Tabla Sistemas -->
                     <div class="card border-primary">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Sistemas Registrados</h5>
+                            <h5 class="mb-0"><i class="fas fa-table mr-2"></i>Cuentas del cliente</h5>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -5035,7 +5036,7 @@ if (empty($_SESSION['csrf_api_cuenta'])) $_SESSION['csrf_api_cuenta']=bin2hex(ra
                 <button class="btn btn-danger" data-dismiss="modal">
                     <i class="fas fa-times fa-lg mr-1"></i> Cancelar
                 </button>
-                <button class="btn btn-success" type="submit" style="display: none;" id="reg_generarSitema" form="formGenerarSistema">
+                <button class="btn btn-success" type="submit" id="reg_generarSitema" form="formGenerarSistema">
                     <i class="fas fa-cogs fa-lg mr-1"></i> Generar Sistema
                 </button>
             </div>

@@ -567,11 +567,11 @@ class clientesControlador extends clientesModelo {
 
                 'IZZY | Confirmación de registro',
 
-                "<p>Hola, {$safeName}:</p><p>Recibimos el registro de <strong>{$safeCompany}</strong> en el plan Gratis de IZZY.</p>"
-
-                . '<p>Estamos preparando su espacio de trabajo. Le enviaremos un segundo correo con el enlace de acceso cuando esté listo.</p>'
-
-                . '<p>Gracias por elegir IZZY.<br>Equipo de IZZY · ES MULTISERVICIOS</p>', $cn);
+                "<p>Hola, {$safeName}.</p><p>Recibimos el registro de <strong>{$safeCompany}</strong> en el plan Gratis de IZZY.</p>"
+                . '<p><span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span></p>'
+                . '<p>Estamos configurando el espacio de trabajo y la cuenta de acceso. Cuando estén listos, recibirá otro correo con el enlace y las instrucciones para iniciar sesión.</p>'
+                . '<p>Por ahora puede cerrar el formulario y guardar la contraseña que eligió.</p>'
+                . '<p>Equipo de IZZY · ES MULTISERVICIOS</p>', $cn);
 
             $this->encolarCorreoRegistro('registro_admin_'.$accountId, $this->destinatariosRegistro($cn),
 

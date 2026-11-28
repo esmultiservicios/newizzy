@@ -419,8 +419,10 @@ class JobProcessor {
         $stmt->close();
         $code = $this->getCodigoCliente($id);
         $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-        $html = '<p>Hola, '.$escape($name).':</p>'
+        $html = '<p>Hola, '.$escape($name).'.</p>'
           .'<p>Su espacio de trabajo <strong>'.$escape($company).'</strong> ya está listo en el plan '.$escape($plan).' de IZZY.</p>'
+          .'<p>Antes: <span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span>'
+          .' &nbsp; Ahora: <span style="display:inline-block;border-radius:20px;background:#e6f6ed;color:#146443;padding:5px 12px;font-weight:bold">Acceso habilitado</span></p>'
           .'<p><strong>Correo de acceso:</strong> '.$escape($to).'<br><strong>Código de cliente:</strong> '.$escape($code).'</p>'
           .'<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita establecer otra, utilice «Recuperar contraseña» en el inicio de sesión.</p>'
           .'<p><a href="'.$escape($url).'">Iniciar sesión en IZZY</a></p>'
@@ -450,7 +452,7 @@ class JobProcessor {
         $data=$job['data'];
         $recipients=$data['recipients'] ?? [];
         if (!$recipients || !is_array($recipients)) throw new Exception('Correo sin destinatarios.');
-        $mailer=new sendEmail();
+        $mailer = new sendEmail(DB_MAIN);
         $failureCode = null;
         ob_start();
         try {
@@ -462,7 +464,7 @@ class JobProcessor {
         if ($result !== 1) {
             throw new RuntimeException('No fue posible enviar el correo. Diagnóstico: '.($failureCode ?? 'error_de_envio').'.');
         }
-        // Borra la contraseña del contenido de correo después de enviarlo.
+        // Conserva los metadatos del trabajo y descarta el cuerpo tras el envío.
         $data['html']='';
         $json=json_encode($data,JSON_UNESCAPED_UNICODE);
         $stmt=$this->conexion->prepare('UPDATE jobs_queue SET data=? WHERE id=?');

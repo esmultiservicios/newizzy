@@ -693,7 +693,7 @@ class sendEmail {
                 return 1;
             }
 
-            $failureCode = "rechazo_graph";
+            $failureCode = $resultado["diagnostic"] ?? "rechazo_graph";
             echo $resultado["message"];
             return 0;
         }
@@ -949,6 +949,21 @@ class sendEmail {
         return $client_secret_guardado;
     }
 
+    private function graphDiagnostic(string $stage, array $response): string {
+        $status = (int)$response["status"];
+        if ($status === 0) {
+            return "graph_{$stage}_conexion";
+        }
+        $body = json_decode($response["body"], true);
+        $error = $body["error"] ?? null;
+        $code = is_array($error) ? ($error["code"] ?? null) : $error;
+        if ($stage === "token" && preg_match('/\b(AADSTS[0-9]{4,9})\b/', (string)($body["error_description"] ?? ""), $match)) {
+            $code = $match[1];
+        }
+        $suffix = is_string($code) && preg_match('/^[A-Za-z][A-Za-z0-9_]{1,63}$/D', $code) ? "_".$code : "";
+        return "graph_{$stage}_http_{$status}".$suffix;
+    }
+
     private function obtenerAccessTokenGraph($tenant_id, $client_id, $client_secret) {
         $tenant_id = trim($tenant_id);
         $client_id = trim($client_id);
@@ -958,6 +973,7 @@ class sendEmail {
             return [
                 "success" => false,
                 "access_token" => "",
+                "diagnostic" => "graph_token_configuracion_incompleta",
                 "message" => "Faltan tenant_id, client_id o client_secret para Microsoft Graph."
             ];
         }
@@ -984,7 +1000,8 @@ class sendEmail {
             return [
                 "success" => false,
                 "access_token" => "",
-                "message" => "Error obteniendo token de Microsoft Graph. HTTP " . $response["status"] . " - " . $response["body"] . " " . $response["error"]
+                "diagnostic" => $this->graphDiagnostic("token", $response),
+                "message" => "Error obteniendo token de Microsoft Graph. HTTP " . $response["status"]
             ];
         }
 
@@ -994,7 +1011,8 @@ class sendEmail {
             return [
                 "success" => false,
                 "access_token" => "",
-                "message" => "Microsoft no devolvió access_token. Respuesta: " . $response["body"]
+                "diagnostic" => "graph_token_respuesta_sin_token",
+                "message" => "Microsoft no devolvió access_token."
             ];
         }
 
@@ -1021,6 +1039,7 @@ class sendEmail {
         if (!$this->validarCorreo($graph_user)) {
             return [
                 "success" => false,
+                "diagnostic" => "graph_remitente_invalido",
                 "message" => "El correo emisor graph_user no es válido."
             ];
         }
@@ -1031,6 +1050,7 @@ class sendEmail {
         if (empty($toRecipients)) {
             return [
                 "success" => false,
+                "diagnostic" => "graph_sin_destinatarios",
                 "message" => "No hay destinatarios válidos para enviar por Graph."
             ];
         }
@@ -1040,6 +1060,7 @@ class sendEmail {
         if (!$token["success"]) {
             return [
                 "success" => false,
+                "diagnostic" => $token["diagnostic"],
                 "message" => $token["message"]
             ];
         }
@@ -1095,7 +1116,8 @@ class sendEmail {
 
         return [
             "success" => false,
-            "message" => "Error enviando correo por Microsoft Graph. HTTP " . $response["status"] . " - " . $response["body"]
+            "diagnostic" => $this->graphDiagnostic("envio", $response),
+            "message" => "Error enviando correo por Microsoft Graph. HTTP " . $response["status"]
         ];
     }
 

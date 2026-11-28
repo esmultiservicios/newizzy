@@ -2492,7 +2492,7 @@ INSERT INTO `categoria_gastos` (`categoria_gastos_id`, `nombre`, `estado`, `usua
 
 -- Consumidor Final es el cliente predeterminado requerido por ventas.
 INSERT INTO `clientes` (`clientes_id`, `nombre`, `rtn`, `fecha`, `departamentos_id`, `municipios_id`, `localidad`, `telefono`, `correo`, `estado`, `colaboradores_id`, `fecha_registro`, `empresa`, `eslogan`, `otra_informacion`, `whatsapp`) VALUES
-(1, 'Consumidor Final', '999999999', '2025-06-30', 5, 68, '.', '0', '', 1, 1, '2025-06-30 11:28:13', '', '', '', '');
+(1, 'Consumidor Final', '999999999', '2025-06-30', 5, 68, '.', '0', 'alguien@algo.com', 1, 1, '2025-06-30 11:28:13', '', '', '', '');
 
 INSERT INTO `colaboradores` (`colaboradores_id`, `puestos_id`, `nombre`, `identidad`, `estado`, `telefono`, `empresa_id`, `fecha_registro`, `fecha_ingreso`, `fecha_egreso`) VALUES
 (1, 2, 'Soporte IZZY', '', 0, '', 1, '2021-08-14 17:37:21', '0000-00-00', '');

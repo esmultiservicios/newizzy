@@ -8,6 +8,8 @@
     $isDemoLogin = ($loginHost === 'demo.izzycloud.app' || str_starts_with($loginHost, 'demo.'));
     $demoUser = $isDemoLogin ? 'admin@izzycloud.app' : '';
     $demoPass = $isDemoLogin ? 'admin' : '';
+    $enableDemoSignupForTesting = true;
+    $showSignup = !$isDemoLogin || $enableDemoSignupForTesting;
     $showRememberLogin = !$isDemoLogin;
 
     // Evita que el navegador reutilice una vista antigua del login después de publicar cambios.
@@ -203,7 +205,7 @@
                         <?php endif; ?>
                     </div>
 
-                    <?php if (!$isDemoLogin): ?>
+                    <?php if ($showSignup): ?>
                     <div class="auth-account-block">
                         <div class="auth-divider"><span>¿Aún no tienes cuenta?</span></div>
 
@@ -390,6 +392,9 @@
                     </div>
                 </form>
 
+                <?php endif; ?>
+
+                <?php if ($showSignup): ?>
                 <!-- REGISTRO -->
                 <form class="form-signup auth-view" id="form_registro" autocomplete="off" novalidate>
                     <div class="auth-heading auth-heading-register">

@@ -143,7 +143,7 @@
                                        value="<?php echo htmlspecialchars($demoUser, ENT_QUOTES, 'UTF-8'); ?>"
                                        placeholder="tu@correo.com"
                                        required autofocus tabindex="1"
-                                       autocomplete="username" <?php if ($isDemoLogin) echo 'readonly'; ?>>
+                                       autocomplete="username" <?php if ($isDemoLogin && !$enableDemoSignupForTesting) echo 'readonly'; ?>>
                             </span>
                         </label>
 
@@ -156,7 +156,7 @@
                                            value="<?php echo htmlspecialchars($demoPass, ENT_QUOTES, 'UTF-8'); ?>"
                                            placeholder="Ingresa tu contraseña"
                                            required tabindex="2"
-                                           autocomplete="current-password" <?php if ($isDemoLogin) echo 'readonly'; ?>>
+                                           autocomplete="current-password" <?php if ($isDemoLogin && !$enableDemoSignupForTesting) echo 'readonly'; ?>>
                                     <button id="show_password" class="auth-password-button" type="button" tabindex="-1" aria-label="Mostrar u ocultar contraseña">
                                         <span id="icon" class="fa fa-eye-slash icon" aria-hidden="true"></span>
                                     </button>

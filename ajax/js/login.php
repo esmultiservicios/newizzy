@@ -631,7 +631,7 @@ function procesarRegistroIzzy() {
                 // Redirigir al login después de 2 segundos
                 setTimeout(function() {
                     $('#cancel_signup').click(); // Activa el botón de volver al login
-                    if (!isDemoAuthForm()) $('#inputEmail').val(email).focus();
+                    $('#inputEmail').val(email).focus();
                 }, 2000);
             } else {
                 showNotify(resp.type, resp.title, resp.mensaje);

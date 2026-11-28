@@ -592,7 +592,7 @@ class clientesControlador extends clientesModelo {
                 . '<p><span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span></p>'
                 . '<p>Estamos configurando el espacio de trabajo y la cuenta de acceso. Normalmente toma alrededor de dos minutos. El tiempo puede variar. Cuando esté listo, recibirá un correo con las instrucciones para ingresar.</p>'
                 . ($publicRegistration ? '<p>Puede cerrar el formulario y guardar la contraseña que eligió.</p>' : '<p>El siguiente correo le indicará cómo establecer su contraseña.</p>')
-                . '<p><strong>Equipo de IZZY · ES MULTISERVICIOS</strong><br><a href="https://izzycloud.app">izzycloud.app</a></p>', $cn);
+                . '<p><strong>Equipo de IZZY · ES MULTISERVICIOS</strong><br><a href="https://izzycloud.app">Visita nuestra web de IZZY</a></p>', $cn);
 
             $this->encolarCorreoRegistro('registro_admin_'.$accountId, $this->destinatariosRegistro($cn),
 

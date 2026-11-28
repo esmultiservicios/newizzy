@@ -25,7 +25,12 @@ class ProvisioningSync {
         $sid=(int)$source['server_customers_id'];$cid=(int)$source['clientes_id'];$code=(int)$source['codigo_cliente'];$db=(string)$source['db'];$system=(int)$source['sistema_id'];$validar=(int)$source['validar'];$estado=1;$imported=1;
         $stmt->bind_param('iiisiiiii',$sid,$cid,$code,$db,$plan,$system,$validar,$estado,$imported);
         if (!$stmt->execute()) throw new RuntimeException('No fue posible guardar la cuenta del cliente: '.$stmt->error);$stmt->close();
-        $planCheck=$tenant->query('SELECT planes_id FROM planes WHERE planes_id={$plan} LIMIT 1');
+        $stmt = $tenant->prepare('SELECT planes_id FROM planes WHERE planes_id = ? LIMIT 1');
+        if (!$stmt) throw new RuntimeException('No se pudo consultar el plan del cliente.');
+        $stmt->bind_param('i', $plan);
+        $stmt->execute();
+        $planCheck = $stmt->get_result();
+        $stmt->close();
         if (!$planCheck || $planCheck->num_rows!==1) throw new RuntimeException('El catálogo de planes del cliente no contiene el plan asignado.');
         $existingPlan=$tenant->query('SELECT plan_id FROM plan LIMIT 2');
         if (!$existingPlan) throw new RuntimeException('Falta la tabla plan en la plantilla.');

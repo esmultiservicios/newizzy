@@ -428,7 +428,7 @@ class JobProcessor {
             ? '<p>Use «Recuperar contraseña» en la pantalla de acceso para establecer su contraseña con el correo indicado.</p>'
             : '<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita cambiarla, utilice «Recuperar contraseña».</p>')
           .'<p><a href="'.$escape($url).'">Iniciar sesión en IZZY</a></p>'
-          .'<p>Bienvenido a IZZY.<br><strong>Equipo de IZZY · ES MULTISERVICIOS</strong><br><a href="https://izzycloud.app">izzycloud.app</a></p>';
+          .'<p>Bienvenido a IZZY.<br><strong>Equipo de IZZY · ES MULTISERVICIOS</strong><br><a href="https://izzycloud.app">Visita nuestra web de IZZY</a></p>';
         $this->enqueueEmail('access_email','access_user_'.$id,[$to=>$name], 'IZZY | Acceso habilitado', $html);
         if ($internal) {
             $internalHtml = '<p><strong>Acceso habilitado</strong>. Se importó la base y se activó la cuenta.</p>'

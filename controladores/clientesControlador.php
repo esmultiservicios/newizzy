@@ -556,7 +556,8 @@ class clientesControlador extends clientesModelo {
             $faseRegistro = 'registro_usuario';
             $user = $this->registrarUsuario($clientesId, $accountId, $nombre, $correo, $password, $colaboradorId, $cn);
             $faseRegistro = 'registro_cuenta';
-            $this->registrarServerCustomer($clientesId, random_int(10000000, 99999999), $database, $validar, 6, $sistema, $cn, $accountId);
+            $account = $this->registrarServerCustomer($clientesId, random_int(10000000, 99999999), $database, $validar, 6, $sistema, $cn, $accountId);
+            $customerCode = (int)$account['codigo_cliente'];
             $safeName = htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8');
 
             $safeCompany = htmlspecialchars($empresa, ENT_QUOTES, 'UTF-8');
@@ -567,7 +568,7 @@ class clientesControlador extends clientesModelo {
 
                 'IZZY | Confirmación de registro',
 
-                "<p>Hola, {$safeName}.</p><p>Recibimos el registro de <strong>{$safeCompany}</strong> en el plan Gratis de IZZY.</p>"
+                "<p>Hola, <strong>{$safeName}</strong>.</p><p>Recibimos el registro de <strong>{$safeCompany}</strong> en el <strong>plan Gratis de IZZY</strong>.</p><p><strong>Código de cliente {$customerCode}</strong>. Guárdelo como referencia para soporte.</p>"
                 . '<p><span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span></p>'
                 . '<p>Estamos configurando el espacio de trabajo y la cuenta de acceso. Cuando estén listos, recibirá otro correo con el enlace y las instrucciones para iniciar sesión.</p>'
                 . '<p>Por ahora puede cerrar el formulario y guardar la contraseña que eligió.</p>'
@@ -1856,7 +1857,7 @@ class clientesControlador extends clientesModelo {
 
             $privilegio_id = 2;
 
-            $tipo_user_id = 1;
+            $tipo_user_id = 2;
 
             $estado = 1;
 

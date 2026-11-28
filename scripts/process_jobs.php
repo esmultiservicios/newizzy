@@ -419,11 +419,11 @@ class JobProcessor {
         $stmt->close();
         $code = $this->getCodigoCliente($id);
         $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-        $html = '<p>Hola, '.$escape($name).'.</p>'
-          .'<p>Su espacio de trabajo <strong>'.$escape($company).'</strong> ya está listo en el plan '.$escape($plan).' de IZZY.</p>'
+        $html = '<p>Hola, <strong>'.$escape($name).'</strong>.</p>'
+          .'<p>Su espacio de trabajo <strong>'.$escape($company).'</strong> ya está listo en el <strong>plan '.$escape($plan).' de IZZY</strong>.</p>'
           .'<p>Antes: <span style="display:inline-block;border-radius:20px;background:#e6f3fb;color:#13466b;padding:5px 12px;font-weight:bold">En preparación</span>'
           .' &nbsp; Ahora: <span style="display:inline-block;border-radius:20px;background:#e6f6ed;color:#146443;padding:5px 12px;font-weight:bold">Acceso habilitado</span></p>'
-          .'<p><strong>Correo de acceso:</strong> '.$escape($to).'<br><strong>Código de cliente:</strong> '.$escape($code).'</p>'
+          .'<p><strong>Correo de acceso:</strong> '.$escape($to).'</p><p><strong>Código de cliente '.$escape($code).'</strong>. Guárdelo como referencia para soporte.</p>'
           .'<p>Inicie sesión con el correo y la contraseña que eligió en el registro. Si necesita establecer otra, utilice «Recuperar contraseña» en el inicio de sesión.</p>'
           .'<p><a href="'.$escape($url).'">Iniciar sesión en IZZY</a></p>'
           .'<p>Bienvenido a IZZY.<br>Equipo de IZZY · ES MULTISERVICIOS</p>';
@@ -545,7 +545,7 @@ class JobProcessor {
         $username = trim((string)($source['username'] ?? ''));
         if ($username === '') $username = $this->generarUsername($source['email'] ?? '', $customerId);
         $email=(string)$source['email']; $password=(string)$source['password'];
-        $privilegio=(int)$source['privilegio_id']; $tipo=(int)$source['tipo_user_id'];
+        $privilegio = 2; $tipo = 2;
         $estado=(int)$source['estado']; $fecha=(string)$source['fecha_registro'];
         if ($existing) {
             if ((int)$existing['users_id'] === 1) throw new RuntimeException('No se debe modificar el usuario de soporte.');
@@ -621,6 +621,7 @@ class JobProcessor {
         $row=$this->getTenantUserByCustomer($connection,$customerId);
         if (!$row || (int)$row['users_id'] === 1 ||
             (int)$row['colaboradores_id'] !== $localColaboradorId ||
+            (int)$row['privilegio_id'] !== 2 || (int)$row['tipo_user_id'] !== 2 ||
             (int)$row['empresa_id'] !== 1 ||
             (int)$row['server_customers_id'] !== $customerId ||
             (string)$row['username'] !== (string)$source['username'] ||

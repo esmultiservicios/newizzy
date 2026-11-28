@@ -3188,6 +3188,47 @@ INSERT INTO `vigencia_cotizacion` (`vigencia_cotizacion_id`, `valor`, `fecha_reg
 (10, '50 Días', '2025-06-30 23:57:53'),
 (11, '55 Días', '2025-06-30 23:57:53');
 
+-- Configura el perfil Administrador exclusivamente con los accesos activos del plan Gratis.
+
+UPDATE acceso_menu AS a
+LEFT JOIN (
+    SELECT DISTINCT menu_id FROM menu_plan WHERE planes_id = 6 AND estado = 1
+) AS permisos ON permisos.menu_id = a.menu_id
+SET a.estado = IF(permisos.menu_id IS NULL, 0, 1)
+WHERE a.privilegio_id = 2;
+
+INSERT INTO acceso_menu (menu_id, privilegio_id, estado, fecha_registro)
+SELECT DISTINCT p.menu_id, 2, 1, NOW()
+FROM menu_plan AS p
+LEFT JOIN acceso_menu AS a ON a.menu_id = p.menu_id AND a.privilegio_id = 2
+WHERE p.planes_id = 6 AND p.estado = 1 AND a.menu_id IS NULL;
+
+UPDATE acceso_submenu AS a
+LEFT JOIN (
+    SELECT DISTINCT submenu_id FROM submenu_plan WHERE planes_id = 6 AND estado = 1
+) AS permisos ON permisos.submenu_id = a.submenu_id
+SET a.estado = IF(permisos.submenu_id IS NULL, 0, 1)
+WHERE a.privilegio_id = 2;
+
+INSERT INTO acceso_submenu (submenu_id, privilegio_id, estado, fecha_registro)
+SELECT DISTINCT p.submenu_id, 2, 1, NOW()
+FROM submenu_plan AS p
+LEFT JOIN acceso_submenu AS a ON a.submenu_id = p.submenu_id AND a.privilegio_id = 2
+WHERE p.planes_id = 6 AND p.estado = 1 AND a.submenu_id IS NULL;
+
+UPDATE acceso_submenu1 AS a
+LEFT JOIN (
+    SELECT DISTINCT submenu1_id FROM submenu1_plan WHERE planes_id = 6 AND estado = 1
+) AS permisos ON permisos.submenu1_id = a.submenu1_id
+SET a.estado = IF(permisos.submenu1_id IS NULL, 0, 1)
+WHERE a.privilegio_id = 2;
+
+INSERT INTO acceso_submenu1 (submenu1_id, privilegio_id, estado, fecha_registro)
+SELECT DISTINCT p.submenu1_id, 2, 1, NOW()
+FROM submenu1_plan AS p
+LEFT JOIN acceso_submenu1 AS a ON a.submenu1_id = p.submenu1_id AND a.privilegio_id = 2
+WHERE p.planes_id = 6 AND p.estado = 1 AND a.submenu1_id IS NULL;
+
 COMMIT;
 
 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW `v_promos_vigentes_producto`  AS SELECT `pr`.`promo_id` AS `promo_id`, `pr`.`empresa_id` AS `empresa_id`, `p`.`productos_id` AS `producto_id`, `pr`.`tipo_descuento` AS `tipo_descuento`, `pr`.`valor` AS `valor`, `pr`.`prioridad` AS `prioridad`, `pr`.`acumula_con_mayoreo` AS `acumula_con_mayoreo` FROM ((`promociones` `pr` join `promo_productos` `pp` on((`pp`.`promo_id` = `pr`.`promo_id`))) join `productos` `p` on((`p`.`productos_id` = `pp`.`producto_id`))) WHERE ((`pr`.`estado` = 1) AND (now() between `pr`.`fecha_inicio` and `pr`.`fecha_fin`) AND ((`pr`.`hora_inicio` is null) OR (`pr`.`hora_fin` is null) OR (cast(now() as time) between `pr`.`hora_inicio` and `pr`.`hora_fin`)) AND ((`pr`.`dias_semana` is null) OR (find_in_set(lower(dayname(now())),`pr`.`dias_semana`) > 0)))union all select `pr`.`promo_id` AS `promo_id`,`pr`.`empresa_id` AS `empresa_id`,`p`.`productos_id` AS `producto_id`,`pr`.`tipo_descuento` AS `tipo_descuento`,`pr`.`valor` AS `valor`,`pr`.`prioridad` AS `prioridad`,`pr`.`acumula_con_mayoreo` AS `acumula_con_mayoreo` from ((`promociones` `pr` join `promo_categorias` `pc` on((`pc`.`promo_id` = `pr`.`promo_id`))) join `productos` `p` on((`p`.`categoria_id` = `pc`.`categoria_id`))) where ((`pr`.`estado` = 1) and (now() between `pr`.`fecha_inicio` and `pr`.`fecha_fin`) and ((`pr`.`hora_inicio` is null) or (`pr`.`hora_fin` is null) or (cast(now() as time) between `pr`.`hora_inicio` and `pr`.`hora_fin`)) and ((`pr`.`dias_semana` is null) or (find_in_set(lower(dayname(now())),`pr`.`dias_semana`) > 0))) union all select `pr`.`promo_id` AS `promo_id`,`pr`.`empresa_id` AS `empresa_id`,`p`.`productos_id` AS `producto_id`,`pr`.`tipo_descuento` AS `tipo_descuento`,`pr`.`valor` AS `valor`,`pr`.`prioridad` AS `prioridad`,`pr`.`acumula_con_mayoreo` AS `acumula_con_mayoreo` from (`promociones` `pr` join `productos` `p` on((`p`.`empresa_id` = `pr`.`empresa_id`))) where ((`pr`.`estado` = 1) and (`pr`.`aplica_a` = 'TODOS') and (now() between `pr`.`fecha_inicio` and `pr`.`fecha_fin`) and ((`pr`.`hora_inicio` is null) or (`pr`.`hora_fin` is null) or (cast(now() as time) between `pr`.`hora_inicio` and `pr`.`hora_fin`)) and ((`pr`.`dias_semana` is null) or (find_in_set(lower(dayname(now())),`pr`.`dias_semana`) > 0)))  ;

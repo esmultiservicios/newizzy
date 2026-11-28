@@ -35,7 +35,7 @@ class DynamicNavbar {
             FROM plan p
             INNER JOIN menu_plan mp ON p.planes_id = mp.planes_id
             INNER JOIN menu m ON mp.menu_id = m.menu_id
-            WHERE m.visible = 1
+            WHERE m.visible = 1 AND mp.estado = 1
             ORDER BY m.orden ASC, m.menu_id ASC";
         
         $result = $this->conexion->query($query);
@@ -58,7 +58,7 @@ class DynamicNavbar {
             FROM plan p
             INNER JOIN submenu_plan sp ON p.planes_id = sp.planes_id
             INNER JOIN submenu sm ON sp.submenu_id = sm.submenu_id
-            WHERE sm.visible = 1 
+            WHERE sm.visible = 1 AND sp.estado = 1 
             AND sm.menu_id = ?
             ORDER BY sm.orden ASC, sm.submenu_id ASC";
         
@@ -85,7 +85,7 @@ class DynamicNavbar {
             FROM plan p
             INNER JOIN submenu1_plan sp1 ON p.planes_id = sp1.planes_id
             INNER JOIN submenu1 sm1 ON sp1.submenu1_id = sm1.submenu1_id
-            WHERE sm1.visible = 1 
+            WHERE sm1.visible = 1 AND sp1.estado = 1 
             AND sm1.submenu_id = ?
             ORDER BY sm1.orden ASC, sm1.submenu1_id ASC";
         

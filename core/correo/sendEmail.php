@@ -410,7 +410,39 @@ class sendEmail {
         $conexion = $this->obtenerConexion();
 
         $correo_tipo_id = (int)$correo_tipo_id;
+        $config = $this->buscarConfiguracionActiva($conexion, $correo_tipo_id);
 
+        if ($config["success"] || empty($config["missing"]) || !in_array($correo_tipo_id, [1, 3], true)) {
+            return $config;
+        }
+
+        $database = $this->databaseName ?? ($GLOBALS['db'] ?? '');
+        if ($database === '' || $database === DB_MAIN) {
+            return $config;
+        }
+
+        // Una configuración local desactivada también es una decisión explícita.
+        $stmt = $conexion->prepare('SELECT 1 FROM correo WHERE correo_tipo_id = ? LIMIT 1');
+        $stmt->bind_param('i', $correo_tipo_id);
+        $stmt->execute();
+        $hasLocalOverride = $stmt->get_result()->num_rows > 0;
+        $stmt->close();
+        if ($hasLocalOverride) {
+            return $config;
+        }
+
+        $main = (new mainModel())->connectionDBLocal(DB_MAIN);
+        $stmt = $main->prepare('SELECT 1 FROM server_customers
+            WHERE db = ? AND sistema_id = 1 AND estado = 1 AND db_imported = 1 LIMIT 1');
+        $stmt->bind_param('s', $database);
+        $stmt->execute();
+        $eligible = $stmt->get_result()->num_rows === 1;
+        $stmt->close();
+
+        return $eligible ? $this->buscarConfiguracionActiva($main, $correo_tipo_id) : $config;
+    }
+
+    private function buscarConfiguracionActiva(mysqli $conexion, int $correo_tipo_id): array {
         $query = "SELECT 
                     correo_id,
                     correo_tipo_id,
@@ -445,15 +477,17 @@ class sendEmail {
         $stmt->execute();
         $resultado = $stmt->get_result();
 
-        if (!$resultado || $resultado->num_rows <= 0) {
+        $row = $resultado ? $resultado->fetch_assoc() : null;
+        $stmt->close();
+        if (!$row) {
             return [
                 "success" => false,
+                "missing" => true,
                 "data" => null,
                 "message" => "No existe configuración de correo activa para el tipo indicado."
             ];
         }
 
-        $row = $resultado->fetch_assoc();
         $row["metodo_envio"] = $this->normalizarMetodoEnvio($row["metodo_envio"]);
 
         return [

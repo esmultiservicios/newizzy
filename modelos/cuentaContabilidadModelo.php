@@ -1,10 +1,6 @@
 <?php
 // cuentaContabilidadModelo.php
-if($peticionAjax){
-    require_once "../core/mainModel.php";
-}else{
-    require_once "./core/mainModel.php";
-}
+require_once __DIR__ . '/../core/mainModel.php';
 
 class cuentaContabilidadModelo extends mainModel{
     protected function agregar_cuenta_contabilidad_modelo($datos){

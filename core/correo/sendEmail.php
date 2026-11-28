@@ -1509,7 +1509,6 @@ class sendEmail {
          * archivo que ya no existe, el encabezado usa la marca IZZY. en texto.
          */
         $urlLogoEmpresa = '';
-        $logoDisponible = false;
 
         // Un cliente de correo no puede cargar imágenes desde localhost, *.test,
         // *.local o *.localhost. En esos entornos se fuerza el fallback textual
@@ -1533,11 +1532,16 @@ class sendEmail {
                 . $logotipoEmpresa;
 
             if (is_file($rutaLogoEmpresa) && is_readable($rutaLogoEmpresa)) {
-                $logoDisponible = true;
                 $urlLogoEmpresa = rtrim(SERVERURL, '/')
                     . '/vistas/plantilla/img/enterprise/'
                     . rawurlencode($logotipoEmpresa);
             }
+        }
+
+        $demoLogoPath = 'vistas/plantilla/img/izzy-logo-correo.png';
+        if ($urlLogoEmpresa === '' && $hostPlantilla === 'demo.izzycloud.app'
+            && is_readable(dirname(__DIR__, 2).'/'.$demoLogoPath)) {
+            $urlLogoEmpresa = rtrim(SERVERURL, '/').'/'.$demoLogoPath;
         }
 
         $datosPlantilla = [
@@ -1553,24 +1557,7 @@ class sendEmail {
         ];
 
         $template = new emailTemplates();
-        $html = $template->plantillaContenido($asunto, $mensaje, $datosPlantilla, $tipo);
-
-        if ($logoDisponible) {
-            return $html;
-        }
-
-        $marcaIzzy = '<div style="font-family:Arial Black,Arial,Helvetica,sans-serif;font-size:42px;line-height:1;font-weight:900;letter-spacing:-3px;color:#1477EF;text-align:center;mso-line-height-rule:exactly;">IZZY.</div>';
-
-        $htmlConIzzy = preg_replace(
-            '/(<div\s+class="izzy-logo-wrap"[^>]*>).*?(<\/div>)/si',
-            '$1'.$marcaIzzy.'$2',
-            $html,
-            1
-        );
-
-        return is_string($htmlConIzzy) && $htmlConIzzy !== ''
-            ? $htmlConIzzy
-            : $html;
+        return $template->plantillaContenido($asunto, $mensaje, $datosPlantilla, $tipo);
     }
 
 }

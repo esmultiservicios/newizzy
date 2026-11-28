@@ -741,12 +741,17 @@ class mainModel
 		}
 	}
 		
-	public function getPlanConfiguracionMainModel(){
+	public function getPlanConfiguracionMainModel(bool $throwOnFailure = false){
         $query = "SELECT pp.configuraciones 
 		FROM planes pp
 		INNER JOIN plan p ON p.planes_id = pp.planes_id";
         
-        $sql = mainModel::connection()->query($query) or die(mainModel::connection()->error);
+        $connection = mainModel::connection();
+        $sql = $connection->query($query);
+        if (!$sql) {
+            if ($throwOnFailure) throw new RuntimeException('No se pudo consultar la configuración del plan.');
+            die($connection->error);
+        }
         
         if($sql->num_rows > 0){
             $row = $sql->fetch_assoc();

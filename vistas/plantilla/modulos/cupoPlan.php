@@ -24,16 +24,21 @@ if (!isset($quotaRoutes[$quotaRoute]) || basename($vistasR) !== $quotaRoute.'-vi
     return;
 }
 [$quotaKey, $quotaModel, $quotaMethod, $quotaLabel] = $quotaRoutes[$quotaRoute];
-$quotaConfig = (new mainModel())->getPlanConfiguracionMainModel();
-if (!isset($quotaConfig[$quotaKey])) {
+try {
+    $quotaConfig = (new mainModel())->getPlanConfiguracionMainModel(true);
+    if (!isset($quotaConfig[$quotaKey])) {
+        return;
+    }
+    require_once __DIR__.'/../../../modelos/'.$quotaModel.'.php';
+    $quotaCounter = new $quotaModel();
+    $quotaUsed = (int)$quotaCounter->$quotaMethod();
+    $quotaLimit = max(0, (int)$quotaConfig[$quotaKey]);
+    if ($quotaKey === 'usuarios') {
+        $quotaLimit += max(0, (int)$quotaCounter->getTotalUsuariosExtras());
+    }
+} catch (Throwable $error) {
+    error_log('IZZY: no se pudo mostrar el cupo en '.$quotaRoute.' ('.get_class($error).').');
     return;
-}
-require_once __DIR__.'/../../../modelos/'.$quotaModel.'.php';
-$quotaCounter = new $quotaModel();
-$quotaUsed = (int)$quotaCounter->$quotaMethod();
-$quotaLimit = max(0, (int)$quotaConfig[$quotaKey]);
-if ($quotaKey === 'usuarios') {
-    $quotaLimit += max(0, (int)$quotaCounter->getTotalUsuariosExtras());
 }
 ?>
 <div class="px-3 pt-3 d-flex flex-wrap align-items-center" role="status">
